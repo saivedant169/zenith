@@ -508,3 +508,10 @@ PKG-03's reviewed supervisor fixes passed21 focused regressions. Its R6 attempt 
 Evidence: [stage-scoped verification and terminal CI](../evidence/PROD-CI-08/2026-10-14-5ca58d93-platform-w-38e98cbb-ci.json).
 
 The MACH-03 coordinator now derives its repository root from its module URL instead of a hardcoded Mac path. Independent source review, Node22 syntax validation and two isolated-location checks passed, including a clone path containing spaces. Source-scope, symlink and authorization checks are unchanged. Fresh coherent source binding and actual registered delivery remain pending; the frozen5ca evidence is not relabelled.
+
+
+## Verifier checkpoint — 14 October 2026
+
+The 34896 exact-SHA CI runs are terminal with 24/32 jobs passed, 8 conditional main-job skips and no failures. Native workers each passed 22/22; both native platform jobs passed. PG3aa passed terminal review for the `platform-postgres` stage only, and the owned-stack cleanup passed terminal P with quarantine clear after proof. These results do not close PROD-CI-08 or product acceptance.
+
+Full R6 was refused at the persistent-copy gate. Test counts, custody and independent review remain pending; no Full acceptance claim is ready for publication. Earlier full/W P reviews lack raw inputs after reboot and are not eligible for new J admission. No builder implementation change is requested by this checkpoint. [Sanitized evidence](../evidence/PROD-CI-08/2026-10-14-34896d10-pg-cleanup-checkpoint.json).

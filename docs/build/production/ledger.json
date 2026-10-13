@@ -2419,6 +2419,30 @@
           "passed": true,
           "result": "Exact-source forkCI24successful/8conditional skipped/0failed jobs of32; unit24722P0F1925S; allrequiredcanonicalidentities passed, nativeworker22eacharchitecture. Scoped remoteevidence; local/default acceptance remains separate.",
           "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-3aa2e655-ci-pkg-checkpoint.json"
+        },
+        {
+          "level": "local_engine",
+          "commit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+          "result": "Native ARM64 macOS PostgreSQL 16.15 platform-postgres stage passed terminal review P: 4,142 passed / 0 failed / 15 skipped (4,157 total); 1,160 required identities, 2,653 required tests and native100 100/100 passed; all 11 held commands closed. Recovery not run; stage evidence only.",
+          "command": "Pinned native PostgreSQL platform-postgres stage wrapper",
+          "environment": "macOS ARM64, Node v22.23.3, PostgreSQL 16.15",
+          "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-14-34896d10-pg-cleanup-checkpoint.json"
+        },
+        {
+          "level": "local_engine",
+          "commit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+          "result": "Cleanup-only terminal review P: 17/17 held commands closed; 10 owned resources removed (7 containers, 1 network, 2 volumes), 0 remaining, 0 forced stops; protected builder preserved; quarantine cleared after proof. No acceptance claim.",
+          "command": "Canonical owned-stack cleanup and post-proof quarantine-clear transaction",
+          "environment": "macOS host and Docker; exact owned stack scope",
+          "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-14-34896d10-pg-cleanup-checkpoint.json"
+        },
+        {
+          "level": "local_engine",
+          "commit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+          "result": "Fresh Full R6 wrapper refused at persistent-copy-failed after Vitest exited 0; the outer exited 2. Test counts and custody are not asserted; independent review pending. Raw runtime remains in private local storage. No acceptance claim.",
+          "command": "Fresh full Node/DOM R6 wrapper with persistent result copy gate",
+          "environment": "macOS ARM64, pinned Node 22; private raw evidence retained locally",
+          "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-14-34896d10-pg-cleanup-checkpoint.json"
         }
       ],
       "requiredEvidence": [
@@ -3191,6 +3215,36 @@
           "passed": true,
           "result": "Exact-source forkCI24successful/8conditional skipped/0failed jobs of32; unit24722P0F1925S; allrequiredcanonicalidentities passed, nativeworker22eacharchitecture. Scoped remoteevidence; local/default acceptance remains separate.",
           "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-3aa2e655-ci-pkg-checkpoint.json"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "34896d103f7336501212b0557883d8f82ab397e4",
+          "result": "Exact-SHA main CI terminal success: 20 passed jobs, 8 conditional jobs skipped, 0 failed (28 total). Conditional skips remain visible.",
+          "command": "Exact-SHA GitHub Actions main workflow",
+          "environment": "GitHub Actions hosted main workflow",
+          "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-14-34896d10-pg-cleanup-checkpoint.json",
+          "runId": 38464602927,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/38464602927"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "34896d103f7336501212b0557883d8f82ab397e4",
+          "result": "Exact-SHA native packaged-worker workflow terminal success: amd64 and arm64 jobs each passed all 22 checks; 2 jobs passed, 0 failed.",
+          "command": "Exact-SHA GitHub Actions packaged-worker workflow",
+          "environment": "GitHub Actions native Linux amd64 and arm64 workers",
+          "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-14-34896d10-pg-cleanup-checkpoint.json",
+          "runId": 38464323635,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/38464323635"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "34896d103f7336501212b0557883d8f82ab397e4",
+          "result": "Exact-SHA native platform workflow terminal success: Linux systemd and Windows ACL jobs both passed; 2 jobs passed, 0 failed.",
+          "command": "Exact-SHA GitHub Actions native platform workflow",
+          "environment": "GitHub Actions Linux systemd and Windows ACL platform jobs",
+          "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-14-34896d10-pg-cleanup-checkpoint.json",
+          "runId": 38464327609,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/38464327609"
         }
       ],
       "requiredEvidence": [

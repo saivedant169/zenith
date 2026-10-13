@@ -1,3 +1,14 @@
+## Current exact-SHA CI / PG / cleanup checkpoint — 14 October 2026
+
+- **PROD-CI-09:** exact-SHA `34896d103f7336501212b0557883d8f82ab397e4` CI is terminal across 32 jobs (24 pass, 8 conditional main-job skips, 0 fail). Native amd64 and arm64 worker checks pass 22/22 each; both platform jobs pass. All 1,686 required identity entries pass across 11 reports; entries may overlap. Append evidence only; existing `verified` state is unchanged.
+- **PROD-CI-08 / PG3aa:** fresh native ARM64 macOS PostgreSQL stage is P-reviewed for `platform-postgres` only: 4,142/0/15 of 4,157; 1,160 required identities, 2,653 required tests and native100 100/100 pass; 11/11 held commands close. Recovery and overall acceptance remain open.
+- **Owned-stack cleanup:** terminal P, 17/17 commands; 10 owned resources removed, 0 remaining, 0 forced stops; protected builder preserved; quarantine clear followed proof. Cleanup is not acceptance.
+- **Full R6:** refused at persistent-copy-failed. Counts, custody and independent review are pending; raw run is retained privately. Earlier full/W P reviews lack raw evidence after reboot and are not eligible for new J admission.
+
+Ledger remains 11 verified / 65 in progress / 2 planned, with all four release flags false. [Evidence](evidence/PROD-CI-08/2026-10-14-34896d10-pg-cleanup-checkpoint.json).
+
+---
+
 ## Exact-source CI and local resource recovery, 14 October 2026
 
 Exact `3aa2e655` CI is terminal: **24 successful jobs / 8 conditional skips / 0 failures across 32**. Node/DOM reported **24,722 passed / 0 failed / 1,925 skipped**; compiler, lint, smoke and production assets passed. All required identities in thirteen canonical main-CI artifacts passed. Native AMD64 and ARM64 workers each passed22 checks; targeted Linux systemd and Windows ACL leaves each passed1/0/0. Counts overlap and are not summed. [Sanitized evidence](evidence/PROD-CI-08/2026-10-14-3aa2e655-ci-pkg-checkpoint.json).

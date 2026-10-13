@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "kind": "oct14_exact_sha_ci_pg_cleanup_checkpoint",
+  "observedAt": "2026-10-14",
+  "primaryHead": "34896d103f7336501212b0557883d8f82ab397e4",
+  "frozenAcceptanceHead": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+  "ci348": {
+    "status": "terminal_all_jobs",
+    "runs": {
+      "main": 38464602927,
+      "nativeWorkers": 38464323635,
+      "nativePlatforms": 38464327609
+    },
+    "counts": {
+      "totalJobs": 32,
+      "passed": 24,
+      "conditionalMainSkips": 8,
+      "failed": 0,
+      "mainJobs": 28,
+      "mainPassed": 20,
+      "nativeWorkerJobs": 2,
+      "nativePlatformJobs": 2
+    },
+    "nativeWorkerChecks": {
+      "amd64Passed": 22,
+      "arm64Passed": 22
+    },
+    "nativePlatformJobsPassed": 2,
+    "sanitizedArtifacts": 17,
+    "gateReports": 11,
+    "requiredIdentityEntries": 1686,
+    "requiredIdentityEntriesPassed": 1686,
+    "identityEntriesMayOverlap": true,
+    "laneTestTotalsAreAdditive": false,
+    "reportSha256": "2d6298c34d73e9b494fc6bdcc2420c2090dfa1d0a8baa5adadbf8eb015f52965",
+    "scope": "Exact-SHA remote CI evidence; conditional skips remain visible; does not establish PROD-CI-08 or product acceptance."
+  },
+  "nativePg3aa": {
+    "status": "passed_terminal_reviewed_stage_only",
+    "scope": "Native ARM64 macOS PostgreSQL 16.15 platform-postgres stage only; recovery not run.",
+    "sourceHead": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+    "sourceCount": 6029,
+    "sourceFreezeSha256": "a41e3acbdf55e2c1d84d594b03afc617a9ce8cdf4b11c5554b84ddb871fed880",
+    "counts": {
+      "passed": 4142,
+      "failed": 0,
+      "skipped": 15,
+      "total": 4157,
+      "requiredIdentityEntriesPassed": 1160,
+      "requiredTestsPassed": 2653,
+      "native100Passed": 100
+    },
+    "heldCommands": {
+      "closed": 11,
+      "total": 11
+    },
+    "outerReceiptSha256": "8fdf4aec2e5c13ce1c77acbd9d9c16e16ed1ab104b1cd8112a9d09d15bd76298",
+    "terminalReviewSha256": "9bdfd19839c5bf78ff1ccf78e9873a3c8897eb977888d88487fbcb9185811c7c",
+    "acceptance": false,
+    "rawBackupRetainedBytes": 136175241
+  },
+  "stackCleanup": {
+    "status": "cleanup_only_passed_terminal_reviewed",
+    "terminalDisposition": "P",
+    "heldCommands": {
+      "passed": 17,
+      "total": 17
+    },
+    "ownedResourcesRemoved": {
+      "total": 10,
+      "containers": 7,
+      "networks": 1,
+      "volumes": 2
+    },
+    "remainingOwnedResources": 0,
+    "forcedStops": 0,
+    "cleanupReceiptSha256": "fc7e0fe0d0a9ad92993dd696d99cd19f760444b8d0bbf5e20d11cb814e43df39",
+    "terminalReviewSha256": "16ef6f5a3ff7ebae4e44f9381a6431eb05795a5685e9b5c723bfcd90f07014a9",
+    "quarantineClearedAfterProof": true,
+    "quarantineClearSha256": "fe37c3ad024963e614abb62da4096cb91b0eda1913667e00d263b4dc44cb2d6d",
+    "protectedBuilderPreserved": true,
+    "acceptance": false
+  },
+  "cleanupReviewChain": {
+    "historicalReferenceSha256": "b96fb0b4f62ff4dc151b6c6b01c44dff9ca7b7e9acf32d6aa1e736b12cc3bd4d",
+    "historicalReferenceBytesAvailable": false,
+    "limitationRecordSha256": "d00c97a39255b61844606eca5ef52632e161df06d4bd3bc6dbe9a338ec643331",
+    "currentImmutablePassCopySha256": "7521ef62a9e309d97b7d079b3aa7afe4a8f3361b97e16e8902c938684f34e1b0",
+    "note": "Keep the historical byte-availability limitation; do not reconstruct or claim old referenced bytes."
+  },
+  "fullCoreHistorical": {
+    "sourceHead": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+    "historicalCounts": {
+      "passed": 24704,
+      "failed": 0,
+      "skipped": 1943,
+      "total": 26647
+    },
+    "historicalReview": "P retained; raw summary and custody inputs lost after reboot.",
+    "eligibleForNewJAdmission": false
+  },
+  "wArm64Historical": {
+    "sourceHead": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+    "historicalReview": "P retained; raw receipts lost after reboot.",
+    "eligibleForNewJAdmission": false
+  },
+  "currentFullR6": {
+    "status": "refused_persistent_copy_failed",
+    "failureCode": "persistent-copy-failed",
+    "testCountsClaimed": false,
+    "custodyClaimed": false,
+    "independentReview": "pending",
+    "rawRuntimePreservedInPrivateLocalStorage": true,
+    "persistentTerminalResultSha256": "26e3574f1bf3013bd45313a3490657ea01c97b5b290ddf9b468caab5f5bb5aec",
+    "acceptance": false,
+    "note": "A zero process exit does not override the wrapper refusal. Do not claim test counts, custody completion, or Full acceptance until independent review.",
+    "vitestExitCode": 0,
+    "outerExitCode": 2
+  },
+  "ledgerProposal": {
+    "PROD-CI-08": {
+      "state": "in_progress",
+      "stateChange": false,
+      "appendScopedEvidenceOnly": true
+    },
+    "PROD-CI-09": {
+      "state": "verified",
+      "stateChange": false,
+      "appendExactShaRemoteEvidence": true
+    },
+    "summary": {
+      "verified": 11,
+      "inProgress": 65,
+      "planned": 2,
+      "releaseFlags": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "promotion": false
+    }
+  },
+  "acceptance": false,
+  "milestonePromotion": false,
+  "sanitization": "Private paths, raw logs, credentials, environment dumps, and secret contents omitted."
+}

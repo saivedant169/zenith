@@ -1,3 +1,15 @@
+## Exact-SHA CI, PG3aa and cleanup checkpoint — 14 October 2026
+
+Exact-SHA CI on primary `34896d103f7336501212b0557883d8f82ab397e4` is terminal across 32 jobs: **24 passed / 8 conditional main-job skips / 0 failed**. The two native worker jobs each passed 22/22 checks (amd64 and arm64), and both native platform jobs passed. Seventeen sanitized artifacts and 11 gate reports record 1,686/1,686 required identity entries passed; entries may overlap, so lane test totals are not additive. This appends exact-SHA remote evidence to already-verified PROD-CI-09 without changing its state.
+
+Fresh native ARM64 macOS PostgreSQL 16.15 `platform-postgres` evidence on frozen `3aa2e655a0b869a2458d9e69dde4a3948888f9a5` passed independent terminal review P for that stage only: **4,142 passed / 0 failed / 15 skipped (4,157 total)**, all 1,160 required identities and 2,653 required tests passed, with native100 at 100/100 and all 11 held commands closed. Recovery and overall acceptance remain unproven. Owned-stack cleanup passed independent terminal review P: 17/17 held commands closed, 10 owned resources removed (7 containers, 1 network, 2 volumes), zero remaining and zero forced stops; the protected builder was preserved, and quarantine was cleared after proof.
+
+The latest fresh Full R6 ended **refused** at the persistent-copy gate. Vitest exited 0 and the outer exited 2; the test exit does not establish acceptance; test counts, custody, and independent review remain pending. The original raw run remains in private local storage. Earlier 24,704/0/1,943 full-core and W ARM64 P reviews remain historical only because raw evidence was lost after reboot; neither is eligible for new J admission. No Full acceptance is claimed.
+
+Ledger remains **11 verified / 65 in progress / 2 planned (14.1%)**. PROD-CI-08 remains `in_progress`; PROD-CI-09 remains `verified`; all four release flags remain false. [Sanitized exact-SHA CI, PG, cleanup and refusal evidence](evidence/PROD-CI-08/2026-10-14-34896d10-pg-cleanup-checkpoint.json).
+
+---
+
 ## Exact-source CI and local resource recovery, 14 October 2026
 
 Exact `3aa2e655` CI is terminal: **24 successful jobs / 8 conditional skips / 0 failures across 32**. Node/DOM reported **24,722 passed / 0 failed / 1,925 skipped**; compiler, lint, smoke and production assets passed. All required identities in thirteen canonical main-CI artifacts passed. Native AMD64 and ARM64 workers each passed22 checks; targeted Linux systemd and Windows ACL leaves each passed1/0/0. Counts overlap and are not summed. [Sanitized evidence](evidence/PROD-CI-08/2026-10-14-3aa2e655-ci-pkg-checkpoint.json).

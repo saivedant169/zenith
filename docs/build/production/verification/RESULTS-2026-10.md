@@ -1653,3 +1653,16 @@ PKG-03's reviewed supervisor fixes passed21 focused regressions. Its R6 attempt 
 Evidence: [stage-scoped verification and terminal CI](../evidence/PROD-CI-08/2026-10-14-5ca58d93-platform-w-38e98cbb-ci.json).
 
 The MACH-03 coordinator now derives its repository root from its module URL instead of a hardcoded Mac path. Independent source review, Node22 syntax validation and two isolated-location checks passed, including a clone path containing spaces. Source-scope, symlink and authorization checks are unchanged. Fresh coherent source binding and actual registered delivery remain pending; the frozen5ca evidence is not relabelled.
+
+
+## Exact-SHA CI, PG3aa, cleanup and Full R6 disposition — 14 October 2026
+
+Exact-SHA CI on `34896d103f7336501212b0557883d8f82ab397e4` is terminal across 32 jobs: 24 passed, 8 conditional main-job skips, and 0 failed. Both native worker jobs passed 22/22 checks on amd64 and arm64; Linux systemd and Windows ACL platform jobs passed. Seventeen sanitized artifacts and 11 gate reports record 1,686/1,686 required identity entries passed. Entries may overlap, and per-lane test totals are not additive. PROD-CI-09 remains verified; this adds remote CI evidence only.
+
+Fresh native ARM64 macOS PostgreSQL 16.15 on frozen `3aa2e655a0b869a2458d9e69dde4a3948888f9a5` passed terminal review P for the `platform-postgres` stage only: 4,142 passed, 0 failed, 15 skipped (4,157 total); all 1,160 required identities and 2,653 required tests passed, including native100 100/100. Eleven held commands closed. Recovery was not run, so this is not overall acceptance.
+
+Owned-stack cleanup passed independent terminal review P: 17/17 held commands closed, 10 owned resources removed (7 containers, 1 network, 2 volumes), 0 remaining and 0 forced stops. The protected builder was preserved; quarantine clear followed proof. This is cleanup-only evidence.
+
+Fresh Full R6 is **refused** at `persistent-copy-failed`. Vitest returned 0 and the outer returned 2; the terminal status is refusal because the persistent copy gate failed. Test counts and custody are not asserted here; independent review is pending. Original raw execution remains in private local storage. No Full acceptance claim. Earlier full-core 24,704/0/1,943 and W ARM64 P reviews are historical only: raw summaries/receipts and custody inputs were lost after reboot, so those reviews are not eligible for new J admission.
+
+The cleanup review records that the prior `b96fb0b4…` reference bytes are unavailable. Preserve the limitation record and current immutable PASS copy reference; do not reconstruct old bytes. Ledger remains 11 verified / 65 in progress / 2 planned, with all four release flags false and no criterion or milestone promotion. [Sanitized evidence](../evidence/PROD-CI-08/2026-10-14-34896d10-pg-cleanup-checkpoint.json).

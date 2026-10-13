@@ -199,7 +199,7 @@ describe("clean-host restore", () => {
     target = await openEmptyScratchDatabase();
     const incidentAt = new Date(Date.parse(manifest.platform.snapshotAt) + 90_000).toISOString();
     const options = restoreOptions(target.url, { runId: runIdForTarget, incidentAt, observedEpoch: 2 });
-    const report = await runRestore(restoreDeps(), options);
+    const report = await runRestore(restoreDeps({ env: {} }), options);
     expect(report.steps.map((s) => `${s.id}:${s.status}`)).toEqual(expect.arrayContaining(["verify:ok", "gates:ok", "keys:ok", "empty:ok", "restore:ok", "migrate:ok", "facts:ok", "epoch:ok"]));
     expect(report.ok).toBe(true);
     expect(report.epoch).toBe(3);
@@ -208,7 +208,7 @@ describe("clean-host restore", () => {
     // measured, not asserted
     expect(report.measurement).toMatchObject({ rpoSeconds: 90, incidentAt });
     expect(report.measurement!.restoreDurationSeconds).toBeGreaterThan(0);
-    expect(report.measurement!.targets.status).toBe("unset");
+    expect(report.measurement!.targets.status).toBe("target");
     expect(report.continuation).toMatchObject({ epoch: 3, opened: 5, pending: 5 });
     const written = JSON.parse(await readFile(options.reportFile, "utf8")) as { ok: boolean; runId: string };
     expect(written).toMatchObject({ ok: true, runId: runIdForTarget });

@@ -35,8 +35,9 @@ describe.each(LANES)("services [$name]", (lane) => {
   describe("withLease", () => {
     it("runs under the lease, hands fn the lease and a live signal, and releases afterwards", async () => {
       const s = scope();
+      const [floor] = await db().query<{ fence_token: number }>("select platform.recovery_fence_floor() as fence_token");
       const value = await withLease(db(), { scope: s, holder: "worker-a", ttlMs: 5_000 }, async (lease, signal) => {
-        expect(lease).toMatchObject({ scope: s, holder: "worker-a", fenceToken: 1 });
+        expect(lease).toMatchObject({ scope: s, holder: "worker-a", fenceToken: floor.fence_token });
         expect(signal.aborted).toBe(false);
         expect((await repos.leases.current(db(), s))?.holder).toBe("worker-a");
         return "done";
@@ -172,10 +173,11 @@ describe.each(LANES)("services [$name]", (lane) => {
     it("appends lease.acquired and lease.released events when asked to audit", async () => {
       const ws = newWorkspace();
       const correlationId = newCorrelationId();
+      const [floor] = await db().query<{ fence_token: number }>("select platform.recovery_fence_floor() as fence_token");
       await withLease(db(), { scope: scope(), holder: "w", ttlMs: 5_000, workspaceId: ws, audit: { workspaceId: ws, correlationId, environmentId: "env_1" } }, async () => undefined);
       const events = await repos.events.list(db(), ws, { correlationId });
       expect(events.map((e) => e.type)).toEqual(["lease.acquired", "lease.released"]);
-      expect(events[0].data).toMatchObject({ holder: "w", fenceToken: 1 });
+      expect(events[0].data).toMatchObject({ holder: "w", fenceToken: floor.fence_token });
     });
   });
 

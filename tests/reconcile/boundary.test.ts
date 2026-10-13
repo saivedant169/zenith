@@ -37,6 +37,8 @@ const PLATFORM_ALLOWED = [
   /^@\/lib\/capabilities\/catalog$/,
   /^@\/lib\/resources(\/types)?$/,
   /^@\/lib\/incidents\/stability$/,
+  // The platform adapter emits approved managed-runtime observations to the SLO recorder.
+  /^@\/lib\/slo\/recorder$/,
 ];
 
 describe("reconcile module boundaries", () => {
@@ -55,7 +57,7 @@ describe("reconcile module boundaries", () => {
   it("the store adapter imports only repositories, the lease service and contracts", () => {
     for (const f of platform)
       for (const spec of importsOf(read(f, path.join(ROOT, "platform")))) expect(PLATFORM_ALLOWED.some((re) => re.test(spec)), `platform/${f} imports ${spec}`).toBe(true);
-    for (const spec of ["@/lib/incidents", "@/lib/incidents/controller", "@/lib/incidents/stability-extra", "@/lib/controlplane/digest-extra", "node:fs", "@/lib/db/store"])
+    for (const spec of ["@/lib/incidents", "@/lib/incidents/controller", "@/lib/incidents/stability-extra", "@/lib/controlplane/digest-extra", "node:fs", "@/lib/db/store", "@/lib/slo", "@/lib/slo/store", "@/lib/slo/recorder-extra"])
       expect(PLATFORM_ALLOWED.some((re) => re.test(spec)), `adapter refuses ${spec}`).toBe(false);
   });
 

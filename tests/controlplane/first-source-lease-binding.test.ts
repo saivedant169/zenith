@@ -279,6 +279,7 @@ describe.skipIf(!PG_URL)("first source worker lease binding [postgres]",()=>{
   },10_000);
   it("two genuine owning acquisitions crossing an absent-row collision retain one same-holder fence and one consumed approval",async()=>{
     const f=await fixture();let count=0,entered!:()=>void,released!:()=>void;
+    const [floor]=await observer.query<{fence_token:number}>("select platform.recovery_fence_floor() as fence_token");
     const reached=new Promise<void>(resolve=>{entered=resolve;}),release=new Promise<void>(resolve=>{released=resolve;});
     const arrive=()=>{if(++count===2)entered();};
     const first=createLeasesPort(heldMissingLeaseLock(db,arrive,release)).acquire(f.request);
@@ -288,9 +289,9 @@ describe.skipIf(!PG_URL)("first source worker lease binding [postgres]",()=>{
       expect(count).toBe(2);expect(await observer.query("select scope from platform.leases where workspace_id=$1 and scope=$2",[f.workspaceId,f.scope])).toEqual([]);
     } finally {released();}
     const leases=await Promise.all([first,second]);expect(leases[0]).not.toBeNull();expect(leases[1]).not.toBeNull();
-    expect(leases[0]!.fenceToken).toBe(1);expect(leases[1]!.fenceToken).toBe(leases[0]!.fenceToken);
-    expect(await pair(f)).toEqual([{lease_scope:f.scope,fence_token:1}]);
+    expect(leases[0]!.fenceToken).toBe(floor.fence_token);expect(leases[1]!.fenceToken).toBe(leases[0]!.fenceToken);
+    expect(await pair(f)).toEqual([{lease_scope:f.scope,fence_token:floor.fence_token}]);
     expect(await observer.query("select workspace_id,holder,fence_token from platform.leases where scope=$1",[f.scope]))
-      .toEqual([{workspace_id:f.workspaceId,holder:f.holder,fence_token:1}]);await unchangedApprovals(f);
+      .toEqual([{workspace_id:f.workspaceId,holder:f.holder,fence_token:floor.fence_token}]);await unchangedApprovals(f);
   },10_000);
 });

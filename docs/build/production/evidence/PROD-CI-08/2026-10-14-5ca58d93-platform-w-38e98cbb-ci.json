@@ -1,0 +1,430 @@
+{
+  "schemaVersion": 1,
+  "kind": "5ca58d93_platform_w_and_38e98cbb_ci_checkpoint",
+  "observedAt": "2026-10-14",
+  "acceptance": false,
+  "milestonePromotion": false,
+  "sources": {
+    "frozenPrimary": {
+      "commit": "5ca58d93a69d75260e291bd3cbc7593dd609daf4",
+      "sourceCount": 6025,
+      "sourceFreezeSha256": "42168398f605acae32208e89f7592af9d17a2ffe1ef91b13ac90553f8e14d483"
+    },
+    "forkCi": {
+      "commit": "38e98cbb9ff3741ce85fd67b0d8821ef305c72de",
+      "relationship": "separate CI source; the R6 platform and W evidence below remain bound to 5ca58d93"
+    }
+  },
+  "platformPostgresR6": {
+    "sourceCommit": "5ca58d93a69d75260e291bd3cbc7593dd609daf4",
+    "status": "P",
+    "scope": "canonical platform-postgres stage only",
+    "gate": {
+      "passed": 4142,
+      "failed": 0,
+      "skipped": 15,
+      "executionExitCode": 0,
+      "sourceBindingComplete": true,
+      "requiredIdentities": 1160,
+      "allRequiredIdentitiesPassed": true
+    },
+    "outerReceiptStatus": "passed",
+    "outerReceiptAcceptanceClaim": false,
+    "outerReceiptSha256": "0999472866d7ab8e8d2598c1ebbfe888de5f32d7c2ab52196e84b26585e39dc0",
+    "reviewJsonSha256": "8d5e6e4d107a6583861cfada66c57d6f4481da3c8b779c526ff2ba3bff715ef0",
+    "reviewMarkdownSha256": "630e098a01fd5619ead37b633a621496c5179275a74b8c3181c9e227f317da00",
+    "limitations": "No deployed PostgREST/RLS non-bypass role, connection pooler, or PostgreSQL versions beyond pinned 16.15. This is not CI08 milestone acceptance."
+  },
+  "wImageBuild": {
+    "sourceCommit": "5ca58d93a69d75260e291bd3cbc7593dd609daf4",
+    "status": "P",
+    "scope": "local W image-build lane only; no full J4 or product acceptance",
+    "architecture": "arm64",
+    "buildExitCode": 0,
+    "push": false,
+    "imageDigest": "sha256:c0f922573926823d50381596040cb3578e71328664bbae1bb5c05a7e7e38107d",
+    "inputSummarySha256": "4a3ee7cfdcc9606dd241f71f45467eccea3fabdcf335d8c693b1135fdd910812",
+    "reviewJsonSha256": "9799f0066a26e70524af2491d6cff4f7d9b4213ee0071a43fa3c7bf411f1fa06",
+    "reviewMarkdownSha256": "2900c75dcf3b21bc40a2e7dc1e465270682755d1dc64e4b9de7f3bd613c928ac",
+    "sourceFreezeSha256": "42168398f605acae32208e89f7592af9d17a2ffe1ef91b13ac90553f8e14d483"
+  },
+  "exactSourceCiSnapshot": {
+    "sourceCommit": "38e98cbb9ff3741ce85fd67b0d8821ef305c72de",
+    "repository": "saivedant169/zenith",
+    "snapshotStatus": "all 32 jobs terminal",
+    "main": {
+      "runId": 38442639210,
+      "status": "completed_success",
+      "success": 20,
+      "conditionalSkipped": 8,
+      "failed": 0
+    },
+    "combinedSnapshot": {
+      "passed": 24,
+      "conditionalSkipped": 8,
+      "running": 0,
+      "failed": 0
+    },
+    "runs": [
+      {
+        "id": 38442639210,
+        "workflow": "CI",
+        "status": "completed",
+        "conclusion": "success",
+        "headSha": "38e98cbb9ff3741ce85fd67b0d8821ef305c72de",
+        "event": "workflow_dispatch",
+        "branch": "codex/production-2026-10-02",
+        "url": "https://github.com/saivedant169/zenith/actions/runs/38442639210",
+        "jobs": [
+          {
+            "id": 115452858597,
+            "name": "verify",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 115452858904,
+            "name": "tofu",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 115452858932,
+            "name": "docker",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 115452858935,
+            "name": "supply-chain",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 115452859009,
+            "name": "ledger",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 115452859019,
+            "name": "postgres",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 115452859034,
+            "name": "operation-gates (workflow-intents)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 115452859058,
+            "name": "generated",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 115452859069,
+            "name": "operation-gates (reconciliation)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 115452859098,
+            "name": "platform-postgres",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 115452859113,
+            "name": "workflows",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 115452859167,
+            "name": "wave5-contract",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 115452859193,
+            "name": "go",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 115452859195,
+            "name": "agent",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 115452859209,
+            "name": "recovery",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 115452859237,
+            "name": "hosted",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 115452859255,
+            "name": "adversarial",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 115452859284,
+            "name": "build",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 115452859294,
+            "name": "policy",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 115452859360,
+            "name": "workflow-history-replay",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 115452860488,
+            "name": "j15-operated-restore",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "id": 115452860510,
+            "name": "drv1-update-rollback",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "id": 115452860540,
+            "name": "drv2-drift-repair",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "id": 115452860610,
+            "name": "drv2-crash-partition",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "id": 115452861337,
+            "name": "drv1-private-source",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "id": 115452861672,
+            "name": "drivers-d4-export",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "id": 115452914919,
+            "name": "drivers-d4-two-tenants",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "id": 115452916264,
+            "name": "j15-operated-upgrade",
+            "status": "completed",
+            "conclusion": "skipped"
+          }
+        ]
+      },
+      {
+        "id": 38442643477,
+        "workflow": "Native packaged workers",
+        "headSha": "38e98cbb9ff3741ce85fd67b0d8821ef305c72de",
+        "status": "completed",
+        "conclusion": "success",
+        "event": "workflow_dispatch",
+        "branch": "codex/production-2026-10-02",
+        "url": "https://github.com/saivedant169/zenith/actions/runs/38442643477",
+        "jobs": [
+          {
+            "id": 115452870221,
+            "name": "packaged-worker (amd64, ubuntu-24.04)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 115452870418,
+            "name": "packaged-worker (arm64, ubuntu-24.04-arm)",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 38442647772,
+        "workflow": "Native skipped platforms",
+        "headSha": "38e98cbb9ff3741ce85fd67b0d8821ef305c72de",
+        "status": "completed",
+        "conclusion": "success",
+        "event": "workflow_dispatch",
+        "branch": "codex/production-2026-10-02",
+        "url": "https://github.com/saivedant169/zenith/actions/runs/38442647772",
+        "jobs": [
+          {
+            "id": 115452886733,
+            "name": "linux-systemd",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 115452887050,
+            "name": "windows-acl",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      }
+    ],
+    "nativeEvidence": {
+      "workers": [
+        {
+          "artifact": "packaged-worker-amd64-38442643477-1",
+          "architecture": "linux/amd64",
+          "status": "passed",
+          "checkCount": 22,
+          "allPassed": true
+        },
+        {
+          "artifact": "packaged-worker-arm64-38442643477-1",
+          "architecture": "linux/arm64",
+          "status": "passed",
+          "checkCount": 22,
+          "allPassed": true
+        }
+      ],
+      "platforms": [
+        {
+          "artifact": "skipped-platform-systemd-38e98cbb9ff3741ce85fd67b0d8821ef305c72de",
+          "leaf": "TestRealSystemctlAndJournalctl",
+          "status": "passed",
+          "passed": 1,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "artifact": "skipped-platform-windows-38e98cbb9ff3741ce85fd67b0d8821ef305c72de",
+          "leaf": "private login config Windows refuses inherited ACLs that grant other identities access",
+          "status": "passed",
+          "passed": 1,
+          "failed": 0,
+          "skipped": 0
+        }
+      ]
+    },
+    "reportJsonSha256": "23b8847b0d4fba093fa4f281de7ef8a574fe6cb084fc827e8a81b2b1f74f1151",
+    "limitations": "Eight operated jobs remain conditional skips; targeted Windows ACL evidence excludes 15 sibling cases. Job success does not assert zero skipped tests."
+  },
+  "recoveryR6": {
+    "status": "REFUSED",
+    "acceptanceClaim": false,
+    "reason": "native-pg-stage-held-command-refused",
+    "metadataIdentityConfirmationFailed": 1,
+    "heldCloseoutIncomplete": true,
+    "forensicReview": "completed; refusal preserved; all 59 tracked PIDs absent in two snapshots and signal-zero probes",
+    "receiptSha256": "763f49e9a3328af76b6a3144dbcd030e55418db77f9e8e1ea45bba691c58329b",
+    "scopeNote": "An earlier R6 stage P does not make this separate recovery R6 pass.",
+    "innerGate": {
+      "passed": 10,
+      "failed": 0,
+      "requiredIdentities": 3,
+      "strictValidationExit": 0
+    },
+    "credentialFilesAbsent": true,
+    "tsxPostflightPassed": true,
+    "reviewSha256": "cc3a607c91b1ac56959835c1ecf287439a514c45d8c9a939ce39c42332d975a6"
+  },
+  "preparedButUnrun": {
+    "pkgOuter": {
+      "status": "R6 actual attempt refused on host memory pressure; owned builder cleanup pending",
+      "outerSha256": "17c6599e62e3faad489ad0bf11b1c995a09703f70a113850a18743f1692c90d8",
+      "subjectSha256": "6a0b9a6fe06988030e1183c76b6fab478fec4ca4fcfb6952ec076d545ce4d8b5",
+      "sourceReviewSha256": "5a4db0559bc2d98ba86cdee41512229327d9a9666670cdfcad91d96fa0cc1080",
+      "focusedRegressions": {
+        "passed": 21,
+        "failed": 0,
+        "skipped": 0,
+        "durationSeconds": 0.058,
+        "scope": "pure monitor/native-peer/private-log/recorded-builder-census regressions; no product acceptance"
+      },
+      "actualAttempt": {
+        "status": "refused",
+        "outerReceiptSha256": "e032bd0b7626ad36bb7b09246c781df83b0848fdf91e3de13ecbf245434ee43c",
+        "reason": "pressure-monitor-host-memory-pressure-not-normal",
+        "subjectExitCode": -15,
+        "strictCloseoutComplete": false,
+        "packagedHarness": {
+          "status": "failed",
+          "phase": "fresh-image-build",
+          "exitCode": 130,
+          "completedChecks": 0,
+          "createdHarnessResourcesRemoved": true
+        },
+        "minHostDiskBytes": 247763808256,
+        "maxDockerRunningUsageBytes": 689004544,
+        "hostPressureRequired": 1,
+        "hostPressureObserved": 2,
+        "cleanupStatus": "cleanup-only passed and independently terminal-reviewed; exact owned builder/container/volume absent, unrelated current baseline preserved",
+        "cleanupReceiptSha256": "c2b9813515f12fdd6e886e1874849882a32898bcf1e4760948232445c54806a7",
+        "cleanupCommands": 19,
+        "cleanupMinHostDiskBytes": 249398112256,
+        "cleanupReviewSha256": "d97147fbd614555b5253f34db7040937d3c697f3860c982e20b523886ce8f7a0"
+      }
+    },
+    "jku": {
+      "status": "source-bound P; ready; unrun",
+      "manifestSha256": "a593d598cf06f7102c65b16258006924893eadf7bf93d20fca8e93eb420747f9"
+    },
+    "mach03PostJ2": {
+      "status": "bounded source dependency plan ready; execution depends on actual future J1/J4/J2 and kind-handoff receipts",
+      "planSha256": "34744759e73318f3e70ba92310d445ffc66545420f17d567ba8e89efc947945e"
+    }
+  },
+  "ledger": {
+    "verified": 11,
+    "inProgress": 65,
+    "planned": 2,
+    "releaseFlags": [
+      false,
+      false,
+      false,
+      false
+    ],
+    "milestonePromotion": false
+  },
+  "sanitization": "Private paths, raw logs, credentials, and URLs omitted. CI, platform R6, W, recovery R6, PKG, and JKU claims remain source- and stage-scoped.",
+  "mach03CoordinatorPortability": {
+    "preimageSha256": "691910e3ea6ceee457b3bd107433c0d182a119d25f637aedca98d238f995932a",
+    "postimageSha256": "12b22ba6c741f9c613624978fc3caea7ff588b1c0ba7c0657b9f6150ba1f3a16",
+    "reviewSha256": "abd2fa05c631dc52bd5e368616bf9d8e3f4f57024e80c6b56072c30b09e7ede3",
+    "validation": {
+      "node": "22.23.3",
+      "syntaxExit": 0,
+      "isolatedModuleLocationChecksPassed": 2,
+      "failed": 0,
+      "includesSpaceInClonePath": true,
+      "eslintExit": 0
+    },
+    "runtimeAcceptance": false,
+    "note": "Repository root now derives from coordinator module URL; relative imports, source-scope, symlink and authorization checks remain. New published source must be coherently bound before MACH03 execution; frozen5ca proof is not relabelled."
+  }
+}

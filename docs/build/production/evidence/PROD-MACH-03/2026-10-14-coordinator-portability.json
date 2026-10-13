@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "requirement": "PROD-MACH-03",
+  "scope": "coordinator checkout portability only",
+  "acceptance": false,
+  "candidateBaseCommit": "38e98cbb9ff3741ce85fd67b0d8821ef305c72de",
+  "candidateWasUncommittedDuringChecks": true,
+  "preimageSha256": "691910e3ea6ceee457b3bd107433c0d182a119d25f637aedca98d238f995932a",
+  "postimageSha256": "12b22ba6c741f9c613624978fc3caea7ff588b1c0ba7c0657b9f6150ba1f3a16",
+  "reviewSha256": "abd2fa05c631dc52bd5e368616bf9d8e3f4f57024e80c6b56072c30b09e7ede3",
+  "validation": {
+    "node": "22.23.3",
+    "syntaxExit": 0,
+    "isolatedModuleLocationChecksPassed": 2,
+    "failed": 0,
+    "includesSpaceInClonePath": true,
+    "eslintExit": 0
+  },
+  "runtimeAcceptance": false,
+  "note": "Repository root now derives from coordinator module URL; relative imports, source-scope, symlink and authorization checks remain. New published source must be coherently bound before MACH03 execution; frozen5ca proof is not relabelled."
+}

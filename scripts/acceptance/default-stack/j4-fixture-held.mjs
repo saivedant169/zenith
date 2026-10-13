@@ -6,6 +6,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { load as yamlLoad } from 'js-yaml';
@@ -15,7 +16,7 @@ import { prepareTarget } from './j4-fixture-target.mjs';
 import { prepare as prepareLocalKind } from '../../../tests/e2e/default/prepare.mjs';
 import { docker, kubeconfig } from '../../../tests/e2e/default/support.mjs';
 
-const ROOT = '/Users/saivedanthava/Documents/zenith';
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const FIXED_ENV = Object.freeze({
   HOME: '/Users/saivedanthava',
   PATH: '/Applications/Docker.app/Contents/Resources/bin:/Users/saivedanthava/.local/share/zenith-verifier/bin:/usr/bin:/bin',

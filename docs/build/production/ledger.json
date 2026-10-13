@@ -2400,6 +2400,18 @@
           "commit": "5ca58d93a69d75260e291bd3cbc7593dd609daf4",
           "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-13-6d03043f-ci-pg-checkpoint.json",
           "result": "NativePGinner4142P0F15allowedS and strict steps passed but outerREFUSED128-session tracking overflow; never accepted. Subsequent current-absence151PID reviewP does not repair historical custody. Fresh calibrated supervisor retry pending. Scoped ARM64Wbuild independently terminal-reviewedP; no fullJ4acceptance."
+        },
+        {
+          "level": "remote_ci",
+          "commit": "38e98cbb9ff3741ce85fd67b0d8821ef305c72de",
+          "result": "Exact-source fork CI: 24 successful jobs, 0 failed, 8 conditional operated skips across 32 terminal jobs. Native AMD64 and ARM64 packaged workers22 checks each; native systemd/Windows targeted leaves pass. No operated acceptance or milestone promotion.",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-5ca58d93-platform-w-38e98cbb-ci.json"
+        },
+        {
+          "level": "local_engine",
+          "commit": "5ca58d93a69d75260e291bd3cbc7593dd609daf4",
+          "result": "Canonical native PostgreSQL R6 stage4142P0F15allowedS,1160 required identities including native100 exact; independently reviewed complete custody/source/floors/cleanup. W image build separately P. Local recovery inner10P but outerREFUSED; no full CI08 acceptance.",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-5ca58d93-platform-w-38e98cbb-ci.json"
         }
       ],
       "requiredEvidence": [
@@ -2426,7 +2438,7 @@
         "PROD-CI-04",
         "PROD-CI-05"
       ],
-      "implementationStatus": "Historical green baseline remains verified; latest completed pre-integration f73 CI23success8conditional-skips1Go-failure. Integrated35ef7804 awaits fresh exact-source CI; no current green claim.",
+      "implementationStatus": "verified_38e98cbb",
       "evidence": [
         {
           "level": "remote_ci",
@@ -3157,6 +3169,14 @@
           "result": "Terminal23successfuljobs8conditional-skips1Go-PID1failure across32jobs. Verify24609P1925S0F; both native workflows2P each. PID1 artifact observes init, not a proven later systemd transition. Historical verified status preserved; new integrated source CI pending.",
           "artifact": "docs/build/production/evidence/PROD-CI-09/2026-10-12-f73-terminal-ci-pid1.json",
           "executionReceiptComplete": false
+        },
+        {
+          "level": "remote_ci",
+          "commit": "38e98cbb9ff3741ce85fd67b0d8821ef305c72de",
+          "runId": 38442639210,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/38442639210",
+          "result": "All three exact-source workflows terminal:24successful/0failed/8conditional operated skips across32jobs. Main20P; nativeworkers2P (22checks perarchitecture); nativeplatforms2P. Existingverifiedstate retained; no operated/cloud acceptance.",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-5ca58d93-platform-w-38e98cbb-ci.json"
         }
       ],
       "requiredEvidence": [
@@ -4955,6 +4975,14 @@
           "environment": "This8GiB Mac; Docker configured6144MiB memory4096MiB swap,VirtioFS,ResourceSaveroff; intended native API768MiB/worker1024MiB not started",
           "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-07-reduced-resource-local.json",
           "result": "Resource blocked before service startup:24.68GiB initial free fell to21.77GiB during required image pulls; exit130,zero tests/containers. Owned downloaded images/network removed; baseline resources preserved. No signed-in/default scheduling/runbook/telemetry/installed-agent acceptance. NOT_READY maintenance draft unrun; builder wiring and Linux delegation admission remain explicit."
+        },
+        {
+          "level": "contract",
+          "commit": "38e98cbb9ff3741ce85fd67b0d8821ef305c72de",
+          "dirtyCandidate": true,
+          "sourcePostimageSha256": "12b22ba6c741f9c613624978fc3caea7ff588b1c0ba7c0657b9f6150ba1f3a16",
+          "result": "Scoped coordinator portability candidate: Node22 syntax0, ESLint0, two isolated-location ROOT-expression checks2P0F including spaces; independent source reviewP. Only module URL root derivation changed. No coordinator import/default auth/agent/runtime acceptance; fresh coherent binding remains pending.",
+          "artifact": "docs/build/production/evidence/PROD-MACH-03/2026-10-14-coordinator-portability.json"
         }
       ],
       "requiredEvidence": [

@@ -2,6 +2,7 @@ name: CI
 
 # Required verification, production build and image assembly gates.
 on:
+  workflow_dispatch:
   push:
     branches: ["**"]
   pull_request:
@@ -13,7 +14,7 @@ permissions:
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   # Let explicitly enabled native rehearsals drain their owned cleanup on new pushes.
-  cancel-in-progress: ${{ !(github.event_name == 'push' && (vars.ZENITH_LOCAL_DRV1 == '1' || vars.ZENITH_TEST_DRV2_OPERATED == '1' || vars.ZENITH_LOCAL_OPERATED == '1' || vars.ZENITH_LOCAL_DRIVER_D4 == '1')) }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' && !(github.event_name == 'push' && (vars.ZENITH_LOCAL_DRV1 == '1' || vars.ZENITH_TEST_DRV2_OPERATED == '1' || vars.ZENITH_LOCAL_OPERATED == '1' || vars.ZENITH_LOCAL_DRIVER_D4 == '1')) }}
 
 # Two pins that every job in this repository now shares, written out literally
 # in each job rather than through an expression so that `tests/ci/release-gates.test.ts`

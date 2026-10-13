@@ -14,6 +14,7 @@ interface Job {
   steps: { run?: string; if?: string; uses?: string; with?: Record<string, unknown> }[];
 }
 const workflow = load(fs.readFileSync(path.join(process.cwd(), ".github/workflows/ci.yml"), "utf8")) as {
+  on: { workflow_dispatch?: unknown };
   concurrency: { "cancel-in-progress": string }; jobs: Record<string, Job>;
 };
 const lanes = [
@@ -60,6 +61,9 @@ const lanes = [
 ] as const;
 
 describe("J15 operated CI admission", () => {
+  it("supports manual dispatch", () => {
+    expect(workflow.on.workflow_dispatch).toBeDefined();
+  });
   it.each(lanes)("%s requires explicit trusted-push admission and an exclusive native fixture", (lane, gate, prefix) => {
     const job = workflow.jobs[lane];
     expect(job.if).toBe(`github.event_name == 'push' && vars.${gate} == '1'${lane === "drivers-d4-export" ? " && vars.ZENITH_LOCAL_EXPORT_DATA == '1'" : ""}`);
@@ -89,6 +93,6 @@ describe("J15 operated CI admission", () => {
   });
 
   it("allows cleanup to drain across pushes whenever an operated gate is enabled", () => {
-    expect(workflow.concurrency["cancel-in-progress"]).toBe("${{ !(github.event_name == 'push' && (vars.ZENITH_LOCAL_DRV1 == '1' || vars.ZENITH_TEST_DRV2_OPERATED == '1' || vars.ZENITH_LOCAL_OPERATED == '1' || vars.ZENITH_LOCAL_DRIVER_D4 == '1')) }}");
+    expect(workflow.concurrency["cancel-in-progress"]).toBe("${{ github.event_name != 'workflow_dispatch' && !(github.event_name == 'push' && (vars.ZENITH_LOCAL_DRV1 == '1' || vars.ZENITH_TEST_DRV2_OPERATED == '1' || vars.ZENITH_LOCAL_OPERATED == '1' || vars.ZENITH_LOCAL_DRIVER_D4 == '1')) }}");
   });
 });

@@ -1,3 +1,13 @@
+## Exact-source CI and local resource recovery, 14 October 2026
+
+Exact `3aa2e655` CI is terminal: **24 successful jobs / 8 conditional skips / 0 failures across 32**. Node/DOM reported **24,722 passed / 0 failed / 1,925 skipped**; compiler, lint, smoke and production assets passed. All required identities in thirteen canonical main-CI artifacts passed. Native AMD64 and ARM64 workers each passed22 checks; targeted Linux systemd and Windows ACL leaves each passed1/0/0. Counts overlap and are not summed. [Sanitized evidence](../evidence/PROD-CI-08/2026-10-14-3aa2e655-ci-pkg-checkpoint.json).
+
+Local package preflight first refused inherited Node26 before resource creation. The pinnedNode22 successor then hit host memory-pressure2 during fresh image build: **zero acceptance checks**. That run remains refused with incomplete custody and no accepted final source-stability proof. Exactowned builder/container/volume recovery subsequently passed19 strictheld commands and independent terminal review; no unrelated inventory changed.
+
+The next package profile retains canonical4GiB builder limits and all22 checks, with BuildKit OCI maximum parallelism1. Its private-config custody and retention correction passed17 isolated regressions and independent source review. The earlier two-failure retention regression is preserved; no engine acceptance is claimed. User approved up to3 additional recovery restarts between terminated, cleaned runs; one additional restart recovered normal pressure1 with unchanged settings. The fresh3aa full Node/DOM run is active at this checkpoint; its outcome and the serial package run remain pending.
+
+Ledger remains **11 verified / 65 in progress / 2 planned (14.1%)**. CI09 stays verified with current3aa remote evidence; CI08 and default-stack/browser/scheduling/registered-runbook acceptance remain open. All four release flags remain false.
+
 ## Verifier-only CI fixture follow-up — 13 October 2026
 
 The 6d03043f exact-source CI failure is confined to a verifier fixture expectation in `tests/ci/release-gates.test.ts:152`: parsed workflow YAML preserves `workflow_dispatch: null`. Root is applying a one-line fixture correction to match the parsed representation. This checkpoint requests no builder implementation change. Keep the terminal CI result (23 success / 1 failure / 8 conditional skips) as historical evidence and require a fresh exact-source run after the fixture correction.

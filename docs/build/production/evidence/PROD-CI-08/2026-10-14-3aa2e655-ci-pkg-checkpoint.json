@@ -1,0 +1,237 @@
+{
+  "schemaVersion": 1,
+  "kind": "3aa2e655_terminal_ci_and_pkg_refusal_checkpoint",
+  "draftOnly": false,
+  "observedAt": "2026-10-14",
+  "source": {
+    "commit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+    "sourceCount": 6029,
+    "sourceFreezeSha256": "a41e3acbdf55e2c1d84d594b03afc617a9ce8cdf4b11c5554b84ddb871fed880",
+    "contentSha256": "005f65cc9990dc6c763533285dd5136a93f2682843a746a79b98a63e8142e6a4",
+    "freezeReview": "P",
+    "freezeReviewJsonSha256": "5c06d890e5deac606fd41439428ff816f5bda799a0035313541d907543230d11"
+  },
+  "sourceOnlyReviews": [
+    {
+      "target": "full",
+      "review": "P source binding only",
+      "reviewJsonSha256": "d72daddea4f05b09560349165c9170a04550e968260d38f7f0640ac62ff1e409"
+    },
+    {
+      "target": "W",
+      "review": "P source binding only",
+      "reviewJsonSha256": "748baa56b93c55239384e3678198b8ce34b2eca3c562960632e994012c9b1821"
+    },
+    {
+      "target": "PKG",
+      "review": "P source rebind only",
+      "reviewJsonSha256": "dcfebf5021fe13bee9eeb8b1576405c7fb20cf047c189a29942223257be0275f"
+    },
+    {
+      "target": "PG",
+      "review": "P source binding only",
+      "reviewJsonSha256": "59d783f57c14e508b7ba7358e9f79344569daf562a26195b8489da1391a0a05e"
+    },
+    {
+      "target": "J/K/U",
+      "review": "P static source/dependency binding only",
+      "reviewJsonSha256": "0c29a6c5bebbfe15b373a81de7077041a2fa40426f61a60583884840a83aa9ef"
+    },
+    {
+      "target": "MACH03",
+      "review": "P outer source binding only",
+      "reviewJsonSha256": "b49d24a54bc35c9d71035a1a88377ea5f53e933644a2ad55795385b9124e6694"
+    }
+  ],
+  "ci": {
+    "terminalCountsReportJsonSha256": "580c52bfc64de65a0ebeeac63ca2aa8f7012c7794932dd16ac1ce4a9aa2d9fcc",
+    "terminalCountsReportMarkdownSha256": "5346ca4d4665504e46ab6133a4e8e8004d7143a878f455d134eb9853b73e82a4",
+    "main": {
+      "runId": 38456508750,
+      "status": "completed_success",
+      "jobsPassed": 20,
+      "conditionalSkipped": 8,
+      "failed": 0,
+      "verify": {
+        "typecheck": "passed",
+        "lint": "passed",
+        "testFiles": {
+          "passed": 1154,
+          "skipped": 97,
+          "total": 1251
+        },
+        "tests": {
+          "passed": 24722,
+          "failed": 0,
+          "skipped": 1925,
+          "total": 26647
+        },
+        "smoke": "passed",
+        "gimbalAssets": "passed"
+      }
+    },
+    "nativeWorkers": {
+      "runId": 38456513642,
+      "status": "completed_success",
+      "amd64ChecksPassed": 22,
+      "arm64ChecksPassed": 22
+    },
+    "nativePlatforms": {
+      "runId": 38456517837,
+      "status": "completed_success",
+      "linuxSystemd": {
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "windowsAcl": {
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    "overall": {
+      "jobs": 32,
+      "passed": 24,
+      "conditionalSkipped": 8,
+      "failed": 0
+    },
+    "canonicalMainArtifacts": {
+      "count": 13,
+      "allRequiredIdentitiesPassed": true,
+      "artifactManifestFinalSha256": "611ae796da3c215a703e8729456eeefe54e0e72eefd71e33f119d0eba8427177",
+      "evidenceHashesFileSha256": "6606a9c1f3ea54aace87abd72635f246f67b07c19250e7a54096e043cdbe439c"
+    },
+    "laneCountsOverlap": true,
+    "doNotSumLaneCounts": true
+  },
+  "pkg": {
+    "session54227": {
+      "status": "REFUSED",
+      "exitCode": 2,
+      "stage": "subject preflight before subject Docker commands/resource creation",
+      "reason": "inherited system Node 26 failed the pinned-runtime preflight",
+      "outerReceiptSha256": "36346ebb296c5b9437c69194cdf9857f81f3a31f67d65bad07f648c11f0438af",
+      "sourceStable": true,
+      "heldCloseoutsSettled": true,
+      "resourcesCreated": false,
+      "acceptanceChecks": 0,
+      "outerPressureMonitorUsedReadOnlyDockerApi": true
+    },
+    "session71698": {
+      "status": "REFUSED",
+      "stage": "fresh image build",
+      "exitCode": 130,
+      "reason": "host memory pressure reached level 2",
+      "acceptanceChecks": 0,
+      "productFailure": false,
+      "sourceStable": false,
+      "outerReceiptSha256": "da8cf9d75ee2d0a97a2ab69a33dc5ce88ea015ae4114c4817c75807b09ef2e12",
+      "pressureSamples": 16,
+      "maximumObservedContainerUsageBytes": 4479938560,
+      "pressureEvidenceSha256": "4add3eb61af99318272fd88c97ee33746e8dffa15269fddfbc1f85b0e86f0aa3"
+    },
+    "ownedBuilderCleanup": {
+      "status": "cleanup-only passed; independent terminal review P",
+      "candidateSha256": "e2009ec1daa817eb1b6744af18f6a761d85a2a54123e5f9a2dfa2442e8f89a7d",
+      "manifestSha256": "13f9bb35d6b0166b42b44db4e5c94fe69f733deeb79812dc66a671c3bbd256e5",
+      "ownedBuilderId": "80a852be9350",
+      "receiptSha256": "34360740628db17db757bc77d1d8655bffb7af9ebcc317f9f85d1ed297fbd87a",
+      "reviewJsonSha256": "050219d9ce26840dd4959676b00079e08660b6c3c6b94da67ca93d52a215e88b",
+      "heldCommandsPassed": 19,
+      "minimumFreeBytes": 250534105088,
+      "unrelatedInventoryPreserved": true,
+      "acceptance": false
+    },
+    "buildKitExperiment": {
+      "status": "serial profile source reviewed P; 17 isolated regressions passed; engine unrun",
+      "proposedMaximumParallelism": 1,
+      "requiredMemoryCapGiB": 4,
+      "retryPerformed": false,
+      "subjectSha256": "4ecee224640f552a549aa3e3fe29036bd1f98c478c0a1a52ac92e13750c22407",
+      "outerSha256": "fefb4c6c30c00e0d69d4256eb763a8d88d117d960587c4f0597d513fc2dca63b",
+      "reviewJsonSha256": "3eae383c2e761402ebb5c8bbbfbbaa0f760af47f3ea5bdd195e58b688e083c99",
+      "configSha256": "a06d96d0fb1154d6b460f53eecb2a9141366ef955e1bed931a0c27b673452d14",
+      "pureTests": {
+        "passed": 17,
+        "failed": 0,
+        "skipped": 0,
+        "configLogSha256": "651fa23b72168600ef6a212aa6eac384107cdd323b1fab2fbea053db9139858c",
+        "retentionLogSha256": "5a43953f5f78c6b6a501911ff5127ff5cacbf907bd3992d8e0078d97c340f3dc"
+      },
+      "priorRetentionRedPreserved": {
+        "passed": 2,
+        "failed": 2,
+        "logSha256": "a7240342fc73f08a0ebb031a41dd86c377b1b80d675d9394cd5b5ca8d4db4533"
+      },
+      "productAcceptance": false
+    },
+    "dockerDesktopSecondRestartAuthorized": true
+  },
+  "dockerMemoryRecovery": {
+    "restartCount": 1,
+    "settingsChanged": false,
+    "resourcesDeleted": false,
+    "initialExactNetworkRefusalPreserved": true,
+    "reconciliationReview": "P_NARROW_RECONCILIATION_WITH_EVIDENCE_LIMIT",
+    "reviewJsonSha256": "fff846baff5d6700533facdf8767416396762452fcbe939e5cf8438d3fc88aa3",
+    "buildxByteAmendment": "PASS",
+    "amendmentJsonSha256": "b9b9d913a3b8781d697f7e037c8922c53c22768d4a1c2265b4dd7f89a8d6135c",
+    "buildxSha256BeforeAfter": "1075b0df8c25cf12b2aac24855d5bf805f6b7580972f378ca7d51fead3a0eaa5",
+    "buildxBytesBeforeAfter": 307,
+    "productAcceptance": false,
+    "initialPostflightSha256": "c905bdd0e77dd7389cff922c95f406ea05b9b84bcbad58665cb50fb392250263",
+    "reconciledPostflightSha256": "f724c1002872baf39a2f1d0774433de6fe4a97449bfd86e9531e5592bfea3518"
+  },
+  "ledgerProposal": {
+    "PROD-CI-09": {
+      "proposedState": "verified",
+      "stateChange": false,
+      "addRemoteEvidenceCommit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+      "runIds": [
+        38456508750,
+        38456513642,
+        38456517837
+      ]
+    },
+    "PROD-CI-08": {
+      "proposedState": "in_progress",
+      "stateChange": false,
+      "addRemoteEvidenceCommit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+      "note": "Terminal CI does not close remaining local/default-stack/product acceptance."
+    },
+    "summary": {
+      "verified": 11,
+      "inProgress": 65,
+      "planned": 2,
+      "releaseFlags": [
+        false,
+        false,
+        false,
+        false
+      ],
+      "promotion": false
+    }
+  },
+  "preservation": "Earlier 5ca58d93 evidence and refusals remain historical at their original scopes. CI lane counts are distinct/overlapping; no lane counts are summed as unique tests.",
+  "acceptance": false,
+  "milestonePromotion": false,
+  "sanitization": "Private paths, URLs, raw logs, credentials, and environment dumps omitted. Only sanitized counts, scopes, run IDs, and hashes are included.",
+  "secondDockerRecovery": {
+    "userAuthorizedAdditionalRestarts": 3,
+    "additionalRestartsConsumedAtCapture": 1,
+    "totalRestartsPerformedAtCapture": 2,
+    "receiptSha256": "888da45fc10f10272f77fab4b162ec49fbac6b8315b56af547fb677f72a5806b",
+    "rootParity": "passed; normal pressure1; all resource/config identities preserved except expected builtinbridge incarnation",
+    "independentReview": "P recovery-only resource/config parity",
+    "settingsChanged": false,
+    "acceptance": false,
+    "reviewJsonSha256": "080a87c97531cde80dd83ac19be59cec8c14c922f225bcbcc1d6e18601a63136"
+  },
+  "freshFullNodeDom": {
+    "sourceCommit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+    "status": "running at capture",
+    "result": null,
+    "acceptance": false
+  }
+}

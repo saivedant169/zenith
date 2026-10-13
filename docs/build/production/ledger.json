@@ -2443,6 +2443,36 @@
           "command": "Fresh full Node/DOM R6 wrapper with persistent result copy gate",
           "environment": "macOS ARM64, pinned Node 22; private raw evidence retained locally",
           "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-14-34896d10-pg-cleanup-checkpoint.json"
+        },
+        {
+          "level": "local_engine",
+          "commit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-7d14ecee-recovery-full-admission.json",
+          "result": "Scoped actual recovery stage P: 10 required tests, 3 required identity IDs, 0 failed/0 skipped, 11 held commands closed; separately follows native platform-postgres P. Backend label and typed recovery stage retained; no case waiver. Not overall acceptance."
+        },
+        {
+          "level": "contract",
+          "commit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-7d14ecee-recovery-full-admission.json",
+          "result": "Fresh computational Full phase/archive admission P: 24,704 passed, 0 failed, 1,943 reconciled skipped across 26,647 exact identities; all 13 held commands closed. Original outer remains refused persistent-copy-failed. engineStarted=false, engineAcceptance=false, acceptanceClaim=false; this does not establish required engine gates or legacy engine acceptance."
+        },
+        {
+          "level": "local_engine",
+          "commit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-7d14ecee-recovery-full-admission.json",
+          "result": "W R8 native image build completed with exit 0, then supervisor refused at build-metadata-identity (Buildx metadata file mode 0644; owner-only normalization required; IID mode 0600). Recorded 22 held commands closed, current summary closed and floors P; independent R8 terminal review remains pending. Native image exists; no push, tag overwrite or acceptance. R9 is finalize-only, with no rebuild."
+        },
+        {
+          "level": "local_engine",
+          "commit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-7d14ecee-recovery-full-admission.json",
+          "result": "Independent R8 terminal review P for custody/closeout only (review SHA-256 f15c82d4fa05a60896c5b9e321147e57e40ed53d918a942fdc6b9a0189e8fd83): all 22 held commands closed; native image build exit 0. Original supervisor refusal at build-metadata-identity remains because Buildx metadata file mode was 0644. Image inspection and source-after receipt are absent; acceptanceClaim=false. R9 finalize-only preparation is running without rebuild or push; quarantine awaits root guarded clear."
+        },
+        {
+          "level": "local_engine",
+          "commit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-7d14ecee-recovery-full-admission.json",
+          "result": "Root cleared the R8 custody marker under a nonblocking exclusive lock after hashing a 95-file manifest and confirming all 22 commands closed; clear-proof SHA-256 ac640027734db0ef3ef2fdd8456abf738b45024ad0f6ab2f3e0e77c9b8dc45ec. Custody-marker clear only: original build-metadata-identity refusal remains; image inspection/source-after receipt absent, W postflight held and acceptance false."
         }
       ],
       "requiredEvidence": [
@@ -3245,6 +3275,17 @@
           "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-14-34896d10-pg-cleanup-checkpoint.json",
           "runId": 38464327609,
           "url": "https://github.com/saivedant169/zenith/actions/runs/38464327609"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "7d14ecee4493a7a3c5820bf775f7e7d4fc891c0c",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-7d14ecee-recovery-full-admission.json",
+          "runIds": [
+            38477250307,
+            38477257070,
+            38477265098
+          ],
+          "result": "Exact-source terminal CI: 32 jobs, 24 succeeded, 8 conditional operated main jobs skipped, 0 failed. Both native worker architectures passed 22 checks each; both native platform jobs passed. Seventeen sanitized artifacts and 11 gate reports contain 1,862 required identity entries with overlap. Existing verified requirement state retained; no operated acceptance."
         }
       ],
       "requiredEvidence": [

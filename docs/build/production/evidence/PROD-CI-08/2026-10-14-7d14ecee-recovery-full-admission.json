@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "kind": "7d14ecee_recovery_full_admission_checkpoint",
+  "observedAt": "2026-10-14",
+  "source": {
+    "commit": "7d14ecee4493a7a3c5820bf775f7e7d4fc891c0c",
+    "frozenAcceptanceCommit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+    "frozenAcceptanceSource": "clean and unchanged"
+  },
+  "ledgerSnapshot": {
+    "verified": 11,
+    "inProgress": 65,
+    "planned": 2,
+    "total": 78,
+    "verifiedPercent": 14.1,
+    "releaseStatus": {
+      "implementationComplete": false,
+      "sandboxVerified": false,
+      "pilotReady": false,
+      "productionApproved": false
+    }
+  },
+  "ci": {
+    "status": "terminal",
+    "workflowRuns": [
+      {
+        "name": "CI",
+        "runId": 38477250307,
+        "jobs": 28,
+        "success": 20,
+        "conditionalSkipped": 8,
+        "failed": 0
+      },
+      {
+        "name": "Native packaged workers",
+        "runId": 38477257070,
+        "jobs": 2,
+        "success": 2,
+        "failed": 0,
+        "checksPerArchitecture": 22
+      },
+      {
+        "name": "Native skipped platforms",
+        "runId": 38477265098,
+        "jobs": 2,
+        "success": 2,
+        "failed": 0,
+        "platforms": [
+          "linux-systemd",
+          "windows-acl"
+        ]
+      }
+    ],
+    "aggregate": {
+      "jobs": 32,
+      "success": 24,
+      "conditionalSkipped": 8,
+      "failed": 0
+    },
+    "sanitizedArtifacts": 17,
+    "gateReports": 11,
+    "requiredIdentityEntries": 1862,
+    "requiredIdentityEntriesAreOverlapping": true,
+    "reportSha256": "4febfd9b63a16d6be86e89914b20090b82516cc06c08ed94fb51e756a4e1a6e3",
+    "scope": "exact-source remote CI evidence; conditional operated jobs remain skipped; no overall acceptance claim"
+  },
+  "recovery": {
+    "evidenceLevel": "local_engine",
+    "status": "passed scoped actual recovery stage",
+    "sourceCommit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+    "requiredTestsPassed": 10,
+    "requiredIdentityIdsPassed": 3,
+    "failed": 0,
+    "skipped": 0,
+    "heldCommandsClosed": 11,
+    "outerReceiptSha256": "35f0e06dba8530305cd692abd099479acf6569b7ecd44510785ad13a53e121f9",
+    "independentReviewSha256": "fb9c801f46b38844cb7fa7aace90ef90c47b8611957de799f2d6b52846285bbc",
+    "backup": {
+      "files": 3971,
+      "bytes": 112052807,
+      "manifestSha256": "36eb06510c1f05da03bcdffd7fce2659071216a3ad77effd46b5e67f6300c228"
+    },
+    "scope": "recovery stage only, following separately passed native PostgreSQL platform stage; generic custody label denotes native-pg-stage; backend label and typed recovery stage remain explicit; no case waiver"
+  },
+  "fullAdmission": {
+    "evidenceLevel": "contract",
+    "status": "verified-computational-phase-and-archive",
+    "sourceCommit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+    "passed": 24704,
+    "failed": 0,
+    "skipped": 1943,
+    "collectedAndCompletedIdentityCount": 26647,
+    "heldCommandsClosed": 13,
+    "admissionReceiptSha256": "fb3272d4454f7e8f6861f6426de52f869bb53f32debc2a15493c249a666eda0e",
+    "independentReviewSha256": "e9184c3c3b0d60b33907eebca8bd8966d9247d80f912383a154ceada96d00cff",
+    "verifierSha256": "1792cb686e95d077e683e36a891ad1b47b31f4683b3617b325cb7becd280bbb7",
+    "archive": {
+      "regularFiles": 20615,
+      "directories": 717,
+      "metadataOnlySymlinks": 1,
+      "symlinkFollowedOrRecreated": false,
+      "manifestSha256": "5988058def8e4c6a078367ee78292da8bf7e30bc3c83cd7621e8736cdee4c47e",
+      "independentReviewSha256": "c16cfe7b1b4d79f0c62751088efc1e4baca33b8d0f881884e2dfc87046b63806"
+    },
+    "originalTerminal": {
+      "status": "refused",
+      "failure": "persistent-copy-failed",
+      "sha256": "26e3574f1bf3013bd45313a3490657ea01c97b5b290ddf9b468caab5f5bb5aec",
+      "retainedUnchanged": true
+    },
+    "engineStarted": false,
+    "acceptanceClaim": false,
+    "engineAcceptance": false,
+    "scope": "computational identity/report/archive admission only; required engine gates remain distinct and no legacy engine acceptance is fabricated",
+    "identityCount": 26647
+  },
+  "nativePostgres": {
+    "status": "P platform stage only",
+    "sourceCommit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+    "total": 4157,
+    "passed": 4142,
+    "failed": 0,
+    "skipped": 15,
+    "requiredIdentityIds": 1160,
+    "requiredTests": 2653,
+    "native100": "passed",
+    "outerReceiptSha256": "8fdf4aec2e5c13ce1c77acbd9d9c16e16ed1ab104b1cd8112a9d09d15bd76298",
+    "reviewSha256": "9bdfd19839c5bf78ff1ccf78e9873a3c8897eb977888d88487fbcb9185811c7c",
+    "platform": "native ARM64 macOS PostgreSQL 16.15"
+  },
+  "tofuFixture": {
+    "status": "P packaging/version and fixture admission only",
+    "version": "1.12.5",
+    "platform": "darwin_arm64",
+    "heldCommandsClosed": 2,
+    "receiptSha256": "aac3a34107e0547972988a733498037dda3ee27b5f3294f2f77a62b17381774d",
+    "scope": "no J4 scenario acceptance",
+    "fixtureAdmission": "P within packaging/version and fixture-admission scope"
+  },
+  "vmFloor": {
+    "status": "P calibration only",
+    "observerR5Sha256": "9deb999ceada81b940a8c8dd83c3f001d635c88bd69fd608a34db0e0d8c31dca",
+    "samples": 3,
+    "vmBytes": 406333136896,
+    "hostBytes": 337103953920,
+    "probesClosed": 6,
+    "calibrationSha256": "bb788cb3f5defd6438511758f15f4ce052f0cad645b7b677982cc8bdcdd1ead0",
+    "scope": "no builder configuration change"
+  },
+  "workload": {
+    "W": {
+      "status": "R8 supervisor refused at build-metadata-identity after native image build completed with exit 0",
+      "sourceSha256": "a4cd92dec906e18c8ff0cc4aaebc12340ccab2a9baaec77bb04ac7c7c808b802",
+      "supervisorReceiptSha256": "ddafa79d8c26381bc23c96a4701a41d8d980ea65c29d7a069d17e6927d752ddb",
+      "independentR8TerminalReview": "P — custody and closeout only",
+      "heldCommandsClosed": 22,
+      "currentSummary": "all commands closed",
+      "floors": "P",
+      "metadataGate": "Buildx metadata file mode 0644 requires owner-only normalization; IID mode 0600",
+      "image": "native image exists; digest starts feee; no publish, tag overwrite, or acceptance claim",
+      "next": "R9 finalize-only preparation running; no rebuild or push",
+      "heavyWorkload": "none",
+      "quarantine": "custody marker cleared under root guarded operation; no W acceptance",
+      "independentReviewSha256": "f15c82d4fa05a60896c5b9e321147e57e40ed53d918a942fdc6b9a0189e8fd83",
+      "buildExitCode": 0,
+      "metadataRefusal": "original build-metadata-identity refusal remains; Buildx metadata file mode 0644",
+      "imageInspection": "absent",
+      "sourceAfterReceipt": "absent",
+      "acceptanceClaim": false,
+      "quarantineClearProofSha256": "ac640027734db0ef3ef2fdd8456abf738b45024ad0f6ab2f3e0e77c9b8dc45ec",
+      "quarantineClearBasis": {
+        "manifestEntriesHashed": 95,
+        "heldCommandsClosed": 22,
+        "lock": "nonblocking exclusive lock"
+      },
+      "postflightHold": "persists: image inspection and source-after receipt absent"
+    },
+    "J4": {
+      "status": "source-only hold review P; pure publication 4/0/0",
+      "engineExecuted": false,
+      "OBS04": "pending W dependency"
+    },
+    "MACH03": "Auth/MFA consent-registered agent pending; no CA trust added",
+    "PKG03": "cold-build memory-pressure block unchanged; no retry"
+  },
+  "boundary": "Evidence append only. Requirement states, acceptance criteria, required evidence levels, and release flags are unchanged; native ARM64 Mac and native Linux CI remain separate evidence."
+}

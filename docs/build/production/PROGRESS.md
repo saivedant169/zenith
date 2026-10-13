@@ -1,3 +1,29 @@
+## Pre-push checkpoint — 13 October 2026, source 6d03043f
+
+Exact-source terminal CI on `6d03043fdd67479e56109afbefc22ec83761033d` finished with **23 success, 1 failure, and 8 conditional skips across 32 jobs**. The sole failure is Verify at `tests/ci/release-gates.test.ts:152`: parsed workflow YAML contains `workflow_dispatch: null`, while the fixture expects the key to be absent. The exact trigger fixture is corrected; affected checks passed293 with6 platform-specific skips and0 failures. Successor CI is pending publication. Native packaged workers passed 22 checks on each of AMD64 and ARM64. Linux systemd and Windows ACL targeted leaves passed 1/0/0 each; 15 sibling cases were excluded. These native results do not change the main CI failure. Terminal report SHA-256: `aa03edb326f658ac756418075b54c595cd03dc53214db0b6b96a34ba028d62c4`.
+
+On separate source `5ca58d93a69d75260e291bd3cbc7593dd609daf4`, full Node/DOM is P-reviewed at 24,703 passed / 0 failed / 1,943 skipped. This is broad unit execution evidence, not strict all-canonical-gates acceptance. Local PostgreSQL reported 4,142 passed / 0 failed / 15 allowed skips and inner canonical strict steps passed, but the outer receipt **REFUSED** after the historical 128-session tracking-capacity overflow. This run is never accepted; later capacity calibration cannot retroactively accept it. Its first startup refusal (Unix socket pathname exceeding the103-byte maximum) also remains preserved.
+
+The ledger remains **11 verified / 65 in progress / 2 planned**; all four release flags remain false. No requirement or milestone promotion is proposed.
+
+The current ARM64 witness build passed with independent terminal review P. The capacity-only supervisor calibration passed11 mocked regression tests; a fresh native PostgreSQL attempt is running. These results do not close default-stack acceptance.
+
+Evidence: [scoped CI and local verification checkpoint](evidence/PROD-CI-08/2026-10-13-6d03043f-ci-pg-checkpoint.json).
+
+---
+
+## Full Node/DOM and exact-source CI update — 13 October 2026, source 5ca58d93
+
+A fresh broad full Node/DOM unit execution reports **24,703 passed / 0 failed / 1,943 skipped (26,646 total)** on source `5ca58d93a69d75260e291bd3cbc7593dd609daf4`, frozen at 6,025 files (freeze SHA-256 `42168398f605acae32208e89f7592af9d17a2ffe1ef91b13ac90553f8e14d483`). Independent terminal review is **P**; review SHA-256 `c77eecd2acb2bc504433adc4218c572f170734dbcbdd3a0140ba4231fb52cf69`. Summary SHA-256: `1cd204ae8a616a305c96cb263d5588f77084b477c2102243424d64d662518ea9`; execution-receipt SHA-256: `c370420cc36ab2de24f631ef2d1afcfa2dd96059286dc8ed981e2fdaec33d6f2`. Skip accounting is 1,723 static plus 220 runtime skips; no separate pinned skip baseline is asserted.
+
+Exact-source native platform CI run `38433721078` completed SUCCESS for this source. Native worker run `38433711110` remains in progress. Main workflow run `38434314187` on source `6d03043fdd67479e56109afbefc22ec83761033d` remains in progress; its manual-fix evidence separately reports the focused workflow fix and Actionlint passed. These statuses are separate; no terminal aggregate is recorded.
+
+The prior full attempt remains a failed historical attempt (nine failures) caused by dependency symlinks resolving outside the clean worktree. Fresh `npm ci` fixed setup; no additional code fix was made for this full run. The broad unit execution does not establish strict all-canonical-gates or PROD-CI-08/product acceptance. Ledger remains **11 verified / 65 in progress / 2 planned (78 total; 14.1% verified)** and all four release flags remain false.
+
+Evidence: [reviewed full-core execution](evidence/PROD-CI-08/2026-10-13-5ca58d93-full-core-r16.json).
+
+---
+
 ## Owner decisions 2026-10-13: retention, service levels, pricing
 
 Arnav Bule, the owner, approved three decisions on 2026-10-13. They are implemented on the Windows build machine. Build-machine checks were typecheck and unit and PGlite tests only. Real PostgreSQL, object store, Temporal, browser and Stripe test-mode verification is pending on the Mac verifier. The verifier commands and checks are in [VERIFY-QUEUE.md](VERIFY-QUEUE.md) under "Owner decisions 2026-10-13".

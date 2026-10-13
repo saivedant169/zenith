@@ -1,3 +1,13 @@
+## Verifier-only CI fixture follow-up — 13 October 2026
+
+The 6d03043f exact-source CI failure is confined to a verifier fixture expectation in `tests/ci/release-gates.test.ts:152`: parsed workflow YAML preserves `workflow_dispatch: null`. Root is applying a one-line fixture correction to match the parsed representation. This checkpoint requests no builder implementation change. Keep the terminal CI result (23 success / 1 failure / 8 conditional skips) as historical evidence and require a fresh exact-source run after the fixture correction.
+
+The current ARM64 witness build passed with independent terminal review P. The capacity-only supervisor calibration passed11 mocked regression tests; a fresh native PostgreSQL attempt is running. These results do not close default-stack acceptance.
+
+Evidence: [scoped CI and local verification checkpoint](../evidence/PROD-CI-08/2026-10-13-6d03043f-ci-pg-checkpoint.json).
+
+---
+
 ## Verifier update — 12 October 2026
 
 Reviewed local verification fixes are integrated in `35ef780463d1e43faa7da9cefabe9604f7cb4041`. Worker focused92/92 and final lint/typecheck pass with strict custody and unchanged source. Fresh combined-source CI, native100/full-core and default-stack acceptance remain pending. No milestone or release flag was promoted. See [current verifier progress](../PROGRESS.md) and [current local blockers](../BUILD-BLOCKERS-2026-10-10.md); older entries below remain historical or separately open.

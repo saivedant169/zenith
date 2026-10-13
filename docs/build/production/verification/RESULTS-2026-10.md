@@ -1,3 +1,31 @@
+## 13 October pre-push results — 6d03043f and separate 5ca58d93 evidence
+
+Exact-source CI for `6d03043fdd67479e56109afbefc22ec83761033d` is terminal at 23 success / 1 failure / 8 conditional skips (32 jobs). The Verify failure is `tests/ci/release-gates.test.ts:152`, where the parsed workflow includes `workflow_dispatch: null` and the fixture expected no such property. The exact trigger fixture is corrected; affected checks passed293 with6 platform-specific skips and0 failures. Successor CI is pending publication. Native packaged workers passed 22 checks on each architecture; targeted Linux systemd and Windows ACL leaves passed 1/0/0 each, with 15 sibling cases excluded. These scoped passes do not erase the CI failure.
+
+The distinct 5ca58d93 full Node/DOM result is independently reviewed P: 24,703 passed / 0 failed / 1,943 skipped of 26,646, frozen at 6,025 files. Skips are 1,723 static and 220 runtime; no separate pinned skip baseline is asserted. This broad run is not strict all-canonical-gates acceptance.
+
+The distinct local PostgreSQL run reports 4,142 passed / 0 failed / 15 allowed skips, with inner canonical strict steps reported passed. Its outer receipt is **REFUSED** because the historical 128-event session capacity overflowed; it is never an accepted run. The first startup refusal (Unix socket pathname exceeding the103-byte maximum) is preserved separately. Independent current-process absence review is P for 151 recorded PIDs. The 4,096-event / 8,192-KiB capacity candidate has P source review only; tests are pending and do not retroactively accept this run.
+
+W1 remains refused for stale HELD provenance; its `buildExecuted` flag was set before launch and does not prove build execution. W2 retry 91109 remains in progress after P review. Package evidence is source-review P only and actual engine verification remains pending. J4 leaf relocation review is pending. Ledger is 11 verified / 65 in progress / 2 planned; all four release flags remain false.
+
+The current ARM64 witness build passed with independent terminal review P. The capacity-only supervisor calibration passed11 mocked regression tests; a fresh native PostgreSQL attempt is running. These results do not close default-stack acceptance.
+
+Evidence: [scoped CI and local verification checkpoint](../evidence/PROD-CI-08/2026-10-13-6d03043f-ci-pg-checkpoint.json).
+
+---
+
+## 5ca58d93 full-core results — 13 October 2026
+
+Broad full Node/DOM unit execution reports **24,703 passed, 0 failed, and 1,943 skipped (26,646 total)** on source `5ca58d93a69d75260e291bd3cbc7593dd609daf4`, frozen at 6,025 files with SHA-256 `42168398f605acae32208e89f7592af9d17a2ffe1ef91b13ac90553f8e14d483`. Independent terminal review is P, SHA-256 `c77eecd2acb2bc504433adc4218c572f170734dbcbdd3a0140ba4231fb52cf69`. Summary SHA-256 is `1cd204ae8a616a305c96cb263d5588f77084b477c2102243424d64d662518ea9`; execution receipt SHA-256 is `c370420cc36ab2de24f631ef2d1afcfa2dd96059286dc8ed981e2fdaec33d6f2`. Skips comprise 1,723 static and 220 runtime skips; no separate pinned skip baseline is claimed. This broad unit run is not strict all-canonical-gates acceptance.
+
+Native platform CI run `38433721078` completed SUCCESS on the exact source. Native worker run `38433711110` remains in progress. Main workflow run `38434314187` remains in progress on source `6d03043fdd67479e56109afbefc22ec83761033d`; its focused manual-fix and Actionlint evidence passed and is recorded separately. No terminal aggregate is available yet.
+
+The prior attempt failed with nine failures because dependency symlinks resolved outside the clean worktree. Fresh `npm ci` corrected setup, with no additional code fix for this full run. Ledger remains **11 verified / 65 in progress / 2 planned**; all four release flags remain false. PROD-CI-08 remains in progress / HOLD; no full milestone or product acceptance is claimed.
+
+Evidence: [reviewed full-core execution](../evidence/PROD-CI-08/2026-10-13-5ca58d93-full-core-r16.json).
+
+---
+
 ## Shutdown diagnostic and recovery R4 closeout — 12 October 2026
 
 The focused shutdown diagnostic fixture passed **13 passed / 0 failed / 0 skipped**; proof SHA-256 `0b21979df26953e93548aa6c3e011b1fb995a24aaa1937d5b9044a2eecba695b`, independent terminal review JSON SHA-256 `d7ed173032dc4bd333934b8d28f00fdef03885f025471ff56ed374208646568d` and Markdown SHA-256 `f96a2a88b09682ed83a9b926f07682a53cb2f889a6f54074f53c60fa5dfb727c`. It records 37 child processes closed, stable 6,012-entry freeze, owned-link removal, and 245,608,067,072-byte minimum free space (>22 GiB). This is diagnostic-fixture evidence only.

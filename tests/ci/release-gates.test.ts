@@ -149,7 +149,7 @@ const requiredCommands: Record<string, string[]> = {
 
 describe("release gate policy", () => {
   it("runs for every pull request and branch push without path filters", () => {
-    expect(workflow.on).toEqual({ push: { branches: ["**"] }, pull_request: null });
+    expect(workflow.on).toEqual({ workflow_dispatch: null, push: { branches: ["**"] }, pull_request: null });
   });
 
   it.each(Object.entries(requiredCommands))("keeps %s mandatory and preserves failure exit codes", (name, commands) => {

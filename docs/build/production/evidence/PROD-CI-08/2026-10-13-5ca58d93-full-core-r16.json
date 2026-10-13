@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "kind": "fresh_full_node_dom_execution_with_ci_snapshot",
+  "reviewStatus": "P for the bounded full-core execution evidence; exact-source CI and broader acceptance remain pending",
+  "acceptance": false,
+  "milestonePromotion": false,
+  "source": {
+    "commit": "5ca58d93a69d75260e291bd3cbc7593dd609daf4",
+    "sourceCount": 6025,
+    "sourceFreezeSha256": "42168398f605acae32208e89f7592af9d17a2ffe1ef91b13ac90553f8e14d483"
+  },
+  "execution": {
+    "status": "passed; independent terminal review P",
+    "summarySha256": "1cd204ae8a616a305c96cb263d5588f77084b477c2102243424d64d662518ea9",
+    "executionReceiptSha256": "c370420cc36ab2de24f631ef2d1afcfa2dd96059286dc8ed981e2fdaec33d6f2",
+    "independentTerminalReview": {
+      "status": "P",
+      "sha256": "c77eecd2acb2bc504433adc4218c572f170734dbcbdd3a0140ba4231fb52cf69"
+    },
+    "elapsedSeconds": 479.345,
+    "minimumFreeBytes": 252965785600,
+    "floorBytes": 23622320128,
+    "nodeExecutableSha256": "68f4d07ca49e0500cc135c7e0a445093e228e42e126ac22306d045f0a8c2636b",
+    "nodeHashNote": "Coordinator recorded executable hash separately; original source manifest hash field remained null."
+  },
+  "tests": {
+    "passed": 24703,
+    "failed": 0,
+    "skipped": 1943,
+    "total": 26646,
+    "staticSkipModeCollected": 1723,
+    "runModeSkips": 220,
+    "skipAccountingNote": "1723 static skips plus 220 runtime skips; no separate pinned skip baseline is asserted."
+  },
+  "ci": {
+    "nativePlatform": {
+      "status": "completed_success",
+      "sourceCommit": "5ca58d93a69d75260e291bd3cbc7593dd609daf4",
+      "runId": 38433721078
+    },
+    "nativeWorker": {
+      "status": "in_progress",
+      "sourceCommit": "5ca58d93a69d75260e291bd3cbc7593dd609daf4",
+      "runId": 38433711110
+    },
+    "mainWorkflow": {
+      "status": "in_progress",
+      "sourceCommit": "6d03043fdd67479e56109afbefc22ec83761033d",
+      "runId": 38434314187,
+      "manualFixEvidence": {
+        "focusedManualFix": "passed",
+        "actionlint": "passed",
+        "scope": "workflow manual-fix evidence only; not aggregate CI acceptance",
+        "focusedTestsPassed": 18
+      }
+    },
+    "terminalAggregate": null,
+    "scopeNote": "Exact-source CI remains pending while the native worker and main workflow run. Main manual-fix evidence is recorded separately from exact-source run outcomes."
+  },
+  "history": {
+    "previousAttempt": "failed with nine failures because dependency symlinks pointed outside the clean worktree; attempt preserved as historical failure",
+    "setupNote": "Fresh npm ci resolved the clean-worktree dependency setup; no additional code fix was made for this full run."
+  },
+  "ledger": {
+    "verified": 11,
+    "inProgress": 65,
+    "planned": 2,
+    "total": 78,
+    "milestonePromotion": false,
+    "releaseFlagsChanged": false
+  },
+  "sanitization": "Private raw paths, raw logs, credentials, and secret URLs omitted. Only source identity, supplied hashes/counts, run identifiers, and bounded review/CI status are retained.",
+  "scope": "Broad full Node/DOM unit execution, independently terminal-reviewed P. This does not establish strict all-canonical-gates acceptance or full PROD-CI-08/product acceptance. Exact-source CI remains pending.",
+  "architecture": {
+    "host": "Darwin arm64",
+    "model": "Apple M6",
+    "cpuCores": 12,
+    "physicalRamBytes": 25769803776
+  }
+}

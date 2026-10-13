@@ -1,3 +1,28 @@
+## Current pre-push verification queue — 13 October 2026
+
+1. Apply and review only the one-line verifier fixture expectation for `workflow_dispatch: null`, then run the focused fixture check and obtain fresh exact-source CI for the resulting commit. Preserve the current 6d03043f terminal failure as historical evidence.
+2. Keep 5ca58d93 local PostgreSQL **REFUSED**: 4,142/0/15 inner gate counts do not override the outer 128-event capacity overflow. Run the capacity-boundary regression and any needed fresh PostgreSQL successor on the corrected 4,096-event / 8,192-KiB bounded design; the source review is P, tests remain pending. Do not issue retroactive acceptance for the refused run.
+3. Keep full Node/DOM at its separately reviewed P scope (24,703/0/1,943; 1,723 static plus 220 runtime skips, no pinned baseline claim). It does not establish strict all-canonical-gates or PROD-CI-08 acceptance.
+4. Keep W1's stale-HELD refusal; W1's pre-launch `buildExecuted` flag is not build evidence. W2 retry run 91109 remains in progress after P review. Package evidence is source-review P only, with actual engine checks pending. J4 leaf relocation review remains open.
+5. Preserve ledger **11/65/2**, all four release flags false, and no promotion.
+
+The current ARM64 witness build passed with independent terminal review P. The capacity-only supervisor calibration passed11 mocked regression tests; a fresh native PostgreSQL attempt is running. These results do not close default-stack acceptance.
+
+Evidence: [scoped CI and local verification checkpoint](evidence/PROD-CI-08/2026-10-13-6d03043f-ci-pg-checkpoint.json).
+
+---
+
+## Current full-core / CI08 gates — 13 October 2026, source 5ca58d93
+
+1. Preserve the P terminal review for the broad full Node/DOM unit execution: 24,703 passed / 0 failed / 1,943 skipped across a 6,025-file source freeze. This is broad unit execution evidence; it does not establish strict all-canonical-gates acceptance.
+2. Record exact-source native platform CI run `38433721078` as completed SUCCESS for source `5ca58d93a69d75260e291bd3cbc7593dd609daf4`. Keep native worker run `38433711110` pending until terminal.
+3. Track main workflow run `38434314187` separately on source `6d03043fdd67479e56109afbefc22ec83761033d`; it remains in progress. The manual-fix focused evidence and Actionlint pass are not terminal main-workflow results.
+4. Keep the exact-source CI aggregate pending while either required workflow remains active. Keep PROD-CI-08 in progress / HOLD and the ledger at 11 verified / 65 in progress / 2 planned, with all four release flags false. No requirement promotion is proposed.
+
+Evidence: [reviewed full-core execution](evidence/PROD-CI-08/2026-10-13-5ca58d93-full-core-r16.json).
+
+---
+
 ## Owner decisions 2026-10-13
 
 Three owner decisions were approved by Arnav Bule on 2026-10-13 and implemented on the build machine (typecheck and unit and PGlite tests only). Nothing below has run on the verifier. Run each block on Node 22, sequentially, one heavy workload at a time. Record each result with its exact commit SHA, and keep pending, failed and passed distinct. Real PostgreSQL, object store, Temporal, browser and Stripe test-mode checks are required, and a skipped check is not a pass.

@@ -2381,6 +2381,25 @@
           "commit": "673f33f1b714df9f22a0ebae301bbb9f32c0cff5",
           "level": "local_engine",
           "result": "Latest canonical down attempt failed and is not accepted: 19 resources removed, 0 owned resources remaining, 2 forced stops, outer exit 2 because the receipt required zero forced stops; engine lock is sticky. Independent custody terminal review is P for process-tree absence: 34 complete events, 9 pending births resolved absent, 2 final absence confirmations, no active identities. Cleanup remains a failure, not an acceptance or lock-clearance receipt."
+        },
+        {
+          "level": "local_engine",
+          "commit": "5ca58d93a69d75260e291bd3cbc7593dd609daf4",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-13-5ca58d93-full-core-r16.json",
+          "result": "Broad full Node/DOM24703P0F1943skips across26646 exact identities; independent terminal reviewP, stable6025-entry freeze and settled custody. Scoped execution only; canonical gate families and default-stack acceptance remain open."
+        },
+        {
+          "level": "remote_ci",
+          "commit": "6d03043fdd67479e56109afbefc22ec83761033d",
+          "runId": 38434314187,
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-13-6d03043f-ci-pg-checkpoint.json",
+          "result": "Exact6d all32jobs inspected:23success1verifyfixturefailure8conditional skips. Native22checks per architecture and Linuxsystemd/WindowsACL leaves pass. Single trigger-map expectation repaired separately; successorCI pending. No aggregate acceptance."
+        },
+        {
+          "level": "local_engine",
+          "commit": "5ca58d93a69d75260e291bd3cbc7593dd609daf4",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-13-6d03043f-ci-pg-checkpoint.json",
+          "result": "NativePGinner4142P0F15allowedS and strict steps passed but outerREFUSED128-session tracking overflow; never accepted. Subsequent current-absence151PID reviewP does not repair historical custody. Fresh calibrated supervisor retry pending. Scoped ARM64Wbuild independently terminal-reviewedP; no fullJ4acceptance."
         }
       ],
       "requiredEvidence": [

@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "kind": "exact_source_ci_and_refused_local_pg_checkpoint",
+  "observedAt": "2026-10-13",
+  "acceptance": false,
+  "milestonePromotion": false,
+  "ledger": {
+    "verified": 11,
+    "inProgress": 65,
+    "planned": 2,
+    "total": 78,
+    "releaseFlags": [
+      false,
+      false,
+      false,
+      false
+    ],
+    "milestonePromotion": false
+  },
+  "source": {
+    "exactCommit": "6d03043fdd67479e56109afbefc22ec83761033d"
+  },
+  "ci": {
+    "terminal": true,
+    "overall": {
+      "jobs": 32,
+      "success": 23,
+      "failure": 1,
+      "conditionalSkipped": 8
+    },
+    "main": {
+      "runId": 38434314187,
+      "jobs": 28,
+      "success": 19,
+      "conditionalSkipped": 8,
+      "failedJob": "verify",
+      "failedTest": "tests/ci/release-gates.test.ts:152",
+      "failureExplanation": "Parsed workflow YAML includes workflow_dispatch: null, which the fixture expected to be absent. Root is applying a one-line fixture expectation correction.",
+      "failure": 1,
+      "failedJobId": 115424237802,
+      "testCounts": {
+        "passed": 24721,
+        "failed": 1,
+        "skipped": 1925
+      },
+      "fixtureRepair": {
+        "scope": "Add only workflow_dispatch:null to exact trigger expectation; preserve push/PR/path-filter controls.",
+        "focusedPassed": 293,
+        "focusedSkipped": 6,
+        "focusedFailed": 0,
+        "successorCi": "pending publication"
+      }
+    },
+    "nativeWorkers": {
+      "runId": 38435964198,
+      "success": 2,
+      "failure": 0,
+      "checksPerArchitecture": 22,
+      "architectures": [
+        "amd64",
+        "arm64"
+      ]
+    },
+    "nativePlatforms": {
+      "runId": 38435972218,
+      "success": 2,
+      "failure": 0,
+      "linuxSystemd": {
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "windowsAcl": {
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "scopeNote": "Targeted native leaves only; Windows ACL had15 excluded sibling cases."
+    },
+    "sourceReportSha256": "aa03edb326f658ac756418075b54c595cd03dc53214db0b6b96a34ba028d62c4"
+  },
+  "fullNodeDom": {
+    "sourceCommit": "5ca58d93a69d75260e291bd3cbc7593dd609daf4",
+    "sourceCount": 6025,
+    "sourceFreezeSha256": "42168398f605acae32208e89f7592af9d17a2ffe1ef91b13ac90553f8e14d483",
+    "passed": 24703,
+    "failed": 0,
+    "skipped": 1943,
+    "total": 26646,
+    "skipAccounting": {
+      "static": 1723,
+      "runtime": 220,
+      "pinnedBaseline": "not asserted"
+    },
+    "summarySha256": "1cd204ae8a616a305c96cb263d5588f77084b477c2102243424d64d662518ea9",
+    "executionReceiptSha256": "c370420cc36ab2de24f631ef2d1afcfa2dd96059286dc8ed981e2fdaec33d6f2",
+    "independentTerminalReview": "P",
+    "reviewSha256": "c77eecd2acb2bc504433adc4218c572f170734dbcbdd3a0140ba4231fb52cf69",
+    "scope": "Broad full Node/DOM unit execution only; not strict all-canonical-gates or PROD-CI-08 acceptance."
+  },
+  "localPostgres": {
+    "sourceCommit": "5ca58d93a69d75260e291bd3cbc7593dd609daf4",
+    "reportedGateCounts": {
+      "passed": 4142,
+      "failed": 0,
+      "allowedSkipped": 15
+    },
+    "canonicalStrictSteps": "reported passed by inner gate evidence",
+    "outerDisposition": "REFUSED; never an accepted run",
+    "refusal": "Historical session capacity limit 128 overflow",
+    "outerReceiptSha256": "6b28ba15cf3cc3c6dfe30b0e87ab224c921eb14930ea139368cd29a88f5ab7ae",
+    "independentCurrentAbsenceReview": "P; 151 recorded PIDs observed absent by ESRCH",
+    "absenceReviewSha256": "6ef540a795a170b31bf08b8bb2769b7417545ea7c368ba88eeb4daad81acd6ab",
+    "firstStartupRefusal": {
+      "cause": "Unix-domain socket pathname exceeded the native macOS103-byte maximum before tests; original refused attempt retained.",
+      "receiptSha256": "5ea072489a16aebc1f9b7c7531f4c512ee721fd34432103656bc2371670c1407",
+      "preserveAsHistorical": true
+    },
+    "capacityRepair": {
+      "historicalSessionCapacity": 4096,
+      "pendingAndQuarantineCapacity": 4096,
+      "telemetryEventCapacity": 8192,
+      "telemetryByteCapacity": 8388608,
+      "scope": "Two finite capacity constants only; admission, refusal, cleanup and8MiBbyte guard unchanged.",
+      "sourceReview": "P",
+      "focusedPureTests": {
+        "passed": 11,
+        "failed": 0,
+        "skipped": 0,
+        "scope": "Mocked registry-only regressions; no native/runtime acceptance."
+      },
+      "freshPlatformRetry": "running; verdict pending",
+      "retroactiveAcceptance": false
+    },
+    "scope": "The inner test/gate counts do not override the refused outer receipt or establish accepted PostgreSQL verification."
+  },
+  "otherOpenEvidence": {
+    "witnessW1": "Refused for stale HELD provenance. The buildExecuted flag was set before launch and does not prove a build ran.",
+    "witnessW2": {
+      "status": "passed build; independent terminal review P",
+      "summarySha256": "4a3ee7cfdcc9606dd241f71f45467eccea3fabdcf335d8c693b1135fdd910812",
+      "reviewSha256": "9799f0066a26e70524af2491d6cff4f7d9b4213ee0071a43fa3c7bf411f1fa06",
+      "sourceCommit": "5ca58d93a69d75260e291bd3cbc7593dd609daf4",
+      "platform": "linux/arm64",
+      "imageId": "sha256:c0f922573926823d50381596040cb3578e71328664bbae1bb5c05a7e7e38107d",
+      "scope": "Local witness image build only; no J4/product acceptance."
+    },
+    "package": "Subject source review P only; actual engine verification remains pending.",
+    "j4": "Phase and R17/observer leaf relocations reviewed P; final J/K/U source binding under independent review. No runtime acceptance."
+  },
+  "sanitization": "Private raw paths, raw logs, credentials, and secret URLs omitted. Only exact source identifiers, public source-relative test identity, counts, run IDs, and hashes are included."
+}

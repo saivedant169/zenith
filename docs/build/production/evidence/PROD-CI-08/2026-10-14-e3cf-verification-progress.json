@@ -1,0 +1,337 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "e3cf95bfb13921d0196f221bd08627b1bc29d78c",
+  "status": "ci-and-local-computational-admission-passed-end-to-end-pending",
+  "recordedUtc": "2026-10-14T13:23:15.155370+00:00",
+  "milestones": {
+    "verified": 11,
+    "inProgress": 65,
+    "planned": 2,
+    "total": 78,
+    "verifiedPercentage": 14.1
+  },
+  "sourceCapture": {
+    "fileCount": 6057,
+    "freezeSha256": "d42354e9e52c9bfc1d4616c73d429adba32d395d4033af806e2d5a4d67d19e6d",
+    "contentSha256": "05b6c784afdd0e265eb77db2c5e513e22e080e10a9dd4877a7b4d865582286e3",
+    "receiptSha256": "18362e9a4ff2a0b5716d84ba3b5324dfe01389877d6c69c0ac102bd79a3f81d1",
+    "rootCustodyCloseoutSha256": "dab3b8386fde8e0869a856963370d7bd1ecc408dbc7e96f22e2c45c6425e936f"
+  },
+  "ci": {
+    "mainRun": 38564101175,
+    "nativePackagedRun": 38564105487,
+    "nativePlatformRun": 38564109739,
+    "observedSuccessfulJobs": 24,
+    "observedRunningJobs": 0,
+    "observedConditionalSkippedJobs": 8,
+    "wholeCiPassed": true,
+    "reviewSha256": "f8ef4dfaa1f2328803f4a4b0169180f4d0adcd01368aca3e542283e98dc091fc",
+    "unit": {
+      "passed": 24738,
+      "failed": 0,
+      "skipped": 1925,
+      "total": 26663,
+      "seconds": 1558.01
+    },
+    "artifactsInspected": 17,
+    "strictLanes": 11,
+    "requiredFileBackendIdentities": 1686,
+    "requiredIdentitiesOverlap": true,
+    "smoke": "passed",
+    "gimbal": "passed"
+  },
+  "nativeArtifacts": [
+    {
+      "path": "38564105487/artifacts/packaged-worker-amd64-38564105487-1/sanitized.json",
+      "sha256": "3ca5d3dd55b5b96a38014c2f39a081bb596164a66042f78fafd352bd0450ee16",
+      "sanitized": {
+        "schemaVersion": 1,
+        "lane": "packaged-worker",
+        "kind": "native-packaged-worker",
+        "status": "passed",
+        "platform": "linux/amd64",
+        "commit": "e3cf95bfb13921d0196f221bd08627b1bc29d78c",
+        "sourceInputSha256": "2feb6508074ad1d9525561b277df041f95289c5bfc4dde3b02ab9c6b5f1f1c79",
+        "acceptanceHarnessSha256": "3ed010fb0438e7222780a5b1d45d398fb1719ec367f272fc9becb40c33bbe425",
+        "wrapperSha256": "da3d03996fcbcbb96362d061ccc96903427c56c1ba3026e6ff858733ea97e9a8",
+        "manifestSha256": "29b6c6238a0a703d41c6684f80f23a9df7d11cf011108ad64e9555f099acaa6c",
+        "workflowSha256": "b21133a30a4f5da09e214246f1ad94333f755883b79c22c60f8a3d254da09786",
+        "github": {
+          "runId": "38564105487",
+          "runAttempt": "1",
+          "runnerLabel": "ubuntu-24.04",
+          "sha": "e3cf95bfb13921d0196f221bd08627b1bc29d78c"
+        },
+        "environment": {
+          "os": "linux",
+          "processArch": "x64",
+          "dockerOS": "linux",
+          "dockerArch": "amd64",
+          "emulated": false,
+          "node": "22.23.3",
+          "totalRamGiB": 15.61,
+          "availableRamGiB": 14.58,
+          "dockerRamGiB": 15.61,
+          "sourceFreeGiB": 84.95,
+          "temporaryFreeGiB": 84.95,
+          "dockerFreeGiB": 84.95
+        },
+        "startedAt": "2026-10-14T12:29:00.376Z",
+        "finishedAt": "2026-10-14T12:35:49.507Z",
+        "childExitCode": 0,
+        "minimumObservedFreeGiB": 79.43,
+        "checks": {
+          "native-architecture": "passed",
+          "fresh-source-image": "passed",
+          "actual-entrypoint": "passed",
+          "private-tls-custody": "passed",
+          "temporal-mtls-positive-and-negative": "passed",
+          "owned-namespace": "passed",
+          "startup-refusals": "passed",
+          "readiness-and-liveness": "passed",
+          "owned-reconcile-schedule": "passed",
+          "permitted-read-operation": "passed",
+          "packaged-assets-and-plan-retention": "passed",
+          "sql-prerequisite-outage-and-recovery": "passed",
+          "store-outage-and-recovery": "passed",
+          "temporal-outage-and-recovery": "passed",
+          "durable-temporal-restart": "passed",
+          "operator-pause-and-resume": "passed",
+          "actual-inflight-drain-and-fresh-worker": "passed",
+          "idle-drain": "passed",
+          "private-files-and-owned-services-cleanup": "passed",
+          "owned-builder-cache-cleanup": "passed",
+          "owned-context-cleanup": "passed",
+          "baseline-preserved": "passed"
+        },
+        "cleanup": {
+          "builderAbsent": true,
+          "builderContainerAbsent": true,
+          "cacheVolumeAbsent": true,
+          "baselinePreserved": true,
+          "wrapperPrivateFilesRemoved": true,
+          "ownedContextAbsent": true
+        },
+        "limitations": [
+          "The permitted operation is a signed read grant with an expected missing-target refusal; cloud mutation, human browser approval and consumed write-grant recovery are unverified.",
+          "Disposable Temporal mTLS proves certificate authentication, not production namespace authorization, Temporal Cloud or HA.",
+          "A source fixture is not native runtime proof; both architecture jobs and their exact sanitized artifacts must actually complete.",
+          "Source is measured before/after the fresh image build, not an immutable context snapshot. Hosted capacity is checked, never enlarged or silently skipped."
+        ]
+      }
+    },
+    {
+      "path": "38564105487/artifacts/packaged-worker-arm64-38564105487-1/sanitized.json",
+      "sha256": "c81f2fe3a5e2ff89eb5a329deee3b4973a02182ec49ae884648a9ec586cab77d",
+      "sanitized": {
+        "schemaVersion": 1,
+        "lane": "packaged-worker",
+        "kind": "native-packaged-worker",
+        "status": "passed",
+        "platform": "linux/arm64",
+        "commit": "e3cf95bfb13921d0196f221bd08627b1bc29d78c",
+        "sourceInputSha256": "2feb6508074ad1d9525561b277df041f95289c5bfc4dde3b02ab9c6b5f1f1c79",
+        "acceptanceHarnessSha256": "3ed010fb0438e7222780a5b1d45d398fb1719ec367f272fc9becb40c33bbe425",
+        "wrapperSha256": "da3d03996fcbcbb96362d061ccc96903427c56c1ba3026e6ff858733ea97e9a8",
+        "manifestSha256": "2d4729dc8ef942f66b8a8e10bb458c6a116ac602acb2e2bbe2da766f8ffb35a8",
+        "workflowSha256": "b21133a30a4f5da09e214246f1ad94333f755883b79c22c60f8a3d254da09786",
+        "github": {
+          "runId": "38564105487",
+          "runAttempt": "1",
+          "runnerLabel": "ubuntu-24.04-arm",
+          "sha": "e3cf95bfb13921d0196f221bd08627b1bc29d78c"
+        },
+        "environment": {
+          "os": "linux",
+          "processArch": "arm64",
+          "dockerOS": "linux",
+          "dockerArch": "arm64",
+          "emulated": false,
+          "node": "22.23.3",
+          "totalRamGiB": 15.57,
+          "availableRamGiB": 14.32,
+          "dockerRamGiB": 15.57,
+          "sourceFreeGiB": 107.16,
+          "temporaryFreeGiB": 107.16,
+          "dockerFreeGiB": 107.16
+        },
+        "startedAt": "2026-10-14T12:29:02.962Z",
+        "finishedAt": "2026-10-14T12:34:40.679Z",
+        "childExitCode": 0,
+        "minimumObservedFreeGiB": 101.72,
+        "checks": {
+          "native-architecture": "passed",
+          "fresh-source-image": "passed",
+          "actual-entrypoint": "passed",
+          "private-tls-custody": "passed",
+          "temporal-mtls-positive-and-negative": "passed",
+          "owned-namespace": "passed",
+          "startup-refusals": "passed",
+          "readiness-and-liveness": "passed",
+          "owned-reconcile-schedule": "passed",
+          "permitted-read-operation": "passed",
+          "packaged-assets-and-plan-retention": "passed",
+          "sql-prerequisite-outage-and-recovery": "passed",
+          "store-outage-and-recovery": "passed",
+          "temporal-outage-and-recovery": "passed",
+          "durable-temporal-restart": "passed",
+          "operator-pause-and-resume": "passed",
+          "actual-inflight-drain-and-fresh-worker": "passed",
+          "idle-drain": "passed",
+          "private-files-and-owned-services-cleanup": "passed",
+          "owned-builder-cache-cleanup": "passed",
+          "owned-context-cleanup": "passed",
+          "baseline-preserved": "passed"
+        },
+        "cleanup": {
+          "builderAbsent": true,
+          "builderContainerAbsent": true,
+          "cacheVolumeAbsent": true,
+          "baselinePreserved": true,
+          "wrapperPrivateFilesRemoved": true,
+          "ownedContextAbsent": true
+        },
+        "limitations": [
+          "The permitted operation is a signed read grant with an expected missing-target refusal; cloud mutation, human browser approval and consumed write-grant recovery are unverified.",
+          "Disposable Temporal mTLS proves certificate authentication, not production namespace authorization, Temporal Cloud or HA.",
+          "A source fixture is not native runtime proof; both architecture jobs and their exact sanitized artifacts must actually complete.",
+          "Source is measured before/after the fresh image build, not an immutable context snapshot. Hosted capacity is checked, never enlarged or silently skipped."
+        ]
+      }
+    },
+    {
+      "path": "38564109739/artifacts/skipped-platform-systemd-e3cf95bfb13921d0196f221bd08627b1bc29d78c/systemd.json",
+      "sha256": "ecb7012a10f4e8c9d4c4762d30e947a20733ed50c81517f82b0d8e4ef3e7cc24",
+      "sanitized": {
+        "schemaVersion": 1,
+        "kind": "systemd",
+        "status": "passed",
+        "sourceCommit": "e3cf95bfb13921d0196f221bd08627b1bc29d78c",
+        "tools": {
+          "node": "22.23.3",
+          "go": "go version go1.27.1 linux/amd64"
+        },
+        "leaf": {
+          "name": "TestRealSystemctlAndJournalctl",
+          "passed": 1,
+          "failed": 0,
+          "skipped": 0,
+          "excludedSiblingCount": 0
+        },
+        "sourceHashes": [
+          {
+            "file": "scripts/ci/skipped-platforms.mjs",
+            "sha256": "5f7629ccac885cabd8ad467433c50bf0185bf9bffbe15d3edfbd22696c2e605c"
+          },
+          {
+            "file": ".github/workflows/skipped-platforms.yml",
+            "sha256": "26c37d804318fb92d6ed415be44e2884a1a7c07c1cf2683167dcedfa7827ad8a"
+          },
+          {
+            "file": "go/internal/machine/ops/network_test.go",
+            "sha256": "37665d405c7b765aba13070ede7daae9f9b67d1840a67caf58139c01c81a9801"
+          }
+        ],
+        "cleanup": "complete"
+      }
+    },
+    {
+      "path": "38564109739/artifacts/skipped-platform-windows-e3cf95bfb13921d0196f221bd08627b1bc29d78c/windows.json",
+      "sha256": "5e04a6bf8ee3b9fc87e19a0fc3d35c712affbbec1bcc9e0f8029cdfa30c7ccdd",
+      "sanitized": {
+        "schemaVersion": 1,
+        "kind": "windows",
+        "status": "passed",
+        "sourceCommit": "e3cf95bfb13921d0196f221bd08627b1bc29d78c",
+        "tools": {
+          "node": "22.23.3"
+        },
+        "leaf": {
+          "name": "private login config Windows refuses inherited ACLs that grant other identities access",
+          "passed": 1,
+          "failed": 0,
+          "skipped": 0,
+          "excludedSiblingCount": 15
+        },
+        "sourceHashes": [
+          {
+            "file": "scripts/ci/skipped-platforms.mjs",
+            "sha256": "5f7629ccac885cabd8ad467433c50bf0185bf9bffbe15d3edfbd22696c2e605c"
+          },
+          {
+            "file": ".github/workflows/skipped-platforms.yml",
+            "sha256": "26c37d804318fb92d6ed415be44e2884a1a7c07c1cf2683167dcedfa7827ad8a"
+          },
+          {
+            "file": "tests/cli/config.test.ts",
+            "sha256": "723424de36343096a915ec989c5af2ad524ffb07190231c856f6143c8813c98a"
+          }
+        ],
+        "cleanup": "complete"
+      }
+    }
+  ],
+  "localFull": {
+    "status": "verified-computational-phase-and-owned-cleanup",
+    "actualToolSession": 8051,
+    "rootPid": 18455,
+    "runNonce": "0df427dc",
+    "initialPreflightRefusal": {
+      "actualToolSession": 81806,
+      "actualExitCode": 1,
+      "testsStarted": false,
+      "failure": "pressure-not-one",
+      "receiptSha256": "26bdd6ad64e2099ecf988cb452f7a933335a966124ff62b24e89c759723b06cd"
+    },
+    "retryAdmission": {
+      "unusedMemoryMiBBefore": 2592,
+      "unusedMemoryMiBAfter": 5567,
+      "normalPressureSamples": 3,
+      "swapMiB": 0,
+      "headroomReceiptSha256": "3647ca8de79ab6100302701472a66e31ed3f491d5ad921e3f0ae819d1dff4874"
+    },
+    "launcherReviewSha256": "81ea7ca605cfe565de7105408e91b67931cab7813742b9e58aa243a69dc188d6",
+    "testsPassedClaim": true,
+    "ownedCleanupComplete": true,
+    "actualExitCode": 0,
+    "terminalReceiptSha256": "503e1d41a77a8e65f851e62d3b8278f2439bc497ccd85800280ee4633e4e9b16",
+    "rootLaunchReceiptSha256": "0b12690b5f4e4d0956924314b952764771c2eb72b9759551b61e8779d8a21e68",
+    "passed": 24720,
+    "failed": 0,
+    "conditionalSkipped": 1943,
+    "exactIdentities": 26663,
+    "maximumMemoryPressure": 1,
+    "heldCommandsClosed": 13,
+    "sourceStable": true,
+    "guardianIdle": true,
+    "admissionSha256": "4c80917b9b4eefe1647b6cb550b51fee4c3781b47e4441ac832ce2b0f94d381a",
+    "admissionVerifierSha256": "9f77aba61fb062d8b98806a0bcd6d32c67729e49771802f526d545ef1c988630",
+    "admissionReviewSha256": "91a085b6c783ed0835c0a2e09cc2982a778e1793caa259351bf6a676d422c16b",
+    "admissionActualToolSession": 17993,
+    "admissionActualExitCode": 0,
+    "cleanup": {
+      "actualToolSession": 19053,
+      "actualExitCode": 0,
+      "removedEntries": 22824,
+      "tmpRemoved": 21141,
+      "ownedDataRemoved": 1683,
+      "remainingOwnedData": 0,
+      "recordedExactPidCount": 394,
+      "expandedNumericPidCount": 401,
+      "recordedGroupCount": 20,
+      "freshAbsencePasses": 2,
+      "processSignalingPerformed": false,
+      "guardEmpty": true,
+      "proofSha256": "8efe8cf84b1f2a59ae079ce022583690a91fdb3f2173d85ecbd97b552d5381f4",
+      "reviewSha256": "81e9bad690650543103e1d881528c65a27df0149d1c1bedddcc62860c65ea426"
+    }
+  },
+  "remainingCriticalPath": [
+    "Fresh source-bound native witness build",
+    "J4 real default-stack startup and natural maintenance, outages/restart/resume; earlier timeout cause unproven",
+    "Dependent real browser/default composition and registered-agent runbook acceptance"
+  ],
+  "acceptanceClaim": false,
+  "productionReady": false,
+  "releaseFlagsChanged": false
+}

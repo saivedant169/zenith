@@ -761,7 +761,7 @@
         "PROD-CI-06",
         "PROD-CI-07"
       ],
-      "implementationStatus": "Fresh frozen F2D0 full Node/DOM computational verification passed 24720/1943/0 across 26663 exact identities and published independent admission. Exact119ce docs/evidence-only fork CI is terminal:24 successful jobs,8 conditional skips,0 failures,17 artifacts inspected. Original cold-package R5 host-pressure refusal remains preserved; separately reviewed owned builder/cache cleanup and root custody clear passed, including51 captured/launcher PIDs and45 process groups absent twice. Memory pressure2 blocks new heavy acceptance; prior four approved Docker restarts exhausted and renewed one-use approval pending. NativeW build, canonical J4/default maintenance, real browser and direct registered-agent runbook delivery remain unexecuted on F2D0. No milestone or release promotion.; 2026-10-14 postboot evidence linked; requirement state and acceptance unchanged.",
+      "implementationStatus": "Exact E3CF CI passed: 24 successful jobs, 8 conditional dispatch skips, 0 failures; 17 artifacts and all 11 strict lanes inspected. Unit 24,738 passed /1,925 skipped /0 failed, Smoke/Gimbal passed; both native packaged architectures 22/22 and Windows/systemd leaves passed. Fresh local Full R2 exited 0: 24,720 passed /1,943 conditional skips /0 failed, 26,663 exact identities, 13 strict commands closed, stable source and pressure max 1. Independent review, owned cleanup (22,824 entries), 401 numeric PID /20 group absences twice and fresh source-bound computational admission passed. Fresh native witness, J4/default/browser and registered-agent runbook acceptance remain pending. No milestone or release promotion.",
       "evidence": [
         {
           "level": "local_engine",
@@ -2540,6 +2540,19 @@
           "commit": "97f3387ab9aded7ef47b70feba988e1c884e2ab9",
           "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-97f3387a-ci-and-docker-recovery.json",
           "result": "Exact-source fork CI terminal: 32 jobs, 24 passed, 8 conditional skips, 0 failed; 17 artifacts and 11 gate reports record 1,686 required identity entries (overlapping). No acceptance promotion."
+        },
+        {
+          "level": "remote_ci",
+          "commit": "e3cf95bfb13921d0196f221bd08627b1bc29d78c",
+          "runId": 38564101175,
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-e3cf-verification-progress.json",
+          "result": "Terminal exact E3CF CI: 24 successful jobs /8 conditional dispatch skips /0 failures; all 17 artifacts inspected, 11 strict lanes passed 1,686 overlapping required file/backend identities. Unit 24,738P /1,925S /0F; actual Smoke/Gimbal passed. Both native packaged architectures 22/22, Windows/systemd leaves 1/1 with cleanup. Fresh local Full separately passed computational admission and owned cleanup; J4/default-stack/browser and release acceptance remain pending."
+        },
+        {
+          "level": "contract",
+          "commit": "e3cf95bfb13921d0196f221bd08627b1bc29d78c",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-e3cf-verification-progress.json",
+          "result": "Fresh local source-bound Full computational admission passed: 24,720P /1,943 conditional S /0F across 26,663 exact identities; actual tool exit 0, independent review, 13 closed commands, stable source, pressure max 1, owned cleanup and fresh PID/group custody clear passed. No engine, J4, browser or release acceptance inferred."
         }
       ],
       "requiredEvidence": [
@@ -3756,7 +3769,7 @@
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "implementation_complete_verification_pending",
+      "implementationStatus": "Registry OOM startup repair is integrated in E3CF and passed 43 focused tests; native push and J4/default-stack/browser/API/MCP human-approval acceptance remain pending. Both exact E3CF native packaged-worker CI architectures passed 22/22 checks with cleanup; this does not close actual default composition.",
       "evidence": [
         {
           "level": "local_engine",
@@ -5157,7 +5170,7 @@
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "implementation_complete_verification_pending",
+      "implementationStatus": "Registered-agent real default-stack runbook acceptance remains dependent on fresh source-bound J4 stack and seeded consent/epoch prerequisites. No new runbook acceptance claim.",
       "implementationNote": "J4 binds signed registered steps to broker authority and audit with memory/PGlite contracts; registered-agent HTTP delivery/cancel acceptance pending on Mac.",
       "evidence": [
         {
@@ -5530,7 +5543,7 @@
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "implementation_complete_verification_pending; registry startup OOM at 64 MiB diagnosed and reviewed 256 MiB fixture repair integrated with 43 focused tests; new-source native push and complete J4 acceptance pending, original maintenance cause unproven; requirement state unchanged.",
+      "implementationStatus": "Original J4 second critical activity timed out at 100.005s; root cause remains unproven and complete forensics are preserved. A later startup registry was OOM-killed at 64MiB; reviewed 256MiB budget repair is integrated in E3CF with 43 focused tests. Native startup/J4 retry with read-only live DB wait sampling follows fresh Full/witness admission; no acceptance promotion.",
       "implementationNote": "J4 natural-timer harness, durable billing and authenticated shared-lease HTTP fallback complete; default-stack restart/exclusion acceptance pending on Mac. Focused PID1 CLI-command candidate unit proof is independently reviewed at 16/0/0; the three-file candidate is being integrated, and native J4 execution remains pending. No requirement, gate, or source-SHA promotion.",
       "evidence": [
         {

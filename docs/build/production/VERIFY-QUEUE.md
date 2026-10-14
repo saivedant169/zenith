@@ -1,3 +1,11 @@
+## Current verification checkpoint — 14 October 2026, E3CF verification active
+
+The registry repair is pushed to the working fork at `e3cf95bfb13921d0196f221bd08627b1bc29d78c`. Fresh source capture passed for 6057 files; previous F2D0 results remain historical. Exact E3CF CI currently has **24 successful jobs / 0 running / 8 conditional dispatch skips** across 3 workflows. Both native packaged-worker architectures passed 22/22 checks with cleanup; native Windows ACL and systemd leaves each passed 1/1 (Windows 15 excluded siblings are not executed skips). Main CI is now terminal success; all 17 artifacts and 11 strict lanes were inspected. Unit 24,738 passed /1,925 skipped /0 failed; Smoke/Gimbal passed.
+
+Fresh local Full R2 exited 0 (root 18455, tool session 8051): 24,720 passed /1,943 conditional skips /0 failed, with all 26,663 identities and 13 strict commands reconciled; source stayed stable and maximum memory pressure stayed 1. Initial R1 preflight refused before guard acquisition/tests at memory-warning level 2. After measured unused memory increased 2592→5567MiB and three normal-pressure samples, the reviewed streaming-pin launcher began the fresh run. Independent terminal review, owned cleanup and fresh source-bound computational admission passed: 22,824 owned entries removed; 401 numeric PIDs /20 groups absent twice; lock cleared. This closes the computational phase only. J4's original 100.005s timeout cause remains unproven; fresh native push/J4, browser/default-composition and registered-agent runbook acceptance remain on the critical path. [Evidence](evidence/PROD-CI-08/2026-10-14-e3cf-verification-progress.json). Ledger remains **11 verified / 65 in progress / 2 planned (14.1%)**; release flags remain false.
+
+---
+
 ## Current verification checkpoint — 14 October 2026, registry OOM repair
 
 The instrumented startup's owned registry was OOM-killed (exit 137, 64 MiB cap) while the migration image push failed. This is a proved startup failure; it does not establish the cause of the earlier J4 maintenance timeout. The partial stack was then preserved and cleaned: 13 owned resources removed, 0 remaining, 0 forced stops; 48 held commands closed and 58 PIDs / 48 groups were absent twice before guard clear.

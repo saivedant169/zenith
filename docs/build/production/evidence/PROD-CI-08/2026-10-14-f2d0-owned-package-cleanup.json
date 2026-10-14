@@ -1,0 +1,137 @@
+{
+  "evidenceId": "PROD-CI-08-f2d0-owned-package-cleanup-only",
+  "capturedAt": "2026-10-14",
+  "publication": {
+    "scope": "docs/evidence only; product code and test inputs remain frozen at F2D0",
+    "inspectedDocsEvidenceCommit": "119ce1e16f666ecc30e1ac153eb9e6cfcc2d7c4c"
+  },
+  "frozenCodeTestSource": {
+    "commit": "f2d0cb4cce4f0d97496bf134fdb2a66a8c755a98",
+    "sourceFreezeSha256": "9318adfa3883d26274d63ef677e9ac12857b7a1a84d71a0a025fbfe57df959dc",
+    "sourceCount": 6043
+  },
+  "publishedFullAdmission": {
+    "status": "P-published-computational-admission",
+    "verifierSha256": "b5b557219ffcd900adb393207bd7222e05046b05af77b198658826f30eeece3a",
+    "recordSha256": "e2194e69424363bfa1f60531e8924a31fa2222a970043aaac8db99f1d76e7cf4",
+    "independentReviewSha256": "47abef881cb389fc2d2ed99b9da877f2b11e673c016d7d0636356ff4c0f354f1",
+    "runtimeResult": {
+      "passed": 24720,
+      "conditionalSkipped": 1943,
+      "failed": 0,
+      "exactIdentities": 26663
+    },
+    "engineAcceptance": false,
+    "workflowAcceptance": false,
+    "productAcceptance": false
+  },
+  "originalR5Failure": {
+    "status": "refused-and-preserved-unchanged",
+    "outerReceiptSha256": "22a93536cbb720589bf41eee745edf6847ab744d3050b12f8016146f34c17297",
+    "archiveManifestSha256": "40d924b028d0e967cf027b7429075fb8b9239eb14621a6966c432da1fd5c9177",
+    "archiveFiles": 492,
+    "archiveBytes": 1883597,
+    "custodyLedgers": 122,
+    "originalAcceptanceClaim": false
+  },
+  "cleanupOnly": {
+    "status": "cleanup-receipt-reviewed-P-and-root-guard-clear-complete; cleanup-only; no-acceptance-claim",
+    "receiptSha256": "fbf3c57a85dbce8b9abcf915ec2c7f6cc3e24f68bd06afd962eafeae780065ce",
+    "ownedBuilder": "zenith-owned-b58524e9555a",
+    "commandsClosed": 35,
+    "observerProbesClosed": 10,
+    "strictCloseouts": true,
+    "inventoryParity": true,
+    "removedScope": "Only the exact owned builder/container/state-volume and associated builder rows; protected builder, source, and tools preserved.",
+    "protectedBuilderPreserved": true,
+    "sourceStable": true,
+    "minimumHostFreeBytes": 323617738752,
+    "vmSampleMonotonic": 27341.009237208,
+    "operationExitMonotonic": 27340.5755805,
+    "vmSampleCompletedAfterOperation": true,
+    "independentTerminalReview": {
+      "status": "P for cleanup-only proof",
+      "sha256": "a023ba4ef3d67c6a5f5937cd0904201c17bbe0c9cd41dd1a2c9859875ac54f20",
+      "presentTimeProcessAbsenceAsserted": false
+    },
+    "rootGuardClear": {
+      "status": "complete",
+      "proofSha256": "79a070680f99b1b9f60e2a87bfa21474d01bf4cd48b021c7fb8fdcdbd531e50c",
+      "rawLedgers": 45,
+      "commandGroups": 45,
+      "identityPidsAbsentTwice": 46,
+      "supplementalProofSha256": "8712b5d87934a37f619073d14ebb50627d2e5e815d3b756614918b87f3767e93",
+      "supplementalCapturePidsIncludingLauncher": 51,
+      "captureOnlyHelperPids": 5,
+      "canonicalHeavyWorkLock": "empty",
+      "markerClearIsAcceptance": false,
+      "processGroupsAbsentTwice": 45
+    },
+    "hostCustodyMarkerRetained": false,
+    "acceptanceClaim": false
+  },
+  "priorCleanupCandidate": {
+    "initialR4Attempt": "refused-before-mutation",
+    "receiptSha256": "54a6aa3a2604e59513ea28cb04e842cc18dc712a373088c426c242fd741735db",
+    "commandsClosed": 18,
+    "observerProbesClosed": 4,
+    "correctionReviewSha256": "6688b34c884ee5cdc59e5e4edc59d79d8618d77cbb5f8e373ca7aa719aa9627a",
+    "reviewDisposition": "P for exact protected historical image-tag correction only",
+    "status": "R4 attempt refused before mutation; corrected R5 cleanup completed; no second builder cleanup remains",
+    "scope": "Historical correction only; no active cleanup candidate remains."
+  },
+  "currentResourceState": {
+    "hostPressureLevel": 2,
+    "dockerVmFootprintGiB": 8.1,
+    "swapUsedGiB": 1.8,
+    "heavyTestsActive": 0,
+    "priorDockerRestartsConsumed": 4,
+    "additionalRestartRequest": "pending; not approved",
+    "recoveryController": "source-delta review passed; held pending explicit renewed approval and pinned one-use budget; no budget created"
+  },
+  "otherHeldWork": {
+    "nativeWBuildRun": "not run; R6 source and source-delta reviews P only",
+    "j4Successor": {
+      "status": "source-delta review passed; held pending memory/resource recovery and actual W launcher receipt",
+      "candidateSha256": "537b5864b8cda8d4b3a579e8a190889fd462065634de937773bef4c610e9a0db"
+    },
+    "currentCi": {
+      "sourceCommit": "119ce1e16f666ecc30e1ac153eb9e6cfcc2d7c4c",
+      "reportSha256": "cfea19d66bacddbbde853034a26c1bec6ea58c6252a9d7faf9e55063a3e43b51",
+      "artifactManifestSha256": "b42863cdc00981dbdafe64335c446bf47305c0884679a7e22ce36ece6844bf06",
+      "mainRun": 38510891511,
+      "mainPassed": 20,
+      "mainConditionalSkipped": 8,
+      "mainFailed": 0,
+      "nativeWorkersRun": 38510901573,
+      "nativeWorkersPassed": 2,
+      "nativeWorkerChecksPerArchitecture": "22/22 amd64 and 22/22 arm64",
+      "nativePlatformsRun": 38510910927,
+      "nativePlatformsPassed": 2,
+      "jobs": 32,
+      "passed": 24,
+      "conditionalSkipped": 8,
+      "failed": 0,
+      "artifacts": 17,
+      "gateReports": 11,
+      "requiredIdentityEntries": 1686,
+      "requiredIdentityEntriesOverlap": true,
+      "terminal": true,
+      "status": "terminal exact-SHA CI; documentation/evidence only, no acceptance promotion"
+    },
+    "nativeWSourceDeltaReviewSha256": "4b241f29d55756a32e8884e298d7d3861a897b56edc4fd6daa57478dd3d2a69c",
+    "nativeWSourceSha256": "03724b625bdc8efe8f3c120df702e9fe614c1775150e066cc397cf51b710a69a"
+  },
+  "ledger": {
+    "verified": 11,
+    "inProgress": 65,
+    "planned": 2,
+    "releaseFlags": {
+      "implementationComplete": false,
+      "sandboxVerified": false,
+      "pilotReady": false,
+      "productionApproved": false
+    }
+  },
+  "nextAction": "No second builder cleanup remains. Root to review the recovery controller and J4/W dependencies; additional restart is not approved. Keep heavy workload at zero under pressure level 2; preserve all original refusal records and acceptance boundaries."
+}

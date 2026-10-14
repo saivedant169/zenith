@@ -1,0 +1,67 @@
+{
+  "evidenceId": "PROD-CI-08-119ce-exact-ci-terminal",
+  "capturedAt": "2026-10-14",
+  "source": {
+    "commit": "119ce1e16f666ecc30e1ac153eb9e6cfcc2d7c4c",
+    "scope": "docs/evidence-only publication; product code and test inputs remain frozen at F2D0",
+    "frozenCodeTestCommit": "f2d0cb4cce4f0d97496bf134fdb2a66a8c755a98"
+  },
+  "canonicalReportSha256": "cfea19d66bacddbbde853034a26c1bec6ea58c6252a9d7faf9e55063a3e43b51",
+  "artifactManifestSha256": "b42863cdc00981dbdafe64335c446bf47305c0884679a7e22ce36ece6844bf06",
+  "terminal": true,
+  "aggregate": {
+    "jobs": 32,
+    "passed": 24,
+    "conditionalSkipped": 8,
+    "failed": 0
+  },
+  "runs": [
+    {
+      "workflow": "CI",
+      "runId": 38510891511,
+      "duration": "30m 38s",
+      "passed": 20,
+      "conditionalSkipped": 8,
+      "failed": 0
+    },
+    {
+      "workflow": "Native packaged workers",
+      "runId": 38510901573,
+      "duration": "7m 17s",
+      "passed": 2,
+      "failed": 0,
+      "architectures": {
+        "amd64": {
+          "checksPassed": 22,
+          "checksTotal": 22
+        },
+        "arm64": {
+          "checksPassed": 22,
+          "checksTotal": 22
+        }
+      }
+    },
+    {
+      "workflow": "Native skipped platforms",
+      "runId": 38510910927,
+      "duration": "52s",
+      "passed": 2,
+      "failed": 0
+    }
+  ],
+  "artifacts": 17,
+  "gateReports": 11,
+  "requiredIdentityEntries": {
+    "passed": 1686,
+    "failed": 0,
+    "unknown": 0,
+    "overlap": "Entries can overlap across reports; this is not a unique or additive test count."
+  },
+  "conditionalSkipScope": "Eight main-workflow integration jobs were skipped by conditions; this is not treated as a platform pass.",
+  "acceptance": {
+    "requirementStateChanged": false,
+    "milestonePromoted": false,
+    "releaseFlagsChanged": false,
+    "productAcceptanceClaim": false
+  }
+}

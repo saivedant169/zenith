@@ -1,0 +1,124 @@
+{
+  "date": "2026-10-14",
+  "source": "e3cf95bfb13921d0196f221bd08627b1bc29d78c",
+  "ci": {
+    "main": "38564101175",
+    "native_worker": "38564105487",
+    "native_platform": "38564109739",
+    "jobs": 32,
+    "success": 24,
+    "conditional_skips": 8,
+    "failed": 0
+  },
+  "local_verification": {
+    "passed": 24720,
+    "conditional_skips": 1943,
+    "failed": 0,
+    "unique_identities": 26663,
+    "admission_sha256": "4c80917b9b4eefe1647b6cb550b51fee4c3781b47e4441ac832ce2b0f94d381a"
+  },
+  "native_arm64_w": {
+    "scope": "build-only",
+    "tool": 9221,
+    "exit": 0,
+    "witness_sha256": "79796632944e6e9759c387c547ebba9dad620d1db59050639ca16769199d8ca5",
+    "root_fresh_pids": 36,
+    "root_fresh_pgids": 33,
+    "absent_twice": true,
+    "clear_sha256": "647b5b88dd7171994858802c2b9d06989914423caabb82722b634d4576c57c57",
+    "j2_acceptance": false
+  },
+  "j4_r1": {
+    "scope": "host-pooler-select1 preflight",
+    "tool": 4625,
+    "root": 26984,
+    "exit": 2,
+    "actual_subject_sha256": "5696664e5c8b3353efc4ce38a70f638bdfbca1a9aa26ef638284b42efcf00032",
+    "root_sha256": "2949bd50b19d25d7a7b786f8503124281d59b16131ea053f733baeada8a430ae",
+    "default_stack_startup": "passed",
+    "registry_migration_and_push": "passed",
+    "pressure_max": 1,
+    "preflight": "failed before client or query",
+    "cause": "private-node probe used prior F2D0 output directory; adapter created E3 output directory",
+    "database_refusal_demonstrated": false,
+    "unique_commands": 252,
+    "command_exits": {
+      "exit_0": 251,
+      "probe_exit_2": 1,
+      "vm_commands_included": 226
+    },
+    "machine_phase_ran": false,
+    "phases": [],
+    "source_binding_stability_reached": false,
+    "sealed_files": 1010,
+    "positive_pids_absent_twice": 272,
+    "actual_pgids_absent_twice": 252,
+    "closeout_sha256": "ddb63c9ca5e030d24ab0d7a09b98e642a15c95d8c17d156c3b554f753051d686",
+    "clear_sha256": "03b7d24ad2d79b22bcfbcc18cfd51437fb77ae23a3bd4d82b61e1d97c26f8b65",
+    "canonical_cleanup": {
+      "tool_session": 10354,
+      "exit": 0,
+      "root_pid": 28416,
+      "command_rows": 39,
+      "runtime_diagnostic": "j4-774878dc",
+      "resources_removed": 19,
+      "owned_remaining": 0,
+      "forced_stops": 0,
+      "production_ready": false,
+      "terminal_sha256": "8605e1280b20791a9f56bdf52e5b7b130fefad53f9a2a6f704c40d4642fcb84b",
+      "source_tool_protected_resource_checks": "passed",
+      "pressure_max": 1,
+      "private_failure_evidence_preserved": true,
+      "full_stack_archive_preserved": true,
+      "custody_closeout": {
+        "independently_sealed_files": 213,
+        "commands_exited_0_with_strict_closure": 39,
+        "vm_rows_included": 16,
+        "positive_pids_absent_twice": 69,
+        "actual_pgids_absent_twice": 39,
+        "boot_and_flock_scope": "current",
+        "closeout_sha256": "3f5e23ef5e1569780b0b1b2d034ca20c011514816e60843f1b75630adb83a84d",
+        "guard_clear_sha256": "1ae6eb00989666c754f2394cd74132f641fcc2d7f24d2b2c7dc1bd58672c75a8",
+        "fsynced_proof_preceded_guard_clear": true,
+        "resources_remaining": 0,
+        "original_failure_evidence_preserved": true,
+        "private_stack_archive_preserved": true,
+        "cleanup_only_custody_complete": true
+      },
+      "whole_acceptance": false
+    },
+    "j4_r2": {
+      "corrected_probe_retry_started": true,
+      "tool_session": 9481,
+      "status": "running",
+      "result_claimed": false,
+      "pass_claimed": false
+    },
+    "independent_r4_review": "private-probe path plus four pins only",
+    "product_fix": false,
+    "j4_acceptance": false
+  },
+  "read_only_trial": {
+    "review": "Astra High",
+    "duration_minutes": 6.4,
+    "observed_worker_stall_seconds": 100,
+    "harness_leases_renewed_and_released_during_stall": true,
+    "continuous_global_database_outage_excluded": true,
+    "underlying_cause_proven": false,
+    "safe_richer_database_sampling_ready": true
+  },
+  "published_admission": "computational plus owned cleanup",
+  "status": {
+    "milestones": {
+      "verified": 11,
+      "in_progress": 65,
+      "planned": 2,
+      "total": 78,
+      "verified_percent": 14.1
+    },
+    "release_flags": false,
+    "j4_complete_acceptance": false,
+    "mach03_mach04_pkg03_j2_acceptance_pending": true,
+    "no_eta_asserted": true
+  }
+}

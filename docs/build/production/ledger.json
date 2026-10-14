@@ -2553,6 +2553,12 @@
           "commit": "e3cf95bfb13921d0196f221bd08627b1bc29d78c",
           "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-e3cf-verification-progress.json",
           "result": "Fresh local source-bound Full computational admission passed: 24,720P /1,943 conditional S /0F across 26,663 exact identities; actual tool exit 0, independent review, 13 closed commands, stable source, pressure max 1, owned cleanup and fresh PID/group custody clear passed. No engine, J4, browser or release acceptance inferred."
+        },
+        {
+          "level": "local_engine",
+          "commit": "e3cf95bfb13921d0196f221bd08627b1bc29d78c",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-e3cf-j4-probe-path.json",
+          "result": "Fresh native ARM64 witness build-only passed with closed custody; no image-entrypoint or J2 acceptance. J4 R1 default-stack startup passed, then a private probe output-directory mismatch refused before client/query. Original failure preserved; corrected private path independently reviewed. Canonical cleanup removed 19 owned resources with zero remaining/forced; 39 commands closed, 213 files sealed, fresh 69 PIDs/39 groups absent twice and guard cleared. J4 R2 corrected-probe retry started; complete maintenance/browser acceptance remains pending. No milestone or release promotion."
         }
       ],
       "requiredEvidence": [

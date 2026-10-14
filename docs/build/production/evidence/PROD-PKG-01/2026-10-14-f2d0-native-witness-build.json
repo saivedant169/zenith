@@ -1,0 +1,47 @@
+{
+  "evidenceId": "PROD-PKG-01-f2d0-native-arm64-witness-build-only",
+  "capturedAt": "2026-10-14",
+  "requirement": "PROD-PKG-01",
+  "evidenceLevel": "local_linux_arm64",
+  "source": {
+    "commit": "f2d0cb4cce4f0d97496bf134fdb2a66a8c755a98",
+    "fileCount": 6043,
+    "sourceSha256": "9318adfa3883d26274d63ef677e9ac12857b7a1a84d71a0a025fbfe57df959dc"
+  },
+  "build": {
+    "status": "local-build-only-passed",
+    "platform": "linux/arm64",
+    "network": "none",
+    "operationStartMonotonic": 36992.698,
+    "operationExitMonotonic": 37004.306,
+    "durationSeconds": 11.61,
+    "observedRootPtySession": 37894,
+    "rootExitCode": 0,
+    "imageDigest": "sha256:daf0e848b4042f4feea19a6a0d7ca79103ed3c66e3084cf335d442d44aff12e8",
+    "localTag": "localhost:5000/zenith-j2-witness:verify-f2d0-5f65975895f6",
+    "push": false,
+    "entrypointExecuted": false
+  },
+  "custody": {
+    "commandsClosed": 33,
+    "exitZeroCommands": 32,
+    "expectedAbsentTagPreconditionExitOne": 1,
+    "vmProbes": 14,
+    "sourceAndProtectedBuilderStable": true,
+    "supervisorReceiptSha256": "6713e060aea409b30723fecc7b8c734b3cedc26fc229d8ca001abce03376ad07",
+    "terminalLineageReviewSha256": "5f96bb2f1e9f56d27b5d3b367b79bfd16a55ccd997507b854a78f511c677e87d",
+    "terminalCustodyReviewSha256": "d62529cb3069b0f1583cea4bf3d9c453eca9946707ef0a1f795e8cf858611ade",
+    "rootCustodyClearSha256": "7e80547e7ffe70263bfe3e7bce3d971cf8ce156d40982820404f3a5db15a5395",
+    "rootClearPidsAbsentTwice": 39,
+    "rootClearProcessGroupsAbsentTwice": 33,
+    "guardEmpty": true
+  },
+  "resultScope": "Native ARM64 image build proof only; no image entrypoint, runtime, browser, workflow, or product acceptance is claimed.",
+  "acceptance": {
+    "entrypointAccepted": false,
+    "requirementStateChanged": false,
+    "milestonePromoted": false,
+    "releaseFlagsChanged": false,
+    "productAcceptanceClaim": false
+  }
+}

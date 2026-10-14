@@ -1,0 +1,144 @@
+{
+  "evidenceId": "PROD-OBS-04-f2d0-j4-terminal-resource-custody-refusal",
+  "capturedAt": "2026-10-14",
+  "requirement": "PROD-OBS-04",
+  "level": "local_engine",
+  "source": {
+    "commit": "f2d0cb4cce4f0d97496bf134fdb2a66a8c755a98",
+    "fileCount": 6043,
+    "sourceFreezeSha256": "9318adfa3883d26274d63ef677e9ac12857b7a1a84d71a0a025fbfe57df959dc"
+  },
+  "terminal": {
+    "status": "refused-retain-owned-state",
+    "rootPtySession": 5896,
+    "rootExitCode": 2,
+    "rootTerminalSha256": "be9d2fb07e591caaa9d61b01b0eb59ff06ad8f6edbf3ad6c2f3b98b863c7771f",
+    "supervisorReceiptSha256": "27ea795b3947b5ddf2cacf3952f461d064497967f70f3271a756d8da9229be0c",
+    "failureClass": "HeldCommandRefusal",
+    "failureReason": "deferredJ1Up-held-command-refused"
+  },
+  "resourceRefusal": {
+    "pressureBeforeDeferredStartup": 1,
+    "pressureAfterDeferredStartup": 2,
+    "maximumRecordedPressure": 2,
+    "restartBudgetRemaining": 0,
+    "partialStackRetained": true,
+    "cleanupResultAvailable": false,
+    "startupTransitionInterpretation": "Supabase start/image binding reached an internal next stage, but API build status and cause are unproven; no heap-leak conclusion."
+  },
+  "commands": {
+    "total": 120,
+    "exit0": 119,
+    "exitMinus15": 1,
+    "heldCloseoutProven": false,
+    "custodyUncertain": true,
+    "sourceBindingStable": false
+  },
+  "vmObserver": {
+    "probeCommands": 102,
+    "samples": 51,
+    "stopJoined": true,
+    "stopCompleted": true
+  },
+  "preservation": {
+    "archiveFiles": 534,
+    "archiveBytes": 2708911,
+    "archiveManifestSha256": "34b6fd1fdc1db3e46ac7a03b78e82716919f8e9d1d784730dc76ed72aa14a9aa",
+    "independentCustodyReviewSha256": "e4d06a8c73cd2fb818568a02bc09e2db3addeb07c0712cff49f5641ac6302f0c"
+  },
+  "separateHostCustodyResolution": {
+    "sha256": "41453a47a2fcc087d1420fba2c94c3ae27399acde51743687b5540d614b143d7",
+    "pidsAbsentTwice": 145,
+    "processGroupsAbsentTwice": 120,
+    "scope": "cleanup custody only",
+    "originalGuardRetained": true,
+    "stackCleanupProven": false
+  },
+  "resultScope": "Preparation attempt refused before maintenance, PostgreSQL diagnostics, or J2; no test results. This is a resource/custody refusal, not an OBS-04 behavior test failure.",
+  "acceptance": {
+    "requirementStateChanged": false,
+    "milestonePromoted": false,
+    "releaseFlagsChanged": false,
+    "productAcceptanceClaim": false
+  },
+  "separateCleanup": {
+    "status": "cleanup-only-passed",
+    "rootPtySession": 64456,
+    "rootExitCode": 0,
+    "rootTerminalSha256": "56cb37db1b8e43492fcee112dff8f5bd9776c5ff1d657b130da55d81050136b5",
+    "supervisorReceiptSha256": "abd4b17c833aaef2d1090bcf247d996e157b55a9f09c376c5a4f41833c853122",
+    "cleanupReceiptSha256": "4802d24c9e3d4083cefc2069ffd487b2caf4f2f1727d71c5c8480cd5539eb630",
+    "commands": {
+      "total": 40,
+      "exit0": 40,
+      "allStrictCloseout": true,
+      "heldCloseoutProven": true
+    },
+    "sourceBindingStable": true,
+    "ownedResources": {
+      "before": 10,
+      "removed": 10,
+      "remaining": 0,
+      "forcedStops": 0
+    },
+    "productionReady": false,
+    "protectedBuilderPreserved": true,
+    "unrelatedBaselinePreserved": true,
+    "nativeWitnessImageUnchanged": true,
+    "independentCleanupReviewComplete": false,
+    "rootGuardedCustodyClearComplete": false,
+    "originalJ4RefusalRewritten": false
+  },
+  "postCleanupCapacitySnapshot": {
+    "memoryPressureLevel": 2,
+    "hostTop": {
+      "usedGiBApprox": 23,
+      "compressorGiBApprox": 11,
+      "unusedMiBApprox": 156,
+      "cpuIdlePercent": 88
+    },
+    "dockerMemTotalBytes": 8319238144,
+    "dockerStatsMiB": {
+      "protectedBuilder": 181.2,
+      "protectedBuilderLimitGiB": 6,
+      "registry": 35.25,
+      "mailpit": 37.27
+    },
+    "supabaseContainersAlreadyStopped": 5,
+    "observedOomFlag": false,
+    "peakMemoryEstablished": false
+  },
+  "startupStageAssessment": {
+    "migrationAndRegistrySetupReached": true,
+    "apiImageBuildStartedOrCompleted": false,
+    "heapLeakEstablished": false,
+    "basis": "Owned registry resource was present at cleanup; exact API image-build stage remains unproven."
+  },
+  "postRebootObservation": {
+    "observedAt": "2026-10-14 after actual Mac reboot",
+    "kernelBootTime": "1791966211.006225",
+    "memoryPressureLevel": 1,
+    "swapGiB": 0,
+    "memoryStateChangedAcrossReboot": true,
+    "rootGuardedCustodyClearProof": "completed; see postBootGuardedCustodyClear",
+    "nextJ4Attempt": "launch prepared and under review; no actual attempt has run",
+    "additionalDockerRestartAuthorizedOrUsed": false,
+    "compressorMemoryMiB": 32
+  },
+  "postBootGuardedCustodyClear": {
+    "status": "completed; prior cleanup custody only",
+    "closeoutSha256": "0f47f1d12c4e90c03cd84cd5e0e3d3dad8ccc994173c9dff4561eb0a636ae514",
+    "guardClearReceiptSha256": "232d1af53684463423a1104a01bfbb15ce1d0ae57c61523e5879ffd8179bac9c",
+    "independentGuardReviewSha256": "12f86b848bfc52f3fb77c9f9498a6c291bb6ba6a538e19275306e793e962d30d",
+    "rootExecutionExitCode": 0,
+    "pids": 68,
+    "processGroups": 40,
+    "eachObservedEsrchTwice": true,
+    "processSignalingPerformed": false,
+    "newGuardInode": 9425823,
+    "priorGuardInode": "missing after user reboot",
+    "acceptanceClaim": false,
+    "originalJ4RefusalUnchanged": true,
+    "newJ4Launch": "prepared and under review; no actual attempt"
+  }
+}

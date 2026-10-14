@@ -1,0 +1,87 @@
+{
+  "evidenceId": "PROD-CI-08-97f3387a-exact-ci-and-docker-recovery",
+  "capturedAt": "2026-10-14",
+  "source": {
+    "commit": "97f3387ab9aded7ef47b70feba988e1c884e2ab9",
+    "scope": "exact-SHA fork CI observation; frozen product/test source remains F2D0",
+    "frozenCodeTestCommit": "f2d0cb4cce4f0d97496bf134fdb2a66a8c755a98"
+  },
+  "canonicalReportSha256": "9ad65f8c1cf38110479513c0d8508d9205223f057eaea7dc01c0e2517e994d0c",
+  "artifactManifestSha256": "1332c30314534f4fed8c57e4631d687e04a65f5ef2e09ac0fa29f87a5a79ba5f",
+  "terminal": true,
+  "aggregate": {
+    "jobs": 32,
+    "passed": 24,
+    "conditionalSkipped": 8,
+    "failed": 0
+  },
+  "runs": [
+    {
+      "workflow": "CI",
+      "runId": 38515001621,
+      "passed": 20,
+      "conditionalSkipped": 8,
+      "failed": 0
+    },
+    {
+      "workflow": "Native packaged workers",
+      "runId": 38515011713,
+      "passed": 2,
+      "failed": 0,
+      "architectures": {
+        "amd64": {
+          "checksPassed": 22,
+          "checksTotal": 22
+        },
+        "arm64": {
+          "checksPassed": 22,
+          "checksTotal": 22
+        }
+      }
+    },
+    {
+      "workflow": "Native skipped platforms",
+      "runId": 38515021164,
+      "passed": 2,
+      "failed": 0
+    }
+  ],
+  "artifacts": 17,
+  "gateReports": 11,
+  "requiredIdentityEntries": {
+    "passed": 1686,
+    "failed": 0,
+    "unknown": 0,
+    "overlap": "Entries may overlap across reports and are not a unique or additive test count."
+  },
+  "externalAcceptances": {
+    "unverified": 11,
+    "promoted": false
+  },
+  "dockerRecovery": {
+    "result": "recovery-only-passed",
+    "actualPtySession": 63604,
+    "exitCode": 0,
+    "closedCommandRecords": 18,
+    "pressureBefore": 2,
+    "pressureAfter": 1,
+    "receiptSha256": "088fd1a6372c81829ed97757b2d55d4845dd9deabae0eee668d32fa2e11942f5",
+    "rootTerminalProofSha256": "285bcef1ad80d08749672e43e79743db231613044cb4d0153469e1de494d1356",
+    "oneUseBudget": {
+      "approved": 1,
+      "consumed": 1,
+      "remaining": 0
+    },
+    "protectedBuilderConfigAndResourcesPreserved": true,
+    "builtinBridgeNetworkIdRecreated": true,
+    "builtinBridgeConfigurationPreserved": true,
+    "historicalNumericCommandPidsReconstructed": false,
+    "productAcceptanceClaim": false
+  },
+  "acceptance": {
+    "requirementStateChanged": false,
+    "milestonePromoted": false,
+    "releaseFlagsChanged": false,
+    "productAcceptanceClaim": false
+  }
+}

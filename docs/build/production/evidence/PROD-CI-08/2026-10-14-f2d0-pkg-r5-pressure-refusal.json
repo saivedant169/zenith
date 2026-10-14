@@ -1,0 +1,63 @@
+{
+  "evidenceId": "PROD-PKG-03-f2d0-r5-fresh-image-build-refusal",
+  "capturedAt": "2026-10-14",
+  "sourceCommit": "f2d0cb4cce4f0d97496bf134fdb2a66a8c755a98",
+  "sourceCount": 6043,
+  "sourceFreezeSha256": "9318adfa3883d26274d63ef677e9ac12857b7a1a84d71a0a025fbfe57df959dc",
+  "candidateSha256": "43ae9543f7e5b34fb33a88892572b896fcad7e6df960212f135021cb1d54899a",
+  "sourceCorrectionReview": {
+    "status": "P-source-review-only",
+    "sha256": "b6ba6e3f9715dc20529ca83e9b1e4c1a81fecbf85938bd6619f9de897710f97b"
+  },
+  "outerRun": {
+    "status": "refused",
+    "receiptSha256": "22a93536cbb720589bf41eee745edf6847ab744d3050b12f8016146f34c17297",
+    "launchReceiptSha256": "b8e01bbf55a9e5512daf3e938f10f081ece7d6aa90e725abeb16a33e3e23296b",
+    "sourceStable": false,
+    "subjectReceiptPresent": false,
+    "failureClass": "host-pressure monitor refusal",
+    "requiredAcceptanceChecks": 22,
+    "acceptanceChecksExecuted": 0,
+    "acceptanceClaim": false
+  },
+  "subjectBuild": {
+    "result": "fresh-image-build command failed with exit 130",
+    "recognizedBuildFailureMarkers": 0,
+    "exactActiveBuildStage": "not established by retained evidence",
+    "rawBuildOutputRetainedInSubject": false,
+    "subjectTerminalReceiptPresent": false
+  },
+  "heldWorkerCloseout": {
+    "lastWorkerReturnCode": -15,
+    "strictCloseoutComplete": false,
+    "custodyUncertain": true,
+    "freshTerminalAbsenceConfirmations": 2,
+    "diagnosisSha256": "56b2f05e20950adfba9a76c7ed702225a57525c2ffc1a4e490335af9388620be",
+    "cleanupStatus": "root recovery/custody pending; run marker retained",
+    "subsequentHostCustodyPrerequisite": {
+      "proofSha256": "da25622ec96ffeee976d052f6aebe475a25a1054540bde321a6b448526bd38d6",
+      "recordedPidCount": 131,
+      "completeUid501ProcessSnapshots": 2,
+      "recordedPidsAbsentPasses": 2,
+      "rawLedgers": 122,
+      "originalStrictCloseoutRemainsRefused": true,
+      "builderResourceCleanupRequired": true,
+      "markerRetained": true,
+      "engineCallsPerformed": false,
+      "acceptanceClaim": false
+    }
+  },
+  "resourceDiagnosis": {
+    "sha256": "a9f00c25365b3e55a1507cea85fcdfd1606afceb5ed904bb0bbcc93b9892867d",
+    "finding": "pressure monitor refusal is supported; the exact build stage and a Node heap failure are not established",
+    "ownedBuilderCacheCleanupReceiptPending": true,
+    "protectedBuilderChanged": false,
+    "noCapacityOrHeapChangeClaimed": true
+  },
+  "acceptance": {
+    "packagedWorkerAcceptance": false,
+    "nativeImageAcceptance": false,
+    "productAcceptance": false
+  },
+  "scope": "Source correction review only; actual R5 cold-build attempt was refused and incomplete. Custody/owned-builder recovery must finish before considering a successor. No acceptance promotion."
+}

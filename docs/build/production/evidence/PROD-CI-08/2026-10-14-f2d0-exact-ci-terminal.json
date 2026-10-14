@@ -1,0 +1,64 @@
+{
+  "evidenceId": "PROD-CI-09-f2d0-exact-source-terminal-ci",
+  "capturedAt": "2026-10-14",
+  "repository": "saivedant169/zenith",
+  "branch": "codex/production-2026-10-02",
+  "commit": "f2d0cb4cce4f0d97496bf134fdb2a66a8c755a98",
+  "workflowRuns": [
+    {
+      "name": "CI",
+      "runId": 38500987091,
+      "jobs": {
+        "total": 28,
+        "success": 20,
+        "conditionalSkipped": 8,
+        "failed": 0
+      }
+    },
+    {
+      "name": "native-packaged-workers",
+      "runId": 38500999025,
+      "jobs": {
+        "total": 2,
+        "success": 2,
+        "failed": 0
+      },
+      "amd64Checks": 22,
+      "arm64Checks": 22
+    },
+    {
+      "name": "native-platforms",
+      "runId": 38501010093,
+      "jobs": {
+        "total": 2,
+        "success": 2,
+        "failed": 0
+      },
+      "linuxSystemd": "passed",
+      "windowsAcl": "passed"
+    }
+  ],
+  "aggregate": {
+    "jobs": 32,
+    "success": 24,
+    "conditionalSkipped": 8,
+    "failed": 0
+  },
+  "canonicalCiReportSha256": "f329323ed85b47af58363f87c23aa536e89c12b2cb7e261e3e62efa1684aabec",
+  "artifactManifest": {
+    "fileCount": 17,
+    "sha256": "d3cc5d52f12c54b4491fd643438c117fefd6ab2bc03fa1f8556c71a7450e76d6"
+  },
+  "freshSourceBinding": {
+    "receiptSha256": "6385a311359cee045e2f7c6dc5c29ab05006816ead6883ca33fb4b03209fcdb1",
+    "head": "f2d0cb4cce4f0d97496bf134fdb2a66a8c755a98",
+    "sourceCount": 6043,
+    "sourceFreezeSha256": "9318adfa3883d26274d63ef677e9ac12857b7a1a84d71a0a025fbfe57df959dc",
+    "dirty": false,
+    "stable": true,
+    "checkout": "fresh clean physical checkout, same dependencies without a dependency symlink",
+    "rootClearProofSha256": "0716272d2ee6a7a59037988215aad54b53aeedf44c559185d81e93761b3f9ef9"
+  },
+  "frozenHistoricalAcceptanceSource": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+  "scope": "Exact-SHA fork CI and fresh source-binding evidence only. Eight conditional integrations were skipped. No production acceptance is claimed."
+}

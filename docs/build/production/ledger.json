@@ -2491,6 +2491,36 @@
           "commit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
           "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-docker-recovery-r4.json",
           "result": "Bounded Docker recovery R4 independently reviewed P: 18/18 commands closed, 11/11 parity checks, host pressure 2→1, 335,376,252,928 bytes free; protected builder/config preserved. Recovery only; restart budget is now 3/3 consumed, with no restart remaining. No product acceptance."
+        },
+        {
+          "level": "remote_ci",
+          "commit": "f2d0cb4cce4f0d97496bf134fdb2a66a8c755a98",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-f2d0-exact-ci-terminal.json",
+          "result": "Exact-SHA fork CI: 32 jobs, 24 success, 8 conditional skips, 0 failures (main 20/28; native packaged workers 2/2; native platforms 2/2). Fresh source binding: 6,043 files, freeze SHA-256 9318adfa3883d26274d63ef677e9ac12857b7a1a84d71a0a025fbfe57df959dc. Eight conditional integrations remain skipped; no acceptance promotion."
+        },
+        {
+          "level": "local_engine",
+          "commit": "f2d0cb4cce4f0d97496bf134fdb2a66a8c755a98",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-f2d0-full-node-dom-computational.json",
+          "result": "Full canonical Node/DOM computational run: 24,720 passed / 1,943 conditional skips / 0 failed; 26,663 exact identities; 13 strict held commands closed; 533.96 seconds; peak pressure 1; source stable. Independent custody and identity reviews P, root cleanup and guard clear P. testsRun metadata is null; canonical workflow, engine, and product acceptance false."
+        },
+        {
+          "level": "local_engine",
+          "commit": "f2d0cb4cce4f0d97496bf134fdb2a66a8c755a98",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-f2d0-pkg-r4-config-refusal.json",
+          "result": "PKG R4 refused before 22 required checks due to live Buildx configuration mismatch (35 host bytes versus 42 live bytes), not memory pressure. Separate root custody clear is now P (23 ledgers and all 81 recorded PIDs absent in two fresh passes); original refusal is preserved. No package/runtime acceptance."
+        },
+        {
+          "level": "local_engine",
+          "commit": "f2d0cb4cce4f0d97496bf134fdb2a66a8c755a98",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-f2d0-pkg-r5-pressure-refusal.json",
+          "result": "R5 source correction independently reviewed P; actual fresh-image build refused by host-pressure monitor (exit 130) before 0/22 required acceptance checks. No subject terminal receipt; held worker return -15, strict closeout incomplete/custody uncertain despite two recorded absence confirmations. Root owned-builder/cache recovery pending; no stage-specific or heap-failure diagnosis; no retry or acceptance claim."
+        },
+        {
+          "level": "local_engine",
+          "commit": "f2d0cb4cce4f0d97496bf134fdb2a66a8c755a98",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-f2d0-pkg-r4-config-refusal.json",
+          "result": "Separate root custody clear P for the retained R4 refusal: 23 ledgers reviewed, 81 recorded PID checks, two fresh absence confirmations; original refusal unchanged. Custody only; no acceptance."
         }
       ],
       "requiredEvidence": [
@@ -3642,6 +3672,13 @@
           "commit": "07728546bcc3489bdf8a382c646d57218b87e147",
           "result": "Exact077 real AMD64 image startup under emulation passed277.66s with corresponding readiness/outage/idle-shutdown checks and complete owned cleanup. Emulation does not establish native AMD64 acceptance.",
           "artifact": "docs/build/production/verification/2026-10-03-g1-integration.json"
+        },
+        {
+          "level": "local_engine",
+          "commit": "f2d0cb4cce4f0d97496bf134fdb2a66a8c755a98",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-f2d0-pkg-r5-pressure-refusal.json",
+          "result": "R5 source correction independently reviewed P; actual fresh-image build refused by host-pressure monitor (exit 130) before 0/22 required acceptance checks. No subject terminal receipt; held worker return -15, strict closeout incomplete/custody uncertain despite two recorded absence confirmations. Root owned-builder/cache recovery pending; no stage-specific or heap-failure diagnosis; no retry or acceptance claim.",
+          "passed": false
         }
       ],
       "requiredEvidence": [
@@ -5565,6 +5602,12 @@
           "commit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
           "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-14-temporal-r7-focused-result-pending-review.json",
           "result": "Temporal R7 focused result independently reviewed P; 10 passed/0 failed/0 skipped, both required identities, parent exit 0. Root cache cleanup P (6 removed/0 remaining, terminal unchanged) and root guard clear P (11 raw ledgers; 17 PIDs absent twice; marker empty). Scope remains focused only; no J4/default-stack effect or OBS-04 promotion."
+        },
+        {
+          "level": "local_engine",
+          "commit": "f2d0cb4cce4f0d97496bf134fdb2a66a8c755a98",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-14-f2d0-native-entrypoint-extraction.json",
+          "result": "Native ARM64 cached image entrypoint extraction diagnostics: 32/32 diagnostic commands closed/passed; root custody clear reviewed P. Image diagnostics establish no accepted run receipt, server/J4 behavior, or OBS-04/product acceptance."
         }
       ],
       "requiredEvidence": [

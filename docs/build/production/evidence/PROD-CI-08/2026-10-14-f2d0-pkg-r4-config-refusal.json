@@ -1,0 +1,31 @@
+{
+  "evidenceId": "PROD-CI-08-f2d0-pkg-r4-config-refusal",
+  "capturedAt": "2026-10-14",
+  "sourceCommit": "f2d0cb4cce4f0d97496bf134fdb2a66a8c755a98",
+  "candidateSha256": "819c1e94a2353da2fb8a7a42a059413fe702349eac48ff771ad547f6b7a78239",
+  "status": "refused-before-required-checks",
+  "terminal": {
+    "receiptSha256": "b060d50e2a7540e5166f6869a19eb1b687137e139033badfcb92b6120a8eedd6",
+    "exitCode": 2,
+    "acceptanceClaim": false,
+    "reason": "Live Buildx configuration differed from the expected host-normalized configuration (35 host settings versus 42 live); refusal occurred before the 22 required checks. No memory-pressure failure was recorded."
+  },
+  "preservation": {
+    "outerRefusalSha256": "f3ad27f61e56d3e77741c67cda71064b56c1e4d0958e54aeaae76e6d64ac9737",
+    "subjectReceiptSha256": "a8c835b8865024e88b3cf984249c12fb4b1e6812026943fd3ea9eaf65a0a48f9",
+    "archiveManifestSha256": "314ec4bbb3b77cafce7e2eb556d698afefcd5a6c9445c8c83121e68f66106d19",
+    "ownedBuilderContainersVolumesAndProbes": "cleaned; root custody clear reviewed P",
+    "marker": "cleared by root custody procedure; original refusal preserved"
+  },
+  "scope": "Packaging preparation refusal only. The 22 acceptance checks did not run; no build, image, runtime, or product acceptance is claimed.",
+  "custodyClear": {
+    "status": "P-custody-only",
+    "sha256": "2f912da8f78faae1330b888dac5e9b9205284398707f2dbb4276cf042e43b694",
+    "rawLedgers": 23,
+    "freshAbsencePasses": 2,
+    "originalOuterRefusalPreserved": true,
+    "acceptanceClaim": false,
+    "recordedPids": 81,
+    "freshAbsencePassesPerPid": 2
+  }
+}

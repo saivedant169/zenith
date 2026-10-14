@@ -1,0 +1,50 @@
+{
+  "evidenceId": "PROD-CI-08-f2d0-full-node-dom-computational",
+  "capturedAt": "2026-10-14",
+  "commit": "f2d0cb4cce4f0d97496bf134fdb2a66a8c755a98",
+  "sourceFreezeSha256": "9318adfa3883d26274d63ef677e9ac12857b7a1a84d71a0a025fbfe57df959dc",
+  "scope": "Fresh physical checkout, stable pinned inputs, complete canonical Node and DOM projects with no file or test-name filter.",
+  "execution": {
+    "terminalReceiptSha256": "ad2895d480dd4539e4c97650e11be5fbc70995efba5cf481be2ff1ce1ff46e2c",
+    "status": "passed-full-node-dom-computational-awaiting-root-cleanup",
+    "positiveExecution": true,
+    "exitCode": 0,
+    "elapsedSeconds": 533.96,
+    "testsRunField": null,
+    "reportedCounts": {
+      "passed": 24720,
+      "failed": 0,
+      "conditionalSkipped": 1943,
+      "totalIdentities": 26663,
+      "identityCountExact": true
+    },
+    "strictHeldCommandsClosed": 13,
+    "maximumMemoryPressureLevel": 1,
+    "sourceStable": true,
+    "allHeldCommandsClosed": true
+  },
+  "independentReview": {
+    "terminalCustodyReviewSha256": "463a9cab38976b45042a2c275021d68e3b67330508b4538e974cfa3534ae2b01",
+    "identityCountReviewSha256": "bf450e50f10b68fc9b585a3c88ae9d3f7087f85cf74b18f6f329a6a2e4a72884",
+    "identityReviewStatus": "P",
+    "identityTotals": "24720 passed / 0 failed / 1943 skipped; 26663 unique identities; 4919 suites passed"
+  },
+  "cleanupAndCustody": {
+    "rootReceiptSha256": "914a49d30e88251d3a1575354b1ba0b91b5f57527c902600ccfeca03e72f543b",
+    "originalTerminalUnchanged": true,
+    "ownedDataRootRemoved": true,
+    "removedEntries": 22886,
+    "freshPidAbsencePasses": 2,
+    "guardCleared": true,
+    "acceptanceClaim": false,
+    "engineAcceptance": false,
+    "temporaryRootStatus": "retained empty"
+  },
+  "acceptance": {
+    "computationalRunPass": true,
+    "canonicalWorkflowAcceptance": false,
+    "engineAcceptance": false,
+    "productAcceptance": false
+  },
+  "scopeNote": "A positive Full Node/DOM computational run is recorded. The terminal testsRun metadata field is null, despite positive execution, exit 0 and reconciled reports. This does not establish canonical workflow, real engine, or product acceptance."
+}

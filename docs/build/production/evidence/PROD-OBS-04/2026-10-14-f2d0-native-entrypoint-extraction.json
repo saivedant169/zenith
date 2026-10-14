@@ -1,0 +1,31 @@
+{
+  "evidenceId": "PROD-OBS-04-f2d0-native-arm64-entrypoint-extraction-diagnostics",
+  "capturedAt": "2026-10-14",
+  "sourceCommit": "f2d0cb4cce4f0d97496bf134fdb2a66a8c755a98",
+  "sourceFreezeSha256": "9318adfa3883d26274d63ef677e9ac12857b7a1a84d71a0a025fbfe57df959dc",
+  "status": "diagnostic-extraction-only; custody-clear-reviewed",
+  "supervisorReceiptSha256": "bf16411ab51086b5d2da0b44ee8d3e3b39c91949615d9b5e21e4983d457ca044",
+  "diagnosticCloseout": {
+    "total": 32,
+    "closed": 32,
+    "passed": 32,
+    "mainCommands": 24,
+    "vmObserverCommands": 8,
+    "hostPressureFinal": 1
+  },
+  "rootCustodyClear": {
+    "status": "P",
+    "sha256": "cc6f2f1f255ba13ca7333972f023458c02ff1bf5f84f04f6a709837b8995712c",
+    "independentReviewSha256": "e68dcf9bd1aa1183410cdf36b973ea9aa85cd97b92f4c37511238e4b85474895",
+    "rawLedgersReviewed": 32,
+    "originalReceiptUnchanged": true
+  },
+  "acceptance": {
+    "acceptedRunReceipt": false,
+    "imageAcceptance": false,
+    "engineAcceptance": false,
+    "serverAcceptance": false,
+    "productAcceptance": false
+  },
+  "scope": "Cached native ARM64 image entrypoint extraction and diagnostic closeout only. The image is not evidence of server behavior, J4/native acceptance, or production acceptance."
+}

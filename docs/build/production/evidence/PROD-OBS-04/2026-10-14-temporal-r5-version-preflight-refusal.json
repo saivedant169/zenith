@@ -1,0 +1,19 @@
+{
+  "evidenceId": "PROD-OBS-04-temporal-r5-version-preflight-refusal",
+  "capturedAt": "2026-10-14",
+  "sourceBaseCommit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+  "status": "refused-before-tests",
+  "terminalSha256": "d747ec37c07d772e6d544f01aefd5ab7d7a9d16af2151bd2ac4afa8328186344",
+  "failure": "Exact Temporal CLI version display mismatch; no tests were started.",
+  "terminalCommandsClosed": 9,
+  "recordedPidsAbsent": 10,
+  "rootCustodyClearSha256": "0c9694f8330a35f5aa92323117b844f219f94910cbf2f382ebe29ad78723849d",
+  "correctedOutputReview": {
+    "verdict": "P for exact-output source correction only",
+    "reviewSha256": "6d867961185a299614d88be2b1ecd327331bb08e3bbbe6706326bb436d69ea7b",
+    "releasedCandidateSha256": "1aeabb789ed8bceb356418a25862b09c74baa153cf6ea25261205cc69f295f87"
+  },
+  "successor": "Subsequent R7 run and its reviewed closeouts are recorded as separate evidence.",
+  "acceptanceClaim": false,
+  "scope": "Preserves the R5 preflight refusal and custody clear. The R6 version-source review concerns only comparison correctness; it does not prove Temporal runtime or workflow acceptance."
+}

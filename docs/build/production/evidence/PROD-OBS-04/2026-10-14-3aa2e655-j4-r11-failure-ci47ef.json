@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "kind": "2026-10-14-w-postflight-ci47ef-j4-r11-terminal",
+  "observedAt": "2026-10-14",
+  "source": {
+    "primaryFork": "47ef1109f5345fd32975f610d0845e70e0b2c103",
+    "frozenAcceptance": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+    "frozenAcceptanceUnchanged": true
+  },
+  "ledgerSnapshot": {
+    "verified": 11,
+    "inProgress": 65,
+    "planned": 2,
+    "total": 78,
+    "releaseFlags": {
+      "implementationComplete": false,
+      "sandboxVerified": false,
+      "pilotReady": false,
+      "productionApproved": false
+    }
+  },
+  "ci47ef": {
+    "status": "terminal green",
+    "workflowRuns": [
+      {
+        "name": "CI",
+        "runId": 38484929293,
+        "jobs": 28,
+        "success": 20,
+        "conditionalSkipped": 8,
+        "failed": 0
+      },
+      {
+        "name": "Native packaged workers",
+        "runId": 38484934775,
+        "jobs": 2,
+        "success": 2,
+        "failed": 0
+      },
+      {
+        "name": "Native skipped platforms",
+        "runId": 38484941200,
+        "jobs": 2,
+        "success": 2,
+        "failed": 0
+      }
+    ],
+    "aggregate": {
+      "jobs": 32,
+      "success": 24,
+      "conditionalSkipped": 8,
+      "failed": 0
+    },
+    "artifacts": 17,
+    "requiredIdentityEntries": 1864,
+    "entriesOverlap": true,
+    "reportSha256": "21f85a60ba39abd9c0cf468bb7d75f195beb1bb9b6218d152aa5f46c0ee262a1",
+    "acceptanceClaim": false
+  },
+  "wPostflight": {
+    "status": "typed P fresh-native-witness-build-and-postflight",
+    "receiptSha256": "0579a1cc8097d4c631ff7e615a9af4e285e9b0f471e5486739b56143ec02b1c2",
+    "independentReviewSha256": "4d1d99b1556fb5842aa413154e37cf5cdf8045980c66c1050f1ece37e2e6672f",
+    "quarantineClearProofSha256": "cf2dc22b31a74a5753e44a0eef5212b7752102017bd227dc274f405da6006ba6",
+    "scope": "W postflight only",
+    "originalR8": {
+      "refusalReceiptSha256": "ddafa79d8c26381bc23c96a4701a41d8d980ea65c29d7a069d17e6927d752ddb",
+      "status": "refused at metadata identity; unchanged",
+      "metadataFileModeProof": "same inode and bytes; no rebuild"
+    },
+    "acceptanceClaim": false
+  },
+  "j4R11": {
+    "sourceCommit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+    "supervisorSourceSha256": "8823477e5f4a83cd81ff209bbd30b543929cf14920839c6b705b1d5d2968410d",
+    "status": "FAILED; host custody P only; acceptanceClaim false",
+    "parentExitCode": 2,
+    "receiptSha256": "1b1bea42774240b6f8a6fd442f48b51bfdbf1b929d0c2ec43a359c6a5bf68980",
+    "terminalReviewSha256": "b563c934d5784eb6358dceb3396dba3180c4f5287d6fc53fd164c7478897b12b",
+    "hostCustody": {
+      "commandRows": 454,
+      "outerRows": 26,
+      "vmObserverRows": 428,
+      "rawStreamsHashed": 908,
+      "pendingProcessChecksProvenAbsent": 20,
+      "resourceBreaches": 0,
+      "memoryPressurePeak": 1
+    },
+    "preapi": {
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0
+    },
+    "prestart": {
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0
+    },
+    "nativeStartup": "passed",
+    "machineSchedules": {
+      "exitCode": 1,
+      "diagnostic": "maintenance_deadline_exceeded during lease_exclusion"
+    },
+    "cleanup": "unconfirmed; owned stack retained; quarantine marker retained",
+    "notEstablished": [
+      "outage",
+      "restart",
+      "resume",
+      "J2",
+      "MACH03",
+      "J4 acceptance"
+    ],
+    "acceptanceClaim": false
+  },
+  "j4HostProof": {
+    "status": "P host custody only",
+    "sha256": "5683590c41d40ffa42762c8c9536f9122381a356b3133382f45da1ebf1ea1928",
+    "files": 1819,
+    "pendingChecksAbsent": 20
+  },
+  "readOnlyDiagnostic": {
+    "status": "running",
+    "session": 24946,
+    "engineWrites": false,
+    "rerun": false,
+    "initialGuard": "refused local port 54320 vs source 6543 before database or Temporal calls; closed and preserved"
+  },
+  "temporal": {
+    "R2SourceReview": "independent P",
+    "R2PureChecks": {
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    "R3": "released, queued after J4 resolution",
+    "actualTemporalTest": "not run; no result"
+  },
+  "resourceState": {
+    "heavyWorkload": "none",
+    "J4OwnedStack": "retained until cleanup is safely resolved",
+    "quarantine": "failed-j4-r11-3aa-successor retained"
+  },
+  "scope": "Scoped W postflight, exact-source remote CI, and failed J4 terminal evidence. No requirement promotion, acceptance claim, or release-state change."
+}

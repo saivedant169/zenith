@@ -10,6 +10,7 @@ import { readiness } from './readiness.mjs';
 import { deferredJ4Composition, initializeJ4Namespace, j4PrestartReadiness, prepareJ4Ownership } from './j4.mjs';
 import { envValues } from '../../deploy/pin-digests.mjs';
 import { startLeanCliServices } from './start-cli-services.mjs';
+import { cliServiceCommand } from './cli-command.mjs';
 
 const nodeImage = 'node:22.23.3-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402';
 const privateFile = (file, text) => fs.writeFileSync(file, text, { mode: 0o600, flag: 'wx' });
@@ -32,8 +33,9 @@ function nativeArch(architecture) {
 }
 
 /** Recreate only the positively labelled CLI container, pinned to its opened image ID.
- * Keep the CLI's actual environment, mounts, command and health check. The only
- * changes are ownership, bounded resources, loopback bindings and pooler TLS.
+ * Keep the CLI's actual environment, mounts and health check. Replace the
+ * known DB/Kong setup shell with its service so stop signals reach PID 1.
+ * Other changes are ownership, bounded resources, loopback and pooler TLS.
  */
 async function boundCliService(state, role) {
   const name = `supabase_${role}_${state.projectId}`;
@@ -43,6 +45,7 @@ async function boundCliService(state, role) {
   nativeArch(image.Architecture);
   const snapshot = { role, imageId: item.Image, references: image.RepoDigests ?? [], architecture: image.Architecture };
   if (state.imageLock && JSON.stringify(state.imageLock.find(value => value.role === role)) !== JSON.stringify(snapshot)) fail('cli-image-lock');
+  const { entrypoint, command } = cliServiceCommand(role, item.Config.Entrypoint ?? [], item.Config.Cmd ?? []);
   const envFile = path.join(state.directory, `${role}.env`);
   const env = item.Config.Env.map(value => role === 'auth' && value.startsWith('API_EXTERNAL_URL=') ? `API_EXTERNAL_URL=https://supabase.localhost:${ports.supabase}` : value);
   if (role === 'pooler') {
@@ -74,9 +77,8 @@ async function boundCliService(state, role) {
   if (health?.[0] === 'CMD') args.push('--health-cmd', health.slice(1).map(value => `'${value.replaceAll("'", "'\\''")}'`).join(' '));
   else if (health?.[0] === 'CMD-SHELL') args.push('--health-cmd', health[1]);
   if (health) args.push('--health-interval', '5s', '--health-retries', '20', '--health-start-period', '60s');
-  const entrypoint = item.Config.Entrypoint ?? [];
   if (entrypoint.length) args.push('--entrypoint', entrypoint[0]);
-  args.push(item.Image, ...entrypoint.slice(1), ...(item.Config.Cmd ?? []));
+  args.push(item.Image, ...entrypoint.slice(1), ...command);
   await docker(['stop', name]); await docker(['rm', name]);
   await docker(args); await docker(['start', name]);
   return snapshot;

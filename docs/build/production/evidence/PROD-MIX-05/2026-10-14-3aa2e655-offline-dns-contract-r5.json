@@ -1,0 +1,56 @@
+{
+  "evidenceId": "PROD-MIX-05-offline-dns-contract-r5",
+  "capturedAt": "2026-10-14",
+  "source": {
+    "commit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+    "sourceFile": "scripts/acceptance/live/dns/offline.test.ts",
+    "sourceFileSha256": "6d64477102adc4746ab32b30f4920238635ff49e6be4c9db1089ae17700491c7",
+    "sourceFileCount": 6029,
+    "frozenDigest": "a41e3acbdf55e2c1d84d594b03afc617a9ce8cdf4b11c5554b84ddb871fed880"
+  },
+  "scope": "Focused offline DNS contract test only; relevant to PROD-MIX-05 DNS contract evidence. No cloud calls, live sandbox, engine execution, or operational rehearsal.",
+  "runtime": {
+    "platform": "macOS ARM64",
+    "node": "v22.23.3",
+    "focusedTestFileCount": 1,
+    "uniqueCollectedAndCompletedIdentities": 59,
+    "passed": 59,
+    "failed": 0,
+    "skipped": 0,
+    "pending": 0,
+    "commands": {
+      "expected": 10,
+      "completed": 10,
+      "exitCode": 0,
+      "allJoined": true,
+      "survivors": 0,
+      "custodyUncertain": 0,
+      "resourceBreaches": 0
+    }
+  },
+  "review": {
+    "verdict": "P for bounded offline DNS contract run",
+    "terminalSha256": "3691a5ddb876a162cf853ff6eeb1a84d831031f98c767296f203885db8800515",
+    "independentReviewSha256": "95389a06b1577bfc97287e8de7e10712f4302a45049b66fbd66d65abdeaac7a0",
+    "outerProcessExitCode": 0
+  },
+  "temporaryCacheCleanup": {
+    "sha256": "bed246f5bdc1f47fc92100710e7d102d1324dd735908bfcfa683787636760c57",
+    "inventoryEntriesRemoved": 4,
+    "remaining": 0,
+    "terminalUnchanged": true
+  },
+  "acceptance": {
+    "contractEvidenceOnly": true,
+    "canonicalRequirementAcceptance": false,
+    "engineStarted": false,
+    "liveCloudAcceptance": false,
+    "operationalRehearsal": false,
+    "wholePRODMIX05Complete": false
+  },
+  "limitations": [
+    "No cloud provider was contacted; the run used a bounded mock/offline contract.",
+    "This focused result does not prove all PROD-MIX-05 acceptance criteria, local-engine, live-sandbox, or operational-rehearsal evidence.",
+    "PROD-MIX-01 through PROD-MIX-04 and PROD-MIX-06 through PROD-MIX-07 are not supported by this evidence."
+  ]
+}

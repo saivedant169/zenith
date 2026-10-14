@@ -1,0 +1,24 @@
+{
+  "evidenceId": "PROD-CI-08-J4-R6-cleanup-refusal",
+  "capturedAt": "2026-10-14",
+  "sourceCommit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+  "cleanupAttempt": {
+    "status": "refused",
+    "actualParentExitCode": 2,
+    "receiptSha256": "98c447a32ec73290918a7f7712204d492d21459cceda071a2709cac3ebcd6f79",
+    "independentTerminalReviewSha256": "f2197cdd822be386df68ad23473f25368e1256eaea6794ee9ba3a02b8dbadbf7",
+    "canonicalDownExitCode": 0,
+    "reportedOwnedResourcesRemoved": 19,
+    "reportedOwnedResourcesRemaining": 0,
+    "forcedStops": 2,
+    "cause": "Two database/Kong containers exited 137 after the configured 60-second grace.",
+    "strictRefusalPreserved": true,
+    "acceptanceClaim": false
+  },
+  "refusalHistory": {
+    "R7Publication": "refused; publisher KeyError preserved",
+    "R8ReadOnlyPostflight": "separate read-only terminal passed for physical absence only",
+    "cleanupDisposition": "The R6 forced-stop refusal is not waived, reclassified, or converted to graceful-cleanup success."
+  },
+  "scope": "Actual J4 cleanup attempt and terminal refusal only; no claim of physical global absence, graceful cleanup, or acceptance."
+}

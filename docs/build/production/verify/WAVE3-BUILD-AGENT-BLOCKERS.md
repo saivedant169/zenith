@@ -1,3 +1,15 @@
+## Current verification checkpoint — 14 October 2026
+
+Latest pushed source `6cec7ff8c350a99772a26a79886821f19d336968` has terminal exact-source CI: **32 jobs, 24 success, 8 conditional skips, 0 failures**. Main CI passed 20/28 with Verify successful; both native workflows passed 2/2. PROD-CI-09 remains verified with append-only exact-SHA evidence. [CI evidence](../evidence/PROD-CI-08/2026-10-14-6cec-exact-ci-terminal.json). The three-file PID1 candidate is now integrated locally with the same reviewed pins, but is not committed or pushed; exact-source CI for that new source and native acceptance remain pending. The bounded Docker recovery R4 passed 18/18 commands and 11/11 parity checks, with host pressure 2→1, 335,376,252,928 bytes free, and protected builder/settings preserved. It consumed restart 3/3; no restart budget remains. [Recovery evidence](../evidence/PROD-CI-08/2026-10-14-docker-recovery-r4.json). The earlier J4 R6 forced-stop refusal remains unchanged.
+
+The PID1 CLI-command candidate has a focused unit proof of 16 passed / 0 failed / 0 skipped, 16 identities, and 10 held commands closed. Independent review and root temp-cache cleanup are P; all four cache entries were removed, zero remain, and the terminal is unchanged. This is unit evidence only; native J4 and full OBS-04 acceptance remain pending. [PID1 evidence](../evidence/PROD-OBS-04/2026-10-14-pid1-focused-r3.json).
+
+Temporal R5's version-display preflight refusal remains preserved on frozen source 3aa; no tests ran in R5. The corrected R6 comparison received source review P. R7 then completed with 10 passed / 0 failed / 0 skipped, both required identities, and parent exit 0. Independent terminal review P, root cache cleanup P (6 removed, zero remaining), and root guard clear P (11 raw ledgers, 17 PIDs absent twice, marker empty) are complete for this focused observation. No J4/default-stack effects or full OBS-04 acceptance are established, and no milestone promotion is made. [R5 refusal](../evidence/PROD-OBS-04/2026-10-14-temporal-r5-version-preflight-refusal.json) · [R7 focused result and closeouts](../evidence/PROD-OBS-04/2026-10-14-temporal-r7-focused-result-pending-review.json).
+
+Ledger remains **11 verified / 65 in progress / 2 planned**; all four release flags are false. Frozen acceptance source `3aa2e655` remains unchanged. No scope or milestone promotion is claimed.
+
+---
+
 ## Completed exact-source CI, recovery and Full computational admission — 14 October 2026
 
 Primary/fork source `7d14ecee4493a7a3c5820bf775f7e7d4fc891c0c` now has terminal exact-source CI: **32 jobs, 24 success, 8 conditional operated main-job skips, 0 failures** across three runs. Both native worker architectures passed 22 checks each and both native platform jobs passed. Seventeen sanitized artifacts and 11 gate reports contain 1,862 required identity entries; entries overlap and are not a unique or additive test count. This appends remote evidence to the already-verified PROD-CI-09 state.

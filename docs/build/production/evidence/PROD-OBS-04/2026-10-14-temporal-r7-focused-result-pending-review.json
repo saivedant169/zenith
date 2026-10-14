@@ -1,0 +1,36 @@
+{
+  "evidenceId": "PROD-OBS-04-temporal-r7-focused-observation-result",
+  "capturedAt": "2026-10-14",
+  "sourceCommit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+  "status": "focused-result-independently-reviewed-and-closeouts-complete; acceptance-not-claimed",
+  "terminalSha256": "f2db6f92a14ffbf58e51df8edd78549de3347c3c37e3622d3131e8126749b32b",
+  "actualParentExitCode": 0,
+  "counts": {
+    "passed": 10,
+    "failed": 0,
+    "skipped": 0,
+    "uniqueCollectedAndCompletedIdentities": 10,
+    "heldCommandsClosed": true
+  },
+  "acceptanceClaim": false,
+  "pending": [],
+  "scope": "Focused Temporal observation only. Independent terminal review, root cache cleanup, and guard clear are complete for this bounded run; no default-stack/J4 effects, full OBS-04 acceptance, or production acceptance is established.",
+  "independentTerminalReview": {
+    "verdict": "P for bounded focused Temporal observation only",
+    "sha256": "7b16e53069d4529cbe0d3b96c2c8c143215902c45344d73b7b231a97f8958fab"
+  },
+  "rootTemporaryCacheCleanup": {
+    "status": "P",
+    "sha256": "a7544524ebfc30976f7d2934558755c8076831548ce95a72a15ee8fa8ab25260",
+    "entriesRemoved": 6,
+    "remaining": 0,
+    "terminalUnchanged": true
+  },
+  "rootGuardClear": {
+    "status": "P",
+    "sha256": "235e3758341089bbc7e86387635c26698982275462b0c5904dec8cae5f3b991a",
+    "rawLedgersReviewed": 11,
+    "pidsAbsentTwice": 17,
+    "markerEmpty": true
+  }
+}

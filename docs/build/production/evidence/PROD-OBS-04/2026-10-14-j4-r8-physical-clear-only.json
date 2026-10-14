@@ -1,0 +1,19 @@
+{
+  "evidenceId": "PROD-OBS-04-J4-R8-readonly-physical-clear",
+  "capturedAt": "2026-10-14",
+  "sourceCommit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+  "status": "physical-state-absence-only",
+  "actualParentExitCode": 0,
+  "terminalSha256": "1d3490f1d6619470a947cfdb8dff28a9b1a4b39ca948f5674442a3264f6d52d1",
+  "independentReviewSha256": "4eae6095d3914d6761f3ff760c0a9a35db3c40da27add26ac879d3a2e4435b9f",
+  "rootPhysicalClearProofSha256": "af010032a53c8d780a7a4d2c941a987e860451fc0afe55daed98c75e49a794c8",
+  "globalInventory": "Exact pre-cleanup baseline minus 19 owned resources; protected BuildKit builder remains running and unchanged.",
+  "secretEnvironmentAndKeyringPathsAbsent": true,
+  "metadataArchive": "Seven allowlisted metadata payloads preserved; private credentials not copied.",
+  "originalCleanupRefusal": {
+    "receiptSha256": "98c447a32ec73290918a7f7712204d492d21459cceda071a2709cac3ebcd6f79",
+    "forcedStops": 2,
+    "refusalPreserved": true
+  },
+  "scope": "Read-only physical state/custody evidence only; does not validate graceful cleanup, J4 execution, outage/restart/resume, or product acceptance."
+}

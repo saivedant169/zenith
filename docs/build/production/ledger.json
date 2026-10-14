@@ -2473,6 +2473,24 @@
           "commit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
           "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-7d14ecee-recovery-full-admission.json",
           "result": "Root cleared the R8 custody marker under a nonblocking exclusive lock after hashing a 95-file manifest and confirming all 22 commands closed; clear-proof SHA-256 ac640027734db0ef3ef2fdd8456abf738b45024ad0f6ab2f3e0e77c9b8dc45ec. Custody-marker clear only: original build-metadata-identity refusal remains; image inspection/source-after receipt absent, W postflight held and acceptance false."
+        },
+        {
+          "level": "local_engine",
+          "commit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-14-3aa2e655-j4-r11-failure-ci47ef.json",
+          "result": "W typed fresh-native-witness-build-and-postflight P with independent terminal review and guarded quarantine clear. This closes W postflight only. Original R8 metadata refusal remains unchanged; no rebuild. No broader J4/OBS04 acceptance."
+        },
+        {
+          "level": "local_engine",
+          "commit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-j4-r6-cleanup-refusal.json",
+          "result": "J4 cleanup R6 was refused (outer exit 2) after two containers exited 137 beyond the configured 60-second grace, despite canonical down exit 0 and receipt reporting 19 removed/0 owned remaining. Independent review confirms the refusal; no graceful-cleanup or acceptance claim."
+        },
+        {
+          "level": "local_engine",
+          "commit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-docker-recovery-r4.json",
+          "result": "Bounded Docker recovery R4 independently reviewed P: 18/18 commands closed, 11/11 parity checks, host pressure 2→1, 335,376,252,928 bytes free; protected builder/config preserved. Recovery only; restart budget is now 3/3 consumed, with no restart remaining. No product acceptance."
         }
       ],
       "requiredEvidence": [
@@ -3286,6 +3304,28 @@
             38477265098
           ],
           "result": "Exact-source terminal CI: 32 jobs, 24 succeeded, 8 conditional operated main jobs skipped, 0 failed. Both native worker architectures passed 22 checks each; both native platform jobs passed. Seventeen sanitized artifacts and 11 gate reports contain 1,862 required identity entries with overlap. Existing verified requirement state retained; no operated acceptance."
+        },
+        {
+          "level": "remote_ci",
+          "commit": "47ef1109f5345fd32975f610d0845e70e0b2c103",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-14-3aa2e655-j4-r11-failure-ci47ef.json",
+          "runIds": [
+            38484929293,
+            38484934775,
+            38484941200
+          ],
+          "result": "Exact-source CI terminal green: 32 jobs, 24 success, 8 conditional main-workflow skips, 0 failed; both native workflows passed 2/2 jobs. Seventeen sanitized artifacts contain 1,864 required identity entries with overlap. Existing verified state retained; no product acceptance."
+        },
+        {
+          "level": "remote_ci",
+          "commit": "6cec7ff8c350a99772a26a79886821f19d336968",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-6cec-exact-ci-terminal.json",
+          "runIds": [
+            38492697316,
+            38492700046,
+            38492702773
+          ],
+          "result": "Exact-source terminal CI: 32 jobs, 24 succeeded, 8 conditional jobs skipped, 0 failed (main 20/28; both native workflows 2/2). Source-bound report SHA-256 24d119ccca788defaa234210ce75eddb970ffe29e3f2a972abda1723fdabfca0. Existing verified state retained; no product acceptance."
         }
       ],
       "requiredEvidence": [
@@ -3853,7 +3893,14 @@
       ],
       "implementationStatus": "implementation_complete_verification_pending",
       "implementationNote": "J15 gated local rehearsal harness built; Mac Docker/kind/PostgreSQL/ACME verification pending; live cloud acceptance deferred. L3 gated observation/cleanup/inventory harness built; live and operational evidence plus owner fixtures/decisions pending. No verification claimed.",
-      "evidence": [],
+      "evidence": [
+        {
+          "level": "contract",
+          "commit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+          "artifact": "docs/build/production/evidence/PROD-MIX-05/2026-10-14-3aa2e655-offline-dns-contract-r5.json",
+          "result": "Focused offline DNS contract evidence: 59 unique identities passed, 0 failed/skipped; 10/10 held commands closed. Independent review P and root TMP cache cleanup completed (4 removed, 0 remaining; terminal unchanged). This covers the DNS contract slice only; no cloud, engine, live-sandbox, operational-rehearsal, or whole PROD-MIX-05 acceptance."
+        }
+      ],
       "requiredEvidence": [
         "contract",
         "local_engine",
@@ -5422,7 +5469,7 @@
         "PROD-CI-09"
       ],
       "implementationStatus": "implementation_complete_verification_pending",
-      "implementationNote": "J4 natural-timer harness, durable billing and authenticated shared-lease HTTP fallback complete; default-stack restart/exclusion acceptance pending on Mac.",
+      "implementationNote": "J4 natural-timer harness, durable billing and authenticated shared-lease HTTP fallback complete; default-stack restart/exclusion acceptance pending on Mac. Focused PID1 CLI-command candidate unit proof is independently reviewed at 16/0/0; the three-file candidate is being integrated, and native J4 execution remains pending. No requirement, gate, or source-SHA promotion.",
       "evidence": [
         {
           "level": "local_engine",
@@ -5488,6 +5535,36 @@
           "commit": "6aed3a99734ac53c1a62286da13c777ee890603b",
           "result": "Exact6aed actual owned Temporal restart/SKIP10P0F0S; independent custody/source/floor/cleanup reviewP. Focused only; natural maintenance/health/fallback/catch-up/no-overlap acceptance remains pending.",
           "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-12-6aed3a99-temporal-focused.json"
+        },
+        {
+          "level": "local_engine",
+          "commit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-14-3aa2e655-j4-r11-failure-ci47ef.json",
+          "result": "J4 R11 FAILED: parent exit 2; machine-schedules returned 1 on maintenance_deadline_exceeded during lease_exclusion. Independent review establishes host custody only: all 454 command rows complete/joined, 908 streams hash-checked, 20 pending process checks absent, zero resource breaches, memory pressure peak 1. Owned stack cleanup is unconfirmed and stack/quarantine retained. No outage/restart/resume/J2/MACH03/J4 acceptance claim."
+        },
+        {
+          "level": "local_engine",
+          "commit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-14-j4-r8-physical-clear-only.json",
+          "result": "Separate R8 read-only postflight and root proof establish global physical absence of 19 owned resources, preserve protected builder and seven-payload metadata archive, and confirm checked secret paths absent. R6 forced-stop refusal remains unchanged; physical custody only, not graceful cleanup or J4 acceptance."
+        },
+        {
+          "level": "contract",
+          "commit": "6cec7ff8c350a99772a26a79886821f19d336968",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-14-pid1-focused-r3.json",
+          "result": "Focused PID1 CLI-command candidate proof: 16 passed/0 failed/0 skipped, 16 exact identities, 10 held commands closed; independent review P and root temp-cache cleanup P (4 removed/0 remaining, terminal unchanged). Three file pins are recorded against base 6cec and frozen acceptance source 3aa. The candidate is now integrated locally with identical pinned bytes but not committed or pushed; native J4/OBS-04 acceptance remains pending."
+        },
+        {
+          "level": "local_engine",
+          "commit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-14-temporal-r5-version-preflight-refusal.json",
+          "result": "Temporal R5 version preflight refused before tests on frozen source 3aa after exact-output mismatch; 9 command closeouts and 10 PID absences reviewed/cleared. R6 source review supports the corrected comparison only. Preserve this refusal; the separate R7 evidence records the subsequent focused run and closeouts."
+        },
+        {
+          "level": "local_engine",
+          "commit": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-14-temporal-r7-focused-result-pending-review.json",
+          "result": "Temporal R7 focused result independently reviewed P; 10 passed/0 failed/0 skipped, both required identities, parent exit 0. Root cache cleanup P (6 removed/0 remaining, terminal unchanged) and root guard clear P (11 raw ledgers; 17 PIDs absent twice; marker empty). Scope remains focused only; no J4/default-stack effect or OBS-04 promotion."
         }
       ],
       "requiredEvidence": [

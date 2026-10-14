@@ -1,0 +1,49 @@
+{
+  "evidenceId": "PROD-CI-09-exact-source-6cec-terminal",
+  "sourceCommit": "6cec7ff8c350a99772a26a79886821f19d336968",
+  "capturedAt": "2026-10-14",
+  "runs": [
+    {
+      "workflow": "CI",
+      "runId": 38492697316,
+      "status": "completed_success",
+      "jobs": {
+        "total": 28,
+        "success": 20,
+        "conditionalSkipped": 8,
+        "failed": 0
+      },
+      "verify": "passed"
+    },
+    {
+      "workflow": "native-packaged-workers",
+      "runId": 38492700046,
+      "status": "completed_success",
+      "jobs": {
+        "total": 2,
+        "success": 2,
+        "failed": 0
+      },
+      "checksPerArchitecture": 22
+    },
+    {
+      "workflow": "native-skipped-platforms",
+      "runId": 38492702773,
+      "status": "completed_success",
+      "jobs": {
+        "total": 2,
+        "success": 2,
+        "failed": 0
+      }
+    }
+  ],
+  "aggregate": {
+    "jobs": 32,
+    "success": 24,
+    "conditionalSkipped": 8,
+    "failed": 0
+  },
+  "reportSha256": "24d119ccca788defaa234210ce75eddb970ffe29e3f2a972abda1723fdabfca0",
+  "scope": "Exact-source fork CI only. The eight conditional jobs were skipped by workflow conditions; this is not product or operated acceptance.",
+  "ledgerEffect": "Append exact-SHA remote CI evidence to already-verified PROD-CI-09; no state or release promotion."
+}

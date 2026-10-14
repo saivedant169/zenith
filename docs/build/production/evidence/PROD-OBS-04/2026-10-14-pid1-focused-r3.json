@@ -1,0 +1,44 @@
+{
+  "evidenceId": "PROD-OBS-04-PID1-focused-cli-unit-r3",
+  "capturedAt": "2026-10-14",
+  "sourceBaseCommit": "6cec7ff8c350a99772a26a79886821f19d336968",
+  "frozenAcceptanceSource": "3aa2e655a0b869a2458d9e69dde4a3948888f9a5",
+  "candidateFiles": [
+    {
+      "path": "scripts/acceptance/default-stack/up.mjs",
+      "sha256": "78bea74f2b85ccca47c9d6254a184bc0a8a009c556144d52a89d50a025acd6f2"
+    },
+    {
+      "path": "scripts/acceptance/default-stack/cli-command.mjs",
+      "sha256": "9b7ff13208a70c246e5b5b8d5ac781a484bac28a7738e4fff60549fe226cf817"
+    },
+    {
+      "path": "tests/acceptance/default-stack-cli-command.test.ts",
+      "sha256": "435774fc98b472b420a66a868094411c4d3126d9219330d0614f459e5cb2d6e9"
+    }
+  ],
+  "status": "focused-unit-proof-passed",
+  "terminalSha256": "2f46b31064496979b56e7a16a5b9e7edc3fd808abcb5f5dee70dada036637e38",
+  "independentReviewSha256": "a85bbb41898c98fd59a0f2bdced1e47d622c4ce06cb22afcc5957c5eca4b5504",
+  "test": {
+    "file": "tests/acceptance/default-stack-cli-command.test.ts",
+    "passed": 16,
+    "failed": 0,
+    "skipped": 0,
+    "uniqueCollectedAndCompletedIdentities": 16,
+    "heldCommandsClosed": 10,
+    "exitCode": 0
+  },
+  "candidateIntegration": "Root integrating three pinned files into primary; not yet integrated in this evidence record.",
+  "engineStarted": false,
+  "nativeJ4Acceptance": false,
+  "acceptanceClaim": false,
+  "scope": "Focused source/unit proof only. Native J4 execution and broader OBS-04 acceptance remain pending.",
+  "rootTemporaryCacheCleanup": {
+    "status": "P",
+    "sha256": "f06c7a72870765c705f51bdffefe769ffe674b2830e49021db45bd5835814554",
+    "entriesRemoved": 4,
+    "remaining": 0,
+    "originalTerminalSha256Unchanged": "2f46b31064496979b56e7a16a5b9e7edc3fd808abcb5f5dee70dada036637e38"
+  }
+}

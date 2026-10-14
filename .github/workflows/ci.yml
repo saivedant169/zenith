@@ -793,6 +793,8 @@ jobs:
           exit 0
 
       - name: Approval screen in a real browser
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
         run: npm run agent:browser
 
   # Fonts ship in public/fonts, so this gate has no Google Fonts dependency.

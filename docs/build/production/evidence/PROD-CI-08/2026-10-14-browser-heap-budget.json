@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-14",
+  "failedSource": "4606571d569bca3d79f5a04d871d141bcd50edda",
+  "failedRun": 38588888074,
+  "failedJob": 115938153948,
+  "failedStep": "Approval screen in a real browser",
+  "observed": {
+    "nextExitCode": 77,
+    "devMemoryRestartCount": 1,
+    "nodeOomObserved": false,
+    "forcedStop": false,
+    "browserFailure": "380px Deny locator timeout",
+    "causalLimit": "Next development heap-threshold exit is identified; precise ordering relative to the locator timeout and failed-run heap/RAM values were not captured"
+  },
+  "change": {
+    "path": ".github/workflows/ci.yml",
+    "scope": "Only real-browser approval step NODE_OPTIONS=--max-old-space-size=4096",
+    "patchSha256": "4ca02f8d531c56312ecd7560ec5a6e47e646349e8cc58fd1565f89eabb03389e",
+    "workflowSha256": "9594e03424c2611bda842483aa7a579ca2c91be8dbe4f003ecf0d7573f874877",
+    "intent": "Explicit bounded heap for Next development compilation; no restart suppression, retry, assertion, deadline, MFA, TLS, or closure changes"
+  },
+  "validation": {
+    "node": "22.23.3",
+    "workflowSyntax": {
+      "command": "actionlint .github/workflows/ci.yml",
+      "exit": 0
+    },
+    "focused": {
+      "command": "node node_modules/vitest/vitest.mjs run tests/ci/release-gates.test.ts --maxWorkers=1 --no-file-parallelism",
+      "toolSession": 31037,
+      "exit": 0,
+      "passed": 136,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "freshRealBrowserResult": "pending exact integrated-source CI; focused validation is not browser acceptance",
+  "acceptance": false,
+  "milestonePromotion": false,
+  "releaseFlagsChanged": false
+}

@@ -72,6 +72,21 @@
   },
   "level": "local_engine",
   "note": "Current session/publication/ledger facts are root-reported snapshots at assignment, not independently queried or ongoing status claims.",
+  "partialStackCleanup": {
+    "acceptanceClaim": false,
+    "actualToolExit": 0,
+    "actualToolSession": 96086,
+    "cleanupOnly": true,
+    "forcedStops": 0,
+    "guardClearSha256": "57e0f50d4cbc8dbb71f886b47ce2851b35bb06fa773ffc6c9c9910c3184b5b7a",
+    "heldCommands": 48,
+    "remaining": 0,
+    "removed": 13,
+    "rootAbsencePasses": 2,
+    "rootCustodySha256": "81ee115ca18faed7c6695e3025f35ceece7c0705b9dfc76551710386f73ffee6",
+    "rootFreshGroups": 48,
+    "rootFreshPids": 58
+  },
   "preservedBackups": {
     "closedHistories": 4,
     "hostFiles": 42,
@@ -88,7 +103,47 @@
     "rootCloseoutPgidTargets": 27,
     "rootCloseoutPidTargets": 29
   },
+  "registryFailureDiagnosis": {
+    "architecture": "arm64",
+    "builtMigrationImageBytes": 2673138754,
+    "exitCode": 137,
+    "memoryLimitBytes": 67108864,
+    "observationSha256": "562e9fc2bf30705631f8ede47fe5b8c3ae9f61adaa878063ce405e96a4747295",
+    "oomKilled": true,
+    "originalJ4MaintenanceCauseProven": false
+  },
   "requirement": "PROD-OBS-04",
+  "reviewedRegistryBudgetCandidate": {
+    "baseCommit": "4c1bc6f82a4a95036e4cf385345c6f196084061c",
+    "changedFiles": [
+      {
+        "afterSha256": "07119bf10f6a1cc80121504059496f097d5deeaeea9ab6a7a83b666cb46f0fd7",
+        "beforeSha256": "7a2906c2eebcbbdb2ca9e01a9896a8b407f56e8b80fc13fcbcca2bf95dfac681",
+        "path": "scripts/acceptance/default-stack/config.mjs"
+      },
+      {
+        "afterSha256": "30335b3fec28afc859b2d177a1d5717be2ade5c31adffdb2b3813da84589d835",
+        "beforeSha256": "78bea74f2b85ccca47c9d6254a184bc0a8a009c556144d52a89d50a025acd6f2",
+        "path": "scripts/acceptance/default-stack/up.mjs"
+      },
+      {
+        "afterSha256": "2918f2da5427a3218c0ab7ad057bb6d2605546569f17d8cce5f4310c7dc92fba",
+        "beforeSha256": "cda6dbc4f484e55515f0c7fd0a31395dbac9b9c0e85b05f7a3bafb8add43c935",
+        "path": "tests/deploy/default-stack.test.ts"
+      }
+    ],
+    "eslintPassed": true,
+    "focusedDispositionsSha256": "e9b05fe8f01bcffbb1d963d54fb7ce68d729fa01c83ec95476d2b9c5cf01a905",
+    "independentReviewer": "root coordinator",
+    "j4Acceptance": false,
+    "leanBudgetMiB": 4096,
+    "leanTotalMiB": 3424,
+    "nativeRegistryPushAcceptance": false,
+    "newSourceFullAdmission": false,
+    "registryMiB": 256,
+    "uniqueFocusedTestsPassed": 43,
+    "workingTreePatch": true
+  },
   "rootReportedCurrentStateAtAssignment": {
     "additionalHeadroom": {
       "normalPressureSamples": 3,

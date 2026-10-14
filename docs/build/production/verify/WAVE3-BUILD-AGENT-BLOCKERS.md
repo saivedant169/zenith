@@ -1,3 +1,11 @@
+## Current verification checkpoint — 14 October 2026, registry OOM repair
+
+The instrumented startup's owned registry was OOM-killed (exit 137, 64 MiB cap) while the migration image push failed. This is a proved startup failure; it does not establish the cause of the earlier J4 maintenance timeout. The partial stack was then preserved and cleaned: 13 owned resources removed, 0 remaining, 0 forced stops; 48 held commands closed and 58 PIDs / 48 groups were absent twice before guard clear.
+
+The reviewed three-file repair gives the registry a 256 MiB topology budget and includes it in the lean budget test (3424 MiB < 4096). All 43 unique focused tests and lint passed; the initial macOS temporary-path fixture failure remains preserved. Native push success, a fresh coherent source admission/CI, and full J4 acceptance remain pending. [Evidence](../evidence/PROD-OBS-04/2026-10-14-j4-preserved-cleanup.json). Ledger remains **11 verified / 65 in progress / 2 planned (14.1%)**; release flags remain false.
+
+---
+
 ## Current verification checkpoint — 14 October 2026, preserved J4 cleanup
 
 Retained-stack cleanup passed: **19 owned resources removed, 0 remaining, 0 forced stops**; 49 held commands closed and 64 PIDs / 49 process groups were absent twice before guard clear. The protected builder, witness image, unrelated resources and frozen source passed preservation checks. Both database archives, four closed workflow histories, two paused schedules and 42 host files were saved privately before deletion. R3's explicit-opt-in refusal is preserved separately. This is cleanup-only evidence, with no J4 acceptance or production-readiness claim. [Evidence](../evidence/PROD-OBS-04/2026-10-14-j4-preserved-cleanup.json).

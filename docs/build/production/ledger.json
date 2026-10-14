@@ -5530,7 +5530,7 @@
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "implementation_complete_verification_pending; R8/R9/R10 diagnostic evidence added; cause unproven, R10 terminal resource refusal preserved and root custody closeout complete; requirement state and acceptance unchanged.",
+      "implementationStatus": "implementation_complete_verification_pending; registry startup OOM at 64 MiB diagnosed and reviewed 256 MiB fixture repair integrated with 43 focused tests; new-source native push and complete J4 acceptance pending, original maintenance cause unproven; requirement state unchanged.",
       "implementationNote": "J4 natural-timer harness, durable billing and authenticated shared-lease HTTP fallback complete; default-stack restart/exclusion acceptance pending on Mac. Focused PID1 CLI-command candidate unit proof is independently reviewed at 16/0/0; the three-file candidate is being integrated, and native J4 execution remains pending. No requirement, gate, or source-SHA promotion.",
       "evidence": [
         {

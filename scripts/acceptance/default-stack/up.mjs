@@ -177,7 +177,7 @@ export async function up(directory, profile = 'default', imageLockFile, j4Option
     const [registryImage] = JSON.parse(await docker(['image', 'inspect', registryPin])); nativeArch(registryImage.Architecture);
     const registryVolume = `zenith-local-${installationId}-registry`;
     await docker(['volume', 'create', '--label', `${installationLabel}=${installationId}`, registryVolume]);
-    await docker(['run', '-d', '--name', `zenith-local-${installationId}-registry`, '--label', `${installationLabel}=${installationId}`, '-p', '127.0.0.1:5000:5000', '--memory', '64m', '--mount', `type=volume,source=${registryVolume},target=/var/lib/registry`, registryPin]);
+    await docker(['run', '-d', '--name', `zenith-local-${installationId}-registry`, '--label', `${installationLabel}=${installationId}`, '-p', '127.0.0.1:5000:5000', '--memory', `${topology(profile).registryMiB}m`, '--mount', `type=volume,source=${registryVolume},target=/var/lib/registry`, registryPin]);
     const publicEnv = { NEXT_PUBLIC_SUPABASE_URL: `https://supabase.localhost:${ports.supabase}`, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: status.ANON_KEY, NEXT_PUBLIC_SITE_URL: `http://127.0.0.1:${ports.api}` };
     const images = {};
     const buildSource = sourceBinding();

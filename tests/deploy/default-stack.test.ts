@@ -124,7 +124,7 @@ describe('default stack pure configuration contracts', () => {
   it('keeps lean limits bounded for the 4 GiB Docker profile without claiming measured fitness', () => {
     const sizing = topology('lean');
     expect(sizing.apis).toBe(1); expect(sizing.workers).toBe(1);
-    const total = sizing.apiMiB + sizing.workerMiB + 384 + 256 + 64 + 64 + Object.values(sizing.supabaseMiB).reduce((a,b) => a+b, 0);
+    const total = sizing.apiMiB + sizing.workerMiB + 384 + 256 + 64 + sizing.registryMiB + Object.values(sizing.supabaseMiB).reduce((a,b) => a+b, 0);
     expect(total).toBeLessThan(4096); expect(sizing.productionReady).toBe(false);
     expect(() => topology('tiny')).toThrow('profile');
   });

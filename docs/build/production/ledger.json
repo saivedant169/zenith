@@ -761,7 +761,7 @@
         "PROD-CI-06",
         "PROD-CI-07"
       ],
-      "implementationStatus": "Exact E3CF CI passed: 24 successful jobs, 8 conditional dispatch skips, 0 failures; 17 artifacts and all 11 strict lanes inspected. Unit 24,738 passed /1,925 skipped /0 failed, Smoke/Gimbal passed; both native packaged architectures 22/22 and Windows/systemd leaves passed. Fresh local Full R2 exited 0: 24,720 passed /1,943 conditional skips /0 failed, 26,663 exact identities, 13 strict commands closed, stable source and pressure max 1. Independent review, owned cleanup (22,824 entries), 401 numeric PID /20 group absences twice and fresh source-bound computational admission passed. Fresh ARM64 W build-only passed; image entrypoint/J2 acceptance remains open. F7EB push run 38579269656 remains 19 success /1 Go failure /8 conditional skips due Ubuntu archive DNS before PID1 test execution. Separate manual run 38579457963 completed 20 success /0 failure /8 conditional skips; fresh Go job 115919864408 passed native race/golden and real systemd operations, while guest artifact 11904621856 download returned HTTP 503 account egress limit, leaving raw fresh guest counts unverified. No milestone or release promotion.",
+      "implementationStatus": "Exact E3CF CI passed: 24 successful jobs, 8 conditional dispatch skips, 0 failures; 17 artifacts and all 11 strict lanes inspected. Unit 24,738 passed /1,925 skipped /0 failed, Smoke/Gimbal passed; both native packaged architectures 22/22 and Windows/systemd leaves passed. Fresh local Full R2 exited 0: 24,720 passed /1,943 conditional skips /0 failed, 26,663 exact identities, 13 strict commands closed, stable source and pressure max 1. Independent review, owned cleanup (22,824 entries), 401 numeric PID /20 group absences twice and fresh source-bound computational admission passed. Fresh ARM64 W build-only passed; image entrypoint/J2 acceptance remains open. F7EB push run 38579269656 remains 19 success /1 Go failure /8 conditional skips due Ubuntu archive DNS before PID1 test execution. Separate manual run 38579457963 completed 20 success /0 failure /8 conditional skips; fresh Go job 115919864408 passed native race/golden and real systemd operations, while guest artifact 11904621856 download returned HTTP 503 account egress limit, leaving raw fresh guest counts unverified. No milestone or release promotion. Current pushed source 4606571d run 38588888074 is terminal failure: 19 successful jobs, 1 agent-job failure, 8 conditional skips; every job is terminal. Agent job 115938153948 failed at real-browser approval (Next exit 77, one development-memory restart, no observed OOM/forced stop, 380px Deny locator timeout); event ordering and failed-run heap/RAM were not captured. Verify, platform-postgres, and Go passed; native workflow runs 38588888634 and 38588888234 each passed 2/2. The committed two-line workflow-only heap 4096 patch on 99ba2a0f passed actionlint and 136/136 focused release-gates tests; publication is being prepared and fresh real-browser validation remains pending.",
       "evidence": [
         {
           "level": "local_engine",
@@ -2566,6 +2566,19 @@
           "runId": 38579269656,
           "result": "Push CI terminal: 19 successful jobs, 1 Go failure before PID1 test emission due Ubuntu archive DNS, 8 conditional skips. Separate workflow_dispatch CI 38579457963 terminal: 20 successful jobs, 0 failures, 8 conditional skips; fresh Go job 115919864408 passed native race/golden, real systemd operations and current-attempt evidence preservation. Artifact 11904621856 download returned HTTP 503 due account egress quota; fresh raw guest counts remain unverified. Historical push failure retained; no duplicate CI dispatched and no milestone promotion.",
           "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-f7eb-go-dns-failure.json"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "4606571d569bca3d79f5a04d871d141bcd50edda",
+          "runId": 38588888074,
+          "result": "Terminal CI failure: 19 successful jobs, 1 agent-job failure, 8 conditional skips; all jobs terminal. Agent job 115938153948 failed at real-browser approval (Next exit 77, one development-memory restart, no observed OOM/forced stop, 380px Deny timeout); event ordering and failed-run heap/RAM unavailable. Verify, platform-postgres, and Go passed; native worker and platform runs each passed 2/2. No product acceptance.",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-browser-heap-budget.json"
+        },
+        {
+          "level": "contract",
+          "commit": "99ba2a0f74400a2ea145fafe0fe038a65a5ee628",
+          "result": "Committed bounded two-line .github/workflows/ci.yml heap setting (4096) for real-browser approval step only; actionlint exit 0 and focused release-gates 136 passed /0 failed /0 skipped (Node 22.23.3, tool 31037). Publication is being prepared; fresh real-browser validation remains pending. No acceptance.",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-browser-heap-budget.json"
         }
       ],
       "requiredEvidence": [
@@ -5556,7 +5569,7 @@
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "J4 R2 failed after startup and its J4 preflight SELECT 1 passed; machine schedules then exceeded the maintenance deadline at phase lease_exclusion. A separate follow-up parameterized-protocol diagnostic later passed SELECT 1 in 21.514 ms. Read-only diagnosis found a timed-out third critical activity and a bounded active/ClientRead observation, without capturing the original query or proving cause. A HELD paused-background wrapper is UNEXECUTED; J4 remains unaccepted.",
+      "implementationStatus": "J4 R2 failed after startup and its J4 preflight SELECT 1 passed; machine schedules then exceeded the maintenance deadline at phase lease_exclusion. A separate follow-up parameterized-protocol diagnostic later passed SELECT 1 in 21.514 ms. Read-only diagnosis found a timed-out third critical activity and a bounded active/ClientRead observation, without capturing the original query or proving cause. A HELD paused-background wrapper is UNEXECUTED; J4 remains unaccepted. The paused-background wrapper remains HELD and UNEXECUTED; canonical NODE_ENV=test, owned ToFu, and health port 9464 bindings are reconciled, while independent source review passed; diagnostic execution pending. It establishes no actual J4 cause or acceptance.",
       "implementationNote": "J4 natural-timer harness, durable billing and authenticated shared-lease HTTP fallback complete; default-stack restart/exclusion acceptance pending on Mac. Focused PID1 CLI-command candidate unit proof is independently reviewed at 16/0/0; the three-file candidate is being integrated, and native J4 execution remains pending. No requirement, gate, or source-SHA promotion.",
       "evidence": [
         {

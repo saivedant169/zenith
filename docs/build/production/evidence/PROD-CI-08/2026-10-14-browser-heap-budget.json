@@ -37,5 +37,33 @@
   "freshRealBrowserResult": "pending exact integrated-source CI; focused validation is not browser acceptance",
   "acceptance": false,
   "milestonePromotion": false,
-  "releaseFlagsChanged": false
+  "releaseFlagsChanged": false,
+  "failedRunTerminal": {
+    "success": 19,
+    "failure": 1,
+    "conditionalSkips": 8,
+    "allJobsTerminal": true,
+    "verify": "success",
+    "platform-postgres": "success",
+    "go": "success"
+  },
+  "nativeRuns": [
+    {
+      "id": 38588888634,
+      "conclusion": "success",
+      "successfulJobs": 2
+    },
+    {
+      "id": 38588888234,
+      "conclusion": "success",
+      "successfulJobs": 2
+    }
+  ],
+  "pausedBackgroundDiagnostic": {
+    "sourceReview": "passed",
+    "reviewSha256": "d27e972f6505240898185b39e954c996f7e9f2af4d9e30ea2586f1ce5a1285e0",
+    "execution": "not started at checkpoint",
+    "mode": "observe existing paused schedules; diagnostic only",
+    "acceptance": false
+  }
 }

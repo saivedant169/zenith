@@ -1,0 +1,135 @@
+{
+  "evidenceId": "PROD-OBS-04-f2d0-retained-j4-diagnostic-r8-r9",
+  "capturedAt": "2026-10-14",
+  "requirement": "PROD-OBS-04",
+  "level": "local_engine",
+  "source": {
+    "commit": "f2d0cb4cce4f0d97496bf134fdb2a66a8c755a98",
+    "fileCount": 6043,
+    "sourceFreezeSha256": "9318adfa3883d26274d63ef677e9ac12857b7a1a84d71a0a025fbfe57df959dc",
+    "sourceContentBindingSha256": "909f7a8989e01e88d0e4915b4c9139981a82cbe5012e370c9a6f34dbd733b2d3"
+  },
+  "diagnostics": {
+    "r8Temporal": {
+      "rootPid": 9871,
+      "rootExitCode": 0,
+      "terminalSha256": "5b98e268770e9afee5c0e6e2ed9e3e186ae5b5ddefa827155bee5cd9d7ba3976",
+      "liveBindingSha256": "3d19f66c410e2551d59ac154dc0615017d59ec08150a6ea56fa0ce49f17b03cc",
+      "firstCritical": {
+        "activityDurationSeconds": 0.358002167,
+        "activityOutcome": "completed",
+        "workflowDurationSeconds": 0.453289042,
+        "workflowOutcome": "completed"
+      },
+      "secondCritical": {
+        "observedStart": "09:08:00.082646",
+        "observedStartToClose": "100.005 seconds",
+        "observedEnd": "09:09:40.088139",
+        "outcome": "workflow failed",
+        "activityStartToCloseSeconds": 100.005,
+        "workflowOutcome": "failed after the activity start-to-close timeout"
+      },
+      "leaseAndFenceObservations": "No second committed engine lease was observed. The snapshot shows fence 1 for unheld critical scopes; only the three test-held billing, key-rewrap, and runbook scopes used fence 2. The engine remained at fence 1, ruling out a second committed acquire.",
+      "databasePostSnapshot": "No blockers were present in the post-run snapshot; this does not establish database state during the failed workflow.",
+      "custody": {
+        "allCommandsStrictlyClosed": true,
+        "rootCloseoutSha256": "77a9f9a6612ec2b452983ec197623f958078324915f56f5947f03af0bbb801ae",
+        "guardClearSha256": "b080f4c8494b134aaaa2b298620e554638d2ba2f1b653949af1202c810e9648a",
+        "guardInode": 9425823,
+        "acceptanceClaim": false,
+        "rootObservedAbsentTwice": {
+          "pids": 22,
+          "processGroups": 21
+        }
+      },
+      "rootToolSession": 23216
+    },
+    "r9DatabasePoolerLogs": {
+      "rootPid": 10673,
+      "rootExitCode": 0,
+      "terminalSha256": "4862f64753006bdb376d2f7ec35936638a1e4ce9b40b3b57c3484623281beae4",
+      "logsSummarySha256": "978716ec10180173c2d1f8cfa207a2e98cfbcfd78a57201a4e5a508d71e30ca4",
+      "logWindow": "09:07:45 through 09:10",
+      "dbAndPoolerLogs": "empty",
+      "custody": {
+        "allCommandsStrictlyClosed": true,
+        "rootCloseoutSha256": "d764b84892a7d68ac837a0efee110915945fcc9423c20b966fde36eb90a7996f",
+        "guardClearSha256": "0b34cd1b3635e9d34a77d06a7897f9ab909c60ca8ad88cb16204b26167f38d18",
+        "guardInode": 9425823,
+        "acceptanceClaim": false,
+        "rootObservedAbsentTwice": {
+          "pids": 33,
+          "processGroups": 32
+        }
+      },
+      "rootToolSession": 30040
+    },
+    "r10PoolProbe": {
+      "rootToolSession": 76355,
+      "rootPid": 11383,
+      "rootExitCode": 2,
+      "terminalSha256": "a9dc63f41ea3d7c07a196db619dfb54d930db288cc87a3896a7884517ffa1ef5",
+      "outputSha256": "c03912b00f72ff25dd4a9f77e08c2e55119d5a27cceee327cbd955f217cb07e4",
+      "commandCount": 47,
+      "heldCloseoutProven": true,
+      "rootCustodyCloseout": "completed",
+      "refusal": "final resource check refused at warning-level-2 memory pressure; acceptanceClaim=false",
+      "poolProbe": {
+        "warmSelect1Ms": 1,
+        "idleWaitMs": 25002,
+        "postIdleSelect1Ms": 22,
+        "interpretation": "basic idle reconnect issue not reproduced"
+      },
+      "postgresSettings": {
+        "idleInTransactionSessionTimeoutMs": 0,
+        "idleSessionTimeoutMs": 0,
+        "lockTimeoutMs": 0,
+        "maxConnections": 60,
+        "statementTimeoutMs": 0
+      },
+      "supavisorMetadata": "No Supavisor metadata tables were observed in this database; actual pool configuration was not proven.",
+      "statementStats": "Completed pg_stat_statements calls were fast; this does not rule out a hung or cancelled call.",
+      "laterHostSample": {
+        "observedAt": "11:27",
+        "memoryPressureLevel": 1,
+        "swapGiB": 0
+      },
+      "custodyCloseout": {
+        "pidsAbsentTwice": 48,
+        "processGroupsAbsentTwice": 47,
+        "processSignalingPerformed": false,
+        "proofSha256": "57f22882316e48b20804a2f3c3f12fa5c810305ba5e9b293fac09472d20ef964",
+        "guardClearSha256": "4892e2c2c15836c1f203b471d9faa94fa1d94002d705c358a0b4f08750db577b"
+      },
+      "statusNote": "R10 terminal exit 2 resource refusal is preserved unchanged; root custody closeout is separate and complete."
+    }
+  },
+  "diagnosticConclusion": {
+    "actualFailureCause": "unproven",
+    "statementTimeoutOrCancellation": "No conclusion from these receipts; absence of log output is not proof of query behavior.",
+    "rawTemporalProjection": "R7 SDK ScheduleHandle.describe returned ValueError. That schedule-argument conversion is an inference, not a proven cause. R8 raw projection succeeded as a diagnostic; no product behavior was fixed.",
+    "otherDistinctSignal": "SQL statement bounds and forwarding activity cancellation are separate adjacent signals, not established causes or self-approved changes.",
+    "r10DiagnosticProbe": {
+      "status": "terminal resource refusal",
+      "rootToolSession": 76355,
+      "rootPid": 11383,
+      "rootExitCode": 2,
+      "rootCustodyCloseout": "completed",
+      "acceptanceClaim": false,
+      "custodyProofSha256": "57f22882316e48b20804a2f3c3f12fa5c810305ba5e9b293fac09472d20ef964",
+      "guardClearSha256": "4892e2c2c15836c1f203b471d9faa94fa1d94002d705c358a0b4f08750db577b"
+    }
+  },
+  "acceptance": {
+    "requirementStateChanged": false,
+    "milestonePromoted": false,
+    "releaseFlagsChanged": false,
+    "productAcceptanceClaim": false
+  },
+  "environmentAtRun": {
+    "memoryPressureLevel": 1,
+    "largeHostAndVMFloorsSatisfied": true,
+    "protectedBuilderUnchanged": true,
+    "dockerRestarts": 0
+  }
+}

@@ -5530,7 +5530,7 @@
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "implementation_complete_verification_pending; 2026-10-14 postboot evidence linked; requirement state and acceptance unchanged.",
+      "implementationStatus": "implementation_complete_verification_pending; R8/R9/R10 diagnostic evidence added; cause unproven, R10 terminal resource refusal preserved and root custody closeout complete; requirement state and acceptance unchanged.",
       "implementationNote": "J4 natural-timer harness, durable billing and authenticated shared-lease HTTP fallback complete; default-stack restart/exclusion acceptance pending on Mac. Focused PID1 CLI-command candidate unit proof is independently reviewed at 16/0/0; the three-file candidate is being integrated, and native J4 execution remains pending. No requirement, gate, or source-SHA promotion.",
       "evidence": [
         {
@@ -5639,6 +5639,13 @@
           "commit": "f2d0cb4cce4f0d97496bf134fdb2a66a8c755a98",
           "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-14-f2d0-j4-resource-refusal.json",
           "result": "J4 startup refused with retained-state/custody uncertainty after pressure rose 1 to 2; separate cleanup-only run completed with 10 owned resources removed, 0 remaining, 0 forced stops. Refusal remains unchanged; no J4/OBS-04 acceptance."
+        },
+        {
+          "level": "local_engine",
+          "commit": "f2d0cb4cce4f0d97496bf134fdb2a66a8c755a98",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-14-retained-j4-diagnosis.json",
+          "result": "R8 raw Temporal, R9 bounded DB/pooler logs, and R10 read-only pool diagnostic on exact F2D0 source. First critical completed; second timed out at 100.005s with workflow failure. No second committed engine lease; cause remains unproven. R10 exited 2 at final warning-level-2 resource refusal; 47 commands closed, and separate root custody closeout completed (48 PIDs / 47 groups absent twice, no signals). Warm/post-idle SELECT 1 was 1ms/22ms after 25,002ms idle; this does not prove actual pool configuration or rule out hung/cancelled calls. All diagnostics remain acceptanceClaim=false.",
+          "environment": "Native macOS ARM64; retained local J4 stack; read-only Temporal/PostgreSQL/Docker diagnostics; strict child-process and root custody closeout complete."
         }
       ],
       "requiredEvidence": [

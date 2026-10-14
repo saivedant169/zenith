@@ -25,7 +25,6 @@ import { createPlatformGuard, createPlatformSignals, type PlatformGuardOptions }
 import { createPlatformState, loadPlatformEnvironment } from "./state";
 import { createPlatformStore, loadGraphFromStore } from "./store";
 import { createPlatformStability } from "./stability";
-import { recordManagedRuntimeHealth } from "@/lib/slo/recorder";
 
 export { createPlatformStability } from "./stability";
 export { createPlatformGuard, createPlatformSignals, type PlatformGuardOptions } from "./guard";
@@ -38,6 +37,8 @@ export interface PlatformReconcileDeps extends Pick<ReconcilePorts, "broker" | "
   driverFor?: ReconcilePorts["driverFor"];
   log?: ReconcilePorts["log"];
   resolveAwsBootstrap?: ReconcilePorts["resolveAwsBootstrap"];
+  /** Optional sink for observed runtime health (SLO sampling); supplied by the composition root, never imported here. */
+  onRuntimeObserved?: ReconcilePorts["onRuntimeObserved"];
   scheduler?: Partial<SchedulerConfig>;
   guard?: PlatformGuardOptions;
 }
@@ -59,8 +60,7 @@ export function createPlatformReconcilePorts(deps: PlatformReconcileDeps): Recon
     withObserveSession: deps.withObserveSession,
     resolveAwsBootstrap: deps.resolveAwsBootstrap ?? (async () => { throw new ReconcileError("platform_store_unavailable", "The trusted AWS reconciliation context resolver is not configured."); }),
     startRepair: deps.startRepair,
-    // Managed (zenith) production workload health feeds the managed_runtime_availability SLI; failure is isolated inside.
-    onRuntimeObserved: async (environment, observed) => { await recordManagedRuntimeHealth(db, environment.class, observed); },
+    ...(deps.onRuntimeObserved ? { onRuntimeObserved: deps.onRuntimeObserved } : {}),
     ...(deps.driverFor ? { driverFor: deps.driverFor } : {}),
     ...(deps.log ? { log: deps.log } : {}),
   };

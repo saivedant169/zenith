@@ -223,8 +223,12 @@ describe.each(LANES)("separable metering and billing [$name]", (lane) => {
       expect(await generateInvoice(db(), { provider, now: NOW, netDays: 14 }, ws, PERIOD)).toEqual({ status: "contract_billed", planId: "enterprise" });
       expect(await getInvoiceByPeriod(db(), ws, PERIOD)).toBeNull();
       expect(provider.calls).toHaveLength(0);
+      // The tick covers every account in the database (shared with other suites on the PostgreSQL lane), so the exact
+      // expectation is the number of accounts on the contract plan, which includes this one.
+      const [contract] = await db().query<{ n: number }>("select count(*)::int as n from platform.billing_accounts where plan_id = 'enterprise'");
+      expect(contract!.n).toBeGreaterThanOrEqual(1);
       const tick = await runBillingTick(db(), { env: STUB_BILLING, provider, now: NOW });
-      expect(tick).toMatchObject({ enabled: true, contractBilledAccounts: 1 });
+      expect(tick).toMatchObject({ enabled: true, contractBilledAccounts: contract!.n });
       expect(await listInvoices(db(), ws)).toHaveLength(0);
     });
 

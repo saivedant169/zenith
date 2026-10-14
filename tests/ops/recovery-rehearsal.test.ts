@@ -208,7 +208,7 @@ describe("clean-host restore", () => {
     // measured, not asserted
     expect(report.measurement).toMatchObject({ rpoSeconds: 90, incidentAt });
     expect(report.measurement!.restoreDurationSeconds).toBeGreaterThan(0);
-    expect(report.measurement!.targets.status).toBe("target");
+    expect(report.measurement!.targets).toEqual({ rpoSeconds: 900, rtoSeconds: 14400, status: "target" });
     expect(report.continuation).toMatchObject({ epoch: 3, opened: 5, pending: 5 });
     const written = JSON.parse(await readFile(options.reportFile, "utf8")) as { ok: boolean; runId: string };
     expect(written).toMatchObject({ ok: true, runId: runIdForTarget });

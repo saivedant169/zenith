@@ -12,6 +12,7 @@ import { startDayTwo } from "@/lib/workflows/client";
 import { assertFence } from "@/lib/controlplane/db/repos/leases";
 import type { ManagedSubstratePort } from "@/lib/providers/zenith/managed-port";
 import { assertSessionMatches } from "@/lib/providers/zenith/session";
+import { recordManagedRuntimeHealth } from "@/lib/slo/recorder";
 
 function createManagedSnapshotLoader(db: Sql) {
   const connections = createConnectionsPort(db);
@@ -74,6 +75,9 @@ export function composeReconcilePorts(db: Sql, credentials: CredentialBroker, ge
   const spent = new WeakSet<object>();
   return createPlatformReconcilePorts({
     db,
+    // Managed (zenith) production workload health feeds the managed_runtime_availability SLI. The recorder isolates its
+    // own failures, and the reconcile core calls this only after the pass commits.
+    onRuntimeObserved: async (environment, observed) => { await recordManagedRuntimeHealth(db, environment.class, observed); },
     async resolveAwsBootstrap(request, session) {
       if (!session || typeof session !== "object") throw new CredentialDeniedError("AWS reconciliation has no bound authorized read session.");
       const binding = bindings.get(session);

@@ -280,6 +280,7 @@ describe.skipIf(!PG_URL)("first source worker lease binding [postgres]",()=>{
   it("two genuine owning acquisitions crossing an absent-row collision retain one same-holder fence and one consumed approval",async()=>{
     const f=await fixture();let count=0,entered!:()=>void,released!:()=>void;
     const [floor]=await observer.query<{fence_token:number}>("select platform.recovery_fence_floor() as fence_token");
+    expect(Number.isSafeInteger(floor.fence_token)).toBe(true);
     const reached=new Promise<void>(resolve=>{entered=resolve;}),release=new Promise<void>(resolve=>{released=resolve;});
     const arrive=()=>{if(++count===2)entered();};
     const first=createLeasesPort(heldMissingLeaseLock(db,arrive,release)).acquire(f.request);

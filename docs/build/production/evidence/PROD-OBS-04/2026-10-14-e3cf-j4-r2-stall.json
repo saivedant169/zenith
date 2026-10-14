@@ -1,0 +1,116 @@
+{
+  "date": "2026-10-14",
+  "source": "e3cf95bfb13921d0196f221bd08627b1bc29d78c",
+  "attempt": {
+    "phase": "J4 corrected-probe R2",
+    "tool_session": 9481,
+    "exit": 2,
+    "subject_sha256": "973f9b4f482a0ac92edd179414d1ad6d427bd3c905f563480dea252caad929c0",
+    "root_terminal_sha256": "ea75f068df5c34d4a9bad5085441da9f0577dc0663ed5432329c183f3d04747d",
+    "root_pid": 29643
+  },
+  "result": {
+    "startup": "passed",
+    "select1": "passed",
+    "machine_schedules_exit": 1,
+    "diagnostic": "cleanup_unconfirmed -> maintenance_deadline_exceeded / phase lease_exclusion",
+    "pressure_max": 1,
+    "disk_floors_gib": ">22",
+    "held_closeout_proven": true,
+    "source_postflight_reached": false,
+    "canonical_resume": false,
+    "stack_retained_for_diagnosis": true,
+    "acceptance": false,
+    "milestone_promotion": false,
+    "select1_scope": "J4 corrected-probe preflight; distinct from the later parameterized protocol follow-up"
+  },
+  "custody": {
+    "unique_commands": 388,
+    "exit_0": 387,
+    "machine_exit_1": 1,
+    "vm_commands_included": 360,
+    "index_sha256": "9383756a2eb955ee196746172df0de9d91c56e37c4ebb7daaf010daefda35eec",
+    "sealed_files": 1578,
+    "positive_pid_candidates": 427,
+    "exact_positive_pids": 425,
+    "parent_pids": 2,
+    "positive_pids_absent_twice": true,
+    "actual_pgids": 389,
+    "actual_pgids_absent_twice": true,
+    "closeout_sha256": "490960927d9ffe589c546dd522b19cfdada10fc9a267b4544c49f8fec1b5b497",
+    "clear_sha256": "f780117e06b7f66cbef16ce42f9ad9f1893f43068a530b769efd63f7892167ca"
+  },
+  "read_only_diagnostic": {
+    "tool_session": 73127,
+    "exit": 0,
+    "commands_passed": 45,
+    "sealed_files": 186,
+    "positive_pids_absent_twice": 59,
+    "actual_pgids_absent_twice": 45,
+    "closeout_sha256": "169a5ed5af3a1f384c13eb83b3dbccba3d1f53b7c7e1d6a62fde303e0f255948",
+    "clear_sha256": "71b4b5ce240c0a19db6fc0a4246d5cc11f324348a30a8f8db837bb630a719716",
+    "schedule_state": "both paused",
+    "running_workflows": 0,
+    "critical_activities": [
+      {
+        "ordinal": 1,
+        "status": "passed",
+        "duration_seconds": 0.36
+      },
+      {
+        "ordinal": 2,
+        "status": "passed",
+        "duration_seconds": 0.119
+      },
+      {
+        "ordinal": 3,
+        "status": "timed out",
+        "duration_seconds": 100.0067
+      }
+    ],
+    "pooler_observation": {
+      "state": "active / ClientRead",
+      "duration_seconds": 171,
+      "timing": "began after successful second pass and about 60 seconds before third activity",
+      "observed_sql_lock_blockers": 0,
+      "upstream_reconnect_proven": false,
+      "backend_start_unchanged": true,
+      "original_query_captured_at_timeout": false
+    },
+    "pooler_metadata": {
+      "mode": "transaction",
+      "pool_size": 5,
+      "checkout_timeout_ms": 60000,
+      "max_client_connections": 40
+    },
+    "interpretation": "bounded timing and state observations only; they do not prove a causal database, pooler, or query failure",
+    "raw_late_query_and_logs": "private only",
+    "root_pid": 31732,
+    "result_sha256": "22a4c99925de667275f54c304aa9ee2aa835ca703da9ec61d97ab91d45819731",
+    "parameterized_protocol": {
+      "tool_session": 46867,
+      "root_pid": 32665,
+      "exit": 0,
+      "select1": "passed",
+      "duration_ms": 21.514,
+      "output_sha256": "837604c0035b0af8ddb937ca4da25d2e6f00f5c023321f9b93cc8d1638752743",
+      "commands_passed": 33,
+      "sealed_files": 139,
+      "positive_pids_absent_twice": 50,
+      "actual_pgids_absent_twice": 33,
+      "closeout_sha256": "c1b8e33ff247ef8430884dd0f770e6966cc4ec78e004c3f3f524121c17ff18f7",
+      "clear_sha256": "faa9a66960cdb94def40edbb7e4e504418672c7c9ada153cf58703bf47dcffb0",
+      "scope": "immediate connectivity only; not idle, background, or J4 acceptance"
+    },
+    "temporal_projection_sha256": "bc9b5784330c3fb7140f24ad5dfe34940cc3f65097e1b3ad99e344b01d55d715"
+  },
+  "next_work": "A paused background-worker diagnostic wrapper has been restarted in HELD preparation and remains UNEXECUTED. It requires independent source/tool review before any run. Do not repeat the immediate parameterized SELECT 1 (already passed); no causal fix, J4 acceptance, or ETA is established.",
+  "status": {
+    "verified": 11,
+    "in_progress": 65,
+    "planned": 2,
+    "requirements_total": 78,
+    "verified_percent": 14.1,
+    "all_release_flags_false": true
+  }
+}

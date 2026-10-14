@@ -1,0 +1,110 @@
+{
+  "date": "2026-10-14",
+  "workflow_run": {
+    "id": 38579269656,
+    "event": "push",
+    "sha": "f7eb8c74f09cc75525d5f04414b385be89d029df",
+    "workflow": "CI",
+    "job_id": 115904524254,
+    "job": "Go",
+    "job_conclusion": "failure",
+    "failed_step": "Required native Linux race and authentic golden comparison",
+    "url": "https://github.com/saivedant169/zenith/actions/runs/38579269656"
+  },
+  "linux_guest_attempt": {
+    "id": "da31c167c1b6b8fd1d7283a8935ced4b",
+    "sanitized_artifact_id": 11902930480,
+    "sanitized_artifact_sha256": "8ba783d10c54b9e81340e993a612b505c24708d22ac7cbc635a0113fc6669d0b",
+    "race": {
+      "packages": 22,
+      "passed": 1074,
+      "failed": 0,
+      "skipped": 3,
+      "exit": 0
+    },
+    "package_native": {
+      "passed": 8,
+      "failed": 0,
+      "exit": 0
+    },
+    "pid1_native": {
+      "exit": 1,
+      "termination": "exit",
+      "required_identity": "linux-guest:github.com/GODOSTROYER/zenith/go/internal/runner/update:TestSystemdSignedUpdateAndRollback",
+      "test_event_emitted": false,
+      "failure_stage": "Docker build apt-get update/install of systemd, systemd-sysv, dbus, util-linux, ca-certificates",
+      "cause_observed": "Ubuntu archive hostname resolution failure for archive.ubuntu.com and security.ubuntu.com; apt package fetch failed with exit 100",
+      "classification": "dependency DNS/build failure before test execution, not a Go assertion failure or test-level timeout"
+    }
+  },
+  "push_run_provenance_at_observation": {
+    "ci": {
+      "id": 38579269656,
+      "event": "push",
+      "status": "completed",
+      "conclusion": "failure",
+      "jobs": {
+        "success": 19,
+        "failure": 1,
+        "conditional_skips": 8
+      }
+    },
+    "native_packaged_workers": {
+      "id": 38579269229,
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": {
+        "success": 2
+      }
+    },
+    "native_skipped_platforms": {
+      "id": 38579269066,
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  },
+  "separate_workflow_dispatch_duplicates_at_observation": {
+    "ci": {
+      "id": 38579457963,
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": {
+        "success": 20,
+        "failure": 0,
+        "conditional_skips": 8
+      }
+    },
+    "native_packaged_workers": {
+      "id": 38579457781,
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": {
+        "success": 2
+      }
+    },
+    "native_skipped_platforms": {
+      "id": 38579457069,
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  },
+  "runtime_acceptance": "E3 runtime acceptance unchanged; manual CI run and Go job are green, but full artifact admission is incomplete because artifact 11904621856 could not be downloaded. The historical push run remains failed.",
+  "retry_claimed": false,
+  "fresh_workflow_dispatch_go": {
+    "job_id": 115919864408,
+    "conclusion": "success",
+    "checks": [
+      "native race/golden",
+      "real systemd operations",
+      "current-attempt guest-evidence preservation"
+    ],
+    "artifact_id": 11904621856,
+    "artifact_download": "HTTP 503: egress over account limit",
+    "raw_fresh_guest_counts": "unverified; unavailable artifact not retried and no historical counts substituted"
+  }
+}

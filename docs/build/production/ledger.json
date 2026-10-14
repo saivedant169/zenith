@@ -761,7 +761,7 @@
         "PROD-CI-06",
         "PROD-CI-07"
       ],
-      "implementationStatus": "Exact E3CF CI passed: 24 successful jobs, 8 conditional dispatch skips, 0 failures; 17 artifacts and all 11 strict lanes inspected. Unit 24,738 passed /1,925 skipped /0 failed, Smoke/Gimbal passed; both native packaged architectures 22/22 and Windows/systemd leaves passed. Fresh local Full R2 exited 0: 24,720 passed /1,943 conditional skips /0 failed, 26,663 exact identities, 13 strict commands closed, stable source and pressure max 1. Independent review, owned cleanup (22,824 entries), 401 numeric PID /20 group absences twice and fresh source-bound computational admission passed. Fresh native witness, J4/default/browser and registered-agent runbook acceptance remain pending. No milestone or release promotion.",
+      "implementationStatus": "Exact E3CF CI passed: 24 successful jobs, 8 conditional dispatch skips, 0 failures; 17 artifacts and all 11 strict lanes inspected. Unit 24,738 passed /1,925 skipped /0 failed, Smoke/Gimbal passed; both native packaged architectures 22/22 and Windows/systemd leaves passed. Fresh local Full R2 exited 0: 24,720 passed /1,943 conditional skips /0 failed, 26,663 exact identities, 13 strict commands closed, stable source and pressure max 1. Independent review, owned cleanup (22,824 entries), 401 numeric PID /20 group absences twice and fresh source-bound computational admission passed. Fresh ARM64 W build-only passed; image entrypoint/J2 acceptance remains open. F7EB push run 38579269656 remains 19 success /1 Go failure /8 conditional skips due Ubuntu archive DNS before PID1 test execution. Separate manual run 38579457963 completed 20 success /0 failure /8 conditional skips; fresh Go job 115919864408 passed native race/golden and real systemd operations, while guest artifact 11904621856 download returned HTTP 503 account egress limit, leaving raw fresh guest counts unverified. No milestone or release promotion.",
       "evidence": [
         {
           "level": "local_engine",
@@ -2559,6 +2559,13 @@
           "commit": "e3cf95bfb13921d0196f221bd08627b1bc29d78c",
           "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-e3cf-j4-probe-path.json",
           "result": "Fresh native ARM64 witness build-only passed with closed custody; no image-entrypoint or J2 acceptance. J4 R1 default-stack startup passed, then a private probe output-directory mismatch refused before client/query. Original failure preserved; corrected private path independently reviewed. Canonical cleanup removed 19 owned resources with zero remaining/forced; 39 commands closed, 213 files sealed, fresh 69 PIDs/39 groups absent twice and guard cleared. J4 R2 corrected-probe retry started; complete maintenance/browser acceptance remains pending. No milestone or release promotion."
+        },
+        {
+          "level": "remote_ci",
+          "commit": "f7eb8c74f09cc75525d5f04414b385be89d029df",
+          "runId": 38579269656,
+          "result": "Push CI terminal: 19 successful jobs, 1 Go failure before PID1 test emission due Ubuntu archive DNS, 8 conditional skips. Separate workflow_dispatch CI 38579457963 terminal: 20 successful jobs, 0 failures, 8 conditional skips; fresh Go job 115919864408 passed native race/golden, real systemd operations and current-attempt evidence preservation. Artifact 11904621856 download returned HTTP 503 due account egress quota; fresh raw guest counts remain unverified. Historical push failure retained; no duplicate CI dispatched and no milestone promotion.",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-f7eb-go-dns-failure.json"
         }
       ],
       "requiredEvidence": [
@@ -5549,7 +5556,7 @@
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "Original J4 second critical activity timed out at 100.005s; root cause remains unproven and complete forensics are preserved. A later startup registry was OOM-killed at 64MiB; reviewed 256MiB budget repair is integrated in E3CF with 43 focused tests. Native startup/J4 retry with read-only live DB wait sampling follows fresh Full/witness admission; no acceptance promotion.",
+      "implementationStatus": "J4 R2 failed after startup and its J4 preflight SELECT 1 passed; machine schedules then exceeded the maintenance deadline at phase lease_exclusion. A separate follow-up parameterized-protocol diagnostic later passed SELECT 1 in 21.514 ms. Read-only diagnosis found a timed-out third critical activity and a bounded active/ClientRead observation, without capturing the original query or proving cause. A HELD paused-background wrapper is UNEXECUTED; J4 remains unaccepted.",
       "implementationNote": "J4 natural-timer harness, durable billing and authenticated shared-lease HTTP fallback complete; default-stack restart/exclusion acceptance pending on Mac. Focused PID1 CLI-command candidate unit proof is independently reviewed at 16/0/0; the three-file candidate is being integrated, and native J4 execution remains pending. No requirement, gate, or source-SHA promotion.",
       "evidence": [
         {
@@ -5672,6 +5679,13 @@
           "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-14-j4-preserved-cleanup.json",
           "result": "Retained J4 forensics preserved; canonical cleanup passed with 19 removed, 0 remaining, 0 forced stops, 49 closed commands and separate root absence for 64 PIDs /49 groups. Initial instrumented memory preflight refused before startup; after measured additional headroom one retry entered startup then failed pushing the migration image to the owned local registry, before the machine phase; all80commandsclosed/pressuremax1 and root91PID80groups absenttwice. Cleanup-only and diagnostic evidence do not close J4 acceptance.",
           "environment": "Native macOS ARM64, exact F2D0 source; protected builder, witness image, unrelated resources and source preserved."
+        },
+        {
+          "level": "local_engine",
+          "commit": "e3cf95bfb13921d0196f221bd08627b1bc29d78c",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-14-e3cf-j4-r2-stall.json",
+          "result": "J4 corrected-probe R2 exited 2 (tool 9481, root PID 29643); startup and the J4 preflight SELECT 1 passed, then machine schedules exited 1 with cleanup_unconfirmed \u2192 maintenance_deadline_exceeded / phase lease_exclusion. A separate follow-up protocol diagnostic (tool 46867, root PID 32665) later passed parameterized SELECT 1 in 21.514 ms. Held closeout passed; source postflight and canonical resume were absent. Read-only diagnosis remains bounded and inconclusive. Paused-background wrapper is HELD and UNEXECUTED. No acceptance or milestone promotion.",
+          "environment": "Native macOS ARM64; retained owned J4 stack; private forensic and protocol outputs remain outside the repository."
         }
       ],
       "requiredEvidence": [

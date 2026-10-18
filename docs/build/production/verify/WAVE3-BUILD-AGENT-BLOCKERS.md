@@ -1,3 +1,11 @@
+## 19 October 2026 — current builder and reconciliation blockers
+
+The latest exact-source CI snapshot remains the 6CE5 run 38593806448: 19 successful jobs, one reconciliation failure, and eight conditional skips. The ARM64 packaged-worker job failed in its fresh-image `dependency_install` phase before product checks. The generic phase marker does not identify a package or root cause; this evidence supports no product-code repair request. AMD64 passed. The reconciliation job separately timed out waiting for its triggered schedule action after acquiring the schema lock and before SQL-waiter observation; its cause is unresolved and is not linked to J4.
+
+The isolated timeout-observability candidate changes only the existing test timeout report. Focused ESLint, TypeScript syntax transpilation, and a focused semantic typecheck passed on the candidate; the semantic check used a 5,120 MiB V8 heap, a stable 4,009-entry source snapshot, and current-boot/source/resource guards with successful custody clear. This is focused compiler evidence, not fresh exact-source CI or product/build acceptance. An earlier attempt exhausted the V8 heap around 4 GiB; no host-memory-pressure cause was established. Fresh published CI remains pending. The PostgreSQL investigation later resumed via Astra High; the new isolated protocol fixture remains unrun. No builder or product fix is requested from an unsupported cause. [CI evidence](../evidence/PROD-CI-08/2026-10-19-reconcile-observation.json) · [recovery evidence](../evidence/PROD-OBS-04/2026-10-19-bg3-resume.json).
+
+---
+
 ## Current verification checkpoint — 14 October 2026, E3CF verification active
 
 The registry repair is pushed to the working fork at `e3cf95bfb13921d0196f221bd08627b1bc29d78c`. Fresh source capture passed for 6057 files; previous F2D0 results remain historical. Exact E3CF CI currently has **24 successful jobs / 0 running / 8 conditional dispatch skips** across 3 workflows. Both native packaged-worker architectures passed 22/22 checks with cleanup; native Windows ACL and systemd leaves each passed 1/1 (Windows 15 excluded siblings are not executed skips). Main CI is now terminal success; all 17 artifacts and 11 strict lanes were inspected. Unit 24,738 passed /1,925 skipped /0 failed; Smoke/Gimbal passed.

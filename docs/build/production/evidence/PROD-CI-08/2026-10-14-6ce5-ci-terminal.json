@@ -1,0 +1,92 @@
+{
+  "date": "2026-10-14",
+  "source": "6ce5f1ed6142b7c9e8c5bd4fca840f808f027bac",
+  "workflow_run": {
+    "id": 38593806448,
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "failure",
+    "jobs": {
+      "total": 28,
+      "success": 19,
+      "failure": 1,
+      "conditional_skips": 8,
+      "all_terminal": true
+    },
+    "failed_job": {
+      "id": 115955225212,
+      "name": "operation-gates (reconciliation)",
+      "scenario": "bounded real PostgreSQL lock outage defers a pass and the unpaused schedule recovers",
+      "command_result": {
+        "passed": 38,
+        "failed": 1,
+        "skipped": 0
+      },
+      "failure": "Timed out waiting for new composition schedule action",
+      "schedule_action_wait_ms": 30000,
+      "schema_lock_acquired": true,
+      "wait_timing": "After trigger(SKIP), before the test began SQL-waiter observation",
+      "workflow_and_activity_pollers_ready": true,
+      "causal_limit": "The action-count timeout cause is unresolved. The scenario did not reach its SQL-waiter observation or lock-outage recovery assertion; this does not establish a PostgreSQL lock failure or a J4 causal link."
+    }
+  },
+  "verify": {
+    "job_id": 115955225443,
+    "conclusion": "success",
+    "test_files": {"passed": 1155, "skipped": 97, "total": 1252},
+    "tests": {"passed": 24738, "skipped": 1925, "failed": 0, "total": 26663},
+    "duration_seconds": 1593.61,
+    "verify_artifact_present": false
+  },
+  "browser": {
+    "agent_job_id": 115955225180,
+    "conclusion": "success",
+    "assertions_passed": 44,
+    "assertions_failed": 0,
+    "owned_child_teardown": "clean"
+  },
+  "native_workflows": {
+    "platform_run": {"id": 38593806215, "conclusion": "success", "jobs_passed": 2, "jobs_failed": 0},
+    "packaged_workers_run": {
+      "id": 38593806288,
+      "conclusion": "failure",
+      "amd64": "passed",
+      "arm64": {
+        "job_id": 115955256355,
+        "failure_phase": "fresh-image-build",
+        "observed_marker": "dependency_install",
+        "exit": 1,
+        "product_checks_emitted": false,
+        "cleanup_fields_all_true": true,
+        "causal_limit": "The generic dependency_install marker does not identify a package or root cause."
+      }
+    }
+  },
+  "other_required_jobs": {
+    "platform_postgres": "passed",
+    "go": "passed",
+    "verify": "passed"
+  },
+  "conditional_skips": {
+    "count": 8,
+    "scope": "Conditional operated jobs; skipped jobs do not establish operated-run acceptance."
+  },
+  "j4_relationship": {
+    "actual_bg2_diagnostic": "refused at temporal-rpc before worker spawn",
+    "raw_rpc_correction": "independent review passed; HELD and unexecuted",
+    "causal_link_to_this_ci_failure": false
+  },
+  "provenance": {
+    "terminal_inventory_sha256": "215fa620b17bee73a8a538ce179d742fc49bce946488d27092d5a0aae81e058e",
+    "reconciliation_diagnosis_sha256": "fdd43d30c5722505919620914d6d75edd565c9969144b7b33d68cef5d4b5f601",
+    "native_arm_diagnosis_sha256": "4b4bd5f210e741bb81fbb74fa85e34cb3c18536a78b83968abe61320501d69ed"
+  },
+  "status": {
+    "verified": 11,
+    "in_progress": 65,
+    "planned": 2,
+    "verified_percent": 14.1,
+    "all_release_flags_false": true,
+    "milestone_promotion": false
+  }
+}

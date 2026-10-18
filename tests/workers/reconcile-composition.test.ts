@@ -195,8 +195,38 @@ describe("actual default activity composition: PostgreSQL and owned durable Temp
       return current.info.runningActions.length === 0 ? current : false;
     });
     const before = settled.info.numActionsTaken;
+    const triggeredAt = Date.now();
     await client.schedule.getHandle(RECONCILE_SCHEDULE_ID).trigger(ScheduleOverlapPolicy.SKIP);
-    const description = await waitFor("new composition schedule action", async () => { const current = await client.schedule.getHandle(RECONCILE_SCHEDULE_ID).describe(); return current.info.numActionsTaken > before ? current : false; });
+    let lastObserved = settled;
+    let description: ScheduleDescription;
+    try {
+      description = await waitFor("new composition schedule action", async () => {
+        const current = await client.schedule.getHandle(RECONCILE_SCHEDULE_ID).describe();
+        lastObserved = current;
+        return current.info.numActionsTaken > before ? current : false;
+      }, 30_000);
+    } catch (cause) {
+      if (!(cause instanceof Error) || cause.message !== "timed out waiting for new composition schedule action") throw cause;
+      const latest = lastObserved.info.recentActions.at(-1);
+      const action = latest?.action;
+      const workflow = action?.type === "startWorkflow" ? action.workflow : undefined;
+      const suffix = /^[A-Za-z0-9:.+-]{1,96}$/;
+      const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const execution = workflow && workflow.workflowId.startsWith(`${RECONCILE_SCHEDULE_ID}-`) && suffix.test(workflow.workflowId.slice(RECONCILE_SCHEDULE_ID.length + 1)) && uuid.test(workflow.firstExecutionRunId)
+        ? { workflowId: workflow.workflowId, firstExecutionRunId: workflow.firstExecutionRunId }
+        : undefined;
+      const diagnostic = {
+        beforeNumActionsTaken: before,
+        lastNumActionsTaken: lastObserved.info.numActionsTaken,
+        runningActions: lastObserved.info.runningActions.length,
+        recentActions: lastObserved.info.recentActions.length,
+        latestActionType: action?.type ?? null,
+        generatedExecution: execution ?? null,
+        triggerOutcome: "resolved",
+        elapsedMs: Math.max(0, Date.now() - triggeredAt),
+      };
+      throw new Error(`timed out waiting for new composition schedule action; diagnostic=${JSON.stringify(diagnostic)}`, { cause });
+    }
     const action = description.info.recentActions.at(-1)?.action;
     if (!action || action.type !== "startWorkflow") throw new Error("Invalid schedule action.");
     const handle = client.workflow.getHandle(action.workflow.workflowId, action.workflow.firstExecutionRunId);

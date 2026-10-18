@@ -1,0 +1,110 @@
+{
+  "date": "2026-10-19",
+  "scope": "BG3 worker diagnostic reconciliation and new-boot custody/recovery status",
+  "bg3": {
+    "source": "e3cf95bfb13921d0196f221bd08627b1bc29d78c",
+    "outcome": "failed",
+    "failureCode": "sampler-exit",
+    "worker": {
+      "ready": "2026-10-14T16:31:53.868Z",
+      "closed": "2026-10-14T16:33:58.896Z",
+      "exit": 0,
+      "signal": null,
+      "forcedKill": false
+    },
+    "samples": {
+      "count": 120,
+      "successfulCommands": 120,
+      "stderrBytes": 0,
+      "durationMs": 118982.394
+    },
+    "maintenance": {
+      "snapshots": 26,
+      "schedulesPaused": 2,
+      "stableActionCounts": true,
+      "runningActions": 0,
+      "temporalViolations": 0
+    },
+    "clientRead": {
+      "querySha256": "893c1042862d73ca7f267bd41d4263757a419ca4f3675f14259b789ec40acfcb",
+      "matchesSourceTemplate": "src/lib/ops/store.ts:212",
+      "activeTracks": [
+        {
+          "observations": 90,
+          "firstToLastMs": 88983.455
+        },
+        {
+          "observations": 8,
+          "firstToLastMs": 7002.847
+        }
+      ],
+      "causalLimit": "The matching sampleControlPlane query is also callable by the internal metrics route; route execution was not established. Recurrence was observed during the worker-present diagnostic, but worker-only causality is unproven. J4 has no query hash, so only wait-class comparison is supported."
+    },
+    "acceptanceClaim": false,
+    "causeEstablished": false,
+    "diagnosticToolExit": 2
+  },
+  "custody": {
+    "rootCloseout": {
+      "rootExecutionExit": 0,
+      "hostPidsAbsentTwice": 209,
+      "processGroupsAbsentTwice": 173,
+      "sealedFiles": 796,
+      "regularFilesSealed": 795,
+      "symlinksSealed": 1,
+      "proofSha256": "a892bd57819913a4711dc865f7b7f5ac86b3e7c9f56a8446af045c41a70a9d1d"
+    },
+    "guardClearSha256": "6fcad326d90bbb48f81e5142ba2d823cf9e6c849471c2ecec132e1a8ef270de2",
+    "priorFailedOutcomeChanged": false
+  },
+  "newBootRecovery": {
+    "date": "2026-10-19",
+    "action": "one explicitly approved normal Docker restart",
+    "restartBudgetUsed": 1,
+    "preInventoryAvailable": false,
+    "missingPreInventoryExplicitlyApproved": true,
+    "settingsChanged": false,
+    "protectedBuilderPresent": true,
+    "protectedVolumePresent": true,
+    "nativeWitnessImagePresent": true,
+    "adjacentDatabaseOccupiesHostPort": 54322,
+    "candidateJ4RuntimeExecution": false,
+    "newIsolatedProtocolFixture": {
+      "status": "preparing",
+      "cachedExactDatabaseAndPoolerImages": true,
+      "started": false,
+      "testsRun": false,
+      "actualPostgresResult": null
+    },
+    "independentSyntheticValidator": {
+      "passed": 57,
+      "failed": 0,
+      "scope": "Astra High synthetic fixture-validator cases; not actual PostgreSQL execution"
+    },
+    "dockerRestartToolSession": 53397,
+    "dockerCliExit": 0,
+    "dockerRestartElapsedSeconds": 8.677,
+    "acceptanceClaim": false,
+    "restartCommandCount": 1,
+    "postRestartInventoryState": "The retained post-restart inventory showed the original test DB/pooler stopped and an adjacent DB on host port 54322. The PostgreSQL investigation later resumed via Astra High. The new isolated fixture remains unrun.",
+    "atPostRestartInventoryOriginalTestDatabaseAndPooler": "stopped",
+    "settingsBeforeSha256": "16cfdab77b057ada869b57b9ec4a6d6eacfa7942c16e0fa474f8005f07f0d4d3",
+    "settingsAfterSha256": "16cfdab77b057ada869b57b9ec4a6d6eacfa7942c16e0fa474f8005f07f0d4d3"
+  },
+  "provenance": {
+    "forensicTimelineSha256": "24c9e6ee59cf0343945d23bb06b5dd244f14ea0ae7618a8f915c8810dddb2970",
+    "rootCloseoutSha256": "a892bd57819913a4711dc865f7b7f5ac86b3e7c9f56a8446af045c41a70a9d1d",
+    "rootGuardClearReceiptSha256": "6fcad326d90bbb48f81e5142ba2d823cf9e6c849471c2ecec132e1a8ef270de2",
+    "dockerPostInventorySha256": "eb6ea88d067a077fe917b915de6403feb72109b992e0c3d6aca6003fc2e67a42",
+    "portBindingsSha256": "779869b254eb3217dcfdda6eacb16e8fae004d05d6fabc41ff9c756e4aa696b6",
+    "postRestartEngineInventorySha256": "b32c6f2be921a0498f4b47488ef36a9fd59f160227634b56e232510d2cc3fe3b",
+    "dockerRestartTerminalSha256": "56315e41b1cba39f034b958dbd1399fc89cda124aa69c1139fa890b736a31a71"
+  },
+  "programStatus": {
+    "verified": 11,
+    "inProgress": 65,
+    "planned": 2,
+    "releaseFlagsAllFalse": true,
+    "promotion": false
+  }
+}

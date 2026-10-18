@@ -1,0 +1,106 @@
+{
+  "date": "2026-10-19",
+  "scope": "Reconcile action-timeout observability and exact-source CI reconciliation",
+  "candidate": {
+    "base": "6ce5f1ed6142b7c9e8c5bd4fca840f808f027bac",
+    "changedPath": "tests/workers/reconcile-composition.test.ts",
+    "sourceSha256": "1e5553ec616193e602acb7e9af957e87d196ae4c62545a2b668a20d02d661002",
+    "behavior": "On the existing action-count wait timeout only, include bounded before/last action counts and elapsed time in the error while preserving the original timeout as cause. Workflow/run identifiers are emitted only after fixed-prefix, character-allowlist and UUID validation. Payloads, memo, arguments, environment and arbitrary identifiers are excluded.",
+    "scopeLimit": "SKIP trigger, quiescence check, timeout, success path and fixture assertions are unchanged; no added waits or service calls.",
+    "review": "Independent source review and suffix correction completed.",
+    "focusedLint": {
+      "result": "passed",
+      "toolSession": 3538,
+      "runtime": "Node 22"
+    },
+    "syntaxCheck": {
+      "result": "passed",
+      "method": "TypeScript transpile/syntax check",
+      "runtime": "Node 22"
+    },
+    "semanticTypecheck": {
+      "status": "passed",
+      "toolSession": 73685,
+      "nodeExitCode": 0,
+      "rootCustodyExitCode": 0,
+      "scope": "Focused semantic TypeScript check only; 4,009 tracked source entries in stable before/after snapshot; reused existing frozen dependency installation; no full-suite or production acceptance.",
+      "heapMiB": 5120,
+      "maximumHostPressure": 1,
+      "minimumHostFreeBytes": 275580354560,
+      "sourceSnapshotSha256": "7afc1161a25452bd723a71bdc786cededfd66222ccc0370a0659017bfa5652a8",
+      "terminalReceiptSha256": "98825c6f1b2f2b0369206020fe70863f186efe881aa77117c9257c94c5ee5c37",
+      "custodyCloseoutProofSha256": "c8817832fca0ebd832000206671de1a9a2f7348d3162d944d3800e38659dea95",
+      "guardClearProofSha256": "ba3c765bfe817b5f5ee20a60fd3191bcb26c22134e98fddafdbb6de035bf3481"
+    },
+    "freshPublishedCi": "pending",
+    "acceptanceClaim": false,
+    "priorCompilerAbort": "An earlier attempt exited 134 with V8 heap exhaustion around 4 GiB. This does not establish host memory pressure as the cause."
+  },
+  "priorExactSourceCi": {
+    "source": "6ce5f1ed6142b7c9e8c5bd4fca840f808f027bac",
+    "runId": 38593806448,
+    "status": "completed",
+    "conclusion": "failure",
+    "jobs": {
+      "total": 28,
+      "success": 19,
+      "failure": 1,
+      "conditionalSkips": 8,
+      "allTerminal": true
+    },
+    "reconciliation": {
+      "jobId": 115955225212,
+      "tests": {
+        "passed": 38,
+        "failed": 1,
+        "skipped": 0
+      },
+      "schemaLockAcquired": true,
+      "failure": "Timed out waiting for new composition schedule action after trigger(SKIP), before SQL-waiter observation; pollers were ready.",
+      "cause": "unresolved"
+    },
+    "verify": {
+      "passed": 24738,
+      "skipped": 1925,
+      "failed": 0,
+      "identities": 26663
+    },
+    "browser": {
+      "passed": 44,
+      "failed": 0,
+      "childTeardown": "clean"
+    },
+    "nativePlatform": {
+      "passed": 2,
+      "failed": 0
+    },
+    "packagedWorkers": {
+      "amd64": "passed",
+      "arm64": {
+        "result": "failed before product checks",
+        "phase": "dependency_install",
+        "cleanupFieldsTrue": 6
+      }
+    },
+    "otherRequiredJobs": {
+      "go": "passed",
+      "platformPostgres": "passed"
+    },
+    "causalLimits": [
+      "The failed wait does not establish a PostgreSQL lock failure.",
+      "No J4 causal link is established.",
+      "The ARM64 dependency_install marker does not identify a package or root cause."
+    ]
+  },
+  "provenance": {
+    "priorCiEvidenceSha256": "215fa620b17bee73a8a538ce179d742fc49bce946488d27092d5a0aae81e058e",
+    "candidateReportSha256": "5baf84ea4d9dd0f800cc934f0a3cdabf391ab26906a354b67049ed2888941521"
+  },
+  "programStatus": {
+    "verified": 11,
+    "inProgress": 65,
+    "planned": 2,
+    "releaseFlagsAllFalse": true,
+    "promotion": false
+  }
+}

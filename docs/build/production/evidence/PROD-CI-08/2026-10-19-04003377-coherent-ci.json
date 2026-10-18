@@ -1,0 +1,590 @@
+{
+  "interpretation": {
+    "counts": "Lane counts are reported per sanitized artifact and may overlap; do not sum them into a unique test total.",
+    "reconciliation": "The current reconciliation lane passed 39/39; the previous exact-source run had one reconciliation failure. This successor pass alone does not establish a causal fix.",
+    "scope": "CI evidence only. No J4 acceptance, product-runtime cause, milestone promotion, or release approval is claimed. Existing ledger remains 11 verified / 65 in progress / 2 planned, across 78 criteria; all four release flags remain false. Canonical J4 has not started; its planned two-service interruption awaits approval.",
+    "skips": "Eight exact main-job conditional skips are listed above. Sanitized artifacts do not expose identity names for 19 ToFu skips, 15 platform-postgres skips, or 3 Linux-guest race skipped leaves."
+  },
+  "privateProvenance": {
+    "amd64PackagedArtifactSha256": "c13a7c2bcca75e0829d01cbb07a112878efa28d2cf5beff07e8c2f60e3e64a2d",
+    "arm64PackagedArtifactSha256": "123e37f51cad784eb3082bb391679c0d6389027d0819d6fb8418594755561f90",
+    "checkpointSha256": "7645c90163182a6db454f18415034b61ae49c84b6aa9e09c58fcedf72e8bece6",
+    "laneCountArtifactsSha256": "3e4ea770dd5458212c03711357b663c26e995046064d7f794e1c086c5b488f83"
+  },
+  "recordedDate": "2026-10-19",
+  "repository": "saivedant169/zenith",
+  "runs": {
+    "main": {
+      "artifactFiles": [
+        {
+          "lane": "adversarial",
+          "sha256": "5e7da3345bb30b975ded410614f90ea2c55587869c7afe221d6aa93c38a86e00",
+          "verdict": "passed"
+        },
+        {
+          "lane": "linux-guest",
+          "sha256": "5f6f0bd8e03228758d708d9c919a77da444057a6d49eccdbe581661652420294",
+          "verdict": "passed"
+        },
+        {
+          "lane": "linux-systemd",
+          "sha256": "f6bbdcedb8b6423cb7fa8618d0a63ac97ce11b3fd19db556a0a4dd64983793de",
+          "verdict": "passed"
+        },
+        {
+          "lane": "policy",
+          "sha256": "e1f0461bb88e507e3b05ad39f33efb5b85514455cba954af6b481aafd4ee7adc",
+          "verdict": "passed"
+        },
+        {
+          "lane": "postgres",
+          "sha256": "6517284f6329bd36e11ed7f3481534abce342815f228d21598835c0fa12310c7",
+          "verdict": "passed"
+        },
+        {
+          "lane": "reconciliation",
+          "sha256": "fc853c0b787c62c4781931fff84625ef3d84cc69848019e671cff4446e58b530",
+          "verdict": "passed"
+        },
+        {
+          "lane": "recovery",
+          "sha256": "6518d4441ed37e8b0b1bd8ba7eccc9fd508c241f6ba4debf638e5c235c09f761",
+          "verdict": "passed"
+        },
+        {
+          "lane": "tofu",
+          "sha256": "01a579f355e1c24a6f0dd2dcf8e3fc2322a18b3de12845d4a0ac5322b1253c00",
+          "verdict": "passed"
+        },
+        {
+          "lane": "wave5-contract",
+          "sha256": "95ca3586f5212eb98c8cb10a06f832cde796214eade21593fc5f8f64279303b7",
+          "verdict": "passed"
+        },
+        {
+          "lane": "workflow-history-replay",
+          "sha256": "9c5980ce0dbf36622dad5bbdfde796940cfe20996a5fd7b62bb81bf47ce07287",
+          "verdict": "passed"
+        },
+        {
+          "lane": "workflow-intents",
+          "sha256": "71a1889256647a83b099e33c22e9eec2647c9f91dd9f2621b9d21a8af9c360ce",
+          "verdict": "passed"
+        },
+        {
+          "lane": "workflows",
+          "sha256": "f2c95ef512728b9acf7fd1adf9f399338f7289d8a14587e0901f8918ec460a47",
+          "verdict": "passed"
+        },
+        {
+          "lane": "platform-postgres",
+          "sha256": "3e4ea770dd5458212c03711357b663c26e995046064d7f794e1c086c5b488f83",
+          "verdict": "passed"
+        }
+      ],
+      "conclusion": "success",
+      "conditionalSkippedJobs": [
+        "drv1-update-rollback",
+        "drv2-drift-repair",
+        "j15-operated-restore",
+        "j15-operated-upgrade",
+        "drivers-d4-export",
+        "drv2-crash-partition",
+        "drivers-d4-two-tenants",
+        "drv1-private-source"
+      ],
+      "jobConclusions": {
+        "skipped": 8,
+        "success": 20
+      },
+      "jobCount": 28,
+      "jobs": [
+        {
+          "conclusion": "success",
+          "id": 117812941329,
+          "name": "recovery",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 117812941472,
+          "name": "operation-gates (workflow-intents)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 117812941481,
+          "name": "tofu",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 117812941496,
+          "name": "platform-postgres",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 117812941501,
+          "name": "postgres",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 117812941509,
+          "name": "workflows",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 117812941510,
+          "name": "hosted",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 117812941534,
+          "name": "operation-gates (reconciliation)",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 117812941549,
+          "name": "generated",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 117812941558,
+          "name": "adversarial",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 117812941567,
+          "name": "ledger",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 117812941568,
+          "name": "workflow-history-replay",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 117812941574,
+          "name": "wave5-contract",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 117812941588,
+          "name": "docker",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 117812941602,
+          "name": "go",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 117812941623,
+          "name": "agent",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 117812941661,
+          "name": "supply-chain",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 117812941705,
+          "name": "verify",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 117812941710,
+          "name": "policy",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "id": 117812941961,
+          "name": "build",
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "id": 117812942105,
+          "name": "drv1-update-rollback",
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "id": 117812942213,
+          "name": "drv2-drift-repair",
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "id": 117812942378,
+          "name": "j15-operated-restore",
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "id": 117812942475,
+          "name": "j15-operated-upgrade",
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "id": 117812942661,
+          "name": "drivers-d4-export",
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "id": 117812960206,
+          "name": "drv2-crash-partition",
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "id": 117812960478,
+          "name": "drivers-d4-two-tenants",
+          "status": "completed"
+        },
+        {
+          "conclusion": "skipped",
+          "id": 117812973008,
+          "name": "drv1-private-source",
+          "status": "completed"
+        }
+      ],
+      "runId": 39174050639,
+      "sanitizedLanes": {
+        "adversarial": {
+          "failed": 0,
+          "passed": 238,
+          "skipped": 0,
+          "total": 238,
+          "unknown": 0
+        },
+        "linux-guest-goldens": {
+          "failed": 0,
+          "leaves": 21,
+          "passed": 21,
+          "skipped": 0
+        },
+        "linux-guest-package-native": {
+          "failed": 0,
+          "leaves": 8,
+          "passed": 8,
+          "skipped": 0
+        },
+        "linux-guest-pid1-native": {
+          "failed": 0,
+          "leaves": 1,
+          "passed": 1,
+          "skipped": 0
+        },
+        "linux-guest-race": {
+          "failed": 0,
+          "leaves": 1077,
+          "passed": 1074,
+          "skipped": 3,
+          "skippedIdentities": "not-exported-by-sanitized-artifact"
+        },
+        "linux-systemd-ops": {
+          "failed": 0,
+          "leaves": 7,
+          "passed": 7,
+          "skipped": 0
+        },
+        "linux-systemd-signed": {
+          "failed": 0,
+          "leaves": 6,
+          "passed": 6,
+          "skipped": 0
+        },
+        "platform-postgres": {
+          "failed": 0,
+          "passed": 4142,
+          "requiredIdentityEntriesPassed": true,
+          "skipped": 15,
+          "skippedCaseIdentities": "not-exported-by-standard-vitest-json",
+          "total": 4157,
+          "unknown": 0
+        },
+        "policy": {
+          "failed": 0,
+          "passed": 242,
+          "skipped": 0,
+          "total": 242,
+          "unknown": 0
+        },
+        "postgres": {
+          "failed": 0,
+          "passed": 379,
+          "skipped": 0,
+          "total": 379,
+          "unknown": 0
+        },
+        "reconciliation": {
+          "failed": 0,
+          "passed": 39,
+          "skipped": 0,
+          "total": 39,
+          "unknown": 0
+        },
+        "recovery": {
+          "failed": 0,
+          "passed": 10,
+          "skipped": 0,
+          "total": 10,
+          "unknown": 0
+        },
+        "tofu": {
+          "failed": 0,
+          "passed": 4329,
+          "skipped": 19,
+          "skippedCaseIdentities": "not-exported-by-sanitized-artifact",
+          "total": 4348,
+          "unknown": 0
+        },
+        "wave5-contract": {
+          "failed": 0,
+          "passed": 1271,
+          "skipped": 0,
+          "total": 1271,
+          "unknown": 0
+        },
+        "workflow-history-replay": {
+          "failed": 0,
+          "passed": 34,
+          "skipped": 0,
+          "total": 34,
+          "unknown": 0
+        },
+        "workflow-intents": {
+          "failed": 0,
+          "passed": 156,
+          "skipped": 0,
+          "total": 156,
+          "unknown": 0
+        },
+        "workflows": {
+          "failed": 0,
+          "passed": 1559,
+          "skipped": 0,
+          "total": 1559,
+          "unknown": 0
+        }
+      },
+      "status": "completed",
+      "url": "https://github.com/saivedant169/zenith/actions/runs/39174050639",
+      "verifyJob": "success",
+      "verifyJobCounts": "No sanitized test-count artifact is published for this job."
+    },
+    "nativePackagedWorkers": {
+      "architectures": [
+        {
+          "artifactSha256": "c13a7c2bcca75e0829d01cbb07a112878efa28d2cf5beff07e8c2f60e3e64a2d",
+          "checks": {
+            "actual-entrypoint": "passed",
+            "actual-inflight-drain-and-fresh-worker": "passed",
+            "baseline-preserved": "passed",
+            "durable-temporal-restart": "passed",
+            "fresh-source-image": "passed",
+            "idle-drain": "passed",
+            "native-architecture": "passed",
+            "operator-pause-and-resume": "passed",
+            "owned-builder-cache-cleanup": "passed",
+            "owned-context-cleanup": "passed",
+            "owned-namespace": "passed",
+            "owned-reconcile-schedule": "passed",
+            "packaged-assets-and-plan-retention": "passed",
+            "permitted-read-operation": "passed",
+            "private-files-and-owned-services-cleanup": "passed",
+            "private-tls-custody": "passed",
+            "readiness-and-liveness": "passed",
+            "sql-prerequisite-outage-and-recovery": "passed",
+            "startup-refusals": "passed",
+            "store-outage-and-recovery": "passed",
+            "temporal-mtls-positive-and-negative": "passed",
+            "temporal-outage-and-recovery": "passed"
+          },
+          "checksFailed": 0,
+          "checksPassed": 22,
+          "cleanup": {
+            "baselinePreserved": true,
+            "builderAbsent": true,
+            "builderContainerAbsent": true,
+            "cacheVolumeAbsent": true,
+            "ownedContextAbsent": true,
+            "wrapperPrivateFilesRemoved": true
+          },
+          "platform": "linux/amd64",
+          "verdict": "passed"
+        },
+        {
+          "artifactSha256": "123e37f51cad784eb3082bb391679c0d6389027d0819d6fb8418594755561f90",
+          "checks": {
+            "actual-entrypoint": "passed",
+            "actual-inflight-drain-and-fresh-worker": "passed",
+            "baseline-preserved": "passed",
+            "durable-temporal-restart": "passed",
+            "fresh-source-image": "passed",
+            "idle-drain": "passed",
+            "native-architecture": "passed",
+            "operator-pause-and-resume": "passed",
+            "owned-builder-cache-cleanup": "passed",
+            "owned-context-cleanup": "passed",
+            "owned-namespace": "passed",
+            "owned-reconcile-schedule": "passed",
+            "packaged-assets-and-plan-retention": "passed",
+            "permitted-read-operation": "passed",
+            "private-files-and-owned-services-cleanup": "passed",
+            "private-tls-custody": "passed",
+            "readiness-and-liveness": "passed",
+            "sql-prerequisite-outage-and-recovery": "passed",
+            "startup-refusals": "passed",
+            "store-outage-and-recovery": "passed",
+            "temporal-mtls-positive-and-negative": "passed",
+            "temporal-outage-and-recovery": "passed"
+          },
+          "checksFailed": 0,
+          "checksPassed": 22,
+          "cleanup": {
+            "baselinePreserved": true,
+            "builderAbsent": true,
+            "builderContainerAbsent": true,
+            "cacheVolumeAbsent": true,
+            "ownedContextAbsent": true,
+            "wrapperPrivateFilesRemoved": true
+          },
+          "platform": "linux/arm64",
+          "verdict": "passed"
+        }
+      ],
+      "conclusion": "success",
+      "jobConclusions": {
+        "success": 2
+      },
+      "jobCount": 2,
+      "runId": 39174063434,
+      "status": "completed",
+      "url": "https://github.com/saivedant169/zenith/actions/runs/39174063434"
+    },
+    "nativePlatformLeaves": {
+      "conclusion": "success",
+      "jobConclusions": {
+        "success": 2
+      },
+      "jobCount": 2,
+      "leaves": [
+        {
+          "artifactSha256": "14e0ae977324528051d323d739842df7acb53637ddc07398736cc249549a2526",
+          "cleanup": "complete",
+          "kind": "systemd",
+          "leaf": {
+            "excludedSiblingCount": 0,
+            "failed": 0,
+            "name": "TestRealSystemctlAndJournalctl",
+            "passed": 1,
+            "skipped": 0
+          },
+          "sourceCommit": "040033770399239e585d39356f7f3348b809abac",
+          "status": "passed"
+        },
+        {
+          "artifactSha256": "785315413aeaf3c3c31b14a16edb82014e1ebb48e952b795b94e7b003b65e51f",
+          "cleanup": "complete",
+          "kind": "windows",
+          "leaf": {
+            "excludedSiblingCount": 15,
+            "failed": 0,
+            "name": "private login config Windows refuses inherited ACLs that grant other identities access",
+            "passed": 1,
+            "skipped": 0
+          },
+          "sourceCommit": "040033770399239e585d39356f7f3348b809abac",
+          "status": "passed"
+        }
+      ],
+      "runId": 39174063601,
+      "status": "completed",
+      "url": "https://github.com/saivedant169/zenith/actions/runs/39174063601"
+    }
+  },
+  "schemaVersion": 1,
+  "sourceBoundary": {
+    "changedPathCount": 19,
+    "changedPathManifestSha256": "34e6b33a45849d15c1e180523772680b91ac88028cfb68cb6e711b76f4658721",
+    "changedPaths": [
+      ".github/workflows/ci.yml",
+      "docs/build/production/PROGRESS.md",
+      "docs/build/production/REQUIREMENTS.md",
+      "docs/build/production/VERIFY-QUEUE.md",
+      "docs/build/production/evidence/PROD-CI-08/2026-10-14-6ce5-ci-terminal.json",
+      "docs/build/production/evidence/PROD-CI-08/2026-10-14-browser-heap-budget.json",
+      "docs/build/production/evidence/PROD-CI-08/2026-10-14-e3cf-j4-probe-path.json",
+      "docs/build/production/evidence/PROD-CI-08/2026-10-14-e3cf-verification-progress.json",
+      "docs/build/production/evidence/PROD-CI-08/2026-10-14-f7eb-go-dns-failure.json",
+      "docs/build/production/evidence/PROD-CI-08/2026-10-19-ci-dispatch-blocker.json",
+      "docs/build/production/evidence/PROD-CI-08/2026-10-19-reconcile-observation.json",
+      "docs/build/production/evidence/PROD-OBS-04/2026-10-14-e3cf-j4-r2-stall.json",
+      "docs/build/production/evidence/PROD-OBS-04/2026-10-19-bg3-resume.json",
+      "docs/build/production/evidence/PROD-OBS-04/2026-10-19-pg-tls-attempts.json",
+      "docs/build/production/ledger.json",
+      "docs/build/production/verification/RECONCILE-OBSERVATION-2026-10-19.md",
+      "docs/build/production/verification/RESULTS-2026-10.md",
+      "docs/build/production/verify/WAVE3-BUILD-AGENT-BLOCKERS.md",
+      "tests/workers/reconcile-composition.test.ts"
+    ],
+    "changedSourcePaths": [
+      ".github/workflows/ci.yml",
+      "tests/workers/reconcile-composition.test.ts"
+    ],
+    "comparisonBase": "e3cf95bfb13921d0196f221bd08627b1bc29d78c",
+    "runtimeCandidateRelation": "The CI source is not the separate E3 PostgreSQL runtime fixture. No product runtime or supported J4 composition path changed in this source comparison.",
+    "runtimeOrSupportedJ4CompositionPathsChanged": []
+  },
+  "sourceCommit": "040033770399239e585d39356f7f3348b809abac",
+  "dispatchControl": {
+    "historicalHttp422": "Prior dispatch was refused while repository permissions reported enabled and workflow was active; no retry/settings change preceded user action.",
+    "githubNotice": "Workflows are not currently being run on this fork due to the scale of GitHub Actions usage. A repository maintainer can choose to re-enable these.",
+    "action": "User logged in and re-enabled Actions; all three exact-source successor workflow runs completed successfully.",
+    "cause": "Coarse fork-level Actions-usage restriction confirmed; finer mechanism unknown."
+  },
+  "currentJ4Admission": {
+    "census": {
+      "foreignKongHostPort": 54321,
+      "foreignPostgresHostPort": 54322,
+      "ownedApiPort": 36400,
+      "ownedApiHealth": "unhealthy"
+    },
+    "offlinePreparation": {
+      "sourceFilesReviewed": 6057,
+      "pinsReviewed": 31,
+      "leaseChecks": 14,
+      "orchestrationChecks": 15
+    },
+    "canonicalJ4Started": false,
+    "foreignServiceInterruption": {
+      "plannedDurationSeconds": 12600,
+      "serviceCount": 2,
+      "restoration": "bounded safe restoration planned",
+      "approval": "pending",
+      "started": false
+    },
+    "scope": "Private helper preparation only; no product fix, J4 result, or acceptance."
+  }
+}

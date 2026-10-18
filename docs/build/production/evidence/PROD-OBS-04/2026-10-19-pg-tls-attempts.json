@@ -1,0 +1,111 @@
+{
+  "date": "2026-10-19",
+  "runtimeSource": "e3cf95bfb13921d0196f221bd08627b1bc29d78c",
+  "scope": "Five isolated PostgreSQL/TLS protocol-diagnostic attempts; four earlier failures preserved; generic probe evidence only, no J4 or product acceptance",
+  "attempts": [
+    {
+      "attempt": 1,
+      "toolChunk": "84bbca",
+      "toolExit": 2,
+      "rootPid": 29190,
+      "stopPoint": "Resource preflight could not find the exact historical PG8 admission input.",
+      "childStarted": false,
+      "fixtureStarted": false,
+      "sqlQueries": 0,
+      "recovery": {"restoredBytes": 31973, "sha256": "ea8ad2ad3a1a0661a3ff49a755929b7595e1062f72a8a7883e35d8a4a69ccb8e", "originManifestSha256": "5c2c1f47b7ebcfa8e7d0d49c1ad85a73303c812ee466bc231c6d658bd9f855af", "historicalSourceExecuted": false},
+      "priorFailurePreserved": true,
+      "rootCloseoutSha256": "f6e15f42914e99cfc35c07f39496b216df1e6058280fff52831b1ee67f2ae94e",
+      "guardClearReceiptSha256": "0893e4aa96943717c196c43976834ef9f1ea8862066409ddbf7507074efe3021",
+      "restorationProofSha256": "73780578d0ec717f0d679c0261ff0516dc67036463a0b1b6dd83e8cfe12f5eb1"
+    },
+    {
+      "attempt": 2,
+      "toolSession": 16636,
+      "toolExit": 2,
+      "rootPid": 29222,
+      "stopPoint": "Installed binding representation was compared as tuple/list and failed the representation check.",
+      "normalizedComparison": {"canonicalPackageRows": 2249, "runtimePins": 5, "differences": 0, "canonicalSha256Matched": true, "gateHashOrIdentityChanged": false, "reviewSha256": "d423530122680fe1194f74990c53ff60ef95df9bdda53b9633a2413927ff9d60"},
+      "sqlQueries": 0,
+      "custody": {"pidsAbsentTwice": 11, "groupsAbsentTwice": 10, "guardCleared": true, "closeoutProofSha256": "5f8b624590b980724d00134d0563b27ad4e13895e606cbe2db7fd44233a1cad4", "guardClearReceiptSha256": "b08260538bff2dfed4d40895598ec0a0e414d37e8ab7231a043dfccea0c6bf61"},
+      "acceptanceClaim": false
+    },
+    {
+      "attempt": 3,
+      "toolSession": 44414,
+      "toolExit": 2,
+      "rootPid": 29274,
+      "observed": {"freshContainers": 2, "containerHealth": "healthy", "requestedHostPort": 16543, "effectiveHostPortPublished": false, "networkMode": "internal Docker network", "tlsErrors": ["ECONNREFUSED", "ECONNREFUSED", "ECONNREFUSED"], "sqlQueries": 0},
+      "causalLimit": "The retained inspection shows no effective host-port publication under the internal network. Container health does not prove host reachability; no TLS handshake, SQL query, root cause, or J4 causal finding is established.",
+      "cleanup": {"ownedResourcesRemoved": 4, "globalBaselineAndProtectedBuilderWitnessMatched": true, "globalAuditSha256": "bf7154e22803d22eb8395af1c6ef3651171e3d7e717e507f03d56bd79a03c09c", "pidsAbsentTwice": 103, "groupsAbsentTwice": 102, "closeoutProofSha256": "be8cb12710242920aa9451e232f9fa709d62a80d1a51e7a910ebc45689f2cb34", "guardClearReceiptSha256": "49883c66af5bc9217998f7d4bf0434d21e32fb991b5c25c8e02401f5d99a0ff1"},
+      "acceptanceClaim": false
+    },
+    {
+      "attempt": 4,
+      "toolSession": 92844,
+      "toolExit": 2,
+      "rootPid": 29467,
+      "observed": {"ownedBridgeEffectiveHostPortPublication": true, "tlsChildPid": 29538, "tlsChildSignal": "SIGSEGV", "tlsChildExit": -11, "tlsChildStdoutBytes": 0, "tlsChildStderrBytes": 0, "tlsReportProduced": false, "sqlQueries": 0, "tlsPhase": "unknown before any partial report"},
+      "causalLimit": "The TLS prerequisite process crashed before producing a report; this does not establish a PostgreSQL, TLS-certificate, or J4 cause.",
+      "cleanup": {"ownedResourcesRemoved": 4, "globalBaselineAndProtectedBuilderWitnessMatched": true, "globalAuditSha256": "779f9d3a890cf63f5879360888a00c92763f3d4c1dc2abc6ecbe7619aa9b545f", "pidsAbsentTwice": 96, "groupsAbsentTwice": 95, "closeoutProofSha256": "85a48e0936b1b1787bb5fc735cf91fa3f3a3d97acfe241834af8034c1d993272", "guardClearReceiptSha256": "b2bdd087d6a49c4d28789ffe6d2e0c6320bd5acf18797ca434d9914601e2a694"},
+      "acceptanceClaim": false
+    }
+  ],
+  "attempt5": {
+    "toolSession": 73474,
+    "toolExit": 0,
+    "rootPid": 29994,
+    "closedCommands": 108,
+    "hostJoined": true,
+    "vmObserverClosed": true,
+    "liveBindingSha256": "f92c686d24c8faf9d489e144fb7e56a0d8121d30a68bf11117a7056efc7cd3b5",
+    "sourceAndDependencyChecks": {"pre": true, "post": true},
+    "nodeProbe": {"pid": 30066, "exit": 0, "sequential": "20/20", "concurrent": "20/20", "fixedMixedQueries": true, "driver": "locked Node/Postgres.js", "maxConnections": 2, "prepare": false, "fetchTypes": false, "diagnosticDeviation": "fetch_types=false was the only deliberate diagnostic difference from the production-driver default true; prepare=false and maxConnections=2 matched retained client settings"},
+    "pythonTlsPrerequisite": {"pid": 30065, "exit": 0, "checks": "3/3 positive, wrong CA, wrong host", "sqlQueries": 0, "osTrustChanged": false},
+    "diagnosticResult": {"diagnosticOk": true, "ownedCleanupConfirmed": true, "resultSha256": "28ebb80b0df0cb53e04933f0af0627f23f20a7146afa4a7df7ba74d5ce163f72"},
+    "fixtureOutputSha256": "4aa36299ea8aa4de081b370532bb7c042f847d2cf6d04464df913957bebecdff",
+    "closure": {
+      "hostPidsAbsentTwice": 109,
+      "processGroupsAbsentTwice": 108,
+      "allCommandLedgersClosed": true,
+      "allReportFilesSealed": true,
+      "rootCustodyCloseoutSha256": "ac24211483b2a592248ad384a1a5a391d9c3bb4ec5684ea67136bb2411438766",
+      "guardClearSha256": "9d47747f616e281273963f330a766ab5a86d25db4d2a58954f25ae36a818f571",
+      "freshEngineApiAuditSha256": "795396938570165b398a4018a2e6d317c509362457581b681c4742cfd56555cd",
+      "allFourOwnedResourcesAbsent": true,
+      "protectedBuilderAndWitnessPreserved": true,
+      "guardEmpty": true
+    },
+    "independentReview": {"result": "pass", "sha256": "1c8dbc82fb11b2262816a6dd4a55ecea055871c56cbf64426e650904e267b2d5"},
+    "disposition": "Completed generic protocol-probe evidence with successful independent review and root custody closeout; not canonical J4 acceptance or causal finding."
+  },
+  "fixtureInputCleanup": {
+    "removedFiles": 13,
+    "identityAndHashVerified": true,
+    "scope": "ephemeral CA and wrong-CA/server certificates and private keys; generated credentials, DSN/environment and tenant metadata; pgsodium root key",
+    "osTrustEverInstalled": false,
+    "historicalReportsLogsSourceAndHashManifestsRetained": true,
+    "otherStackUntouched": true,
+    "ownedServiceResourcesAlreadyAbsent": true,
+    "oldFixtureContractsReusable": false,
+    "futureProbeRequiresFreshInputsAndContracts": true,
+    "neverRestoreSecretsToRerunPassedFixture": true,
+    "cleanupProofSha256": "e57f45375a82fcd55d4347824ddd0b8e5e0a4192cc428b113daf61c6504cb928"
+  },
+  "next": {"status": "generic protocol probe complete; canonical J4 acceptance remains open", "preparation": "No additional generic PostgreSQL fixture is pending. The canonical J4 acceptance fixture/journey remains unrun/incomplete and is blocked by unrelated port 54322 occupancy and fresh J1, Temporal, and API prerequisites. Any future probe requires newly generated inputs and contracts; never restore the deleted secrets to rerun this passing fixture.", "lockedNodePostgresJsProbe": "completed; fetch_types=false was the only deliberate difference from the production-driver default true; prepare=false and maxConnections=2 matched retained client settings", "tlsGateWeakened": false, "osTrustChanged": false, "j4Acceptance": false, "additionalDockerRestartNeeded": false},
+  "priorFailuresChanged": false,
+  "programStatus": {"verified": 11, "inProgress": 65, "planned": 2, "releaseFlagsAllFalse": true, "promotion": false},
+  "provenance": {
+    "attempt1TerminalRecordSha256": "ac3248a2f1f190f833e3c96d2c6c071639956098c2c1bc84851fbbdb1b0dfee6",
+    "attempt2TerminalRecordSha256": "8ff0b4b51494d30838119cd9d90fb776772c45e2c545666d429723b861765761",
+    "attempt3TerminalRecordSha256": "d82e7809d677bb33e64ed00364bf6eb928a2e899899fe8581e160d446696f0c9",
+    "attempt3IndependentAnalysisSha256": "4555242bc977bd73f97ddbd6c0eb8860470ea0f1af5b8408a89a04401385b073",
+    "attempt4TerminalRecordSha256": "fa0fc6921e64628d41a39ce374a23fd630bec2023e9edee8e7c54a7825e8eaf0",
+    "attempt4CrashAnalysisSha256": "a94ea22c44bfed9403ecceabf22defbf26d98c9f5609b982a47bb01d6a4369a4",
+    "attempt2NormalizedBindingReviewSha256": "d423530122680fe1194f74990c53ff60ef95df9bdda53b9633a2413927ff9d60",
+    "attempt5ResultSha256": "28ebb80b0df0cb53e04933f0af0627f23f20a7146afa4a7df7ba74d5ce163f72",
+    "attempt5IndependentReviewSha256": "1c8dbc82fb11b2262816a6dd4a55ecea055871c56cbf64426e650904e267b2d5",
+    "attempt5RootCustodyCloseoutSha256": "ac24211483b2a592248ad384a1a5a391d9c3bb4ec5684ea67136bb2411438766",
+    "attempt5GuardClearSha256": "9d47747f616e281273963f330a766ab5a86d25db4d2a58954f25ae36a818f571",
+    "attempt5FreshEngineApiAuditSha256": "795396938570165b398a4018a2e6d317c509362457581b681c4742cfd56555cd"
+  }
+}

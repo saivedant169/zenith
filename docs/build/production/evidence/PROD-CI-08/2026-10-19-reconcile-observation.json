@@ -32,7 +32,7 @@
       "custodyCloseoutProofSha256": "c8817832fca0ebd832000206671de1a9a2f7348d3162d944d3800e38659dea95",
       "guardClearProofSha256": "ba3c765bfe817b5f5ee20a60fd3191bcb26c22134e98fddafdbb6de035bf3481"
     },
-    "freshPublishedCi": "pending",
+    "freshPublishedCi": "blocked by manual workflow-dispatch HTTP 422; no CI run was created",
     "acceptanceClaim": false,
     "priorCompilerAbort": "An earlier attempt exited 134 with V8 heap exhaustion around 4 GiB. This does not establish host memory pressure as the cause."
   },
@@ -94,7 +94,7 @@
   },
   "provenance": {
     "priorCiEvidenceSha256": "215fa620b17bee73a8a538ce179d742fc49bce946488d27092d5a0aae81e058e",
-    "candidateReportSha256": "5baf84ea4d9dd0f800cc934f0a3cdabf391ab26906a354b67049ed2888941521"
+    "candidateReportSha256": "6ffa15ffffa4be6e0fe0b60730d67111f0d22e16aa98e8427596817b5b1d8209"
   },
   "programStatus": {
     "verified": 11,

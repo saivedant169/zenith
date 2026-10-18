@@ -70,11 +70,12 @@
     "adjacentDatabaseOccupiesHostPort": 54322,
     "candidateJ4RuntimeExecution": false,
     "newIsolatedProtocolFixture": {
-      "status": "preparing",
+      "status": "generic protocol-probe pass; canonical J4 acceptance remains open",
       "cachedExactDatabaseAndPoolerImages": true,
-      "started": false,
-      "testsRun": false,
-      "actualPostgresResult": null
+      "started": true,
+      "testsRun": true,
+      "actualPostgresResult": "20/20 sequential and 20/20 concurrent fixed mixed-query cases passed; independent review and root custody closeout passed",
+      "acceptanceOrJ4": false
     },
     "independentSyntheticValidator": {
       "passed": 57,
@@ -86,10 +87,32 @@
     "dockerRestartElapsedSeconds": 8.677,
     "acceptanceClaim": false,
     "restartCommandCount": 1,
-    "postRestartInventoryState": "The retained post-restart inventory showed the original test DB/pooler stopped and an adjacent DB on host port 54322. The PostgreSQL investigation later resumed via Astra High. The new isolated fixture remains unrun.",
+    "postRestartInventoryState": "The retained post-restart inventory showed the original test DB/pooler stopped and an adjacent DB on host port 54322. The PostgreSQL investigation later resumed via Astra High; its bounded protocol probe is now reported in the separate attempt evidence.",
     "atPostRestartInventoryOriginalTestDatabaseAndPooler": "stopped",
     "settingsBeforeSha256": "16cfdab77b057ada869b57b9ec4a6d6eacfa7942c16e0fa474f8005f07f0d4d3",
     "settingsAfterSha256": "16cfdab77b057ada869b57b9ec4a6d6eacfa7942c16e0fa474f8005f07f0d4d3"
+  },
+  "postFixtureInputCleanup": {
+    "removedFiles": 13,
+    "identityAndHashVerified": true,
+    "scope": "ephemeral CA and wrong-CA/server certificates and private keys; generated credentials, DSN/environment and tenant metadata; pgsodium root key",
+    "osTrustInstalled": false,
+    "historicalReportsLogsSourceAndHashManifestsRetained": true,
+    "otherStackUntouched": true,
+    "oldFixtureContractsReusable": false,
+    "futureProbeRequiresFreshInputsAndContracts": true,
+    "cleanupProofSha256": "e57f45375a82fcd55d4347824ddd0b8e5e0a4192cc428b113daf61c6504cb928"
+  },
+  "bg3StopCandidatePreparation": {
+    "candidateSha256": "059269dc913256dee532862c698d21e7ef972a01579f31a1a6e23e7e38db9913",
+    "syntheticBoundaryCases": {"passed": 15, "failed": 0, "actualWorkerOrChildRun": false, "serviceCalls": 0, "processLaunches": 0, "reportSha256": "74cbd4ac803e556e8f84a66af869fdf60452827ae0e6ba71a7d0b8928625be89"},
+    "reviewDisposition": "HELD_PREPARATION_ONLY",
+    "reviewSha256": "0484ee35356d87675b3ad2e398faebc64c8343da30f228821221765a440eabcc",
+    "normalStopBehavior": "The one changed condition lets normal stop drain an already active read-only sample instead of killing it; stop flags still prevent another iteration.",
+    "unchangedSafetyBehavior": "All error/signal paths remain failures; sampler 8-second deadline, 1-second escalation, and overall 190-second window are unchanged. The original historical source failure reproduces synthetically.",
+    "actualBg3Run": false,
+    "j4Acceptance": false,
+    "requiredBeforeLiveRun": "Fresh coherent J1 DB, Temporal, API, namespace, source/tool/boot/resource bindings; resolve unrelated port 54322 only without unapproved service stop; independent review of new outer custody and whole budget."
   },
   "provenance": {
     "forensicTimelineSha256": "24c9e6ee59cf0343945d23bb06b5dd244f14ea0ae7618a8f915c8810dddb2970",
@@ -98,7 +121,10 @@
     "dockerPostInventorySha256": "eb6ea88d067a077fe917b915de6403feb72109b992e0c3d6aca6003fc2e67a42",
     "portBindingsSha256": "779869b254eb3217dcfdda6eacb16e8fae004d05d6fabc41ff9c756e4aa696b6",
     "postRestartEngineInventorySha256": "b32c6f2be921a0498f4b47488ef36a9fd59f160227634b56e232510d2cc3fe3b",
-    "dockerRestartTerminalSha256": "56315e41b1cba39f034b958dbd1399fc89cda124aa69c1139fa890b736a31a71"
+    "dockerRestartTerminalSha256": "56315e41b1cba39f034b958dbd1399fc89cda124aa69c1139fa890b736a31a71",
+    "isolatedPostgresTlsAttempts": "docs/build/production/evidence/PROD-OBS-04/2026-10-19-pg-tls-attempts.json",
+    "fixtureInputCleanupSha256": "e57f45375a82fcd55d4347824ddd0b8e5e0a4192cc428b113daf61c6504cb928",
+    "heldBg3StopCandidateSha256": "059269dc913256dee532862c698d21e7ef972a01579f31a1a6e23e7e38db9913"
   },
   "programStatus": {
     "verified": 11,

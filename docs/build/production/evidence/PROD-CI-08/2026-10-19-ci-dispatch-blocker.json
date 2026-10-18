@@ -1,0 +1,14 @@
+{
+  "date": "2026-10-19",
+  "source": "7a128d76a0bdd627cb6a24966d7db9a83a9eeac9",
+  "sourcePushed": true,
+  "automaticRunsObserved": 0,
+  "manualDispatch": {"attempted": true, "httpStatus": 422, "providerResponse": "Actions has been disabled for this repository.", "workflowState": "active", "permissionsRead": {"enabled": true, "allowedActions": "all"}, "retry": false},
+  "settingsChanged": false,
+  "rootCauseEstablished": false,
+  "freshExactSourceCi": "blocked pending repository-side availability; no retry or settings change was made",
+  "historicalCi": {"source": "6ce5f1ed6142b7c9e8c5bd4fca840f808f027bac", "runId": 38593806448, "result": "unchanged historical terminal failure: 19 success / 1 reconciliation failure / 8 conditional skips"},
+  "acceptanceClaim": false,
+  "provenance": {"privateDispatchReceiptSha256": "159b8c538586102ea1f45413948dfbb2314a5f25d7b71e4883aac8e489e43bbe", "historicalSanitizedCiEvidenceSha256": "cc73d628519e454c03a80fb6be48d496be0b67dfc78f12f9b4bc7c7003032169"},
+  "programStatus": {"verified": 11, "inProgress": 65, "planned": 2, "releaseFlagsAllFalse": true, "promotion": false}
+}

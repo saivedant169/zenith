@@ -12,8 +12,8 @@ RUN GOTOOLCHAIN=local CGO_ENABLED=0 go build -p 2 -trimpath -o /out/zenithd ./cm
 FROM ${DISTROLESS_IMAGE}
 COPY --from=build /out/zenithd /usr/local/bin/zenithd
 COPY --from=build /out/witness /usr/local/bin/witness
-COPY --from=build --chown=65532:65532 /out/state /var/lib/zenithd
-COPY --from=build --chown=65532:65532 /out/witness-state /witness
+COPY --from=build --chown=65532:65532 --chmod=0700 /out/state /var/lib/zenithd
+COPY --from=build --chown=65532:65532 --chmod=0700 /out/witness-state /witness
 USER 65532:65532
 ENTRYPOINT ["/usr/local/bin/witness"]
 CMD ["serve"]

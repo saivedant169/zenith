@@ -116,7 +116,7 @@ class J4Machine extends Machine {
     const config = {
       controlPlane: { url: 'http://127.0.0.1:3400' }, name: this.container,
       stateDir: '/var/lib/zenithd', registration: { tokenFile: '/witness/registration-token' },
-      exec: { enabled: false }, heartbeatSec: 2, pollWaitSec: 2, maxConcurrent: 1,
+      exec: { enabled: false }, heartbeatSec: 5, pollWaitSec: 2, maxConcurrent: 1,
       labels: { 'zenith.credentialMode': 'local_only' },
     };
     this.agentConfig = config;

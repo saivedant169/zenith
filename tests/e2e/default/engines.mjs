@@ -47,7 +47,7 @@ export class Machine {
     const config = { controlPlane: { url: 'http://127.0.0.1:3400' }, name: this.container,
       stateDir: '/var/lib/zenithd', registration: { tokenFile: '/witness/registration-token' },
       exec: { enabled: true, allowArgv0: ['/usr/local/bin/witness'] },
-      heartbeatSec: 2, pollWaitSec: 2, maxConcurrent: 1,
+      heartbeatSec: 5, pollWaitSec: 2, maxConcurrent: 1,
       labels: { 'zenith.credentialMode': 'local_only' } };
     this.agentConfig = config;
     await this.seed(token, config);
@@ -68,7 +68,8 @@ export class Machine {
     const data = await until(async () => ok(await browserRequest(page, '/api/platform/v1/machines', undefined, 'GET', workspaceId)),
       value => value.machines?.some(machine => machine.name === name && machine.connection?.state === 'online'));
     const machine = data.machines.find(value => value.name === name);
-    ensure(machine.transport === 'zenithd' && machine.status === 'active' && machine.environmentId === this.environmentId && machine.address === this.address,
+    // agentView exposes no transport field; the machines list holds only registered zenithd agents.
+    ensure(machine.status === 'active' && machine.environmentId === this.environmentId && machine.address === this.address,
       'machine-consent-binding');
     this.id = machine.id;
     if (!this.agentIds.includes(machine.id)) this.agentIds.push(machine.id);

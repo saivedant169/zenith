@@ -41,7 +41,7 @@ describe('default stack pure configuration contracts', () => {
     const shifted = portsFor(1000);
     for (const [name, port] of Object.entries(portsFor(0))) expect(shifted[name as keyof typeof shifted]).toBe(name === 'registry' ? 5000 : port + 1000);
     expect(ports).toEqual(portsFor(0));
-    for (const offset of [-1, 1.5, 10001, Number.NaN]) expect(() => portsFor(offset)).toThrow('default-stack:port-offset');
+    for (const offset of [-1, 1.5, 500, 10001, Number.NaN]) expect(() => portsFor(offset)).toThrow('default-stack:port-offset');
     const disposable = { ...fixture, environment: { ...fixture.environment, SUPABASE_URL: 'https://supabase.localhost:55321', NEXT_PUBLIC_SUPABASE_URL: 'https://supabase.localhost:55321' } };
     expect(() => validateInput(disposable, true)).not.toThrow();
     expect(() => validateInput({ ...disposable, environment: { ...disposable.environment, SUPABASE_URL: 'https://supabase.example:55321', NEXT_PUBLIC_SUPABASE_URL: 'https://supabase.example:55321' } }, true)).toThrow('disposable-engine-binding');

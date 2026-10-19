@@ -16,7 +16,10 @@ describe('MCP project and database endpoint admission', () => {
   it('admits the exact local CLI TLS pooler endpoint without impersonating a hosted project', () => {
     expect(mcpProductEndpoint(new URL('https://supabase.localhost:54321'), database('supabase-pooler', 'postgres.pooler-dev'))).toBe(true);
   });
-  it.each(['https://supabase.localhost:54322', 'http://supabase.localhost:54321', 'https://foreign.localhost:54321', 'https://supabase.localhost:54321/path'])('refuses an unbound local origin %s', origin => {
+  it.each(['https://supabase.localhost:55321', 'https://supabase.localhost:64321'])('admits the whole-thousand default-stack shift %s', origin => {
+    expect(mcpProductEndpoint(new URL(origin), database('supabase-pooler', 'postgres.pooler-dev'))).toBe(true);
+  });
+  it.each(['https://supabase.localhost:54322', 'https://supabase.localhost:55322', 'https://supabase.localhost:54821', 'https://supabase.localhost:65321', 'https://supabase.localhost:44321', 'https://supabase.localhost', 'http://supabase.localhost:54321', 'https://foreign.localhost:54321', 'https://supabase.localhost:54321/path'])('refuses an unbound local origin %s', origin => {
     expect(mcpProductEndpoint(new URL(origin), database('supabase-pooler', 'postgres.pooler-dev'))).toBe(false);
   });
   it('refuses mismatched project realms and a separate platform database', () => {

@@ -16,7 +16,9 @@ export function mcpProductEndpoint(api: URL, database: URL): boolean {
     return (database.hostname === `db.${hosted[1]}.supabase.co` && ["5432", "6543"].includes(port) && username === "postgres")
       || (/^[a-z0-9-]+\.pooler\.supabase\.com$/.test(database.hostname) && ["5432", "6543"].includes(port) && username === `postgres.${hosted[1]}`);
   }
-  return api.hostname === "supabase.localhost" && api.port === "54321"
+  // The CLI default 54321, or the owned default-stack harness's whole-thousand shift of it (offset 1000..10000).
+  const local = /^(5[4-9]|6[0-4])321$/.test(api.port);
+  return api.hostname === "supabase.localhost" && local
     && database.hostname === "supabase-pooler" && port === "6543" && username === "postgres.pooler-dev"
     && options.length === 1 && options[0][1] === "verify-full";
 }

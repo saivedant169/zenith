@@ -11,7 +11,8 @@ export const fail = id => { throw new Error(`default-stack:${id}`); };
 /** One validated offset moves every owned host port so a stack can run beside an existing local Supabase.
  * The registry stays on 5000: owned image references pin that address. */
 export function portsFor(offset) {
-  if (!Number.isInteger(offset) || offset < 0 || offset > 10000) fail('port-offset');
+  // Whole thousands only: the MCP topology guard admits exactly these shifted local Supabase origins.
+  if (!Number.isInteger(offset) || offset < 0 || offset > 10000 || offset % 1000 !== 0) fail('port-offset');
   return Object.freeze({ api: 36400 + offset, peerApi: 36401 + offset, supabase: 54321 + offset, cliApi: 54326 + offset, db: 54322 + offset,
     shadow: 54320 + offset, mail: 8025 + offset, pooler: 6543 + offset, cliPooler: 54329 + offset, j4Temporal: 17233 + offset, registry: 5000 });
 }

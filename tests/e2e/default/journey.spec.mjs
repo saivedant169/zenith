@@ -409,7 +409,9 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       const card = a.getByRole('listitem').filter({ hasText: 'J2 kind ' + runId });
       const verified = a.waitForResponse(value => value.url().endsWith('/connections/' + project.connectionId + '/verify') && value.request().method() === 'POST');
       await card.getByRole('button', { name: 'Verify', exact: true }).click();
-      ensure((await verified).ok(), 'connection-verification');
+      // The route answers 200 with ok:false on a refused verification; require the verified outcome.
+      const verifiedResponse = await verified;
+      ensure(verifiedResponse.ok() && (await verifiedResponse.json())?.ok === true, 'connection-verification');
       const env = await action(a, 'env.create', { projectId: project.id, name: 'production', class: 'production',
         connectionId: project.connectionId, approvalRequired: true });
       environmentId = env.environmentId;
@@ -553,7 +555,8 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       const createdBody = await createdHttp.json();
       ensure(createdBody?.ok === true && typeof createdBody.data?.connectionId === 'string', 'human-create-response');
       runnerConnectionId = createdBody.data.connectionId;
-      await b.getByRole('status').waitFor();
+      // Scoped: the boot splash is also a status region while it lifts.
+      await b.getByRole('region', { name: 'Connection confirmation', exact: true }).getByRole('status').waitFor();
       const after = ok(await browserRequest(a, '/api/platform/v1/connections', undefined, 'GET', workspaceId));
       ensure(after.connections?.some(value => value.id === runnerConnectionId && value.mode === 'runner' &&
         value.provider === 'kubernetes' && value.runnerId === runnerId), 'independent-runner-connection-readback');
@@ -562,7 +565,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
     });
     let operationId, deploymentId;
     await step('browser-proposal', async () => {
-      await a.goto(stack.apiUrl + '/p/' + project.slug + '/system?env=' + environmentId);
+      await a.goto(stack.apiUrl + '/p/' + project.slug + '?env=' + encodeURIComponent(environmentId));
       await a.getByRole('button', { name: /pending change.*Review/ }).click();
       await a.getByLabel('Type production to confirm deploying to production', { exact: true }).fill('production');
       const response = a.waitForResponse(value => value.url().endsWith('/api/actions/deploy.apply') && value.request().method() === 'POST');

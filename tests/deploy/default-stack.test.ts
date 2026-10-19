@@ -120,6 +120,7 @@ describe('default stack pure configuration contracts', () => {
       if (['api', 'execution-worker', 'platform-migrate', 'api-peer', 'execution-worker-peer'].includes(name)) {
         expect(service.read_only).toBe(true);
         expect(service.environment?.NODE_EXTRA_CA_CERTS).toBe('/run/zenith-ca.crt');
+        if (name !== 'platform-migrate') expect(service.environment?.NODE_OPTIONS).toBe(`--max-old-space-size=${Math.floor(parseInt(service.mem_limit, 10) * 3 / 4)}`);
         expect(service.volumes.some(volume => volume.endsWith(':/run/zenith-ca.crt:ro'))).toBe(true);
       }
     }

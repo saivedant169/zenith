@@ -164,7 +164,9 @@ export function stackComposition(config, directory, profile, gatewayImage, peer)
     service.image = digestImage(config.images[name === 'api' ? 'api' : name === 'execution-worker' ? 'worker' : 'migration']);
     service.mem_limit = `${limit}m`; service.cpus = 1;
     service.volumes = [...(service.volumes ?? []), `${path.join(directory, '../tls/ca.crt')}:/run/zenith-ca.crt:ro`, ...(name === 'platform-migrate' ? [] : temporalClient)];
-    service.environment = { NODE_EXTRA_CA_CERTS: '/run/zenith-ca.crt' };
+    // The runtime image sets no heap size; Node's default left the lean API about half its container.
+    service.environment = { NODE_EXTRA_CA_CERTS: '/run/zenith-ca.crt',
+      ...(name === 'platform-migrate' ? {} : { NODE_OPTIONS: `--max-old-space-size=${Math.floor(limit * 3 / 4)}` }) };
   }
   document.services.api.ports = [`127.0.0.1:${ports.api}:3400`];
   document.services.api.tmpfs = ['/tmp:rw,noexec,nosuid,size=64m,uid=1001,gid=1001,mode=1770', '/app/.next/cache:rw,noexec,nosuid,size=64m,uid=1001,gid=1001,mode=1770'];

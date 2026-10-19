@@ -227,6 +227,31 @@ describe("ownership guard", () => {
     expect((fake.get("Namespace", undefined, NS) as any).metadata.labels).toBeUndefined();
   });
 
+  it("uses an allowlisted operator-provisioned Namespace that enforces Pod Security, without writing or labeling it", async () => {
+    const session = await sessionFor(fake, [NS]);
+    const provisioned = { "pod-security.kubernetes.io/enforce": "baseline", team: "ops" };
+    fake.seed({ apiVersion: "v1", kind: "Namespace", metadata: { name: NS, labels: { ...provisioned } } });
+    const planned = await diff(small(), session, { environmentId: ENV_ID });
+    expect(planned.find((d) => d.ref.kind === "Namespace")).toMatchObject({ action: "none", changedPaths: [] });
+    expect(patches().map((x) => x.body.kind)).not.toContain("Namespace");
+    const r = await serverSideApply(small(), session, { environmentId: ENV_ID });
+    expect(r.ok).toBe(true);
+    expect(r.results.map((x) => `${x.ref.kind}:${x.status}`)).toEqual(["Namespace:unchanged", "NetworkPolicy:created", "Service:created", "Deployment:created"]);
+    expect(patches().map((x) => x.body.kind)).not.toContain("Namespace");
+    expect((fake.get("Namespace", undefined, NS) as any).metadata.labels).toEqual(provisioned);
+  });
+
+  it("still refuses a provisioned Namespace that is off the allowlist or enforces no Pod Security baseline", async () => {
+    fake.seed({ apiVersion: "v1", kind: "Namespace", metadata: { name: NS, labels: { "pod-security.kubernetes.io/enforce": "privileged" } } });
+    const weak = await serverSideApply(small(), await sessionFor(fake, [NS]), { environmentId: ENV_ID });
+    expect(weak.results.find((x) => x.ref.kind === "Namespace")).toMatchObject({ status: "ownership_conflict", message: expect.stringMatching(/does not enforce Pod Security baseline/) });
+    (fake.get("Namespace", undefined, NS) as any).metadata.labels["pod-security.kubernetes.io/enforce"] = "restricted";
+    const off = await serverSideApply(small(), await sessionFor(fake, []), { environmentId: ENV_ID });
+    expect(off.refused).toBe(true);
+    expect(off.results.find((x) => x.ref.kind === "Namespace")?.status).toBe("ownership_conflict");
+    expect(fake.writes()).toHaveLength(0);
+  });
+
   it("re-applies its own objects (owned, same environment) without complaint", async () => {
     const session = await sessionFor(fake, []);
     await serverSideApply(small(), session, { environmentId: ENV_ID });

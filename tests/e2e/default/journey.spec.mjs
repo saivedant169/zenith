@@ -387,6 +387,10 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       const accepted = ok(await browserRequest(b, '/api/workspace/invites/' + invite.id + '/accept', {}));
       ok(await browserRequest(b, '/api/bootstrap'));
       ensure(accepted.member?.id === users[1] && accepted.member?.role === 'admin', 'operator-b-membership');
+      // The default policy lets a sole admin approve their own production change. This journey proves the
+      // workspace's two-person rule, so operator A enables it through the real admin browser route.
+      const policy = ok(await browserRequest(a, '/api/platform/v1/workspace/policy', { overrides: { twoPersonProduction: true } }, 'PUT', workspaceId));
+      ensure(policy.workspaceId === workspaceId && policy.effective?.twoPersonProduction === true, 'two-person-production-policy');
       const created = await action(a, 'project.create', { name: 'J2 witness ' + runId, withEnvironment: false });
       project = { id: created.projectId, slug: created.slug, name: 'J2 witness ' + runId };
       const manifest = { version: 2, placement: { provider: 'kubernetes', regions: ['in-cluster'] },

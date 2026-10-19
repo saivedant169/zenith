@@ -95,7 +95,8 @@ export async function prepare(args) {
   }
   const manifest = {
     apiVersion: 'v1', kind: 'List', items: [
-      { apiVersion: 'v1', kind: 'Namespace', metadata: { name: 'zenith-j2' } },
+      // Operator-provisioned, as a namespaced deployer requires: Zenith uses it but never owns or labels it.
+      { apiVersion: 'v1', kind: 'Namespace', metadata: { name: 'zenith-j2', labels: { 'pod-security.kubernetes.io/enforce': 'baseline' } } },
       ...['old', 'new'].flatMap(epoch => [
         { apiVersion: 'v1', kind: 'ServiceAccount', metadata: { name: 'j2-deployer-' + epoch, namespace: 'zenith-j2' } },
         { apiVersion: 'rbac.authorization.k8s.io/v1', kind: 'RoleBinding',

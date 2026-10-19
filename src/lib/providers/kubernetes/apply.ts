@@ -16,6 +16,10 @@
  *      `ownership_conflict`. The WHOLE batch is then refused and nothing is
  *      applied: Zenith never modifies, re-labels or adopts an object it does
  *      not own (adoption is an explicit import, not an apply side effect).
+ *      One case is not a conflict: a Namespace that already exists unowned and
+ *      is on the connection's own allowlist is operator-provisioned. It is
+ *      never written, labeled or adopted, and it must already enforce Pod
+ *      Security `baseline` or `restricted`; its namespaced companions apply.
  *   3. Namespace allowlist on every namespaced object (`client.ts`).
  *   4. Only the kinds Zenith renders are accepted; anything else is refused. The one exception is the PLATFORM
  *      apply set (`platform-kinds.ts`): a caller that passes `platform` (the tenant isolation bundle, applied by
@@ -58,7 +62,9 @@ import {
   type K8sObject,
   type ObjectRef,
 } from "./types";
-import { isRecord, plain, scrubValues } from "./util";
+import { dig, isRecord, plain, scrubValues } from "./util";
+
+const PSA_ENFORCE = "pod-security.kubernetes.io/enforce";
 
 export type SecretResolver = (ref: string) => Promise<string | null | undefined>;
 
@@ -85,6 +91,8 @@ interface Prepared {
   environment: string;
   live?: Record<string, unknown>;
   secretValue?: string;
+  /** an allowlisted, operator-provisioned Namespace: read only, never applied */
+  provisioned?: boolean;
 }
 
 const short = (r: ObjectRef) => `${r.kind}/${r.name}${r.namespace ? ` in ${r.namespace}` : ""}`;
@@ -179,6 +187,21 @@ async function preflight(client: K8sClient, objects: readonly K8sObject[], opts:
         continue;
       }
       const own = ownedBy(p.live, p.environment);
+      if (!own.owned && p.ref.kind === "Namespace" && client.guard.isAllowlisted(p.ref.name)) {
+        const labels = dig(p.live, "metadata", "labels");
+        const enforce = isRecord(labels) ? labels[PSA_ENFORCE] : undefined;
+        if (enforce === "baseline" || enforce === "restricted") {
+          prepared.push({ ...p, provisioned: true });
+          continue;
+        }
+        failures.push({
+          ref: p.ref,
+          status: "ownership_conflict",
+          errorCode: "ownership_conflict",
+          message: `${short(p.ref)} is on this connection's allowlist but does not enforce Pod Security baseline. Label it ${PSA_ENFORCE}=baseline (or restricted); Zenith does not modify a namespace it does not own.`,
+        });
+        continue;
+      }
       if (!own.owned) {
         failures.push({
           ref: p.ref,
@@ -341,6 +364,12 @@ async function run(objects: readonly K8sObject[], session: KubernetesSession, op
     if (opts.signal?.aborted) {
       stopped = "Aborted before this object was applied.";
       results.push({ ref: p.ref, status: "skipped", message: stopped });
+      continue;
+    }
+    if (p.provisioned) {
+      // Never written: the live object stands in for the projection, so a dry-run diff reports no change.
+      results.push({ ref: p.ref, status: "unchanged", message: `${short(p.ref)} is operator-provisioned on the connection allowlist; Zenith did not modify it.` });
+      if (p.live) applied.set(refKey(p.ref), p.live);
       continue;
     }
     const one = await applyOne(client, p, opts, pre.secretValues);

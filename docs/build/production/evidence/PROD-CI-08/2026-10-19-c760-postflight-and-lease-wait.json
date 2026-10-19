@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-19T09:55:35Z",
+  "evidenceId": "PROD-CI-08-C760-POSTFLIGHT-LEASE-WAIT",
+  "scope": "Exact-source CI, reviewed test-only lease-abort wait-guard candidate, and read-only postflight summary. No requirement promotion, production cause, or J4 acceptance.",
+  "source": {
+    "commit": "c76050c47f7b456eb10928a3499fd3509d0f16d6",
+    "runtimeAndSupportedJ4CompositionChanged": false,
+    "testFix": {
+      "path": "tests/controlplane/services.test.ts",
+      "candidateSha256": "99a3c10a8f6a2969100099ff83f0b87971f100e0eb609bbe2d2acdbe07f90477",
+      "baseSha256": "96a1e2f9e540aadd084ed7a4a78205136aa69b78972f8595dd985d89967c5099",
+      "review": "independently reviewed; integrated into working tree, pending publication"
+    }
+  },
+  "ci": {
+    "main": {
+      "runId": 39176394612,
+      "jobs": 28,
+      "success": 19,
+      "failure": 1,
+      "conditionalSkips": 8,
+      "failedJob": "platform-postgres"
+    },
+    "nativePackagedWorkers": {
+      "runId": 39176394586,
+      "jobs": 2,
+      "success": 2,
+      "failure": 0,
+      "architectures": {
+        "amd64": {
+          "checks": "22/22",
+          "cleanupFields": "6/6 true"
+        },
+        "arm64": {
+          "checks": "22/22",
+          "cleanupFields": "6/6 true"
+        }
+      }
+    },
+    "nativePlatform": {
+      "runId": 39176394570,
+      "jobs": 2,
+      "success": 2,
+      "failure": 0,
+      "targetedLeaves": {
+        "linux-systemd": "1/1",
+        "windows-acl": "1/1"
+      }
+    },
+    "aggregate": {
+      "jobs": 32,
+      "success": 23,
+      "failure": 1,
+      "conditionalSkips": 8,
+      "overlappingLaneCountsSummed": false
+    }
+  },
+  "failure": {
+    "test": "if the lease is lost mid-run the operation becomes uncertain (and is never finished as success)",
+    "timeoutMilliseconds": 20000,
+    "boundedInterpretation": "A wait may miss an abort that was already dispatched before listener registration. Synthetic semantics support this as a plausible test-harness explanation, not a proven CI cause."
+  },
+  "focusedCandidateEvidence": {
+    "pgliteAssertions": "19/19 passed",
+    "resultSha256": "6c36cb261dd193a6a409177c22c8577d03c31f5d5e125498b02ab27e4935b3e2",
+    "syntheticAbortControllerCases": "4/4 passed",
+    "classification": "focused regression and synthetic fixture semantics only; not actual PostgreSQL, J4, or publication CI"
+  },
+  "postflight": {
+    "rootToolExitCode": 0,
+    "rootSession": 63231,
+    "rootPid": 41247,
+    "configAndPortChecks": "12/12 matched",
+    "dependencyHealth": "9 recovered to baseline; REST has no healthcheck",
+    "databaseAndGateway": "healthy",
+    "api": "baseline unhealthy",
+    "commandsClosed": 38,
+    "hostPidsAbsentTwice": 51,
+    "processGroupsAbsentTwice": 38,
+    "hostAndVmObserversJoined": true,
+    "serviceMutations": 0,
+    "proofSha256": "249a2e068ffba56cbc5e86865d69d8569fde2f0e9aca833007b2b5c74879f69b",
+    "guardClearSha256": "4f82f4f8b1c53b89b577c8b44b897877bbe5a279f7a23e78adda9f7912b39f84",
+    "sourceHead": "e3cf95bfb13921d0196f221bd08627b1bc29d78c"
+  },
+  "canonicalJ4": {
+    "started": false,
+    "status": "incomplete",
+    "blockers": [
+      "device-epoch 31\u219232 full admission and ToFu fixture",
+      "fresh explicit per-path bridge in progress",
+      "fresh J1, Temporal, and API prerequisites"
+    ],
+    "noNewJ4Stack": true,
+    "priorAttempt": "Supervisor refused a retained prerequisite before creating a fresh runtime or executing the canonical journey; the original three containers were restored and postflight verified."
+  },
+  "ledgerDisposition": {
+    "verified": 11,
+    "inProgress": 65,
+    "planned": 2,
+    "releaseFlags": {
+      "implementationComplete": false,
+      "sandboxVerified": false,
+      "pilotReady": false,
+      "productionApproved": false
+    },
+    "criteriaOrStatePromoted": false
+  },
+  "limitations": [
+    "C760 is not fully green: one platform-postgres timeout remains.",
+    "Focused PGlite and synthetic checks do not establish actual PostgreSQL behavior or failure causality.",
+    "Fresh CI for the integrated test change and actual PostgreSQL validation remain pending.",
+    "The separate earlier exact-source 04003377 all-workflow pass remains historical and is not substituted for C760."
+  ]
+}

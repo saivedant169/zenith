@@ -268,7 +268,10 @@ describe.each(LANES)("services [$name]", (lane) => {
         await claimOperation(db(), { workspaceId: ws, id: operation.id, expectedDigest: operation.proposalDigest, holder: "worker-1", lease: { scope: lease.scope, fenceToken: lease.fenceToken } });
         await backdate(db(), "leases", "expires_at", envScope, "scope");
         await repos.leases.acquire(db(), { scope: envScope, holder: "worker-2", ttlMs: 30_000 });
-        await new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true }));
+        await new Promise<void>((resolve) => {
+          if (signal.aborted) resolve();
+          else signal.addEventListener("abort", () => resolve(), { once: true });
+        });
         // the worker must NOT report success: its fenced completion is refused
         await expect(completeOperation(db(), { workspaceId: ws, id: operation.id, outcome: "succeeded", fence: { scope: lease.scope, fenceToken: lease.fenceToken } })).rejects.toBeInstanceOf(LeaseLostError);
       }).catch((e: unknown) => e);

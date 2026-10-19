@@ -1,4 +1,10 @@
-## Current J4 admission — 19 October 2026 (latest census)
+## Current J4 admission blockers — 19 October 2026 (C760)
+
+C760 exact-source CI main39176394612 is terminal with19 successes, one `platform-postgres` 20-second timeout, and8 conditional skips. The native packaged-worker workflow passed both architectures at22/22 each with all six cleanup checks; native platform passed2/2. A reviewed test-only wait-guard correction is integrated in the working tree; focused PGlite passed19/19 and synthetic AbortController semantics4/4. These focused checks do not prove actual PostgreSQL behavior or the cause of the CI timeout. Fresh exact-source publication CI and actual PostgreSQL validation remain pending. The earlier 04003377 all-workflow pass is historical. No unsupported builder or product repair is inferred. [C760 evidence](../evidence/PROD-CI-08/2026-10-19-c760-postflight-and-lease-wait.json).
+
+The approved two-service interruption has been restored and read-only postflight completed successfully. Canonical J4 has not started and no fresh stack was created. Current blockers are the device-epoch31→32 full admission and ToFu fixture, Astra's fresh explicit per-path bridge, and fresh J1/Temporal/API prerequisites. Before another J4 attempt, validate all current prerequisites and bind a fresh bounded interruption/restoration plan to the authorized local scope. No J4 cause, acceptance, or requirement promotion is established.
+
+## Historical J4 census before the approved interruption — 19 October 2026
 
 A fresh census identifies unrelated host services on ports 54321 (Kong) and 54322 (PostgreSQL), plus the owned API unhealthy on port 36400. Root/Astra completed offline review of 6,057 source files, 31 pins, 14 lease checks, and 15 orchestration checks; these are preparation checks, not an actual J4 run. A bounded interruption of exactly the two foreign services for 12,600 seconds is planned with safe restoration, but approval is pending. No service interruption or canonical J4 execution has started. Private helper evidence is not a product fix or acceptance result. Keep ledger at 11 verified / 65 in progress / 2 planned, all release flags false.
 

@@ -7436,13 +7436,13 @@
     }
   ],
   "sessionState": {
-    "status": "full_computational_and_exact_ci_passed_local_heavy_acceptance_resource_blocked",
-    "sourceCheckpoint": "f2d0cb4cce4f0d97496bf134fdb2a66a8c755a98",
+    "status": "exact_ci_successor_has_one_platform_postgres_timeout_test_only_wait_guard_integrated_pending_fresh_publication",
+    "sourceCheckpoint": "c76050c47f7b456eb10928a3499fd3509d0f16d6",
     "publicationBranch": "codex/production-2026-10-02",
-    "lastPushedCommit": "040033770399239e585d39356f7f3348b809abac",
-    "lastPushedRun": 39174050639,
-    "lastPushedRunStatus": "Exact source 04003377: main 20 success / 8 conditional skips / 0 fail; native packaged workers 2/2 (amd64 and arm64 22/22 each, all six cleanup fields true); native platform 2/2. Reconciliation 39/39 with earlier cause unresolved; verify passed, sanitized test counts unavailable. All three workflows terminal success; no J4 acceptance or promotion.",
-    "currentVerification": "Exact source 04003377 CI passed across all three workflows; see sanitized evidence. Verification is CI only; no J4 acceptance or requirement promotion.",
+    "lastPushedCommit": "c76050c47f7b456eb10928a3499fd3509d0f16d6",
+    "lastPushedRun": 39176394612,
+    "lastPushedRunStatus": "Exact source c76050c4: main 19 success / 1 platform-postgres timeout / 8 conditional skips; native packaged workers passed both architectures 22/22 with all six cleanup fields; native platform passed 2/2. Focused test-only wait-guard candidate integrated in working tree after CI: 19/19 focused PGlite and 4/4 synthetic AbortController cases passed; fresh publication CI and actual PostgreSQL rerun pending. No causal fix, J4 acceptance, or promotion claimed.",
+    "currentVerification": "C760 exact-source CI has one platform-postgres test timeout; native workflows passed. A reviewed test-only already-aborted wait guard is integrated locally, with focused 19/19 PGlite and 4/4 synthetic semantics evidence. Fresh exact-source publication CI and real PostgreSQL validation are pending; no causal fix or J4 acceptance is established.",
     "remainingLocalPackets": {
       "integratedRepairs": "733f81f8 nine reviewed CI paths; root437/0/6, compiler/lint/actionlint0. Six actualLinux cases and complete native/full/successorCI pending.",
       "authorityFixtures": "Reviewed4e07113d/d8ad975d integrated5e5417b9; exactfinal6files92/0/0, combinedcompiler/lint0. Model/provider-fixture proof only.",
@@ -7459,7 +7459,7 @@
       "pending": "Livecloud/spend/DNS/privateGitHubApp; destructive retention/business/production signoff. MCP client repair already integrated; historical CI07 eight-versus-seven advisory report reconciliation remains open."
     },
     "releaseVerdict": "11verified/65in_progress/2planned;all release flags false;no production readiness claim",
-    "next": "Keep canonical J4 unstarted until approval for the bounded interruption of exactly the two foreign services is granted and restoration is ready; then recheck J1, Temporal, and owned API prerequisites. Preserve exact CI success and earlier failure history; no runtime cause, J4 acceptance, requirement promotion, or release approval is established.",
+    "next": "Publish the integrated test-only wait-guard candidate through the normal source-bound workflow and review fresh exact-source CI, including platform-postgres. Separately, canonical J4 remains blocked by the device-epoch 31\u219232 full-admission and ToFu-fixture prerequisites, the in-progress explicit per-path bridge, and fresh J1/Temporal/API checks. No fresh J4 stack exists. Any future bounded interruption requires fresh admission and a reviewed plan within the authorized local scope; the earlier two-service interruption has been restored and postflight-verified. Keep all 78 criteria and release flags unchanged; no product-cause, acceptance, or promotion claim.",
     "completedLocalKind": {
       "sourceCommit": "ddc27415f77c090cd9d26423c7cf9a1eaf519d92",
       "integratedRootCommit": "0f995b44391bf935df262f729cde688bf8af1a2f",
@@ -7468,7 +7468,7 @@
       "scope": "Provider6/release1/guest49 all passed; local kind/PGlite/signed fixture limits retained.",
       "historical": true
     },
-    "recordedAt": "2026-10-18T23:22:17Z",
+    "recordedAt": "2026-10-19T09:55:35Z",
     "nativeRun": "current39174063434_two_success_amd64_arm64_22of22_each;historical37786124092_two_failed;prior37578066955",
     "cleanup": "Failed105/2 and corrected107/0/0 native historical attempts both retained; corrected receipt128 observed groups absent, runtime/socket removed, listener refused, end source binding true. Earlier162 native and owned Supabase cleanup retain original source scope. Unrelated Docker baseline preserved.",
     "nativeSkippedPlatformsRun": "current39174063601_two_success;historical37786123826_two_success;prior37578066934",
@@ -7481,21 +7481,22 @@
         "skipped": 1647
       }
     },
-    "currentWork": "Exact-source CI 04003377 completed successfully across main, native packaged workers and native platform workflows. The reconciliation successor passed 39/39 without proving a cause for the earlier failure; verify passed but no sanitized test-count artifact is published. Generic PostgreSQL protocol probe passed in its isolated scope; canonical J4 acceptance remains unstarted. Current census: foreign Kong54321, foreign PostgreSQL54322, owned API unhealthy36400; offline review 6,057 source files,31 pins,14 lease checks,15 orchestration checks. Two-service 12,600-second interruption is planned with safe restoration but approval is pending. Ledger 11/65/2 and all release flags false.",
+    "currentWork": "C760 exact-source CI main39176394612 is terminal with19 success,1 platform-postgres timeout,8 conditional skips. Native package39176394586 passed AMD64 and ARM64 22/22 each with six cleanup fields; platform39176394570 passed2/2. The isolated wait-guard test candidate is now integrated in the working tree after guarded-base verification; 19/19 focused PGlite and4/4 synthetic AbortController checks passed. These checks demonstrate fixture semantics only; fresh publication CI and actual PostgreSQL validation remain pending, with no established causal repair. E3 read-only postflight passed: 12 config/port checks matched, all nine dependencies recovered to baseline (REST has no healthcheck), DB/Gateway healthy and API at its baseline unhealthy state; 38 commands closed, 51 PIDs/38 groups absent twice, host/VM observers joined, and no service mutations. Canonical J4 has not started; historical epoch31\u219232 full admission and ToFu fixture, Astra per-path bridge, and fresh J1/Temporal/API prerequisites remain. Earlier approved two-service interruption is restored. Ledger remains11/65/2 and all four release flags false.",
     "currentCandidateCi": {
-      "sourceCommit": "040033770399239e585d39356f7f3348b809abac",
+      "sourceCommit": "c76050c47f7b456eb10928a3499fd3509d0f16d6",
       "main": {
-        "runId": 39174050639,
+        "runId": 39176394612,
         "total": 28,
-        "success": 20,
-        "failure": 0,
+        "success": 19,
+        "failure": 1,
         "skipped": 8,
         "active": 0,
         "cancelled": 0,
-        "status": "completed_success"
+        "status": "completed_failure",
+        "failedLane": "platform-postgres"
       },
       "nativePackagedWorkers": {
-        "runId": 39174063434,
+        "runId": 39176394586,
         "total": 2,
         "success": 2,
         "failure": 0,
@@ -7506,7 +7507,7 @@
         }
       },
       "nativeSkippedPlatforms": {
-        "runId": 39174063601,
+        "runId": 39176394570,
         "total": 2,
         "success": 2,
         "failure": 0,
@@ -7514,24 +7515,30 @@
       },
       "threeWorkflowAggregate": {
         "total": 32,
-        "success": 24,
-        "failure": 0,
+        "success": 23,
+        "failure": 1,
         "skipped": 8,
         "active": 0,
         "cancelled": 0,
-        "status": "completed_success",
+        "status": "completed_with_failure",
         "laneCountsCombined": false
       },
-      "reconciliation": {
-        "passed": 39,
-        "failed": 0,
-        "causeOfPriorFailure": "unresolved; successor pass does not establish causal fix"
+      "platformPostgres": {
+        "failedTest": "if the lease is lost mid-run the operation becomes uncertain (and is never finished as success)",
+        "timeoutMilliseconds": 20000,
+        "interpretation": "already-dispatched abort may be missed; synthetic fixture-semantics evidence supports plausibility only, not a proven CI cause"
       },
-      "verifyJob": {
-        "status": "passed",
-        "sanitizedTestCounts": "unavailable"
+      "focusedTestCandidate": {
+        "integratedInWorkingTree": true,
+        "sourceSha256": "99a3c10a8f6a2969100099ff83f0b87971f100e0eb609bbe2d2acdbe07f90477",
+        "guardedBaseSha256": "96a1e2f9e540aadd084ed7a4a78205136aa69b78972f8595dd985d89967c5099",
+        "review": "independent review passed",
+        "pglite": "19/19 passed; result SHA-256 6c36cb261dd193a6a409177c22c8577d03c31f5d5e125498b02ab27e4935b3e2",
+        "syntheticAbortController": "4/4 passed; semantics diagnostic only",
+        "freshPublicationCi": "pending",
+        "actualPostgres": "pending"
       },
-      "evidence": "docs/build/production/evidence/PROD-CI-08/2026-10-19-04003377-coherent-ci.json"
+      "evidence": "docs/build/production/evidence/PROD-CI-08/2026-10-19-c760-postflight-and-lease-wait.json"
     },
     "source69EvidenceRefs": {
       "currentDelta": "docs/build/production/evidence/PROD-CI-08/2026-10-11-69-current-progress-delta.json",
@@ -7789,13 +7796,14 @@
       "PROD-OBS-04": {
         "bg3AndRestart": "docs/build/production/evidence/PROD-OBS-04/2026-10-19-bg3-resume.json",
         "isolatedPostgresTlsAttempts": "docs/build/production/evidence/PROD-OBS-04/2026-10-19-pg-tls-attempts.json",
-        "disposition": "Generic isolated PostgreSQL protocol probe passed in scope with independent review, custody clear and ephemeral-input cleanup; this does not establish canonical J4 acceptance or cause. Current J4 has not started; bounded foreign-service interruption approval pending."
+        "disposition": "The isolated generic PostgreSQL protocol probe passed its defined scope with independent review, custody closure and ephemeral-input cleanup; it does not establish canonical J4 acceptance or cause. The later two-service interruption was restored with successful read-only postflight. Canonical J4 has not started; admission/ToFu, explicit per-path bridge, and fresh J1/Temporal/API prerequisites remain."
       },
       "PROD-CI-08": {
-        "candidate": "docs/build/production/evidence/PROD-CI-08/2026-10-19-04003377-coherent-ci.json",
+        "candidate": "docs/build/production/evidence/PROD-CI-08/2026-10-19-c760-postflight-and-lease-wait.json",
         "dispatchBlocker": "docs/build/production/evidence/PROD-CI-08/2026-10-19-ci-dispatch-blocker.json",
         "candidateReport": "docs/build/production/verification/RECONCILE-OBSERVATION-2026-10-19.md",
-        "disposition": "Prior HTTP 422 was explained by GitHub fork-level Actions usage notice; user re-enabled Actions and all three exact-source successor workflows completed successfully. Finer mechanism and earlier reconciliation cause unresolved; no J4 or milestone promotion."
+        "disposition": "C760 exact-source CI has one platform-postgres timeout; the test-only wait-guard correction is integrated locally after review, with focused evidence but fresh exact-source publication CI and actual PostgreSQL validation pending. This does not prove the prior failure cause, J4 acceptance, or promotion.",
+        "prior040Historical": "docs/build/production/evidence/PROD-CI-08/2026-10-19-04003377-coherent-ci.json"
       },
       "ledgerDisposition": "11 verified / 65 in_progress / 2 planned across 78 requirements; all four release flags remain false."
     },
@@ -7878,6 +7886,57 @@
         "r16Artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-11-2029575f-r16-full-core-r1.json",
         "nativeArtifact": "docs/build/production/evidence/PROD-CI-08/2026-10-11-2029575f-j2-native-build-r1.json"
       }
+    },
+    "historicalCi04003377BeforeC76050C4": {
+      "sourceCommit": "040033770399239e585d39356f7f3348b809abac",
+      "main": {
+        "runId": 39174050639,
+        "total": 28,
+        "success": 20,
+        "failure": 0,
+        "skipped": 8,
+        "active": 0,
+        "cancelled": 0,
+        "status": "completed_success"
+      },
+      "nativePackagedWorkers": {
+        "runId": 39174063434,
+        "total": 2,
+        "success": 2,
+        "failure": 0,
+        "status": "completed_success",
+        "architectures": {
+          "amd64": "22/22; six cleanup fields true",
+          "arm64": "22/22; six cleanup fields true"
+        }
+      },
+      "nativeSkippedPlatforms": {
+        "runId": 39174063601,
+        "total": 2,
+        "success": 2,
+        "failure": 0,
+        "status": "completed_success"
+      },
+      "threeWorkflowAggregate": {
+        "total": 32,
+        "success": 24,
+        "failure": 0,
+        "skipped": 8,
+        "active": 0,
+        "cancelled": 0,
+        "status": "completed_success",
+        "laneCountsCombined": false
+      },
+      "reconciliation": {
+        "passed": 39,
+        "failed": 0,
+        "causeOfPriorFailure": "unresolved; successor pass does not establish causal fix"
+      },
+      "verifyJob": {
+        "status": "passed",
+        "sanitizedTestCounts": "unavailable"
+      },
+      "evidence": "docs/build/production/evidence/PROD-CI-08/2026-10-19-04003377-coherent-ci.json"
     }
   },
   "sessionHistory": [

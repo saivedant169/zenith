@@ -1,4 +1,12 @@
-## Current J4 admission — 19 October 2026 (latest census)
+## Current verification — 19 October 2026, afternoon
+
+CI on exact commit `c76050c4` finished with 19 successful main jobs, one platform-PostgreSQL timeout and eight conditional skips. Both native packaged-worker architectures passed 22/22 checks with cleanup confirmed; native platform checks passed 2/2. The single test-only correction handles an already-aborted signal before registering its listener. Astra independently reviewed it, and isolated PGlite validation passed 19/19. Fresh exact-source CI and real PostgreSQL validation remain pending; test assertions, timeouts and production code are unchanged. [Evidence](evidence/PROD-CI-08/2026-10-19-c760-postflight-and-lease-wait.json).
+
+Container restoration postflight is complete. All 12 original services matched their configurations and ports; all nine dependencies recovered to baseline (REST has no healthcheck). The database and gateway are healthy; the old API remains at its prior unhealthy baseline. The read-only check exited zero, closed 38 commands, joined both observers and proved 51 PIDs and 38 groups absent twice before clearing the guard. No service mutations occurred during postflight.
+
+The J4 supervisor previously refused retained prerequisites before creating a fresh runtime or executing the journey. A new explicit per-path provenance contract is being prepared for the filesystem device-number change affecting full-suite and OpenTofu evidence. Historical receipts remain unchanged. Validate the entire prerequisite chain before another bounded local attempt. Milestones remain **11 verified / 65 in progress / 2 planned (14.1%)**, with all four release flags false.
+
+## Historical J4 census before the approved interruption — 19 October 2026
 
 A fresh census identifies unrelated host services on ports 54321 (Kong) and 54322 (PostgreSQL), plus the owned API unhealthy on port 36400. Root/Astra completed offline review of 6,057 source files, 31 pins, 14 lease checks, and 15 orchestration checks; these are preparation checks, not an actual J4 run. A bounded interruption of exactly the two foreign services for 12,600 seconds is planned with safe restoration, but approval is pending. No service interruption or canonical J4 execution has started. Private helper evidence is not a product fix or acceptance result. Keep ledger at 11 verified / 65 in progress / 2 planned, all release flags false.
 

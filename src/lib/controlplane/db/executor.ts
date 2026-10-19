@@ -335,14 +335,19 @@ export async function openPostgresDriver(opts: PostgresDriverOptions): Promise<D
     types: { bigint: postgres.BigInt },
   });
   type Runner = {
-    unsafe: (text: string, params?: never[]) => PromiseLike<Iterable<Row>>;
+    unsafe: (text: string, params?: never[], options?: { onexecute: () => false }) => PromiseLike<Iterable<Row>>;
     savepoint?: (fn: (sp: Runner) => Promise<unknown>) => Promise<unknown>;
   };
-  const conn = (q: Runner): Conn => ({
+  // Supavisor transaction pooling can lose replies when root queries pipeline.
+  // In Postgres.js 3.4.7, the internal onexecute hook keeps a normally dispatched
+  // root query's connection full until ReadyForQuery. Leave begin/savepoint's
+  // own connection ownership unchanged.
+  const autocommit = { onexecute: (): false => false };
+  const conn = (q: Runner, options?: typeof autocommit): Conn => ({
     // No parameters → simple protocol (multi-statement allowed); otherwise extended.
-    run: async (text, params) => Array.from(await q.unsafe(text, params as never[])),
+    run: async (text, params) => Array.from(await q.unsafe(text, params as never[], options)),
     exec: async (text) => {
-      await q.unsafe(text);
+      await q.unsafe(text, undefined, options);
     },
     // Only a transaction scope has `savepoint`; the pooled client does not.
     savepoint: q.savepoint
@@ -355,7 +360,7 @@ export async function openPostgresDriver(opts: PostgresDriverOptions): Promise<D
   return {
     kind: "postgres",
     identity: postgresIdentity(opts.url),
-    ...conn(client as unknown as Runner),
+    ...conn(client as unknown as Runner, autocommit),
     // `begin` unwraps an array return value, so the callback's value travels boxed.
     transaction: async <T>(fn: (c: Conn) => Promise<T>): Promise<T> => {
       const box = (await client.begin(async (t) => ({ value: await fn(conn(t as unknown as Runner)) }))) as unknown as { value: T };

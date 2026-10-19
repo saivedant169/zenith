@@ -7436,19 +7436,19 @@
     }
   ],
   "sessionState": {
-    "status": "ci_passed_epoch_prerequisites_passed_j4_lease_exclusion_failed_restoration_and_custody_closed",
-    "sourceCheckpoint": "0dce8ff63cb82cef8e96b8695562f93d1a78c51b",
+    "status": "reviewed_transport_fix_integrated_successor_ci_and_j4_pending",
+    "sourceCheckpoint": "a17f60a61aecf11cd076289fb2b87f7f5d3a8385",
     "publicationBranch": "codex/production-2026-10-02",
-    "lastPushedCommit": "0dce8ff63cb82cef8e96b8695562f93d1a78c51b",
-    "lastPushedRun": 39233977730,
-    "lastPushedRunStatus": "Exact source 0dce8ff6: all three workflows succeeded; main20 success/8 configured conditional skips/0 failures; all three workflows aggregate24 successes/8 configured conditional skips/0 failures; packaged workers passed AMD64 and ARM64 22/22 with all six cleanup fields true; native platform passed2/2. Verify24,738 passed/1,925 skipped/0 failed; PostgreSQL strict lanes4,142 passed/15 skipped/0 failed with1,160 required identities passing. Counts overlap. This successor includes the reviewed test-only lease-abort wait guard; it does not establish the prior C760 timeout cause, a runtime fix, or J4 acceptance.",
-    "currentVerification": "Exact source 0dce8ff6 CI passed all three workflows. Current-epoch J4 attempt ended with outer exit2; original services restored and root process-custody closeout complete. The inner maintenance cleanup_unconfirmed failure remains unresolved; underlying cause unproven. No J4 acceptance.",
+    "lastPushedCommit": "a17f60a61aecf11cd076289fb2b87f7f5d3a8385",
+    "lastPushedRun": 39239179351,
+    "lastPushedRunStatus": "Exact source a17f60a6: all three workflows succeeded; 24 success/8 configured conditional skips/0 failures across 32 jobs. Verify footer counts were not available in sanitized evidence. Focused transport candidate checks passed separately; no canonical J4 acceptance or cause.",
+    "currentVerification": "Exact source a17f60a6 CI passed all three workflows. Separate focused transport candidate passed six tests across two files and four-file lint; exact-source successor CI is pending. Current-epoch J4 ended at lease_exclusion with cleanup_unconfirmed; services restored and process custody closed. Root cause and canonical J4 acceptance remain unproven.",
     "remainingLocalPackets": {
       "integratedRepairs": "733f81f8 nine reviewed CI paths; root437/0/6, compiler/lint/actionlint0. Six actualLinux cases and complete native/full/successorCI pending.",
       "authorityFixtures": "Reviewed4e07113d/d8ad975d integrated5e5417b9; exactfinal6files92/0/0, combinedcompiler/lint0. Model/provider-fixture proof only.",
       "brokerAndLeases": "ded51029/56446629 integrated; sourceboundc7+2WIP actualnativePG162/0/0 including62mandatorynative. Independent receipt and85 observed groups/cleanup/sourcebinding accepted; freshDB scope only.",
       "historicalFixtures": "Integrated4acebfb9 after actualnative107/0/0/58mandatory and independent128groups cleanup/sourcebinding. Prior105/2 retained. Exact244testedruntimeinputs match integratedea8.",
-      "nativeBuild": "Packagingasset2 integrated19a2ae14; rootactualcomponentmissingasset1\u2192canonicalasset0 and packaging135/0/6. Go5 integrated7b9ae3e3; root671/0/0 strictcontracts, current154/158 requiredcount. GenuineLinux6/newrunnerPID1/image/runtime stillpending; no generic skip exception.",
+      "nativeBuild": "Packagingasset2 integrated19a2ae14; rootactualcomponentmissingasset1→canonicalasset0 and packaging135/0/6. Go5 integrated7b9ae3e3; root671/0/0 strictcontracts, current154/158 requiredcount. GenuineLinux6/newrunnerPID1/image/runtime stillpending; no generic skip exception.",
       "defaultStackPreparation": "Old J4 maintenance failure and forced-stop cleanup refusal retained. F2D0 PID1 exec repair focused/full tests pass; nativeW/J4/default-stack/browser/delivery acceptance pending and resource-gated.",
       "fullNativeUnit": "F2D0 full Node/DOM24720P1943conditionalS0F/26663exactIDs;independent admission published. Computational only; source frozenF2D0.",
       "workflowFixtures": "Integrated ea8 authority82/0/0 and 59fe release5/0/0; actual default agent/hosted journeys remain open.",
@@ -7459,7 +7459,7 @@
       "pending": "Livecloud/spend/DNS/privateGitHubApp; destructive retention/business/production signoff. MCP client repair already integrated; historical CI07 eight-versus-seven advisory report reconciliation remains open."
     },
     "releaseVerdict": "11verified/65in_progress/2planned;all release flags false;no production readiness claim",
-    "next": "Review preserved offline Temporal history for the lease-exclusion failure. Keep the failed outcome and acceptance state unchanged pending that diagnostic review.",
+    "next": "Publish the reviewed autocommit fix, inspect all exact-successor-SHA CI jobs, complete the read-only retained-pooler comparison with archive and restoration, then run fresh coherent natural J4 and remaining local browser/default-stack acceptance. Requirement states and release flags remain unchanged.",
     "completedLocalKind": {
       "sourceCommit": "ddc27415f77c090cd9d26423c7cf9a1eaf519d92",
       "integratedRootCommit": "0f995b44391bf935df262f729cde688bf8af1a2f",
@@ -7468,10 +7468,10 @@
       "scope": "Provider6/release1/guest49 all passed; local kind/PGlite/signed fixture limits retained.",
       "historical": true
     },
-    "recordedAt": "2026-10-19T10:38:44Z",
-    "nativeRun": "current39233977774_two_success_amd64_arm64_22of22_each;historical37786124092_two_failed;prior37578066955",
+    "recordedAt": "2026-10-19T11:42:28.960523+00:00",
+    "nativeRun": "current39239179399_two_success_amd64_arm64_22of22_each_all_six_cleanup_fields_true; historical prior runs retained",
     "cleanup": "Failed105/2 and corrected107/0/0 native historical attempts both retained; corrected receipt128 observed groups absent, runtime/socket removed, listener refused, end source binding true. Earlier162 native and owned Supabase cleanup retain original source scope. Unrelated Docker baseline preserved.",
-    "nativeSkippedPlatformsRun": "current39233977781_two_success;historical37786123826_two_success;prior37786166934",
+    "nativeSkippedPlatformsRun": "current39239179238_two_success;prior39233977781_two_success;historical runs retained",
     "lastPushedUnitResult": {
       "status": "historical_not_executed_on_0cc",
       "reason": "verify113341210148 failed Typecheck with heap OOM before unit/smoke/Gimbal",
@@ -7481,11 +7481,11 @@
         "skipped": 1647
       }
     },
-    "currentWork": "Exact source0dce8ff63cb82cef8e96b8695562f93d1a78c51b passed all three workflows. Current-epoch J4 attempt j4-f9905246 ended with outer exit2; original services restored. Root custody proof5a69b38efa59a7bf64b65940fb9e90bfd22984de14039ccc726814162eb1c30c and guard-clear proof f9b7605a25d455993ff297447fe520111faff491866f3b4eac53687c9a0cb4cf confirm749 commands closed,921 PIDs/750 groups absent twice,3346 files sealed, watchers closed, and guard empty. Ten owned containers remain stopped with data retained; resources were not removed. The inner lease-exclusion maintenance outcome remains cleanup_unconfirmed after deadline exceeded; underlying cause unproven, offline Temporal history pending. No J4 acceptance or product-cause claim. Ledger remains11/65/2; flags false.",
+    "currentWork": "Exact source a17f60a61aecf11cd076289fb2b87f7f5d3a8385 passed all three CI workflows (24 success, 8 configured skips, 0 failure). Focused transport candidate passed six tests/two files and four-file lint; this is separate from the A17 docs/evidence source and successor CI is pending. Current-epoch J4 ended with outer exit 2 and maintenance cleanup_unconfirmed at lease_exclusion. Original services restored; root custody closeout complete. The preserved Temporal copy shows a positive 100.003-second Start-to-Close timeout observation, but no authoritative Temporal history branch/transaction selection, SQL origin, or root cause is proven. Read-only pooler logs do not identify a pipeline cause or version. No J4 acceptance.",
     "currentCandidateCi": {
-      "sourceCommit": "0dce8ff63cb82cef8e96b8695562f93d1a78c51b",
+      "sourceCommit": "a17f60a61aecf11cd076289fb2b87f7f5d3a8385",
       "main": {
-        "runId": 39233977730,
+        "runId": 39239179351,
         "total": 28,
         "success": 20,
         "failure": 0,
@@ -7495,7 +7495,7 @@
         "status": "completed_success"
       },
       "nativePackagedWorkers": {
-        "runId": 39233977774,
+        "runId": 39239179399,
         "total": 2,
         "success": 2,
         "failure": 0,
@@ -7506,7 +7506,7 @@
         }
       },
       "nativeSkippedPlatforms": {
-        "runId": 39233977781,
+        "runId": 39239179238,
         "total": 2,
         "success": 2,
         "failure": 0,
@@ -7523,22 +7523,25 @@
         "laneCountsCombined": false
       },
       "verifyNodeDom": {
-        "testsPassed": 24738,
-        "testsSkipped": 1925,
-        "testsFailed": 0,
-        "filesPassed": 1155,
-        "filesSkipped": 97
+        "testsPassed": null,
+        "testsSkipped": null,
+        "testsFailed": null,
+        "filesPassed": null,
+        "filesSkipped": null,
+        "status": "counts_not_claimed_sanitized_footer_unavailable"
       },
+      "evidence": "docs/build/production/evidence/PROD-CI-08/2026-10-19-a17f60a6-coherent-ci.json",
+      "historicalC760Timeout": "preserved; test-only successor wait guard does not establish prior timeout cause",
+      "sourceScope": "documentation/evidence publication source; product runtime and supported J4 composition unchanged",
       "postgresStrictLanes": {
         "passed": 4142,
         "skipped": 15,
         "failed": 0,
         "requiredIdentitiesPassed": 1160,
         "requiredIdentitiesTotal": 1160,
-        "laneCountsCombined": false
-      },
-      "evidence": "docs/build/production/evidence/PROD-CI-08/2026-10-19-0dce-coherent-ci.json",
-      "historicalC760Timeout": "preserved; successor pass does not establish its cause"
+        "laneCountsCombined": false,
+        "artifactScope": "platform-postgres"
+      }
     },
     "source69EvidenceRefs": {
       "currentDelta": "docs/build/production/evidence/PROD-CI-08/2026-10-11-69-current-progress-delta.json",
@@ -7994,6 +7997,14 @@
         "actualPostgres": "pending"
       },
       "evidence": "docs/build/production/evidence/PROD-CI-08/2026-10-19-c760-postflight-and-lease-wait.json"
+    },
+    "currentTransportCandidate": {
+      "evidence": "docs/build/production/evidence/PROD-OBS-04/2026-10-19-j4-transport-focused.json",
+      "focused": "6 passed / 0 failed / 0 skipped across 2 files",
+      "lint": "4 files linted, exit 0",
+      "successorExactSourceCi": "pending",
+      "canonicalJ4": "not accepted",
+      "causeProven": false
     }
   },
   "sessionHistory": [

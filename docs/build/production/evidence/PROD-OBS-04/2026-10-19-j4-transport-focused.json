@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "J4-TRANSPORT-FOCUSED-2026-10-19",
+  "recordedAtUtc": "2026-10-19",
+  "scope": {
+    "focusedTransportCandidateOnly": true,
+    "canonicalJ4JourneyExecuted": false,
+    "fullJ4Acceptance": false,
+    "poolerCauseProven": false,
+    "productMilestonePromotion": false,
+    "releaseFlagsChanged": false
+  },
+  "candidateSummary": {
+    "behavior": "Normally dispatched root autocommit queries use the false-returning onexecute hook to retain connection ownership through ReadyForQuery. Transaction and savepoint behavior is unchanged. The wire regression requires locked Postgres.js 3.4.7; there is no new runtime version check.",
+    "status": "Reviewed fix integrated in this checkpoint after six focused tests and four-file lint; exact-source successor CI, real-pooler comparison, and canonical J4 remain pending."
+  },
+  "focusedRun": {
+    "receiptSha256": "2fd13fc0c0a19c2a25f05b95ab369050da999f5313c9b195903fc1cdb1d77310",
+    "actualToolExitCode": 0,
+    "files": 2,
+    "tests": {
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    "commandsClosed": 1,
+    "hostWatcherJoined": true,
+    "maximumMemoryPressure": 1,
+    "absencePasses": 2,
+    "guardClearSha256": "62f9e538ad55330f2e1822b47df6271f5576c012eb06d97213bb29cf3ae0a96f",
+    "overlapNote": "Three wire-fixture cases are included within this six-test result; a separate three-case diagnostic covers the same cases and is not added.",
+    "pidsAbsentCount": 3,
+    "groupsAbsentCount": 1,
+    "sealedManifestFiles": 8
+  },
+  "lintRun": {
+    "receiptSha256": "2fd78260629cac0aa23fe98aeb2b4434cf6901cae915cbf2a4d98fc0cf6671d3",
+    "actualToolExitCode": 0,
+    "lintExitCode": 0,
+    "filesLinted": [
+      "src/lib/controlplane/db/executor.ts",
+      "tests/controlplane/postgres-autocommit-dispatch.test.ts",
+      "tests/controlplane/postgres-autocommit-wire.test.ts",
+      "tests/_support/postgres-autocommit-wire.mjs"
+    ],
+    "commandsClosed": 1,
+    "hostWatcherJoined": true,
+    "maximumMemoryPressure": 1,
+    "absencePasses": 2,
+    "guardClearSha256": "7838756e02e9438139a55b9de6e67fa2de56f6d0b8a0b2247213a3bad0fc1f3f",
+    "pidsAbsentCount": 2,
+    "groupsAbsentCount": 1,
+    "sealedManifestFiles": 1970
+  },
+  "temporalHistory": {
+    "sourceWasCopiedReadOnly": true,
+    "databaseOpened": false,
+    "nodes": 71,
+    "events": 143,
+    "positiveEventObservationsOnly": true,
+    "startToCloseTimeoutSeconds": 100.003,
+    "retryState": "MAXIMUM_ATTEMPTS_REACHED",
+    "activityWorkflowFailedAtUtc": "2026-10-19T10:31:40.104Z",
+    "historyDecodeSha256": "3f8d16b54b47143ce3eabc528e28fbf11e4d463c345a3f582f065b2cbfec63f2",
+    "decodeExecutionSha256": "f44b330910b7651177db067ab34262b56b68491617c562e5fd52db35228eb5d0",
+    "diagnosisSummarySha256": "70fe35fd25943b8305991dc6c2fdb4f627f2327b2e84e664ce326f6b786521a3",
+    "extractionResultSha256": "b8246415ff822ef8a44b4d71006185ab002f0e296b24dccdd9a1711a0f5fba56",
+    "extractionCloseoutSha256": "35b11dff705d19f07fed344d88f1ccc984c5b4b6f8a7783fb558636c3ce572eb",
+    "extractionGuardClearSha256": "3d6a0e2625975dc5fd224d19d70c95152605c5f0c4b0da1687e50e28933c077a",
+    "limits": {
+      "authoritativeTransactionSelection": false,
+      "sqlOriginProven": false,
+      "rootCauseProven": false,
+      "fixValidationPassed": false
+    }
+  },
+  "poolerLogObservation": {
+    "logWindowUtc": [
+      "2026-10-19T10:28:00Z",
+      "2026-10-19T10:32:30Z"
+    ],
+    "stdoutLines": 180,
+    "stderrLines": 2,
+    "stdoutBytes": 22877,
+    "stdoutSha256": "cf718ee152980ef65b5ec681bc85e461591cd1d8157c050fda29826a0605fc76",
+    "stderrBytes": 182,
+    "stderrSha256": "2c5e2dbd9856ac84f36df4ebc157056160434db92d909656c5f59a18dfd5d3f9",
+    "healthHeadRequests": 45,
+    "health204Responses": 45,
+    "sslHandshakeClosed": 4,
+    "mismatchedClientJoinNil": 4,
+    "clientTerminateReceived": 16,
+    "pipelineMentions": 0,
+    "protocolErrorCodeCount": 0,
+    "poolerVersion": "not stated in captured log window",
+    "queryOriginProven": false,
+    "pipelineCauseProven": false,
+    "captureCloseoutSha256": "3429d0dd28357dc77321318c49cfbe43a8bb6ebd692ef3051b97feea95af724c",
+    "captureGuardClearSha256": "fe284218021474b06ecca89e77f7596f5d63298911c53eb5b090c33cf204c9ff",
+    "commandsClosed": 31,
+    "pidsAbsentCount": 35,
+    "groupsAbsentCount": 31,
+    "sealedManifestFiles": 147,
+    "absencePasses": 2
+  },
+  "posture": {
+    "ledger": "11 verified / 65 in progress / 2 planned (14.1%)",
+    "releaseFlags": {
+      "implementationComplete": false,
+      "pilotReady": false,
+      "productionApproved": false,
+      "sandboxVerified": false
+    },
+    "currentBlockers": [
+      "fresh coherent natural J4 on current epoch after fixing and validating the provenance/transport graph",
+      "local browser/default-stack acceptance"
+    ],
+    "priorMemoryRefusal": "historical only; current memory pressure was 1 in focused runs; do not treat as current blocker",
+    "next": "Review the new focused transport candidate and its scope; then obtain fresh exact-source CI and a coherent natural J4 run when all prerequisites are satisfied."
+  },
+  "provenance": {
+    "temporalForensicsDraftSha256": "03344cc2875b465d165db18d725c99c66540c9f94db4f84f03ed0c5d23af9292",
+    "poolerLogAnalysisSha256": "4b7c21a05a8ef40ec51ae9358c56a23d583b5203e5e59c053682d061ee35014e",
+    "sourceCommitForCiEvidence": "a17f60a61aecf11cd076289fb2b87f7f5d3a8385",
+    "sourceDistinction": "A17 is a documentation/evidence CI source. The transport candidate focused checks are separate and have no successor CI result yet."
+  },
+  "sourceFiles": {
+    "src/lib/controlplane/db/executor.ts": "f3f93c8b2039b9cfb52aaa31af48b7ab2206a97d98abc7cedf56eb2f79b8d9f4",
+    "tests/controlplane/postgres-autocommit-dispatch.test.ts": "05e9cab41ec00e4f2bcb3b508ec57e8b867d98a0b09479f715e720d4b43e4833",
+    "tests/controlplane/postgres-autocommit-wire.test.ts": "c2fde007e9a91af4bb4e96557051305186cc1a82c1b576524241c8bf306a4cab",
+    "tests/_support/postgres-autocommit-wire.mjs": "39606e77444f56b3bcfcc38326a1c68ca13a7fdc3a4e73760d66858032bc8c9c"
+  }
+}

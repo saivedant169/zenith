@@ -142,7 +142,8 @@ function validateToken(raw: string): string {
 
 function parseCredential(text: string): Credential {
   const t = text.trim();
-  if (/^(apiVersion|kind|clusters|users|contexts|current-context)\s*:/m.test(t)) return parseKubeconfigCredential(t);
+  // kubectl also writes JSON kubeconfigs (`-o json`); a bearer token never starts with "{".
+  if (t.startsWith("{") || /^(apiVersion|kind|clusters|users|contexts|current-context)\s*:/m.test(t)) return parseKubeconfigCredential(t);
   return { token: validateToken(t) };
 }
 

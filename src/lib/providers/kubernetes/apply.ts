@@ -44,6 +44,7 @@ import { diffPaths, normalizeForDiff } from "./diff";
 import { PLATFORM_KIND_INFO, assertPlatformPolicy, isPlatformKind, platformOrder, type PlatformApplyPolicy } from "./platform-kinds";
 import { immutableViolations } from "./immutability";
 import { isDnsLabel } from "./naming";
+import { SYSTEM_NAMESPACES } from "./guest";
 import { validateRbac, validateRbacCompanions } from "./rbac";
 import {
   ANNOTATION,
@@ -187,8 +188,11 @@ async function preflight(client: K8sClient, objects: readonly K8sObject[], opts:
         continue;
       }
       const own = ownedBy(p.live, p.environment);
-      if (!own.owned && p.ref.kind === "Namespace" && client.guard.isAllowlisted(p.ref.name)) {
-        const labels = dig(p.live, "metadata", "labels");
+      const liveLabels = dig(p.live, "metadata", "labels");
+      // Only a namespace no Zenith environment owns; another environment's namespace stays a conflict.
+      if (!own.owned && p.ref.kind === "Namespace" && client.guard.isAllowlisted(p.ref.name) && !SYSTEM_NAMESPACES.has(p.ref.name)
+        && !(isRecord(liveLabels) && Object.hasOwn(liveLabels, LABEL.managedBy))) {
+        const labels = liveLabels;
         const enforce = isRecord(labels) ? labels[PSA_ENFORCE] : undefined;
         if (enforce === "baseline" || enforce === "restricted") {
           prepared.push({ ...p, provisioned: true });

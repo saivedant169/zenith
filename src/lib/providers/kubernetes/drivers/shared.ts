@@ -35,6 +35,7 @@ import type {
 import type { Observation, ObservedValue, PortableKind, ProviderKey, ResourceNode, RuntimeState } from "@/lib/resources/types";
 import { createK8sClient, isNamespacedKind, listObjects, ownedBy, readObject, toK8sError, type K8sClient } from "../client";
 import { sessionNamespaces } from "../session";
+import { SYSTEM_NAMESPACES } from "../guest";
 import { externalIdFor, targetFor } from "../target";
 import { ANNOTATION, LABEL, MANAGED_BY_VALUE, type ObjectRef, type SupportedKind } from "../types";
 import { boundBag, deepEqual, dig, isRecord, truncate } from "../util";
@@ -184,24 +185,33 @@ export function makeKubernetesDriver(def: KindDef, provider: ProviderKey = "kube
         detail: observation.presence === "present" ? undefined : `presence is ${observation.presence}`,
       });
       const owned = observation.attributes.managedByZenith;
-      checks.push({
-        id: "owned",
-        description: "object is managed by Zenith for this environment",
-        passed: observation.presence !== "present" ? "unknown" : owned?.state === "known" ? owned.value === true : "unknown",
-      });
-      const resource = isRecord(observation.native) ? observation.native.resource : undefined;
-      checks.push({
-        id: "address",
-        description: "object is annotated with this resource's address",
-        passed: observation.presence !== "present" ? "unknown" : resource === node.address,
-      });
+      const native = isRecord(observation.native) ? observation.native : {};
+      const name = observation.attributes.name;
+      // apply.ts uses, never writes, an unlabeled Namespace on the connection allowlist; it carries no Zenith marks to check.
+      const provisioned = def.kind === "Namespace" && observation.presence === "present" && owned?.state === "known" && owned.value === false
+        && native.managedBy === undefined && name?.state === "known" && typeof name.value === "string"
+        && sessionNamespaces(ctx.session).includes(name.value) && !SYSTEM_NAMESPACES.has(name.value);
+      if (provisioned) checks.push({ id: "owned", description: "operator-provisioned namespace on this connection's allowlist; Zenith uses it and never modifies it", passed: true });
+      else {
+        checks.push({
+          id: "owned",
+          description: "object is managed by Zenith for this environment",
+          passed: observation.presence !== "present" ? "unknown" : owned?.state === "known" ? owned.value === true : "unknown",
+        });
+        checks.push({
+          id: "address",
+          description: "object is annotated with this resource's address",
+          passed: observation.presence !== "present" ? "unknown" : native.resource === node.address,
+        });
+      }
       const expected = expectedOf(node);
       const mismatched: string[] = [];
       let unread = false;
       for (const [k, want] of Object.entries(expected)) {
+        if (provisioned && k === "managedByZenith") continue;
         const got = observation.attributes[k];
         if (!got || got.state !== "known") unread = true;
-        else if (!deepEqual(got.value, want)) mismatched.push(k);
+        else if (provisioned && k === "podSecurityEnforce" ? !["baseline", "restricted"].includes(String(got.value)) : !deepEqual(got.value, want)) mismatched.push(k);
       }
       checks.push({
         id: "configuration",

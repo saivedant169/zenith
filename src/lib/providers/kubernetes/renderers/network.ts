@@ -68,11 +68,13 @@ export function renderNamespace(node: ResourceNode, ctx: K8sRenderContext): Rend
       },
     }),
   };
+  // An operator-provisioned namespace may hold workloads Zenith does not own; its policies never select them.
+  const pods = ctx.provisionedNamespaces?.includes(name) ? { matchLabels: { [LABEL.partOf]: labelValue(ctx.environmentId) } } : {};
   const deny: K8sObject = {
     apiVersion: "networking.k8s.io/v1",
     kind: "NetworkPolicy",
     metadata: metadata(node, ctx, { name: DEFAULT_DENY_NAME, namespace: name }),
-    spec: { podSelector: {}, policyTypes: ["Ingress"] },
+    spec: { podSelector: pods, policyTypes: ["Ingress"] },
   };
   const objects = [ns, deny];
   const isolation = isRecord(spec.isolation) ? spec.isolation : undefined;
@@ -87,14 +89,14 @@ export function renderNamespace(node: ResourceNode, ctx: K8sRenderContext): Rend
         apiVersion: "networking.k8s.io/v1",
         kind: "NetworkPolicy",
         metadata: metadata(node, ctx, { name: DEFAULT_DENY_EGRESS_NAME, namespace: name }),
-        spec: { podSelector: {}, policyTypes: ["Egress"] },
+        spec: { podSelector: pods, policyTypes: ["Egress"] },
       },
       {
         apiVersion: "networking.k8s.io/v1",
         kind: "NetworkPolicy",
         metadata: metadata(node, ctx, { name: ALLOW_DNS_EGRESS_NAME, namespace: name }),
         spec: {
-          podSelector: {},
+          podSelector: pods,
           policyTypes: ["Egress"],
           egress: [
             {

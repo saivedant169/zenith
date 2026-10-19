@@ -123,6 +123,20 @@ describe("observe + verify across every kind", () => {
     expect(text).not.toContain("db-pass-generated");
   });
 
+  it("verifies an allowlisted operator-provisioned namespace by its Pod Security, and nothing else unowned", async () => {
+    const n = node({ address: "network/ops", kind: "network", spec: { zones: 1, namespace: "ops-provided" } });
+    fake.seed({ apiVersion: "v1", kind: "Namespace", metadata: { name: "ops-provided", labels: { "pod-security.kubernetes.io/enforce": "restricted" } } });
+    const allowed = driverCtx(await sessionFor(fake, ["ops-provided"]));
+    const ok = await driverFor(n).verify(allowed, n, await driverFor(n).observe(allowed, n));
+    expect(ok.status).toBe("passed");
+    expect(ok.checks.map((c: any) => c.id)).toEqual(["exists", "owned", "configuration"]);
+    const offList = driverCtx(await sessionFor(fake, []));
+    expect((await driverFor(n).verify(offList, n, await driverFor(n).observe(offList, n))).status).toBe("failed");
+    fake.seed({ apiVersion: "v1", kind: "Namespace", metadata: { name: "ops-provided", labels: { [LABEL.managedBy]: "zenith", "pod-security.kubernetes.io/enforce": "baseline" } } });
+    expect((fake.get("Namespace", undefined, "ops-provided") as any).metadata.labels[LABEL.managedBy]).toBe("zenith");
+    expect((await driverFor(n).verify(allowed, n, await driverFor(n).observe(allowed, n))).status).toBe("failed");
+  });
+
   it("reports missing with no attributes once the object is gone", async () => {
     const n = node({ address: "service/ghost", kind: "container_service", spec: { ...(serviceNode().spec as object), namespace: NS } });
     const obs = await driverFor(n).observe(driverCtx(await sessionFor(fake, [NS])), n);

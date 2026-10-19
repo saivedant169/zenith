@@ -30,7 +30,7 @@ export async function assertOperationSemantics(rt: Runtime, ec: ExecContext, lea
   }
   else {
     const native = isDirectKubernetes(ec);
-    const ws = native ? kubernetesSemanticsWorkspace(ec, graph) : (await buildDeployWorkspace(rt, ec, graph, connection)).ws;
+    const ws = native ? kubernetesSemanticsWorkspace(ec, graph, connection) : (await buildDeployWorkspace(rt, ec, graph, connection)).ws;
     await assertApprovedSemantics(rt, ec, { graph, connection, ws, planDigest: ec.op.planDigest, ...(native ? { engineVersion: "kubernetes-apply/K1" } : {}) }, stage);
   }
   const authority = await rt.d.broker.approvalStatus(ec.op.id);

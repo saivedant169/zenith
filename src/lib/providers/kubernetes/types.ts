@@ -242,6 +242,8 @@ export interface K8sRenderContext {
   nodes?(): readonly ResourceNode[];
   /** override the namespace this node renders into (otherwise spec.namespace, the network node's, or the environment default) */
   namespace?: string;
+  /** the connection allowlist: operator-provisioned namespaces, where deny policies select only this environment's pods */
+  provisionedNamespaces?: readonly string[];
   /** turn an artifact into an image reference; `built`/`blueprint` artifacts have none until a build exists */
   resolveImage?(node: ResourceNode, artifact: ArtifactSpec): string | undefined;
   /** hostname or IP a DNS record should point at (the load balancer's observed address) */

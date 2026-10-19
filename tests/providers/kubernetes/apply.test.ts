@@ -252,6 +252,25 @@ describe("ownership guard", () => {
     expect(fake.writes()).toHaveLength(0);
   });
 
+  it("scopes deny policies in a provisioned namespace to this environment's pods, and keeps all-pod deny where Zenith owns it", () => {
+    const deny = (objects: K8sObject[]) => objects.find((o) => o.kind === "NetworkPolicy") as any;
+    expect(deny(renderGraph([networkNode(), serviceNode()], ctx).objects).spec.podSelector).toEqual({});
+    const scoped = deny(renderGraph([networkNode(), serviceNode()], { ...ctx, provisionedNamespaces: [NS] }).objects).spec.podSelector;
+    expect(scoped).toEqual({ matchLabels: { "app.kubernetes.io/part-of": expect.any(String) } });
+    const pod = (find(small(), "Deployment") as any).spec.template.metadata.labels;
+    expect(pod["app.kubernetes.io/part-of"]).toBe(scoped.matchLabels["app.kubernetes.io/part-of"]);
+  });
+
+  it("never treats another environment's namespace or a system namespace as provisioned", async () => {
+    fake.seed({ apiVersion: "v1", kind: "Namespace", metadata: { name: NS, labels: { "app.kubernetes.io/managed-by": "zenith", "pod-security.kubernetes.io/enforce": "baseline" }, annotations: { [ANNOTATION.environment]: OTHER_ENV } } });
+    const foreign = await serverSideApply(small(), await sessionFor(fake, [NS]), { environmentId: ENV_ID });
+    expect(foreign.results.find((x) => x.ref.kind === "Namespace")).toMatchObject({ status: "ownership_conflict", message: expect.stringMatching(/never modifies or adopts/) });
+    fake.seed({ apiVersion: "v1", kind: "Namespace", metadata: { name: "kube-system", labels: { "pod-security.kubernetes.io/enforce": "baseline" } } });
+    const system = await serverSideApply(renderGraph([{ ...networkNode(), spec: { zones: 1, namespace: "kube-system" } }], ctx).objects, await sessionFor(fake, ["kube-system"]), { environmentId: ENV_ID });
+    expect(system.results.find((x) => x.ref.kind === "Namespace")?.status).toBe("ownership_conflict");
+    expect(fake.writes()).toHaveLength(0);
+  });
+
   it("re-applies its own objects (owned, same environment) without complaint", async () => {
     const session = await sessionFor(fake, []);
     await serverSideApply(small(), session, { environmentId: ENV_ID });

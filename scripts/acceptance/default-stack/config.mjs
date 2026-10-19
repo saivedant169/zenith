@@ -7,9 +7,19 @@ export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 export const cliVersion = '2.75.0';
 export const installationLabel = 'io.zenith.installation';
 export const projectLabel = 'com.supabase.cli.project';
-export const ports = Object.freeze({ api: 36400, peerApi: 36401, supabase: 54321, cliApi: 54326, db: 54322, shadow: 54320, mail: 8025, pooler: 6543, cliPooler: 54329, registry: 5000, j4Temporal: 17233 });
-export const excludedSupabaseServices = 'mailpit,storage-api,imgproxy,realtime,studio,postgres-meta,logflare,vector,edge-runtime';
 export const fail = id => { throw new Error(`default-stack:${id}`); };
+/** One validated offset moves every owned host port so a stack can run beside an existing local Supabase.
+ * The registry stays on 5000: owned image references pin that address. */
+export function portsFor(offset) {
+  if (!Number.isInteger(offset) || offset < 0 || offset > 10000) fail('port-offset');
+  return Object.freeze({ api: 36400 + offset, peerApi: 36401 + offset, supabase: 54321 + offset, cliApi: 54326 + offset, db: 54322 + offset,
+    shadow: 54320 + offset, mail: 8025 + offset, pooler: 6543 + offset, cliPooler: 54329 + offset, j4Temporal: 17233 + offset, registry: 5000 });
+}
+const offsetText = process.env.ZENITH_DEFAULT_STACK_PORT_OFFSET ?? '0';
+if (!/^(0|[1-9][0-9]{0,4})$/.test(offsetText)) fail('port-offset');
+export const portOffset = Number(offsetText);
+export const ports = portsFor(portOffset);
+export const excludedSupabaseServices = 'mailpit,storage-api,imgproxy,realtime,studio,postgres-meta,logflare,vector,edge-runtime';
 export const minimumFreeBytes = 22 * 1024 ** 3;
 export function mailpitEnvironment(projectId, password) {
   if (!/^zenith-local-[a-f0-9]{24}$/.test(projectId) || !/^[a-f0-9]{64}$/.test(password)) fail('mailpit-smtp-identity');
@@ -168,9 +178,10 @@ export function stackComposition(config, directory, profile, gatewayImage, peer)
   document.services['supabase-edge'] = { image: digestImage(gatewayImage), init: true, user: '1001:1001', read_only: true,
     cap_drop: ['ALL'], security_opt: ['no-new-privileges:true'], labels,
     command: ['node', '/gateway.mjs'], mem_limit: '64m', cpus: 0.25, pids_limit: 64,
-    environment: { ZENITH_SUPABASE_UPSTREAM: config.supabaseKong },
+    environment: { ZENITH_SUPABASE_UPSTREAM: config.supabaseKong, ZENITH_SUPABASE_EDGE_PORT: String(ports.supabase) },
     volumes: [`${path.join(root, 'deploy/self-hosted/supabase-gateway.mjs')}:/gateway.mjs:ro`, `${path.join(directory, '../tls/edge.crt')}:/run/edge.crt:ro`, `${path.join(directory, '../tls/edge.key')}:/run/edge.key:ro`],
-    ports: [`127.0.0.1:${ports.supabase}:54321`], networks: { installation: { aliases: ['supabase.localhost'] } },
+    // Containers and the host share one origin, so the edge listens on its published port.
+    ports: [`127.0.0.1:${ports.supabase}:${ports.supabase}`], networks: { installation: { aliases: ['supabase.localhost'] } },
   };
   // The pooler joins this owned network explicitly, using its stable TLS name.
   for (const service of Object.values(document.services)) for (const mount of service.volumes ?? []) {

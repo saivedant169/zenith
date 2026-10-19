@@ -712,7 +712,7 @@ export class Operated {
     // Read-only independent native PG connection, derived exclusively from J1. Never writes authority.
     const environment = hostEnvironment(this.stack!.state) as Record<string, string>;
     const url = new URL(environment.ZENITH_PLATFORM_DB_URL);
-    ensure(url.hostname === "localhost" && url.port === "6543", "j1-observer-database");
+    ensure(url.hostname === "localhost" && url.port === String(ports.pooler), "j1-observer-database");
     const observer = postgres(url.href, { max: 1, connect_timeout: 10, prepare: false,
       ssl: { ca: readFileSync(path.join(this.stack!.state.directory, "tls/ca.crt")), rejectUnauthorized: true } });
     try { return [...await observer.unsafe<T[]>(query, values as postgres.ParameterOrJSON<never>[])]; } finally { await observer.end({ timeout: 5 }); }

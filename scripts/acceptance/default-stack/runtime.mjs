@@ -3,7 +3,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { assertPrivate, privateLocation, composeEnvironment } from '../../deploy/installation.mjs';
-import { cleanupPlan, fail, owns, root, installationLabel, projectLabel } from './config.mjs';
+import { cleanupPlan, fail, owns, portOffset, root, installationLabel, projectLabel } from './config.mjs';
 
 export function requireEngineGate() {
   if (process.env.ZENITH_ACCEPTANCE_DEFAULT_STACK !== '1') fail('requires-ZENITH_ACCEPTANCE_DEFAULT_STACK');
@@ -275,6 +275,8 @@ export function readState(directory) {
   const state = JSON.parse(fs.readFileSync(file, 'utf8'));
   cleanupPlan([], state);
   if (state.directory !== dir) fail('private-directory-binding');
+  // Every later command must address the same owned ports the stack was started on.
+  if ((state.portOffset ?? 0) !== portOffset) fail('port-offset-drift');
   return state;
 }
 export function compose(state, args) {

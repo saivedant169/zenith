@@ -94,7 +94,7 @@ export function validateInput(input, prepared = false) {
     if (!project || supabase.port || !sameProject(product)) refuse('SUPABASE_DB_URL-project');
     if (migrator.port !== '5432' || !sameProject(migrator)) refuse('platform-migration-authority');
   } else {
-    if (supabase.origin !== 'https://supabase.localhost:54321' || product.hostname !== 'supabase-pooler'
+    if (!/^https:\/\/supabase\.localhost:[1-9][0-9]{3,4}$/.test(supabase.origin) || product.hostname !== 'supabase-pooler'
       || decodeURIComponent(product.username) !== 'postgres.pooler-dev' || product.pathname !== '/postgres') refuse('disposable-engine-binding');
     if (env.ZENITH_PLATFORM_MIGRATION_URL !== undefined && env.ZENITH_PLATFORM_MIGRATION_URL !== migrationUrl) refuse('platform-migration-authority');
   }

@@ -4,7 +4,7 @@ import os from 'node:os';
 import { randomBytes, createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { prepareJoin, privateLocation, assertPrivate, writeJson, readPrepared, sourceBinding } from '../../deploy/installation.mjs';
-import { root, cliVersion, ports, topology, supabaseConfig, mailpitEnvironment, digestImage, excludedSupabaseServices, installationLabel, projectLabel, stackComposition, fail, assertHeadroom } from './config.mjs';
+import { root, cliVersion, ports, portOffset, topology, supabaseConfig, mailpitEnvironment, digestImage, excludedSupabaseServices, installationLabel, projectLabel, stackComposition, fail, assertHeadroom } from './config.mjs';
 import { cli, run, docker, compose, requireEngineGate, save, cleanup, setResourceGuard } from './runtime.mjs';
 import { readiness } from './readiness.mjs';
 import { deferredJ4Composition, initializeJ4Namespace, j4PrestartReadiness, prepareJ4Ownership } from './j4.mjs';
@@ -122,7 +122,7 @@ export async function up(directory, profile = 'default', imageLockFile, j4Option
   if (fs.existsSync(dir)) fail('directory-already-exists');
   const installationId = randomBytes(12).toString('hex');
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 }); assertPrivate(dir, true);
-  const state = { schemaVersion: 1, directory: dir, installationId, projectId: `zenith-local-${installationId}`, profile,
+  const state = { schemaVersion: 1, directory: dir, installationId, projectId: `zenith-local-${installationId}`, profile, portOffset,
     architecture: nativeArch(await docker(['info', '--format', '{{.Architecture}}'])), supabaseNetwork: `zenith-local-${installationId}-supabase`, imageLock: undefined };
   if (imageLockFile) {
     const file = privateLocation(imageLockFile); assertPrivate(file); state.imageLock = JSON.parse(fs.readFileSync(file, 'utf8'));

@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { joinedConfiguration, validateInput, planFor, installationEnvironment, environmentsFor } from '../../scripts/deploy/installation.mjs';
 import { apiProbeRequest, poolerProbeArguments } from '../../scripts/acceptance/default-stack/readiness.mjs';
 import { issuerBindings, issuer } from '../../scripts/acceptance/default-stack/issuer.mjs';
-import { cleanupPlan, supabaseConfig, mailpitEnvironment, stackComposition, topology, ports, root, installationLabel, projectLabel, digestImage, assertHeadroom, minimumFreeBytes, excludedSupabaseServices } from '../../scripts/acceptance/default-stack/config.mjs';
+import { cleanupPlan, supabaseConfig, mailpitEnvironment, stackComposition, topology, ports, portsFor, root, installationLabel, projectLabel, digestImage, assertHeadroom, minimumFreeBytes, excludedSupabaseServices } from '../../scripts/acceptance/default-stack/config.mjs';
 
 const secret = () => randomBytes(32).toString('hex');
 const id = () => randomBytes(12).toString('hex');
@@ -37,6 +37,15 @@ interface Service { image:string; labels:Record<string,string>; volumes:string[]
 interface Stack { services:Record<string,Service>; volumes:Record<string,{labels:Record<string,string>}>; networks:Record<string,{labels:Record<string,string>}>; }
 
 describe('default stack pure configuration contracts', () => {
+  it('moves every owned host port by one bounded offset while the registry keeps its pinned address', () => {
+    const shifted = portsFor(1000);
+    for (const [name, port] of Object.entries(portsFor(0))) expect(shifted[name as keyof typeof shifted]).toBe(name === 'registry' ? 5000 : port + 1000);
+    expect(ports).toEqual(portsFor(0));
+    for (const offset of [-1, 1.5, 10001, Number.NaN]) expect(() => portsFor(offset)).toThrow('default-stack:port-offset');
+    const disposable = { ...fixture, environment: { ...fixture.environment, SUPABASE_URL: 'https://supabase.localhost:55321', NEXT_PUBLIC_SUPABASE_URL: 'https://supabase.localhost:55321' } };
+    expect(() => validateInput(disposable, true)).not.toThrow();
+    expect(() => validateInput({ ...disposable, environment: { ...disposable.environment, SUPABASE_URL: 'https://supabase.example:55321', NEXT_PUBLIC_SUPABASE_URL: 'https://supabase.example:55321' } }, true)).toThrow('disposable-engine-binding');
+  });
   it('joins issuer discovery and JWKS to the same TLS name reachable by API containers and the host', () => {
     expect(issuerBindings()).toEqual({ ZENITH_AGENT_OAUTH_ISSUER: issuer, ZENITH_AGENT_OAUTH_JWKS: `${issuer}/protocol/openid-connect/certs`, ZENITH_AGENT_OAUTH_CLIENT_CLAIM: 'azp', ZENITH_AGENT_OAUTH_SUBJECT_CLAIM: 'zenith_subject' });
     const join = fs.readFileSync('scripts/acceptance/default-stack/issuer.mjs', 'utf8');
@@ -122,6 +131,8 @@ describe('default stack pure configuration contracts', () => {
     expect(stack.services.temporal.volumes).toContain('/private/installation/temporal-tls/server.key:/run/zenith-temporal/server.key:ro');
     expect(stack.services['temporal-setup'].volumes).toEqual(client);
     expect(stack.services['temporal-setup'].ports).toBeUndefined();
+    expect(stack.services['supabase-edge'].ports).toEqual([`127.0.0.1:${ports.supabase}:${ports.supabase}`]);
+    expect(stack.services['supabase-edge'].environment?.ZENITH_SUPABASE_EDGE_PORT).toBe(String(ports.supabase));
     if (profile === 'default') {
       expect(stack.services['api-peer'].volumes[0]).toBe('api-peer-data:/data');
       expect(stack.services['execution-worker-peer'].volumes[0]).toBe(`worker-${peer.workerId}:/var/lib/zenith`);

@@ -123,6 +123,18 @@ describe("observe + verify across every kind", () => {
     expect(text).not.toContain("db-pass-generated");
   });
 
+  it("checks identity grants only where Kubernetes can represent the target", () => {
+    const identity = (grants: unknown[]) => node({ address: "identity/web", kind: "identity", spec: { grants } });
+    const d = driverFor(identity([]));
+    const checks = (grants: unknown[]) => d.verify(driverCtx(undefined as any), identity(grants), { presence: "missing", attributes: {} } as any)
+      .then((v: any) => v.checks.map((c: any) => `${c.id}:${c.passed}`));
+    return Promise.all([
+      expect(checks([{ target: "log_group/web", access: ["write"] }])).resolves.not.toContain("grants:unknown"),
+      expect(checks([{ target: "log_group/web", access: ["write"] }, { target: "secret/db", access: ["read"] }])).resolves.toContain("grants:unknown"),
+      expect(d.expectedAttributes(identity([{ target: "log_group/web", access: ["write"] }]))).toMatchObject({ automountServiceAccountToken: false }),
+    ]);
+  });
+
   it("verifies an allowlisted operator-provisioned namespace by its Pod Security, and nothing else unowned", async () => {
     const n = node({ address: "network/ops", kind: "network", spec: { zones: 1, namespace: "ops-provided" } });
     fake.seed({ apiVersion: "v1", kind: "Namespace", metadata: { name: "ops-provided", labels: { "pod-security.kubernetes.io/enforce": "restricted" } } });

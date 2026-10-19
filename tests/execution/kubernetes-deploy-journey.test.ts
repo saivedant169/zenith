@@ -92,14 +92,13 @@ describe("deploying a kubernetes environment through the default journey", () =>
     fake.seedPod(pod);
     const verified = await j.verify();
     expect(verified.failed).toBe(0);
-    // The driver reads service accounts, but effective grants need separate readback.
-    expect(verified.status).toBe("unknown");
+    // These accounts hold only cloud log-group grants, which Kubernetes cannot render; the log groups are reported
+    // as not verifiable instead of making every account's grants unknown.
+    expect(verified.status).toBe("passed");
     const verification = j.w.evidence.rows.find((e) => e.kind === "verification")!.summary as any;
-    expect(verification.unknown).toBe(2);
-    expect(verification.nodes.filter((n: any) => n.status !== "passed")).toEqual([
-      { address: "identity/nightly", driver: "kubernetes.serviceaccount@1", status: "unknown", failed: [], unknown: ["grants"] },
-      { address: "identity/web", driver: "kubernetes.serviceaccount@1", status: "unknown", failed: [], unknown: ["grants"] },
-    ]);
+    expect(verification.unknown).toBe(0);
+    expect(verification.nodes.filter((n: any) => n.status !== "passed")).toEqual([]);
+    expect(verification.notVerifiable).toEqual(expect.arrayContaining(["log_group/nightly", "log_group/web"]));
   });
 
   it("reports configuration drift when a released pin differs from the literal manifest image", async () => {

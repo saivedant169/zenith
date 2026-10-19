@@ -62,7 +62,7 @@ beforeEach(() => {
 });
 
 import { prepare, sourceBinding } from "../../scripts/deploy/installation.mjs";
-import { deferredJ4Composition, hasNumericScheduleOwnerKeyword, initializeJ4Namespace, j4HostEnvironment, j4ResumePlan, prepareJ4Ownership, recordJ4Completion, resumeJ4, temporalKeywordSearchAttributeValue, validHostWorkerClosure } from "../../scripts/acceptance/default-stack/j4.mjs";
+import { J4_POLLER_SETTLE_MS, deferredJ4Composition, hasNumericScheduleOwnerKeyword, initializeJ4Namespace, j4HostEnvironment, j4ResumePlan, pollersSettled, prepareJ4Ownership, recordJ4Completion, resumeJ4, temporalKeywordSearchAttributeValue, validHostWorkerClosure } from "../../scripts/acceptance/default-stack/j4.mjs";
 import { parseJ4UpOptions } from "../../scripts/acceptance/default-stack/up.mjs";
 import { readiness } from "../../scripts/acceptance/default-stack/readiness.mjs";
 import { cleanup as cleanupDefaultStack } from "../../scripts/acceptance/default-stack/runtime.mjs";
@@ -214,6 +214,29 @@ function seedCleanupReceipts(directory: string) {
 }
 
 describe("J4 deferred default-stack admission", () => {
+  it("waits out an exited worker's stale Temporal poller but refuses one that keeps polling", async () => {
+    vi.useFakeTimers();
+    try {
+      const stale = { pollers: [{ identity: "j4-maintenance-exited" }] };
+      const ageing = vi.fn().mockResolvedValueOnce(stale).mockResolvedValueOnce(stale).mockResolvedValue({ pollers: [] });
+      const settled = pollersSettled(ageing, J4_POLLER_SETTLE_MS);
+      await vi.advanceTimersByTimeAsync(10_000);
+      await expect(settled).resolves.toBe(true);
+      expect(ageing).toHaveBeenCalledTimes(3);
+
+      const live = vi.fn().mockResolvedValue(stale);
+      const refused = pollersSettled(live, J4_POLLER_SETTLE_MS);
+      await vi.advanceTimersByTimeAsync(J4_POLLER_SETTLE_MS + 5_000);
+      await expect(refused).resolves.toBe(false);
+
+      const strict = vi.fn().mockResolvedValue(stale);
+      await expect(pollersSettled(strict, 0)).resolves.toBe(false);
+      expect(strict).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("accepts only the raw numeric Temporal KEYWORD enum", () => {
     expect(temporalKeywordSearchAttributeValue).toBe(2);
     expect(hasNumericScheduleOwnerKeyword({ ZenithScheduleOwner: 2 })).toBe(true);

@@ -274,15 +274,27 @@ async function databaseAfterJ4(state, epochExpected) {
   } finally { await db.end({ timeout: 1 }); }
 }
 
-async function assertTemporalClean(state, phase) {
+// Temporal keeps listing an exited worker's poller until its ~5 minute history TTL lapses.
+export const J4_POLLER_SETTLE_MS = 360_000;
+/** True once the task queue lists no poller; false if one remains after settleMs. */
+export async function pollersSettled(describe, settleMs, intervalMs = 5_000) {
+  const until = Date.now() + settleMs;
+  for (;;) {
+    if (!((await describe()).pollers ?? []).length) return true;
+    if (Date.now() >= until) return false;
+    await new Promise(resolve => setTimeout(resolve, intervalMs));
+  }
+}
+
+async function assertTemporalClean(state, phase, pollerSettleMs = 0) {
   const connection = await Connection.connect({ address: `127.0.0.1:${state.j4TemporalPort}` });
   try {
     const client = new Client({ connection, namespace: state.j4Namespace });
     const workflows = await connection.workflowService.listWorkflowExecutions({ namespace: state.j4Namespace, query: "ExecutionStatus='Running'" });
     if ((workflows.executions ?? []).length || workflows.nextPageToken?.length) fail(`j4-${phase}-active-workflows`);
     for (const type of [1, 2]) {
-      const queue = await connection.workflowService.describeTaskQueue({ namespace: state.j4Namespace, taskQueue: { name: 'zenith-execution' }, taskQueueType: type });
-      if ((queue.pollers ?? []).length) fail(`j4-${phase}-active-pollers`);
+      const describe = () => connection.workflowService.describeTaskQueue({ namespace: state.j4Namespace, taskQueue: { name: 'zenith-execution' }, taskQueueType: type });
+      if (!await pollersSettled(describe, pollerSettleMs)) fail(`j4-${phase}-active-pollers`);
     }
     for await (const item of client.schedule.list()) if (item.scheduleId) fail(`j4-${phase}-active-schedules`);
     return { activeWorkflows: 0, activePollers: 0, activeSchedules: 0 };
@@ -414,7 +426,7 @@ export async function recordJ4Completion(state, evidence) {
   assertDeferredJ4State(state, manifest);
   const prestartFile = path.join(state.directory, 'j4-prestart.receipt.json'); assertPrivate(prestartFile);
   const db = await databaseAfterJ4(state, JSON.parse(fs.readFileSync(prestartFile, 'utf8')).database.epoch);
-  const temporal = await assertTemporalClean(state, 'completion');
+  const temporal = await assertTemporalClean(state, 'completion', J4_POLLER_SETTLE_MS);
   const hostWorkerClosure = { ...evidence.hostWorkerClosure, source: state.source };
   const receipt = { schemaVersion: 1, kind: 'j4_completion', source: state.source, runId: evidence.runId, evidence, database: db, temporal,
     hostWorkerClosure, cleanupComplete: true, productionReady: false };
@@ -445,7 +457,7 @@ export async function resumeJ4(directory) {
   if (currentDatabase.providerConnections !== 0 || currentDatabase.scheduledJobRuns < 1) fail('j4-resume-database');
   const retryingCanonicalResume = j4Mode(state) === 'resuming';
   if (!retryingCanonicalResume) {
-    const clean = await assertTemporalClean(state, 'resume');
+    const clean = await assertTemporalClean(state, 'resume', J4_POLLER_SETTLE_MS);
     if (clean.activeSchedules || clean.activeWorkflows || clean.activePollers) fail('j4-not-clean');
     await compose(state, ['stop', 'api', 'temporal']);
   }

@@ -188,7 +188,8 @@ export async function linkedAgent(page, stack, project, workspaceId) {
     method: 'POST', body: { clientName: 'Zenith J2 acceptance', clientVersion: '1.0.0' },
   }));
   await page.goto(stack.apiUrl + '/agent/link?code=' + encodeURIComponent(link.userCode));
-  await page.getByLabel('Workspace', { exact: true }).selectOption(workspaceId);
+  // Role name, not label text: the required marker is aria-hidden but still in the label's text.
+  await page.getByRole('combobox', { name: 'Workspace', exact: true }).selectOption(workspaceId);
   await page.getByLabel(project.name, { exact: true }).check();
   // Use the real browser consent endpoint. Exact bounded scope, no OAuth fallback.
   ok(await browserRequest(page, '/api/integrations/agent/link/approve', {

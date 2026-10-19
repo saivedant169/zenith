@@ -1384,7 +1384,11 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       } catch { uxStage = 'private-evidence-final-write'; markUxFailure(); failed = true; }
     }
     const result = { ...source, checks: facts, readbacks };
-    if (process.env.ZENITH_JOURNEY_RECEIPT && !failed) writeReceipt(process.env.ZENITH_JOURNEY_RECEIPT, result);
+    // A failed step makes the projected status failed, so its receipt names the real failing check;
+    // without it the runner can only record a generic prerequisites failure.
+    if (process.env.ZENITH_JOURNEY_RECEIPT && (!failed || facts.some(fact => fact.status === 'failed'))) {
+      writeReceipt(process.env.ZENITH_JOURNEY_RECEIPT, result);
+    }
     // Separate UX receipt: the existing 16-id J2 receipt vocabulary is unchanged.
     if (UX_ENABLED) {
       writeUxReceipt(process.env.ZENITH_UX01_RECEIPT, {

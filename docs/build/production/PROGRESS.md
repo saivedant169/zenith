@@ -1,4 +1,14 @@
-## Current verification — 19 October 2026
+## Current verification — 20 October 2026
+
+Canonical J4 passed on clean exact source `c8795a08f0e85efaba78e93668b8570e4e6ad4dd`. The deferred lean stack started with prestart 14/14. Machine-schedules run `j4-361c0f9c630b` exited 0: natural timers drove seven critical jobs plus billing, billing fallback stayed idempotent, the host worker restarted and resumed, job and addenda lease exclusion held, addenda caught up after restart, and the epoch was preserved. Completion recorded a clean Temporal namespace, and the canonical resume reached readiness 16/16 with the execution worker healthy. Original services were stopped by exact ID for the approved window and restored to the pre-run snapshot. [J4 evidence](evidence/PROD-OBS-04/2026-10-20-c8795a08-j4-natural-acceptance.json)
+
+Three source repairs made this possible. Completion now waits out Temporal's roughly five-minute stale-poller listing after the host workers exit (`f53b87b3`). The disposable engine is now Temporal Server 1.32.0 on SQLite with frontend and internode mTLS, because a production-mode worker correctly refuses plaintext Temporal; the namespace setup also registers `ZenithScheduleOwner`, and disposable workers provision their own schedules (`c8795a08`). Exact-source CI is green: main 20 success / 8 conditional operated skips / 0 failures, native packaged workers 2/2, native platform 2/2. [Verification evidence](evidence/PROD-CI-08/2026-10-20-c8795a08-verification.json)
+
+On E9, which is not exact source for `c8795a08`, the one-worker full Node/DOM suite passed 24,726 with 1,943 skipped and 0 failed across 26,669 tests. Typecheck, lint, smoke, gimbal, policy, adversarial, replay, OpenTofu, all six PostgreSQL-backed lanes, generated artifacts, ledger, lockfile, audit and actionlint also passed. Go, wave5-contract, the operated J1/J2 lanes and the real-browser jobs were not run locally.
+
+PROD-OBS-04 stays in progress: the wave6 registered signed runbook delivery identity has not run. PROD-CI-08 stays in progress until local verification is exact-source and the Go, operated and browser gates run. Ledger remains **11 verified / 65 in progress / 2 planned (14.1%)**; all four release flags remain false.
+
+## Historical verification — 19 October 2026, evening
 
 Exact source `a17f60a61aecf11cd076289fb2b87f7f5d3a8385` completed all three GitHub Actions workflows: 32 jobs total, 24 success, 8 configured conditional skips, and 0 failures. Main run 39239179351, native packaged-worker run 39239179399, and native platform run 39239179238 all passed. The two packaged-worker architectures each passed 22/22 with all six cleanup fields true; both native platform leaves passed 1/1. The platform-PostgreSQL artifact recorded 4,142 passed / 15 skipped / 0 failed, with all 1,160 required identities passing. The sanitized verify footer did not expose an allowlisted test-count summary, so no full-unit aggregate is claimed. This is a docs/evidence source and does not validate or explain the frozen E3 runtime. [Exact-source CI evidence](evidence/PROD-CI-08/2026-10-19-a17f60a6-coherent-ci.json)
 

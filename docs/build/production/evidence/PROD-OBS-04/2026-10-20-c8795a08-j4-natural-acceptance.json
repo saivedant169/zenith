@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "kind": "j4-natural-default-acceptance",
+  "recordedAt": "2026-10-20",
+  "sourceCommit": "c8795a08f0e85efaba78e93668b8570e4e6ad4dd",
+  "sourceDirty": false,
+  "host": "native macOS ARM64, Docker Desktop, lean profile",
+  "evidenceLabel": "local_rehearsal",
+  "phases": {
+    "deferredUp": {
+      "exit": 0,
+      "prestart": {
+        "passed": 14,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    "machineSchedules": {
+      "runId": "j4-361c0f9c630b",
+      "exit": 0,
+      "checks": [
+        {
+          "id": "scenario-machine-schedules",
+          "status": "passed"
+        }
+      ]
+    },
+    "canonicalResume": {
+      "exit": 0,
+      "readiness": {
+        "passed": 16,
+        "failed": 0,
+        "skipped": 0,
+        "checks": [
+          "mailpit-owned-running",
+          "mailpit-api",
+          "api",
+          "execution-worker",
+          "temporal",
+          "http-api-1",
+          "supabase-auth-https",
+          "supabase-postgrest-https",
+          "postgrest-platform-not-exposed",
+          "postgrest-agent-not-exposed",
+          "pooler-verify-full",
+          "single-database-authority",
+          "native-role-boundary",
+          "platform-rls",
+          "registered-migration-version",
+          "platform-schema-current"
+        ]
+      }
+    }
+  },
+  "completionEvidence": {
+    "runId": "7d52efae-7983-4094-8449-802a40acac38",
+    "naturalTimers": true,
+    "schedules": 2,
+    "criticalJobs": 7,
+    "billing": true,
+    "billingFallback": true,
+    "billingFallbackIdempotent": true,
+    "workerRestart": true,
+    "fallbackResumed": true,
+    "jobLeaseExclusion": true,
+    "addendaLeaseExclusion": true,
+    "addendaRestartCatchup": true,
+    "housekeepingEffect": true,
+    "epochPreserved": true,
+    "temporalAfter": {
+      "activeWorkflows": 0,
+      "activePollers": 0,
+      "activeSchedules": 0
+    },
+    "scheduledJobRuns": 12,
+    "providerConnections": 0
+  },
+  "temporalTransport": "Disposable Temporal Server 1.32.0 on SQLite with frontend and internode mTLS; host clients and canonical worker authenticated with the installation client certificate.",
+  "privateReceiptSha256": {
+    "j4-machine-schedules.json": "d1e06e378107718ac076631fb0e1b5416d2845a01570d3f61943c8a4c675a809",
+    "j4-completion.receipt.json": "dfd143e8f86c17f1b1c7ac28840c7ac7b9abda637732654c50878d15aabdacc9",
+    "j4-prestart.receipt.json": "4bee16ca9545b2b020760618e859431bda06e4a1c9df03440b7a3e21737894e8",
+    "j4-preapi.receipt.json": "d047ee6b971dc34df2983c34798edf82ee57ae267153afd40cce839d0feee039",
+    "readiness.receipt.json": "b6ea08fddb91bfcfc65d92f1e172682a1d59ba3b63d9ba491dd29cfebcf37626"
+  },
+  "precedingFailuresOnTheWay": [
+    {
+      "commit": "e9a95e35",
+      "result": "machine-schedules natural phases ran; recordJ4Completion refused stale Temporal pollers inside the ~5 minute poller TTL; fixed by f53b87b3"
+    },
+    {
+      "commit": "f53b87b3",
+      "result": "machine-schedules passed; resume refused because the canonical production-mode worker requires authenticated Temporal TLS and the disposable engine was plaintext"
+    },
+    {
+      "commit": "interim local candidates",
+      "result": "J4 service admission rejected temporal-setup; maintenance client connected plaintext; observe-mode worker never provisioned schedules; ZenithScheduleOwner absent from the disposable namespace. Each fixed in c8795a08 and each retained as evidence locally."
+    }
+  ],
+  "restoration": "Original Supabase DB, Kong and old API container were stopped by exact ID for the approved window and restarted; container IDs, states, restart policies, images, volumes and networks matched the pre-run snapshot. The temporalio/server:1.32.0 image was pulled by its pinned digest.",
+  "remoteCi": {
+    "workflows": [
+      {
+        "name": "CI",
+        "runId": 39307521441,
+        "url": "https://github.com/saivedant169/zenith/actions/runs/39307521441",
+        "conclusion": "success",
+        "jobs": {
+          "success": 20,
+          "skipped": 8,
+          "failure": 0
+        },
+        "skippedJobs": [
+          "drv1-private-source",
+          "drv1-update-rollback",
+          "drv2-drift-repair",
+          "drv2-crash-partition",
+          "j15-operated-upgrade",
+          "j15-operated-restore",
+          "drivers-d4-two-tenants",
+          "drivers-d4-export"
+        ]
+      },
+      {
+        "name": "Native packaged workers",
+        "runId": 39307521467,
+        "url": "https://github.com/saivedant169/zenith/actions/runs/39307521467",
+        "conclusion": "success",
+        "jobs": {
+          "success": 2,
+          "failure": 0
+        }
+      },
+      {
+        "name": "Native skipped platforms",
+        "runId": 39307521516,
+        "url": "https://github.com/saivedant169/zenith/actions/runs/39307521516",
+        "conclusion": "success",
+        "jobs": {
+          "success": 2,
+          "failure": 0
+        }
+      }
+    ]
+  },
+  "notClaimed": [
+    "registered signed runbook delivery (wave6 gated case wave6-55718f085353604a, ZENITH_TEST_RUNBOOK_DELIVERY) was not run",
+    "operated J1/J2 lanes",
+    "live cloud or production acceptance",
+    "native Linux engine file ownership for the 0600 Temporal client files"
+  ],
+  "acceptanceClaim": false
+}

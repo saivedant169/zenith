@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "kind": "local-and-remote-verification",
+  "recordedAt": "2026-10-20",
+  "remoteCi": {
+    "sourceCommit": "c8795a08f0e85efaba78e93668b8570e4e6ad4dd",
+    "workflows": [
+      {
+        "name": "CI",
+        "runId": 39307521441,
+        "url": "https://github.com/saivedant169/zenith/actions/runs/39307521441",
+        "conclusion": "success",
+        "jobs": {
+          "success": 20,
+          "skipped": 8,
+          "failure": 0
+        },
+        "skippedJobs": [
+          "drv1-private-source",
+          "drv1-update-rollback",
+          "drv2-drift-repair",
+          "drv2-crash-partition",
+          "j15-operated-upgrade",
+          "j15-operated-restore",
+          "drivers-d4-two-tenants",
+          "drivers-d4-export"
+        ]
+      },
+      {
+        "name": "Native packaged workers",
+        "runId": 39307521467,
+        "url": "https://github.com/saivedant169/zenith/actions/runs/39307521467",
+        "conclusion": "success",
+        "jobs": {
+          "success": 2,
+          "failure": 0
+        }
+      },
+      {
+        "name": "Native skipped platforms",
+        "runId": 39307521516,
+        "url": "https://github.com/saivedant169/zenith/actions/runs/39307521516",
+        "conclusion": "success",
+        "jobs": {
+          "success": 2,
+          "failure": 0
+        }
+      }
+    ]
+  },
+  "localOnE9": {
+    "sourceCommit": "e9a95e35c90215864b906a00b53c4f7baf8b0777",
+    "note": "Local lanes ran on E9; c8795a08 adds the J4 poller-settle and disposable mTLS changes, so these are not exact-source for c8795a08.",
+    "fullNodeDom": {
+      "maxWorkers": 1,
+      "total": 26669,
+      "passed": 24726,
+      "skipped": 1943,
+      "failed": 0,
+      "suites": 4923,
+      "identitiesCollected": 26669,
+      "identitiesCompleted": 26669,
+      "maximumMemoryPressureLevel": 1
+    },
+    "lanes": {
+      "typecheck": "pass (5120 MiB heap)",
+      "lint": "pass, 0 errors, 3 vendored warnings",
+      "smoke": "pass",
+      "gimbal": "pass",
+      "policyBundle": "219/219 OPA, dist reproducible",
+      "policy": "242/0/0",
+      "adversarial": "238/0/0",
+      "workflowHistoryReplay": "34/0/0",
+      "tofu": "4329 passed/19 skipped/0 failed",
+      "postgres": "379/0/0",
+      "platformPostgres": "4148 passed/15 skipped/0 failed",
+      "workflows": "1559/0/0",
+      "recovery": "10/0/0",
+      "reconciliation": "39/0/0",
+      "workflowIntents": "156/0/0",
+      "generated": "emit-sql, capability matrix, offered catalog current; docs 110/110",
+      "ledger": "pass",
+      "lockfile": "924 pinned with sha512",
+      "securityAudit": "no findings",
+      "actionlint": "pass"
+    },
+    "notRunLocally": [
+      "go and wave5-contract (Go toolchain not installed)",
+      "triage:check (release SBOM only)",
+      "operated drv1/drv2/j15/drivers-d4 lanes (owner-provided J2/J6 inputs and CA-trusting verifier browser absent)",
+      "build, docker, hosted and agent browser jobs"
+    ]
+  },
+  "localEngineOnC8795a08": "See evidence/PROD-OBS-04/2026-10-20-c8795a08-j4-natural-acceptance.json",
+  "acceptanceClaim": false
+}

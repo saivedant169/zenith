@@ -53,7 +53,9 @@ export async function prepare(args) {
     createdBy: 'J2-DEFAULT-JOURNEY', status: 'created', containerId: node.Id }), { mode: 0o600 });
   const [kindImage] = JSON.parse(await docker(['image', 'inspect', node.Image]));
   ensure(kindImage.Architecture === 'arm64', 'kind-native-arm64');
-  await docker(['update', '--memory', '640m', '--memory-swap', '1g', '--cpus', '1', node.Id]);
+  // Measured: at 640 MiB / 1 CPU a Kubernetes 1.37 control plane thrashed at 100% CPU and never
+  // finished `kind load image-archive`. The optional build worker keeps its 640 MiB cap.
+  await docker(['update', '--memory', '1280m', '--memory-swap', '2g', '--cpus', '2', node.Id]);
   if (values['--isolated-kind-config']) {
     const [worker] = JSON.parse(await docker(['inspect','zenith-j2-worker']));
     ensure(worker.Config.Labels?.['io.x-k8s.kind.cluster'] === 'zenith-j2', 'build-worker-owner');

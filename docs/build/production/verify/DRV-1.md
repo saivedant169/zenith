@@ -75,7 +75,7 @@ start with `NODE_EXTRA_CA_CERTS` pointing at this same actual CA. A certificate
 error fails the lane.
 
 Preserve at least J1's 22 GiB disk floor. Lean J1 has a planned 2912 MiB running
-ceiling, J2 adds two 640 MiB capped kind nodes; the source emulator adds 64 MiB
+ceiling, J2 adds a 1280 MiB capped kind control plane and an optional 640 MiB worker; the source emulator adds 64 MiB
 and its temporary seed adds 64 MiB; the ephemeral registry adds 128 MiB. J6's
 production build limits remain 2 CPU / 4 GiB, requests 250m / 256 MiB, and its
 proxy remains bounded at 128 MiB. This configuration is not measured 4 GiB fit

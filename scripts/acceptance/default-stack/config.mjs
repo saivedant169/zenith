@@ -41,7 +41,8 @@ export function topology(profile = 'default') {
     // Limits are a plan, not measured headroom or an HA claim.
     apiMiB: profile === 'lean' ? 512 : 768, workerMiB: profile === 'lean' ? 768 : 1024, registryMiB: 256,
     // Measured: at 96 MiB PostgREST hit memory.max ~1M times and spun at 98% CPU, timing out readiness.
-    supabaseMiB: { db: 512, auth: 192, rest: 192, kong: 128, pooler: 256 },
+    // Measured: at 128 MiB Kong (idle ~110 MiB) was OOM-killed by the API's periodic full-table read burst.
+    supabaseMiB: { db: 512, auth: 192, rest: 192, kong: 256, pooler: 256 },
     poolSize: profile === 'lean' ? 5 : 15, nativeArchOnly: true, productionReady: false };
 }
 

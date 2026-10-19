@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "J4-CURRENT-EPOCH-LEASE-EXCLUSION-FAILURE-2026-10-19",
+  "recordedAtUtc": "2026-10-19T10:38:44Z",
+  "scope": "Bounded current-epoch J4 attempt terminal status, restoration, and separate root process-custody closeout; not diagnosis or acceptance.",
+  "runtimeLabel": "j4-f9905246",
+  "sourceHead": "e3cf95bfb13921d0196f221bd08627b1bc29d78c",
+  "terminal": {
+    "outerExitCode": 2,
+    "chunkId": "e8afeb",
+    "terminalPacketKind": "root-j4-e3cf-launch-terminal",
+    "terminalPacketSha256": "963624b86e60b9be7767310a6c37aba0180603d4f78f83664a4e8a1d41de1e50",
+    "restoration": {
+      "sameOriginalServicesRestored": true,
+      "restorationFailure": null
+    },
+    "custodyCloseout": "complete",
+    "ownedContainers": "10 stopped; data retained; resources not removed"
+  },
+  "subjectSupervisor": {
+    "sourceSha256": "be8ebfcfaa182ed08b0e90cdfd494825bf1344b2e8a6334904db94fba5682d58",
+    "status": "refused",
+    "heldCloseoutProven": true,
+    "resourceFailure": null,
+    "hostFailure": null,
+    "sourceAfterReceipt": "not emitted on failure path",
+    "sourceDriftEstablished": false
+  },
+  "maintenanceDiagnostic": {
+    "reportSha256": "e28979f5f70dae0c8edef4f7c53cef08c9d935b1e8fc99839f7084d227dda188",
+    "status": "cleanup_unconfirmed",
+    "failureClassification": "maintenance_deadline_exceeded",
+    "stage": "lease_exclusion",
+    "interpretation": "The inner cleanup_unconfirmed result is preserved as the maintenance failure outcome. Root process-absence custody completed separately; it does not convert the inner cleanup result to accepted or diagnose the underlying cause."
+  },
+  "postAttemptResourceObservation": {
+    "reviewedResourceGatesPassed": 1,
+    "resourceFailure": null,
+    "hostFailure": null
+  },
+  "acceptance": {
+    "canonicalJ4JourneyAccepted": false,
+    "acceptanceClaim": false,
+    "releaseFlags": {
+      "implementationComplete": false,
+      "sandboxVerified": false,
+      "pilotReady": false,
+      "productionApproved": false
+    }
+  },
+  "priorProgressSnapshot": "docs/build/production/evidence/PROD-OBS-04/2026-10-19-j4-current-epoch-running.json",
+  "limitations": [
+    "The underlying maintenance failure cause is not diagnosed.",
+    "Inner cleanup_unconfirmed remains unconfirmed despite separate external process-custody proof.",
+    "Root custody closeout proves observed process absence and guard clear; no leak absence beyond this bounded evidence is inferred.",
+    "No product cause, fix, canonical J4 acceptance, or release promotion is established."
+  ],
+  "rootCustodyCloseout": {
+    "proofSha256": "5a69b38efa59a7bf64b65940fb9e90bfd22984de14039ccc726814162eb1c30c",
+    "guardClearSha256": "f9b7605a25d455993ff297447fe520111faff491866f3b4eac53687c9a0cb4cf",
+    "commandsClosed": 749,
+    "commandBreakdown": {
+      "preSetup": 36,
+      "portStop": 57,
+      "candidate": 468,
+      "restoration": 188
+    },
+    "hostPidsAbsentTwice": 921,
+    "processGroupsAbsentTwice": 750,
+    "sealedFiles": 3346,
+    "hostAndVmWatchersClosed": true,
+    "resourcePressureLevel": 1,
+    "historicalParentObservationsResolvedAbsent": 5,
+    "terminalConfirmationsValidated": 2,
+    "guardEmpty": true,
+    "ownedContainersStopped": 10,
+    "ownedResourcesRemoved": false
+  },
+  "restorationSourceFreezeChecks": "passed before and after restoration independently",
+  "causeFollowup": "Underlying cause remains unproven; offline Temporal history from the stopped owned container remains to be reviewed."
+}

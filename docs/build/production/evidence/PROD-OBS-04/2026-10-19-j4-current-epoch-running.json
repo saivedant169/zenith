@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "J4-CURRENT-EPOCH-RUNNING-2026-10-19",
+  "recordedAtUtc": "2026-10-19T10:30:05Z",
+  "scope": "Current-epoch J4 execution in frozen E3 runtime; progress snapshot only, not acceptance.",
+  "sourceHead": "e3cf95bfb13921d0196f221bd08627b1bc29d78c",
+  "runtimeLabel": "j4-f9905246",
+  "status": "running",
+  "outerExitCode": null,
+  "currentPhase": {
+    "name": "0028-j4MachineSchedules",
+    "observedAtUtc": "2026-10-19T10:28:58Z",
+    "status": "running"
+  },
+  "completedSinceLaunch": {
+    "phase": "0018-deferredJ1Up",
+    "completedAtUtc": "2026-10-19T10:28:49Z",
+    "exitCode": 0,
+    "custodyClosed": true,
+    "prestartScopedChecks": {
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "receiptSha256": "fc528bf4cbb42955f59aab8855a8080e9f540f3b6c48845ba553aa740b432f8b"
+    },
+    "preApiScopedChecks": {
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0,
+      "receiptSha256": "d754225402489c7c383e5c605c51585875c72509e30a190b916d92328374e997"
+    },
+    "hostPoolerSelect1": "completed"
+  },
+  "launchAndStageBinding": {
+    "launcherSourceSha256": "b93eec901d448c0d7d6af14378992c4eb81461115ab6f786a278bbbb948995b8",
+    "setupRecordSha256": "0728ed85fe351fd7d0c6a9548e1c0d3a1d410a30097b4a563c0d2c6cbb76a84d",
+    "setupIntentSha256": "b1dc7b8c557e8d23b925235c7b7e8900ee36f5563e1c8d12b2a209ff3e818f2f",
+    "preSetupStageSha256": "127da5e92583ece3acce3be9c76a070a8e033be9c8f55ae27523973326cec6b5",
+    "portReleaseStageSha256": "1a2b7f2d209e9e824e27d629fef1d4378e358d95772fa0ff2dd2f2c709de819a",
+    "preSetupCommandsClosed": 36,
+    "portReleaseCommandsClosed": 57,
+    "pressureLevel": 1,
+    "stageFailure": null
+  },
+  "currentEpochPrerequisiteEvidence": "docs/build/production/evidence/PROD-OBS-04/2026-10-19-current-epoch-prerequisites.json",
+  "restorationPending": true,
+  "observedError": false,
+  "hangInferenceMade": false,
+  "canonicalJ4Acceptance": false,
+  "releaseFlags": {
+    "implementationComplete": false,
+    "pilotReady": false,
+    "productionApproved": false,
+    "sandboxVerified": false
+  },
+  "ledgerDisposition": {
+    "verified": 11,
+    "inProgress": 65,
+    "planned": 2,
+    "criteriaTotal": 78
+  },
+  "provenanceNote": "Progress facts supplied by the root runtime supervisor; phase is an in-flight observation. Receipt hashes bind scoped checks, not the complete J4 outcome.",
+  "provisionalEstimate": {
+    "scope": "remaining J4 execution plus restoration, conditional on no failure",
+    "minutes": [
+      30,
+      60
+    ],
+    "allCriteriaCompletionEstimate": null,
+    "source": "User-provided provisional estimate; not a completion guarantee."
+  }
+}

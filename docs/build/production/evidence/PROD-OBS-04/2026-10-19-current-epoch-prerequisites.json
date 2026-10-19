@@ -1,0 +1,113 @@
+{
+  "closeout": {
+    "acceptanceClaim": false,
+    "actualToolExitCode": 0,
+    "actualToolSessionId": 30600,
+    "artifactManifest": {
+      "allEntriesHaveSha256": true,
+      "entries": 141,
+      "fullPrerequisiteProofSha256": "e211e37080067a975b870ee3a8a21936b748b3e842a95acd65c2c026f2af0007"
+    },
+    "commandsClosed": 31,
+    "currentFullAndFixturePrerequisitesVerified": true,
+    "file": "J4-EPOCH-PREFLIGHT-EXEC-r3/ROOT-PREREQUISITE-CLOSEOUT.private.json",
+    "freshAbsencePasses": {
+      "identifiersPublished": false,
+      "passes": 2,
+      "pidsAbsentPerPass": 32,
+      "processGroupsAbsentPerPass": 31
+    },
+    "hostWatcherJoined": true,
+    "kind": "root-current-epoch-read-only-prerequisite-closeout",
+    "livePlatformBeforeAndAfterMatched": true,
+    "rootPid": 43598,
+    "serviceMutationsIssued": false,
+    "sha256": "2988f6de4c8e117d12eb047a6842c637aecfd25d3cfe881ed8a6b49801840b7e",
+    "vmObserverClosed": true
+  },
+  "deviceEpochRevalidation": {
+    "allActualCurrentMetadataRetained": true,
+    "currentApfsUuidBoundToCurrentPlatformContext": true,
+    "currentDeviceId": 16777232,
+    "deterministicRepeat": true,
+    "explicitPathIdentityRecords": 21,
+    "historicalApfsUuidContinuityClaim": false,
+    "historicalDeviceId": 16777231,
+    "projectedIdentitySlots": 16,
+    "projectionComparedCompletely": true,
+    "sameBeforeAfterForAllRecords": true
+  },
+  "evidenceId": "J4-READ-ONLY-PREREQUISITE-PASS-2026-10-19",
+  "fullPrerequisiteProof": {
+    "acceptanceClaim": false,
+    "bytes": 1725153,
+    "file": "J4-EPOCH-PREFLIGHT-EXEC-r3/prerequisites-result.private.json",
+    "kind": "read-only-full-and-fixture-current-epoch-prerequisites",
+    "newTestsExecuted": false,
+    "serviceMutations": false,
+    "sha256": "e211e37080067a975b870ee3a8a21936b748b3e842a95acd65c2c026f2af0007"
+  },
+  "guardClear": {
+    "acceptanceClaim": false,
+    "actualRootExited": true,
+    "file": "J4-EPOCH-PREFLIGHT-EXEC-r3/ROOT-PREREQUISITE-GUARD-CLEAR.private.json",
+    "guardCleared": true,
+    "proofSha256MatchesCloseout": true,
+    "sha256": "6095294dbc7865856a3443f082d5d8be320ddae7f1cde89d09f8ee34d953b8fc"
+  },
+  "nonAcceptanceBoundary": {
+    "canonicalJ4JourneyExecuted": false,
+    "j4AcceptanceClaimed": false,
+    "newTestsRunByThisPreflight": false,
+    "servicesChanged": false
+  },
+  "preservedPrelaunchRefusal": {
+    "actualToolExitCode": 1,
+    "actualToolSessionId": 17049,
+    "causalInterpretation": "None; preserve the refusal and level observation separately. A later level-1 observation is not evidence of why this attempt refused.",
+    "childStageEntered": false,
+    "failureLabel": "pressure-not-normal",
+    "file": "J4-EPOCH-PREFLIGHT-EXEC-r3/PRELAUNCH-REFUSAL.private.json",
+    "guardEmpty": true,
+    "pressureLevelRecordedInRefusal": 1,
+    "serviceMutationsIssued": false,
+    "setupPublished": false,
+    "sha256": "6d87a8336d032d874f3c49e918d42f22cee92ba3d98515bcd399345c4165ae9d"
+  },
+  "publicationContext": {
+    "ciRequeried": true,
+    "ledger": {
+      "verified": 11,
+      "inProgress": 65,
+      "planned": 2
+    },
+    "primaryCommitPrefix": "0dce...",
+    "primaryPushed": true,
+    "releaseFlags": {
+      "implementationComplete": false,
+      "pilotReady": false,
+      "productionApproved": false,
+      "sandboxVerified": false
+    },
+    "remoteCiOutcome": "completed_success",
+    "remoteCiEvidence": "docs/build/production/evidence/PROD-CI-08/2026-10-19-0dce-coherent-ci.json",
+    "remoteCiRuns": {
+      "main": 39233977730,
+      "packagedWorkers": 39233977774,
+      "platform": 39233977781
+    },
+    "remoteCiOwner": "completed"
+  },
+  "recordedAtUtc": "2026-10-19T10:15:56.228506+00:00",
+  "schemaVersion": 1,
+  "scope": "Current-epoch read-only J4 prerequisites only; not J4 acceptance.",
+  "separateMemoryStreamPin6PureTests": {
+    "actualVerifierOrServiceExecution": false,
+    "allPassed": true,
+    "caseCount": 6,
+    "file": "J4-EPOCH-PREFLIGHT-EXEC-r3/STREAM-PIN-TESTS.private.json",
+    "separateFromPrerequisiteCloseout": true,
+    "sha256": "baa11187cdca14a2b678fe3a48b4cdef4c8f8b6d158ab73b692e7fd51401ab89"
+  },
+  "sourceHead": "e3cf95bfb13921d0196f221bd08627b1bc29d78c"
+}

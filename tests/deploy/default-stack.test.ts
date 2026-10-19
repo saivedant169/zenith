@@ -82,7 +82,7 @@ describe('default stack pure configuration contracts', () => {
   it('renders SMTP auth only for a valid disposable installation identity and generated password', () => {
     const password = secret();
     expect(mailpitEnvironment('zenith-local-0123456789abcdef01234567', password)).toBe(
-      `MP_DATABASE=/tmp/mailpit.db\nMP_SMTP_AUTH=zenith-local-0123456789abcdef01234567:${password}\nMP_SMTP_AUTH_ALLOW_INSECURE=true\n`,
+      `MP_DATABASE=/tmp/mailpit.db\nMP_SMTP_AUTH=zenith-local-0123456789abcdef01234567:${password}\nMP_SMTP_TLS_CERT=/run/zenith/mailpit.crt\nMP_SMTP_TLS_KEY=/run/zenith/mailpit.key\nMP_SMTP_REQUIRE_STARTTLS=true\n`,
     );
     expect(() => mailpitEnvironment('foreign-project', password)).toThrow('mailpit-smtp-identity');
     expect(() => mailpitEnvironment('zenith-local-0123456789abcdef01234567', 'short')).toThrow('mailpit-smtp-identity');

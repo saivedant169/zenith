@@ -18,8 +18,8 @@ const privateFile = (file, text) => fs.writeFileSync(file, text, { mode: 0o600, 
 async function certificates(directory) {
   fs.mkdirSync(directory, { mode: 0o700 });
   await run('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '2', '-subj', '/CN=Zenith disposable CA', '-addext', 'basicConstraints=critical,CA:TRUE', '-keyout', path.join(directory, 'ca.key'), '-out', path.join(directory, 'ca.crt')]);
-  for (const name of ['edge', 'pooler']) {
-    privateFile(path.join(directory, `${name}.ext`), `basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\nsubjectAltName=DNS:supabase.localhost,DNS:supabase-pooler,DNS:localhost,IP:127.0.0.1\n`);
+  for (const name of ['edge', 'pooler', 'mailpit']) {
+    privateFile(path.join(directory, `${name}.ext`), `basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\nsubjectAltName=DNS:supabase.localhost,DNS:supabase-pooler,DNS:mailpit,DNS:localhost,IP:127.0.0.1\n`);
     await run('openssl', ['req', '-newkey', 'rsa:2048', '-nodes', '-subj', `/CN=${name}`, '-keyout', path.join(directory, `${name}.key`), '-out', path.join(directory, `${name}.csr`)]);
     await run('openssl', ['x509', '-req', '-in', path.join(directory, `${name}.csr`), '-CA', path.join(directory, 'ca.crt'), '-CAkey', path.join(directory, 'ca.key'), '-CAcreateserial', '-days', '2', '-extfile', path.join(directory, `${name}.ext`), '-out', path.join(directory, `${name}.crt`)]);
   }
@@ -48,6 +48,8 @@ async function boundCliService(state, role) {
   const { entrypoint, command } = cliServiceCommand(role, item.Config.Entrypoint ?? [], item.Config.Cmd ?? []);
   const envFile = path.join(state.directory, `${role}.env`);
   const env = item.Config.Env.map(value => role === 'auth' && value.startsWith('API_EXTERNAL_URL=') ? `API_EXTERNAL_URL=https://supabase.localhost:${ports.supabase}` : value);
+  // Auth verifies the owned Mailpit's STARTTLS leaf against only the stack CA.
+  if (role === 'auth') env.push('SSL_CERT_FILE=/run/zenith/ca.crt');
   if (role === 'pooler') {
     for (let i = env.length - 1; i >= 0; i--) if (env[i].startsWith('DB_POOL_SIZE=')) env.splice(i, 1);
     env.push('GLOBAL_DOWNSTREAM_CERT_PATH=/run/zenith/pooler.crt', 'GLOBAL_DOWNSTREAM_KEY_PATH=/run/zenith/pooler.key', `DB_POOL_SIZE=${topology(state.profile).poolSize}`, 'ERL_FLAGS=+S 2:2 +SDcpu 1 +SDio 1');
@@ -67,6 +69,7 @@ async function boundCliService(state, role) {
     }
     args.push('--mount', `type=${mount.Type},source=${mount.Type === 'volume' ? mount.Name : mount.Source},target=${mount.Destination}${mount.RW ? '' : ',readonly'}`);
   }
+  if (role === 'auth') args.push('--mount', `type=bind,source=${path.join(state.directory, 'tls', 'ca.crt')},target=/run/zenith/ca.crt,readonly`);
   if (role === 'pooler') {
     args.push('-p', `127.0.0.1:${ports.pooler}:6543`);
     for (const file of ['pooler.crt', 'pooler.key']) args.push('--mount', `type=bind,source=${path.join(state.directory, 'tls', file)},target=/run/zenith/${file},readonly`);
@@ -153,6 +156,8 @@ export async function up(directory, profile = 'default', imageLockFile, j4Option
     await docker(['run', '-d', '--name', `zenith-local-${installationId}-mailpit`, '--network', state.supabaseNetwork, '--network-alias', 'mailpit',
       '--label', `${installationLabel}=${installationId}`, '--memory', '64m', '--cpus', '0.25', '--pids-limit', '64', '--user', '1000:1000',
       '--read-only', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges:true', '--tmpfs', '/tmp:rw,noexec,nosuid,size=32m,uid=1000,gid=1000,mode=1770',
+      '--mount', `type=bind,source=${path.join(dir, 'tls', 'mailpit.crt')},target=/run/zenith/mailpit.crt,readonly`,
+      '--mount', `type=bind,source=${path.join(dir, 'tls', 'mailpit.key')},target=/run/zenith/mailpit.key,readonly`,
       '--env-file', mailpitEnvFile, '-p', `127.0.0.1:${ports.mail}:8025`, mailpitImage]);
     state.mailpitUrl = `http://127.0.0.1:${ports.mail}`;
     state.mailpitImage = { reference: mailpitImage, imageId: mailImage.Id, architecture: mailImage.Architecture };

@@ -23,7 +23,9 @@ export const excludedSupabaseServices = 'mailpit,storage-api,imgproxy,realtime,s
 export const minimumFreeBytes = 22 * 1024 ** 3;
 export function mailpitEnvironment(projectId, password) {
   if (!/^zenith-local-[a-f0-9]{24}$/.test(projectId) || !/^[a-f0-9]{64}$/.test(password)) fail('mailpit-smtp-identity');
-  return `MP_DATABASE=/tmp/mailpit.db\nMP_SMTP_AUTH=${projectId}:${password}\nMP_SMTP_AUTH_ALLOW_INSECURE=true\n`;
+  // Auth's Go SMTP client never sends credentials over plaintext to a non-loopback host,
+  // so the owned Mailpit requires STARTTLS with a leaf from the stack's private CA.
+  return `MP_DATABASE=/tmp/mailpit.db\nMP_SMTP_AUTH=${projectId}:${password}\nMP_SMTP_TLS_CERT=/run/zenith/mailpit.crt\nMP_SMTP_TLS_KEY=/run/zenith/mailpit.key\nMP_SMTP_REQUIRE_STARTTLS=true\n`;
 }
 export function assertHeadroom(availableBytes) {
   if (!Number.isSafeInteger(availableBytes) || availableBytes < minimumFreeBytes) fail('disk-headroom');

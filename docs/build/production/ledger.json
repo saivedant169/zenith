@@ -2635,6 +2635,12 @@
           "commit": "e9a95e35c90215864b906a00b53c4f7baf8b0777",
           "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-20-c8795a08-verification.json",
           "result": "Local E9 (not exact c8795a08) one-worker full Node/DOM 26669 tests: 24726 passed/1943 skipped/0 failed, 4923 suites, identities 26669/26669, pressure max 1; typecheck, lint, smoke, gimbal, policy 242, adversarial 238, replay 34, tofu 4329/19 skipped, postgres 379, platform-postgres 4148/15 skipped, workflows 1559, recovery 10, reconciliation 39, workflow-intents 156, generated, ledger, lockfile, audit and actionlint all passed with 0 failures. Go, wave5-contract, operated lanes and browser jobs were not run locally."
+        },
+        {
+          "level": "contract",
+          "commit": "1a0ac9d29919088ed6480901eb7cd08e08c1e60d",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-20-offset-j4-and-runbook-path.json",
+          "result": "Exact-source local lanes on 1a0ac9d2: lint, smoke, gimbal, policy bundle and 242 policy, adversarial 238, replay 34, generated, ledger, lockfile, audit, actionlint all passed with execution validation; isolated go1.27.1 gofmt, vet (also systemd tags), darwin test 15 packages ok, linux amd64/arm64 cross-builds, go-results 27/27 and wave5-contract 1271/0/0 validated. Two first-attempt failures (macOS unix-socket path length; coordinator edit during the wave5 gate) were environmental and reran clean. Full one-worker Node/DOM on this exact source and Linux-native gates were not run locally."
         }
       ],
       "requiredEvidence": [
@@ -5785,6 +5791,12 @@
           "commit": "c8795a08f0e85efaba78e93668b8570e4e6ad4dd",
           "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-20-c8795a08-verification.json",
           "result": "Exact-source CI: main 39307521441 20 success/8 conditional operated skips/0 failures; native packaged workers 39307521467 2/2; native platform 39307521516 2/2."
+        },
+        {
+          "level": "local_engine",
+          "commit": "795a59d63fe4b7afc707c6667aa0c483876b0396",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-20-offset-j4-and-runbook-path.json",
+          "result": "Canonical J4 passed again at port offset 1000 beside the operator's running local Supabase/Kong/API (none stopped): machine-schedules j4-35390325b1d3 passed with natural timers, 7 critical jobs plus billing, fallback idempotency, worker restart, lease and addenda exclusion, epoch preserved; canonical readiness 16/16. Signed registered runbook delivery reached broker grant issuance and was refused because the target resource row requires a real provider connection; still not passed."
         }
       ],
       "requiredEvidence": [

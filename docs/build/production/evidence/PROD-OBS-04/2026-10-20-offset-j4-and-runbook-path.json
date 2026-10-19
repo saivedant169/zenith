@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "kind": "session-verification-2026-10-20b",
+  "acceptanceClaim": false,
+  "exactSourceLanes": {
+    "sourceCommit": "1a0ac9d29919088ed6480901eb7cd08e08c1e60d",
+    "dirty": false,
+    "light": {
+      "lint": "pass",
+      "smoke": "pass",
+      "gimbal": "pass",
+      "policyBundle": "pass",
+      "policy": "242/0/0",
+      "adversarial": "238/0/0",
+      "workflowHistoryReplay": "34/0/0",
+      "emitSql": "current",
+      "capabilityMatrix": "current",
+      "offeredCatalog": "current",
+      "docsTests": "pass",
+      "ledger": "pass",
+      "lockfile": "pass",
+      "securityAudit": "pass",
+      "actionlint": "pass",
+      "validations": "policy, adversarial and replay --require-execution all passed"
+    },
+    "go": {
+      "toolchain": "go1.27.1 darwin/arm64, isolated, checksum ee215d57e0ec269c60cc9ceca68e6bda321ba9ee5afe24f4b0988703c2d87d12 matched go.dev",
+      "gofmt": "pass",
+      "vet": "pass",
+      "vetSystemdTags": "pass",
+      "testDarwin": "15 packages ok",
+      "crossBuild": "linux/amd64 and linux/arm64 pass",
+      "goResultsVitest": "27/27",
+      "wave5Contract": "1271 passed/0 failed/0 skipped, validated"
+    },
+    "honestFailures": [
+      "First go test run: 6 internal/machine/ops docker_test cases failed with bind: invalid argument because the scratch TMPDIR exceeded the macOS ~104-byte unix socket path limit; rerun with a short TMPDIR passed.",
+      "First wave5 gate rejected its receipt because the coordinator edited the same worktree during the run; rerun on clean source passed."
+    ],
+    "notRunLocally": [
+      "Linux-only native race/golden and systemd operation gates (GitHub-hosted)",
+      "full one-worker Node/DOM suite on this exact source"
+    ]
+  },
+  "j4Offset": {
+    "sourceCommit": "795a59d63fe4b7afc707c6667aa0c483876b0396",
+    "portOffset": 1000,
+    "protectedServicesStopped": false,
+    "machineSchedules": {
+      "runId": "j4-35390325b1d3",
+      "check": "passed"
+    },
+    "completion": {
+      "naturalTimers": true,
+      "criticalJobs": 7,
+      "billing": true,
+      "billingFallback": true,
+      "billingFallbackIdempotent": true,
+      "workerRestart": true,
+      "fallbackResumed": true,
+      "jobLeaseExclusion": true,
+      "addendaLeaseExclusion": true,
+      "addendaRestartCatchup": true,
+      "epochPreserved": true
+    },
+    "readiness": {
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0
+    },
+    "privateReceiptSha256": {
+      "j4-machine-schedules.json": "80e5d3644cd402e79cd45232b6c44289a6a9f78930d20e836d32e8859ada4b2c",
+      "j4-completion.receipt.json": "a453496c877ba86a9028adadade364c9693c3b4424499cca6212cd6366e15f89",
+      "j4-prestart.receipt.json": "19183db34f48972b2c854b8b6e631b951e9bee6cca89f89075d08c52b388c589",
+      "readiness.receipt.json": "86f2311ac57e24f7a92c4953863ff54dbd190d59e66c88cff54ea50c8c82cfd7"
+    }
+  },
+  "runbookDelivery": {
+    "status": "not passed",
+    "reached": [
+      "admin Auth user and real Chromium password sign-in through the SPKI-pinned edge",
+      "real TOTP enrolment",
+      "workspace, project and environment after the epoch",
+      "browser machine consent with a one-use token",
+      "real zenithd (exec disabled) registered and online with machine.inspect",
+      "signed runbook published and run created through the read-only gate"
+    ],
+    "refusal": "Delivery denied before dispatch: delivery.ts requires a platform resource row whose address equals the machine address; such rows are written only by a workflow-route plan over a real provider connection, and an environment without a connection routes to the in-process sandbox engine.",
+    "defectsFoundAndFixed": [
+      "zenithd.Dockerfile 0755 /witness and /var/lib/zenithd (seed requires 0700)",
+      "J2 harness heartbeatSec 2 below zenithd minimum 5",
+      "J2 readback required a transport field agentView never returns",
+      "default-stack Auth mail failed with unencrypted connection; now verified STARTTLS",
+      "lean API V8 heap exhaustion after ~30 minutes; heaps now sized to limits"
+    ],
+    "next": "J2 kind target provides the real Kubernetes connection and resource row"
+  }
+}

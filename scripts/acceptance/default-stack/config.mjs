@@ -105,6 +105,8 @@ user = "${projectId}"
 pass = "env(ZENITH_MAILPIT_SMTP_PASS)"
 admin_email = "auth@journey.local"
 sender_name = "Zenith local acceptance"
+[auth.rate_limit]
+email_sent = 60
 [auth.mfa]
 max_enrolled_factors = 10
 [auth.mfa.totp]

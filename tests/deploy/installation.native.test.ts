@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { randomBytes } from 'node:crypto';
+import { X509Certificate, randomBytes } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { load } from 'js-yaml';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -139,6 +139,30 @@ describe.skipIf(process.env.ZENITH_ACCEPTANCE_INSTALLATION_PRIVATE !== '1')('POS
       expect(composition.services[`execution-worker-${peer.workerId}`].volumes).toEqual([`worker-${peer.workerId}:/var/lib/zenith`]);
       expect(composeArgs(peer, directory)).toContain(path.join(directory, 'worker.compose.json'));
     });
+    it('issues a private disposable Temporal mTLS identity, discards its CA key and shares only the client half with joined workers', () => {
+      const tls = path.join(fixtureDir, 'temporal-tls');
+      expect(fs.readdirSync(tls).sort()).toEqual(['ca.crt', 'client.crt', 'client.key', 'server.crt', 'server.key']);
+      for (const name of fs.readdirSync(tls)) expect(fs.statSync(path.join(tls, name)).mode & 0o777).toBe(0o600);
+      const [ca, server, client] = ['ca.crt', 'server.crt', 'client.crt'].map(name => new X509Certificate(fs.readFileSync(path.join(tls, name))));
+      expect(ca.ca).toBe(true);
+      expect(server.verify(ca.publicKey) && client.verify(ca.publicKey)).toBe(true);
+      expect(server.checkHost('temporal')).toBe('temporal');
+      expect(client.keyUsage).toEqual(['1.3.6.1.5.5.7.3.2']);
+      const worker = fs.readFileSync(path.join(fixtureDir, 'worker.env'), 'utf8');
+      for (const line of ['ZENITH_TEMPORAL_TLS=true', 'ZENITH_TEMPORAL_TLS_CA_FILE=/run/zenith-temporal/ca.crt', 'ZENITH_TEMPORAL_TLS_CERT_FILE=/run/zenith-temporal/client.crt',
+        'ZENITH_TEMPORAL_TLS_KEY_FILE=/run/zenith-temporal/client.key', 'ZENITH_TEMPORAL_TLS_SERVER_NAME=temporal']) expect(worker).toContain(line);
+      expect(worker).toContain('ZENITH_WORKER_RECONCILE_SCHEDULE_MODE=provision');
+      expect(fs.readFileSync(path.join(privateDir, 'worker.env'), 'utf8')).not.toContain('ZENITH_TEMPORAL_TLS_CERT_FILE=');
+      expect(fs.readFileSync(path.join(privateDir, 'worker.env'), 'utf8')).not.toContain('ZENITH_WORKER_RECONCILE_SCHEDULE_MODE=');
+      expect(fs.existsSync(path.join(privateDir, 'temporal-tls'))).toBe(false);
+      const directory = path.join(temp, 'joined-disposable-worker');
+      const peer = prepareJoin(path.join(fixtureDir, 'keyring.json'), directory);
+      expect(fs.readdirSync(path.join(directory, 'temporal-tls')).sort()).toEqual(['ca.crt', 'client.crt', 'client.key']);
+      expect(readPrepared(directory)).toEqual(peer);
+      const composition = JSON.parse(fs.readFileSync(path.join(directory, 'worker.compose.json'), 'utf8'));
+      expect(composition.services[`execution-worker-${peer.workerId}`].volumes.slice(1).map((mount: string) => mount.split(':')[1]))
+        .toEqual(['/run/zenith-temporal/ca.crt', '/run/zenith-temporal/client.crt', '/run/zenith-temporal/client.key']);
+    });
     it('refuses keyring drift before creating any joined worker files', () => {
       const file = path.join(privateDir, 'keyring.json'), content = fs.readFileSync(file, 'utf8');
       const directory = path.join(temp, 'join-refused');
@@ -252,8 +276,15 @@ describe.skipIf(process.env.ZENITH_ACCEPTANCE_INSTALLATION_PRIVATE !== '1')('POS
         expect(config.services[name].ports).toBeUndefined();
       }
       expect(config.services.temporal.user).toBe('1000:1000');
-      expect(config.services.temporal.volumes).toEqual(['temporal-data:/home/temporal']);
-      expect(config.services.api.depends_on?.temporal.condition).toBe('service_healthy');
+      expect(config.services.temporal.volumes?.[0]).toBe('temporal-data:/home/temporal');
+      expect(config.services['temporal-setup'].ports).toBeUndefined();
+      // Durable schedules require the owner attribute; the worker never registers it (RECONCILE-WORKER.md).
+      expect(JSON.stringify((config.services['temporal-setup'] as { command?: unknown }).command)).toContain('--name ZenithScheduleOwner --type Keyword');
+      expect(fs.readFileSync(path.join(repository, 'deploy/self-hosted/temporal-disposable.yaml'), 'utf8').match(/requireClientAuth: true/g)).toHaveLength(2);
+      for (const name of ['api', 'execution-worker']) {
+        expect(config.services[name].depends_on?.['temporal-setup'].condition).toBe('service_completed_successfully');
+        expect(config.services[name].volumes?.map(mount => mount.split(':').at(-2))).toEqual(['/run/zenith-temporal/ca.crt', '/run/zenith-temporal/client.crt', '/run/zenith-temporal/client.key']);
+      }
       expect(config.services['platform-db']).toBeUndefined();
       expect(config.volumes['platform-data']).toBeUndefined();
     });

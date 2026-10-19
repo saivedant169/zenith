@@ -62,7 +62,7 @@ beforeEach(() => {
 });
 
 import { prepare, sourceBinding } from "../../scripts/deploy/installation.mjs";
-import { J4_POLLER_SETTLE_MS, deferredJ4Composition, hasNumericScheduleOwnerKeyword, initializeJ4Namespace, j4HostEnvironment, j4ResumePlan, pollersSettled, prepareJ4Ownership, recordJ4Completion, resumeJ4, temporalKeywordSearchAttributeValue, validHostWorkerClosure } from "../../scripts/acceptance/default-stack/j4.mjs";
+import { J4_POLLER_SETTLE_MS, checkJ4Services, deferredJ4Composition, hasNumericScheduleOwnerKeyword, initializeJ4Namespace, j4HostEnvironment, j4ResumePlan, pollersSettled, prepareJ4Ownership, recordJ4Completion, resumeJ4, temporalKeywordSearchAttributeValue, validHostWorkerClosure } from "../../scripts/acceptance/default-stack/j4.mjs";
 import { parseJ4UpOptions } from "../../scripts/acceptance/default-stack/up.mjs";
 import { readiness } from "../../scripts/acceptance/default-stack/readiness.mjs";
 import { cleanup as cleanupDefaultStack } from "../../scripts/acceptance/default-stack/runtime.mjs";
@@ -119,7 +119,7 @@ function makeFixture() {
         api: {
           labels: { "io.zenith.installation": installId },
           env_file: [{ path: path.join(installDirectory, "api.env"), format: "raw" }],
-          volumes: ["api-data:/data"],
+          volumes: ["api-data:/data", `${path.join(installDirectory, "temporal-tls/client.key")}:/run/zenith-temporal/client.key:ro`],
         },
         "api-peer": {},
         "execution-worker": {},
@@ -235,6 +235,19 @@ describe("J4 deferred default-stack admission", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("admits one completed Temporal namespace setup beside the deferred services and nothing else", () => {
+    const temporal = { name: "temporal", running: true, healthy: true }, edge = { name: "supabase-edge", running: true, healthy: false };
+    const api = { name: "api", running: true, healthy: true }, setup = { name: "temporal-setup", running: false, healthy: false, exitCode: 0 };
+    expect(checkJ4Services([temporal, edge], false).services).toEqual(["supabase-edge", "temporal"]);
+    expect(checkJ4Services([temporal, edge, setup], false).services).toEqual(["supabase-edge", "temporal", "temporal-setup"]);
+    expect(checkJ4Services([temporal, edge, api, setup], true).apiHealthy).toBe(true);
+    expect(() => checkJ4Services([temporal, edge, api], true)).toThrow("j4-temporal-setup-service");
+    expect(() => checkJ4Services([temporal, edge, api, { ...setup, exitCode: 1 }], true)).toThrow("j4-temporal-setup-service");
+    expect(() => checkJ4Services([temporal, edge, api, { ...setup, running: true }], true)).toThrow("j4-temporal-setup-service");
+    expect(() => checkJ4Services([temporal, edge, api, setup, setup], true)).toThrow("j4-temporal-setup-service");
+    expect(() => checkJ4Services([temporal, edge, api, setup, { name: "mystery", running: true, healthy: true }], true)).toThrow("j4-unexpected-service");
   });
 
   it("accepts only the raw numeric Temporal KEYWORD enum", () => {
@@ -481,6 +494,7 @@ describe("J4 deferred default-stack admission", () => {
       expect(fixture.deferred.services.api.volumes).toEqual([
         "j4-api-data:/data",
         `${path.join(fixture.directory, "j4")}/../tls/ca.crt:/run/zenith-ca.crt:ro`,
+        `${path.join(fixture.installDirectory, "temporal-tls/client.key")}:/run/zenith-temporal/client.key:ro`,
       ]);
       expect(fixture.deferred.volumes).toHaveProperty("j4-api-data");
       expect(fixture.deferred.services.temporal.ports).toEqual(["127.0.0.1:17233:7233"]);

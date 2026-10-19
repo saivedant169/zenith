@@ -132,9 +132,13 @@ export function stackComposition(config, directory, profile, gatewayImage, peer)
   const base = load(fs.readFileSync(path.join(root, 'deploy/self-hosted/compose.yml'), 'utf8'));
   const engines = load(fs.readFileSync(path.join(root, 'deploy/self-hosted/compose.disposable.yml'), 'utf8'));
   const document = { services: {}, networks: { installation: { labels } }, volumes: {} };
+  // The overlay's private-directory and repo-relative binds become absolute here.
+  const bind = (/** @type {string} */ mount) => mount.replace('${ZENITH_PRIVATE_DIR:?prepare private configuration}', directory)
+    .replace(/^\.\//, `${path.join(root, 'deploy/self-hosted')}/`);
+  const temporalClient = (engines.services.api.volumes ?? []).map(bind);
   for (const [name, raw] of Object.entries({ ...base.services, ...engines.services })) {
     if (name === 'api' || name === 'execution-worker' || name === 'platform-migrate') continue;
-    document.services[name] = { ...raw, labels };
+    document.services[name] = { ...raw, labels, ...(raw.volumes ? { volumes: raw.volumes.map(bind) } : {}) };
   }
   document.services.temporal.mem_limit = '256m';
   for (const [name, service] of Object.entries(base.services)) {
@@ -147,19 +151,19 @@ export function stackComposition(config, directory, profile, gatewayImage, peer)
     const service = document.services[name];
     service.image = digestImage(config.images[name === 'api' ? 'api' : name === 'execution-worker' ? 'worker' : 'migration']);
     service.mem_limit = `${limit}m`; service.cpus = 1;
-    service.volumes = [...(service.volumes ?? []), `${path.join(directory, '../tls/ca.crt')}:/run/zenith-ca.crt:ro`];
+    service.volumes = [...(service.volumes ?? []), `${path.join(directory, '../tls/ca.crt')}:/run/zenith-ca.crt:ro`, ...(name === 'platform-migrate' ? [] : temporalClient)];
     service.environment = { NODE_EXTRA_CA_CERTS: '/run/zenith-ca.crt' };
   }
   document.services.api.ports = [`127.0.0.1:${ports.api}:3400`];
   document.services.api.tmpfs = ['/tmp:rw,noexec,nosuid,size=64m,uid=1001,gid=1001,mode=1770', '/app/.next/cache:rw,noexec,nosuid,size=64m,uid=1001,gid=1001,mode=1770'];
   document.services['execution-worker'].tmpfs = ['/tmp:rw,nosuid,size=256m,uid=10001,gid=10001,mode=1770'];
   if (sizing.apis === 2) document.services['api-peer'] = { ...structuredClone(document.services.api),
-    ports: [`127.0.0.1:${ports.peerApi}:3400`], volumes: ['api-peer-data:/data', `${path.join(directory, '../tls/ca.crt')}:/run/zenith-ca.crt:ro`] };
+    ports: [`127.0.0.1:${ports.peerApi}:3400`], volumes: ['api-peer-data:/data', `${path.join(directory, '../tls/ca.crt')}:/run/zenith-ca.crt:ro`, ...temporalClient] };
   if (sizing.workers === 2) {
     if (!peer?.workerId || peer.installationId !== config.installationId) fail('joined-worker');
     document.services['execution-worker-peer'] = { ...structuredClone(document.services['execution-worker']),
       env_file: [{ path: path.join(directory, '../worker-peer/worker.env'), format: 'raw' }],
-      labels: { ...labels, 'io.zenith.worker': peer.workerId }, volumes: [`worker-${peer.workerId}:/var/lib/zenith`, `${path.join(directory, '../tls/ca.crt')}:/run/zenith-ca.crt:ro`] };
+      labels: { ...labels, 'io.zenith.worker': peer.workerId }, volumes: [`worker-${peer.workerId}:/var/lib/zenith`, `${path.join(directory, '../tls/ca.crt')}:/run/zenith-ca.crt:ro`, ...temporalClient] };
   }
   document.services['supabase-edge'] = { image: digestImage(gatewayImage), init: true, user: '1001:1001', read_only: true,
     cap_drop: ['ALL'], security_opt: ['no-new-privileges:true'], labels,

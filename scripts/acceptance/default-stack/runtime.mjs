@@ -142,7 +142,7 @@ function persistCleanupStopDiagnostic(directory, diagnostic) {
 }
 
 const WORKER_COMPOSE_SERVICES = new Set(['execution-worker', 'execution-worker-peer']);
-const INFRA_COMPOSE_SERVICES = new Set(['temporal', 'supabase-edge']);
+const INFRA_COMPOSE_SERVICES = new Set(['temporal', 'temporal-setup', 'supabase-edge']);
 const SUPABASE_INFRA_SERVICES = new Set(['auth', 'db', 'kong', 'pooler', 'rest']);
 const INFRA_STOP_GRACE_SECONDS = 60;
 const WORKER_STOP_GRACE_SECONDS = 660;

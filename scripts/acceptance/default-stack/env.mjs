@@ -5,6 +5,13 @@ import { readPrepared, privateLocation, assertPrivate } from '../../deploy/insta
 import { readState, requireEngineGate, cli } from './runtime.mjs';
 import { ports, fail } from './config.mjs';
 
+/** Host paths of the installation's private Temporal client files (mTLS, server name temporal). */
+export function hostTemporalTls(directory) {
+  const tls = path.join(directory, 'installation/temporal-tls');
+  return { ZENITH_TEMPORAL_TLS_CA_FILE: path.join(tls, 'ca.crt'), ZENITH_TEMPORAL_TLS_CERT_FILE: path.join(tls, 'client.crt'),
+    ZENITH_TEMPORAL_TLS_KEY_FILE: path.join(tls, 'client.key'), ZENITH_TEMPORAL_TLS_SERVER_NAME: 'temporal' };
+}
+
 /** Export the actual prepared stack for host-side J2/J4/J15 commands. Never print secrets. */
 export function hostEnvironment(state) {
   const config = readPrepared(path.join(state.directory, 'installation'));
@@ -14,6 +21,7 @@ export function hostEnvironment(state) {
   pooler.hostname = 'localhost'; pooler.port = String(ports.pooler);
   environment.SUPABASE_DB_URL = environment.ZENITH_PLATFORM_DB_URL = pooler.href;
   environment.ZENITH_TEMPORAL_ADDRESS = '127.0.0.1:7233';
+  Object.assign(environment, hostTemporalTls(state.directory));
   environment.ZENITH_DEFAULT_STACK_DIRECTORY = state.directory;
   environment.ZENITH_LOCAL_STACK_DIRECTORY = state.directory;
   environment.ZENITH_J4_API_ORIGIN = config.environment.NEXT_PUBLIC_SITE_URL;

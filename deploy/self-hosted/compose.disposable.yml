@@ -1,19 +1,32 @@
 # Engine fixture ONLY. All schemas/auth require one real isolated Supabase
-# project. Temporal CLI's SQLite dev server has no production HA guarantee.
+# project. Temporal's single-node SQLite server has no production HA guarantee.
+# Clients reach it only over mutual TLS with the installation's private CA.
 x-ownership: &ownership
   io.zenith.installation: ${ZENITH_INSTALLATION_ID:?prepare private configuration}
+x-temporal-client: &temporal-client
+  - ${ZENITH_PRIVATE_DIR:?prepare private configuration}/temporal-tls/ca.crt:/run/zenith-temporal/ca.crt:ro
+  - ${ZENITH_PRIVATE_DIR:?prepare private configuration}/temporal-tls/client.crt:/run/zenith-temporal/client.crt:ro
+  - ${ZENITH_PRIVATE_DIR:?prepare private configuration}/temporal-tls/client.key:/run/zenith-temporal/client.key:ro
 services:
   api:
     depends_on:
-      temporal: {condition: service_healthy}
+      temporal-setup: {condition: service_completed_successfully}
+    volumes: *temporal-client
   execution-worker:
     depends_on:
-      temporal: {condition: service_healthy}
+      temporal-setup: {condition: service_completed_successfully}
+    volumes: *temporal-client
   temporal:
-    image: temporalio/temporal:1.9.1@sha256:ad4c82c97bd12b417d1ea942610dbcd511afb250c4d5ed26c694009533df447e
+    image: temporalio/server:1.32.0@sha256:c3e752127759616bb1615e0f9ba0e21635aeb5fdeb922de4f371c350955f46ae
     user: '1000:1000'
-    command: [server, start-dev, --ip, 0.0.0.0, --port, '7233', --namespace, zenith-disposable, --db-filename, /home/temporal/temporal.db, --headless]
-    volumes: [temporal-data:/home/temporal]
+    entrypoint: [temporal-server]
+    command: [--config-file, /etc/zenith-temporal/server.yaml, start]
+    volumes:
+      - temporal-data:/home/temporal
+      - ./temporal-disposable.yaml:/etc/zenith-temporal/server.yaml:ro
+      - ${ZENITH_PRIVATE_DIR:?prepare private configuration}/temporal-tls/ca.crt:/run/zenith-temporal/ca.crt:ro
+      - ${ZENITH_PRIVATE_DIR:?prepare private configuration}/temporal-tls/server.crt:/run/zenith-temporal/server.crt:ro
+      - ${ZENITH_PRIVATE_DIR:?prepare private configuration}/temporal-tls/server.key:/run/zenith-temporal/server.key:ro
     networks: [installation]
     labels: *ownership
     read_only: true
@@ -24,10 +37,37 @@ services:
     mem_limit: 1g
     pids_limit: 128
     healthcheck:
-      test: [CMD, temporal, operator, cluster, health, --address, '127.0.0.1:7233']
+      # The frontend accepts only mTLS; temporal-setup proves the authenticated path.
+      test: [CMD, nc, -z, 127.0.0.1, '7233']
       interval: 5s
       timeout: 5s
       start_period: 20s
       retries: 20
+  temporal-setup:
+    image: temporalio/temporal:1.9.1@sha256:ad4c82c97bd12b417d1ea942610dbcd511afb250c4d5ed26c694009533df447e
+    user: '1000:1000'
+    depends_on:
+      temporal: {condition: service_healthy}
+    entrypoint: [/bin/sh, -ec]
+    command:
+      - >-
+        set -- --address temporal:7233 --tls-ca-path /run/zenith-temporal/ca.crt --tls-server-name temporal
+        --tls-cert-path /run/zenith-temporal/client.crt --tls-key-path /run/zenith-temporal/client.key --command-timeout 10s;
+        i=0; until temporal operator cluster health "$$@"; do i=$$((i+1)); [ $$i -lt 30 ] || exit 1; sleep 2; done;
+        temporal operator namespace describe --namespace zenith-disposable "$$@" >/dev/null 2>&1
+        || temporal operator namespace create --namespace zenith-disposable --retention 24h "$$@";
+        i=0; until temporal operator search-attribute list --namespace zenith-disposable "$$@" | grep -q 'ZenithScheduleOwner '
+        || temporal operator search-attribute create --namespace zenith-disposable --name ZenithScheduleOwner --type Keyword "$$@";
+        do i=$$((i+1)); [ $$i -lt 30 ] || exit 1; sleep 2; done
+    volumes: *temporal-client
+    networks: [installation]
+    labels: *ownership
+    restart: 'no'
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    cpus: 0.25
+    mem_limit: 128m
+    pids_limit: 32
 volumes:
   temporal-data: {labels: *ownership}

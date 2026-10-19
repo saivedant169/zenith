@@ -19,7 +19,7 @@ function prepared(): Parameters<typeof joinedConfiguration>[0] {
     environment: { NEXT_PUBLIC_SITE_URL: `http://127.0.0.1:${ports.api}`, SUPABASE_URL: `https://supabase.localhost:${ports.supabase}`, NEXT_PUBLIC_SUPABASE_URL: `https://supabase.localhost:${ports.supabase}`,
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: secret(), SUPABASE_SERVICE_ROLE_KEY: secret(),
       SUPABASE_DB_URL: `postgresql://postgres.pooler-dev:${secret()}@supabase-pooler:6543/postgres?sslmode=verify-full`,
-      ZENITH_TEMPORAL_ADDRESS: 'temporal:7233', ZENITH_TEMPORAL_NAMESPACE: 'zenith-disposable', ZENITH_TEMPORAL_TLS: 'false',
+      ZENITH_TEMPORAL_ADDRESS: 'temporal:7233', ZENITH_TEMPORAL_NAMESPACE: 'zenith-disposable', ZENITH_TEMPORAL_TLS: 'true',
       ZENITH_SECRET_KEY: secret(), ZENITH_PLAN_ARTIFACT_KEY: secret(),
       ZENITH_CONTROL_SIGNING_JWK: JSON.stringify(generateKeyPairSync('ed25519').privateKey.export({ format: 'jwk' })),
       ZENITH_OIDC_SIGNING_JWK: JSON.stringify(generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey.export({ format: 'jwk' })),
@@ -115,6 +115,13 @@ describe('default stack pure configuration contracts', () => {
       }
     }
     for (const volume of Object.values(stack.volumes)) expect(volume.labels[installationLabel]).toBe(fixture.installationId);
+    const client = ['ca.crt', 'client.crt', 'client.key'].map(name => `/private/installation/temporal-tls/${name}:/run/zenith-temporal/${name}:ro`);
+    for (const name of ['api', 'execution-worker', ...(profile === 'default' ? ['api-peer', 'execution-worker-peer'] : [])]) expect(stack.services[name].volumes).toEqual(expect.arrayContaining(client));
+    expect(stack.services['platform-migrate'].volumes.some(volume => volume.includes('/run/zenith-temporal/'))).toBe(false);
+    expect(stack.services.temporal.volumes).toContain(`${path.resolve(__dirname, '../../deploy/self-hosted/temporal-disposable.yaml')}:/etc/zenith-temporal/server.yaml:ro`);
+    expect(stack.services.temporal.volumes).toContain('/private/installation/temporal-tls/server.key:/run/zenith-temporal/server.key:ro');
+    expect(stack.services['temporal-setup'].volumes).toEqual(client);
+    expect(stack.services['temporal-setup'].ports).toBeUndefined();
     if (profile === 'default') {
       expect(stack.services['api-peer'].volumes[0]).toBe('api-peer-data:/data');
       expect(stack.services['execution-worker-peer'].volumes[0]).toBe(`worker-${peer.workerId}:/var/lib/zenith`);

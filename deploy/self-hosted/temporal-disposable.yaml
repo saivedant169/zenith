@@ -1,0 +1,39 @@
+# Disposable installation engine only: Temporal Server v1.32.0 on SQLite.
+# Every frontend and internode connection requires a client certificate from
+# the installation's private CA (issued by scripts/deploy/installation.mjs).
+# No production HA, public port, TLS bypass or secret material in this file.
+log: {stdout: true, level: warn}
+persistence:
+  numHistoryShards: 1
+  defaultStore: default
+  visibilityStore: visibility
+  datastores:
+    default:
+      sql: {pluginName: sqlite, databaseName: /home/temporal/temporal.db, connectAddr: localhost, connectProtocol: tcp, connectAttributes: {mode: rwc, setup: "true"}}
+    visibility:
+      sql: {pluginName: sqlite, databaseName: /home/temporal/temporal_visibility.db, connectAddr: localhost, connectProtocol: tcp, connectAttributes: {mode: rwc, setup: "true"}}
+global:
+  membership: {maxJoinDuration: 30s, broadcastAddress: 127.0.0.1}
+  tls:
+    internode:
+      server: {certFile: /run/zenith-temporal/server.crt, keyFile: /run/zenith-temporal/server.key, requireClientAuth: true, clientCaFiles: [/run/zenith-temporal/ca.crt]}
+      client: {serverName: temporal, rootCaFiles: [/run/zenith-temporal/ca.crt]}
+    frontend:
+      server: {certFile: /run/zenith-temporal/server.crt, keyFile: /run/zenith-temporal/server.key, requireClientAuth: true, clientCaFiles: [/run/zenith-temporal/ca.crt]}
+      client: {serverName: temporal, rootCaFiles: [/run/zenith-temporal/ca.crt]}
+services:
+  frontend: {rpc: {grpcPort: 7233, membershipPort: 6933, bindOnIP: 0.0.0.0, httpPort: 0}}
+  history: {rpc: {grpcPort: 7234, membershipPort: 6934, bindOnIP: 127.0.0.1}}
+  matching: {rpc: {grpcPort: 7235, membershipPort: 6935, bindOnIP: 127.0.0.1}}
+  worker: {rpc: {grpcPort: 7239, membershipPort: 6939, bindOnIP: 127.0.0.1}}
+publicClient: {hostPort: localhost:7233}
+clusterMetadata:
+  enableGlobalNamespace: false
+  failoverVersionIncrement: 10
+  masterClusterName: active
+  currentClusterName: active
+  clusterInformation:
+    active: {enabled: true, initialFailoverVersion: 1, rpcName: frontend, rpcAddress: "localhost:7233"}
+dcRedirectionPolicy: {policy: noop}
+archival: {history: {state: disabled, enableRead: false}, visibility: {state: disabled, enableRead: false}}
+namespaceDefaults: {archival: {history: {state: disabled}, visibility: {state: disabled}}}

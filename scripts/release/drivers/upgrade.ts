@@ -1,5 +1,6 @@
 /** DRV-3: operated expand/worker/API replacement, injected outage and image rollback. */
 import { Connection, WorkflowClient } from "@temporalio/client";
+import { connectionOptionsFor, temporalConfigFromEnv } from "../../../src/lib/workflows/config";
 import { compose, docker } from "../../acceptance/default-stack/runtime.mjs";
 import { GATE_SUITES, buildPlan, parseArgs } from "../../ops/rolling-upgrade.mjs";
 import { ensure, privateFile, kindReadback } from "../../../tests/e2e/default/support.mjs";
@@ -26,7 +27,7 @@ export async function runUpgrade(input: DriverInput): Promise<number> {
     }
     await session.step("compatibility-gates", () => session.gates(GATE_SUITES, { ZENITH_REPLAY_LANE: "1" }));
     let operationId = "", workflowId = "", runId = "";
-    const connection = await Connection.connect({ address: session.environment.ZENITH_TEMPORAL_ADDRESS });
+    const connection = await Connection.connect(connectionOptionsFor(temporalConfigFromEnv(session.environment)));
     session.finalizers.unshift(() => connection.close());
     const temporal = new WorkflowClient({ connection, namespace: session.prepared.environment.ZENITH_TEMPORAL_NAMESPACE });
     await session.step("browser-review-in-flight", async () => {

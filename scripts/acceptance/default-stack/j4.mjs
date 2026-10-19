@@ -8,6 +8,15 @@ import { assertPrivate, environmentsFor, readPrepared, sourceBinding, writeJson 
 import { cli, compose, inventory, readState, requireEngineGate, save } from './runtime.mjs';
 import { apiProbeRequest, poolerProbe, readiness as ordinaryReadiness, supabaseRequest } from './readiness.mjs';
 import { fail, ports } from './config.mjs';
+import { hostTemporalTls } from './env.mjs';
+
+/** Loopback client for the owned stack's mTLS Temporal frontend. */
+function hostConnection(state, port) {
+  const files = hostTemporalTls(state.directory);
+  return Connection.connect({ address: `127.0.0.1:${port}`, tls: { serverNameOverride: files.ZENITH_TEMPORAL_TLS_SERVER_NAME,
+    serverRootCACertificate: fs.readFileSync(files.ZENITH_TEMPORAL_TLS_CA_FILE),
+    clientCertPair: { crt: fs.readFileSync(files.ZENITH_TEMPORAL_TLS_CERT_FILE), key: fs.readFileSync(files.ZENITH_TEMPORAL_TLS_KEY_FILE) } } });
+}
 
 const hash = value => createHash('sha256').update(value).digest('hex');
 const canonicalEnvironmentFiles = ['api.env', 'worker.env', 'migration.env', 'compose.env', 'installation.json', 'keyring.json'];
@@ -115,7 +124,8 @@ export function deferredJ4Composition(document, apiEnvFile, namespace, temporalP
   delete result.services['execution-worker-peer'];
   delete result.services['api-peer'];
   result.services.api.env_file = [{ path: apiEnvFile, format: 'raw' }];
-  result.services.api.volumes = ['j4-api-data:/data', `${path.dirname(apiEnvFile)}/../tls/ca.crt:/run/zenith-ca.crt:ro`];
+  result.services.api.volumes = ['j4-api-data:/data', `${path.dirname(apiEnvFile)}/../tls/ca.crt:/run/zenith-ca.crt:ro`,
+    ...(document.services.api.volumes ?? []).filter((/** @type {string} */ mount) => mount.includes(':/run/zenith-temporal/'))];
   result.volumes['j4-api-data'] = { labels: { 'io.zenith.installation': result.services.api.labels['io.zenith.installation'] } };
   result.services.temporal.ports = [`127.0.0.1:${temporalPort}:7233`];
   return result;
@@ -136,7 +146,7 @@ export function prepareJ4Ownership(state, config, compositionBytes, j4 = {}, def
   if (api.SUPABASE_DB_URL !== api.ZENITH_PLATFORM_DB_URL || api.ZENITH_STORE !== 'postgres' || api.ZENITH_PLATFORM_DB !== 'postgres') fail('j4-database-join');
   const j4Data = path.join(dir, 'data'), j4Home = path.join(dir, 'home'), j4PlanDirectory = path.join(j4Data, 'plans');
   const worker = { ...generated['worker.env'], ZENITH_SERVERLESS: '1', ZENITH_BILLING: 'managed', ZENITH_PLATFORM_DB_MAX: '2',
-    ZENITH_TEMPORAL_NAMESPACE: j4.namespace, ZENITH_TEMPORAL_ADDRESS: `127.0.0.1:${j4.temporalPort}`,
+    ZENITH_TEMPORAL_NAMESPACE: j4.namespace, ZENITH_TEMPORAL_ADDRESS: `127.0.0.1:${j4.temporalPort}`, ...hostTemporalTls(state.directory),
     ZENITH_DATA: j4Data, HOME: j4Home, ZENITH_WORKER_PLAN_DIR: j4PlanDirectory, ZENITH_J4_API_ORIGIN: config.environment.NEXT_PUBLIC_SITE_URL,
     ZENITH_J4_CRON_SECRET_FILE: path.join(dir, 'cron.secret') };
   for (const directory of [worker.ZENITH_DATA, worker.HOME, worker.ZENITH_WORKER_PLAN_DIR]) fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
@@ -189,7 +199,7 @@ async function temporalReadinessRpc(connection, label, operation, deadline, grpc
 }
 
 async function temporalAdmission(state, namespace, port) {
-  const connection = await Connection.connect({ address: `127.0.0.1:${port}` });
+  const connection = await hostConnection(state, port);
   try {
     // A NOT_FOUND before registration is the only admissible absence signal.
     // Do not retry registration: it is the one permitted namespace mutation.
@@ -287,7 +297,7 @@ export async function pollersSettled(describe, settleMs, intervalMs = 5_000) {
 }
 
 async function assertTemporalClean(state, phase, pollerSettleMs = 0) {
-  const connection = await Connection.connect({ address: `127.0.0.1:${state.j4TemporalPort}` });
+  const connection = await hostConnection(state, state.j4TemporalPort);
   try {
     const client = new Client({ connection, namespace: state.j4Namespace });
     const workflows = await connection.workflowService.listWorkflowExecutions({ namespace: state.j4Namespace, query: "ExecutionStatus='Running'" });
@@ -306,13 +316,22 @@ async function j4Services(state, apiExpected) {
   const services = resources.filter(resource => resource.kind === 'container'
     && resource.item.Config?.Labels?.['com.docker.compose.project'] === state.applicationProjectName)
     .map(resource => ({ name: resource.item.Config.Labels['com.docker.compose.service'], running: resource.item.State?.Running === true,
-      healthy: resource.item.State?.Health?.Status === 'healthy' }));
+      healthy: resource.item.State?.Health?.Status === 'healthy', exitCode: resource.item.State?.ExitCode }));
+  return checkJ4Services(services, apiExpected);
+}
+
+/** Deferred J4 admits only Temporal, the edge, the API when expected and its completed namespace setup.
+ * @param {{name?: string, running: boolean, healthy: boolean, exitCode?: number}[]} services @param {boolean} apiExpected */
+export function checkJ4Services(services, apiExpected) {
   if (services.some(service => service.name?.includes('execution-worker') || service.name === 'api-peer')) fail('j4-worker-started-before-admission');
   if (services.filter(service => service.name === 'temporal').length !== 1 || !services.find(service => service.name === 'temporal')?.healthy) fail('j4-temporal-service');
   if (services.filter(service => service.name === 'supabase-edge').length !== 1 || !services.find(service => service.name === 'supabase-edge')?.running) fail('j4-supabase-edge-service');
   if (apiExpected && (services.filter(service => service.name === 'api').length !== 1 || !services.find(service => service.name === 'api')?.healthy)) fail('j4-api-service');
   if (!apiExpected && services.some(service => service.name === 'api')) fail('j4-api-started-before-admission');
-  if (services.length !== (apiExpected ? 3 : 2)) fail('j4-unexpected-service');
+  // The one-shot namespace setup runs with the API and must have completed successfully.
+  const setup = services.filter(service => service.name === 'temporal-setup');
+  if ((apiExpected ? setup.length !== 1 : setup.length > 1) || setup.some(service => service.running || service.exitCode !== 0)) fail('j4-temporal-setup-service');
+  if (services.length !== (apiExpected ? 3 : 2) + setup.length) fail('j4-unexpected-service');
   return { temporalHealthy: true, supabaseEdgeRunning: true, apiHealthy: apiExpected, executionWorkers: 0, services: services.map(service => service.name).sort() };
 }
 
@@ -406,7 +425,7 @@ export function j4HostEnvironment(state) {
   const env = { ...environmentsFor(config, path.join(state.directory, 'installation'))['worker.env'], NODE_EXTRA_CA_CERTS: path.join(state.directory, 'tls/ca.crt') };
   const pooler = new URL(config.environment.SUPABASE_DB_URL); pooler.hostname = 'localhost'; pooler.port = String(ports.pooler);
   env.SUPABASE_DB_URL = env.ZENITH_PLATFORM_DB_URL = env.ZENITH_PLATFORM_MIGRATION_URL = pooler.href;
-  env.ZENITH_TEMPORAL_ADDRESS = `127.0.0.1:${state.j4TemporalPort}`;
+  env.ZENITH_TEMPORAL_ADDRESS = `127.0.0.1:${state.j4TemporalPort}`; Object.assign(env, hostTemporalTls(state.directory));
   env.ZENITH_TEMPORAL_NAMESPACE = state.j4Namespace; env.ZENITH_PLATFORM_DB_MAX = '2'; env.ZENITH_SERVERLESS = '1'; env.ZENITH_BILLING = 'managed';
   env.ZENITH_DATA = path.join(state.directory, 'j4/data'); env.HOME = path.join(state.directory, 'j4/home');
   env.ZENITH_WORKER_PLAN_DIR = path.join(env.ZENITH_DATA, 'plans'); env.ZENITH_J4_API_ORIGIN = config.environment.NEXT_PUBLIC_SITE_URL;

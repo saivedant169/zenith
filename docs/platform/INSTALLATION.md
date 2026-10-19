@@ -75,6 +75,14 @@ SQLite development server does not establish production HA or recovery. The root
   it must not disable authentication or TLS. Use the server's supported durable
   persistence/visibility databases, replicas across failure domains, backups and
   namespace retention. CLI `start-dev` proves none of those properties.
+- Disposable Temporal is one Temporal Server 1.32.0 on SQLite
+  (`deploy/self-hosted/temporal-disposable.yaml`) that accepts only mutual TLS.
+  Preparation issues a private CA, a `temporal` server leaf and one client leaf into
+  `temporal-tls/`, then deletes the CA key. The API, worker and the one-shot
+  `temporal-setup` service (which registers `zenith-disposable`) mount only the client
+  files, read-only; a joined worker receives copies of those three. The files are
+  0600 for the preparing user: Docker Desktop shares them with container users, a
+  native Linux engine needs them owned by the container uids.
 - The HTTPS ingress must preserve the configured `Host` and enforce TLS. Agent
   origin checks do not trust forwarded-host headers. The API publishes only on
   loopback; no PostgreSQL or Temporal ports are published.

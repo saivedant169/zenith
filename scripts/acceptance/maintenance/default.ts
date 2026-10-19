@@ -5,6 +5,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { Client, Connection, ScheduleNotFoundError } from "@temporalio/client";
 import { temporalDataConverterFromEnv } from "@/lib/workflows/codec";
+import { connectionOptionsFor, temporalConfigFromEnv } from "@/lib/workflows/config";
 import { openPlatformDb, repos } from "@/lib/controlplane/db";
 import { withLease } from "@/lib/controlplane/leases";
 import { CRITICAL_JOBS } from "@/lib/platform/critical-jobs";
@@ -82,7 +83,7 @@ export async function defaultMaintenanceAcceptance(): Promise<Record<string, unk
     phase = "preconditions";
     const epoch = await assertMaintenancePreconditions(db, process.env);
     phase = "temporal_setup";
-    connection = await Connection.connect({ address: process.env.ZENITH_TEMPORAL_ADDRESS });
+    connection = await Connection.connect(connectionOptionsFor(temporalConfigFromEnv()));
     const client = new Client({ connection, namespace: process.env.ZENITH_TEMPORAL_NAMESPACE, dataConverter });
     for (const id of [CRITICAL_SCHEDULE_ID, RECONCILE_SCHEDULE_ID]) await assert.rejects(client.schedule.getHandle(id).describe(), ScheduleNotFoundError);
     for (const taskQueueType of [1, 2]) {

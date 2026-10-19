@@ -105,7 +105,7 @@ export function validateInput(input, prepared = false) {
     if (input.mode === 'production') {
       if (loopback(address.hostname) || env.ZENITH_TEMPORAL_TLS !== 'true') refuse('ZENITH_TEMPORAL_TLS');
       if (text(env.ZENITH_TEMPORAL_API_KEY, 'ZENITH_TEMPORAL_API_KEY').length < 20) refuse('ZENITH_TEMPORAL_API_KEY');
-    } else if (address.host !== 'temporal:7233' || env.ZENITH_TEMPORAL_TLS !== 'false'
+    } else if (address.host !== 'temporal:7233' || env.ZENITH_TEMPORAL_TLS !== 'true'
       || env.ZENITH_TEMPORAL_API_KEY) refuse('disposable-engine-binding');
   } else if (['ZENITH_TEMPORAL_ADDRESS', 'ZENITH_TEMPORAL_NAMESPACE', 'ZENITH_TEMPORAL_TLS', 'ZENITH_TEMPORAL_API_KEY'].some(key => env[key])) {
     refuse('disposable-engine-overrides');
@@ -153,7 +153,7 @@ export function installationEnvironment(input) {
   const environment = { ...input.environment, ZENITH_PLATFORM_DB_URL: input.environment.SUPABASE_DB_URL };
   if (input.mode === 'disposable') Object.assign(environment, {
     ZENITH_PLATFORM_MIGRATION_URL: localMigrationUrl(new URL(environment.SUPABASE_DB_URL)),
-    ZENITH_TEMPORAL_ADDRESS: 'temporal:7233', ZENITH_TEMPORAL_NAMESPACE: 'zenith-disposable', ZENITH_TEMPORAL_TLS: 'false',
+    ZENITH_TEMPORAL_ADDRESS: 'temporal:7233', ZENITH_TEMPORAL_NAMESPACE: 'zenith-disposable', ZENITH_TEMPORAL_TLS: 'true',
   });
   return environment;
 }
@@ -202,14 +202,50 @@ export function writeJson(location, value) { fs.writeFileSync(location, `${JSON.
  * @param {string} location @param {Record<string,string>} env */
 function writeEnv(location, env) { fs.writeFileSync(location, Object.entries(env).map(([k, v]) => `${k}=${v}`).join('\n') + '\n', { mode: 0o600, flag: 'wx' }); }
 
+export const TEMPORAL_TLS_FILES = Object.freeze(['ca.crt', 'server.crt', 'server.key', 'client.crt', 'client.key']);
+/** Paths inside the API/worker containers; compose.disposable.yml mounts them read-only. */
+const disposableTemporalClient = Object.freeze({ ZENITH_TEMPORAL_TLS_CA_FILE: '/run/zenith-temporal/ca.crt',
+  ZENITH_TEMPORAL_TLS_CERT_FILE: '/run/zenith-temporal/client.crt', ZENITH_TEMPORAL_TLS_KEY_FILE: '/run/zenith-temporal/client.key',
+  ZENITH_TEMPORAL_TLS_SERVER_NAME: 'temporal' });
+/** One private CA per disposable installation; its key is discarded once both leaves exist.
+ * shortcut: files are 0600 for the preparing user, which Docker Desktop shares with container
+ * users; a native Linux engine needs the files owned by the container uids instead.
+ * @param {string} dir */
+function issueTemporalTls(dir) {
+  const tls = path.join(dir, 'temporal-tls'); fs.mkdirSync(tls, { mode: 0o700 });
+  const openssl = (/** @type {string[]} */ args) => {
+    if (spawnSync('openssl', args, { cwd: tls, stdio: 'ignore', timeout: 30_000 }).status !== 0) refuse('temporal-tls');
+  };
+  openssl(['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-sha256', '-days', '30', '-subj', '/CN=Zenith disposable Temporal CA',
+    '-addext', 'basicConstraints=critical,CA:TRUE', '-addext', 'keyUsage=critical,keyCertSign,cRLSign', '-keyout', 'ca.key', '-out', 'ca.crt']);
+  for (const [name, usage, names] of [['server', 'serverAuth,clientAuth', 'DNS:temporal,DNS:localhost,IP:127.0.0.1'], ['client', 'clientAuth', 'DNS:zenith-client.invalid']]) {
+    fs.writeFileSync(path.join(tls, `${name}.ext`), `basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=${usage}\nsubjectAltName=${names}\n`, { mode: 0o600, flag: 'wx' });
+    openssl(['req', '-new', '-newkey', 'rsa:2048', '-nodes', '-sha256', '-subj', `/CN=zenith-temporal-${name}`, '-keyout', `${name}.key`, '-out', `${name}.csr`]);
+    openssl(['x509', '-req', '-sha256', '-days', '30', '-in', `${name}.csr`, '-CA', 'ca.crt', '-CAkey', 'ca.key', '-CAcreateserial', '-extfile', `${name}.ext`, '-out', `${name}.crt`]);
+    for (const extra of [`${name}.csr`, `${name}.ext`]) fs.rmSync(path.join(tls, extra));
+  }
+  fs.rmSync(path.join(tls, 'ca.key')); fs.rmSync(path.join(tls, 'ca.srl'), { force: true });
+  if (fs.readdirSync(tls).sort().join() !== [...TEMPORAL_TLS_FILES].sort().join()) refuse('temporal-tls');
+  for (const name of TEMPORAL_TLS_FILES) fs.chmodSync(path.join(tls, name), 0o600);
+}
+const TEMPORAL_CLIENT_FILES = Object.freeze(['ca.crt', 'client.crt', 'client.key']);
+/** @param {string} dir @param {readonly string[]} names */
+function assertTemporalTls(dir, names) {
+  assertPrivate(path.join(dir, 'temporal-tls'), true);
+  for (const name of names) assertPrivate(path.join(dir, 'temporal-tls', name));
+}
+
 /** @param {PreparedInstallation} config @param {string} dir @returns {Record<string,Record<string,string>>} */
 export function environmentsFor(config, dir) {
   const { ZENITH_PLATFORM_MIGRATION_URL: migrationUrl, ZENITH_PLAN_ARTIFACT_KEY: artifactKey, ...runtime } = config.environment;
   const common = { ...runtime, NODE_ENV: 'production', ZENITH_STORE: 'postgres', ZENITH_HOSTED_STORE: 'postgres', ZENITH_PLATFORM_DB: 'postgres', ZENITH_PLATFORM_DB_MAX: '5',
-    ZENITH_AGENT_CONTROL: '1', ZENITH_AGENT_ORIGIN: runtime.NEXT_PUBLIC_SITE_URL, ZENITH_OIDC_ISSUER: `${runtime.NEXT_PUBLIC_SITE_URL}/api/oidc` };
+    ZENITH_AGENT_CONTROL: '1', ZENITH_AGENT_ORIGIN: runtime.NEXT_PUBLIC_SITE_URL, ZENITH_OIDC_ISSUER: `${runtime.NEXT_PUBLIC_SITE_URL}/api/oidc`,
+    ...(config.mode === 'disposable' ? disposableTemporalClient : {}) };
   return {
     'api.env': { ...common, PORT: '3400', HOSTNAME: '0.0.0.0', ZENITH_DATA: '/data' },
-    'worker.env': { ...common, ZENITH_PLAN_ARTIFACT_KEY: artifactKey, ZENITH_DATA: '/var/lib/zenith', HOME: '/var/lib/zenith', ZENITH_WORKER_PLAN_DIR: '/var/lib/zenith/plans', ZENITH_WORKER_HEALTH_PORT: '9464', ZENITH_WORKER_TASK_QUEUE: 'zenith-execution' },
+    'worker.env': { ...common, ZENITH_PLAN_ARTIFACT_KEY: artifactKey, ZENITH_DATA: '/var/lib/zenith', HOME: '/var/lib/zenith', ZENITH_WORKER_PLAN_DIR: '/var/lib/zenith/plans', ZENITH_WORKER_HEALTH_PORT: '9464', ZENITH_WORKER_TASK_QUEUE: 'zenith-execution',
+      // A disposable installation owns its whole engine and namespace; production keeps the operator's observe default.
+      ...(config.mode === 'disposable' ? { ZENITH_WORKER_RECONCILE_SCHEDULE_MODE: 'provision' } : {}) },
     'migration.env': { NODE_ENV: 'production', ZENITH_PLATFORM_DB: 'postgres', ZENITH_PLATFORM_DB_URL: migrationUrl, ZENITH_PLATFORM_DB_MAX: '1' },
     'compose.env': { ZENITH_INSTALLATION_ID: config.installationId, ZENITH_PRIVATE_DIR: dir, ZENITH_API_PORT: String(config.apiPort), ZENITH_API_IMAGE: config.images.api, ZENITH_WORKER_IMAGE: config.images.worker, ZENITH_MIGRATION_IMAGE: config.images.migration },
   };
@@ -233,6 +269,7 @@ export function prepare(input, directory) {
   validateInput(result, true);
   fs.mkdirSync(dir, { mode: 0o700, recursive: true });
   assertPrivate(dir, true);
+  if (result.mode === 'disposable') issueTemporalTls(dir);
   writeJson(path.join(dir, 'installation.json'), result);
   writeJson(path.join(dir, 'keyring.json'), result);
   for (const [name, env] of Object.entries(environmentsFor(result, dir))) writeEnv(path.join(dir, name), env);
@@ -260,6 +297,11 @@ export function prepareJoin(keyringFile, directory) {
   const config = joinedConfiguration(parent, randomBytes(12).toString('hex'));
   fs.mkdirSync(dir, { mode: 0o700, recursive: true });
   assertPrivate(dir, true);
+  if (config.mode === 'disposable') {
+    fs.mkdirSync(path.join(dir, 'temporal-tls'), { mode: 0o700 });
+    for (const name of TEMPORAL_CLIENT_FILES) fs.copyFileSync(path.join(path.dirname(file), 'temporal-tls', name), path.join(dir, 'temporal-tls', name), fs.constants.COPYFILE_EXCL);
+    for (const name of TEMPORAL_CLIENT_FILES) fs.chmodSync(path.join(dir, 'temporal-tls', name), 0o600);
+  }
   writeJson(path.join(dir, 'installation.json'), config);
   for (const [name, env] of Object.entries(environmentsFor(config, dir))) writeEnv(path.join(dir, name), env);
   writeJson(path.join(dir, 'worker.compose.json'), joinComposition(config, dir));
@@ -277,7 +319,7 @@ export function joinComposition(config, directory) {
     image: config.images.worker, user: '10001:10001', read_only: true, init: true,
     restart: 'unless-stopped', cap_drop: ['ALL'], security_opt: ['no-new-privileges:true'], labels,
     env_file: [{ path: path.join(privateLocation(directory), 'worker.env'), format: 'raw' }],
-    volumes: [`${volume}:/var/lib/zenith`], networks: ['installation'],
+    volumes: [`${volume}:/var/lib/zenith`, ...(config.mode === 'disposable' ? TEMPORAL_CLIENT_FILES.map(name => `${path.join(privateLocation(directory), 'temporal-tls', name)}:/run/zenith-temporal/${name}:ro`) : [])], networks: ['installation'],
     tmpfs: ['/tmp:rw,nosuid,size=256m,uid=10001,gid=10001,mode=1770'],
     cpus: 1, mem_limit: '1g', pids_limit: 512, stop_grace_period: '11m',
     healthcheck: { test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:9464/readyz',{signal:AbortSignal.timeout(4000)}).then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"], interval: '15s', timeout: '5s', start_period: '60s', retries: 8 },
@@ -308,6 +350,7 @@ export function readPrepared(directory) {
   assertPreparedVersion(config);
   if (!/^[a-f0-9]{24}$/.test(config.installationId) || config.projectName !== `zenith-${config.installationId}`) refuse('installation-identity');
   validateInput(config, true);
+  if (config.mode === 'disposable') assertTemporalTls(dir, config.workerId ? TEMPORAL_CLIENT_FILES : TEMPORAL_TLS_FILES);
   for (const [name, env] of Object.entries(environmentsFor(config, dir))) {
     const file = path.join(dir, name);
     assertPrivate(file);

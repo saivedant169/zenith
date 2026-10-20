@@ -69,7 +69,8 @@ describe.skipIf(!enabled)("J14 real Cilium Gateway tenant attachment and routing
       // The service uses the helper's actual labels, never an assumed selector.
       apply([{ apiVersion:"v1",kind:"Service",metadata:{name:"backend",namespace:namespaces[i]},spec:{selector:pod.metadata.labels,ports:[{port:8080,targetPort:8080}] } },route(t,"own")]);
       await routeStatus(namespaces[i],"own","Accepted","True"); await routeStatus(namespaces[i],"own","ResolvedRefs","True");
-      const service = await eventually(`Gateway service ${names.gateway}`,() => kube.json<any>(["-n",gatewayNamespace,"get","service",`cilium-gateway-${names.gateway}`]),{ timeoutMs:180_000 });
+      // Cilium shortens long Service names to 63 characters; select by the Gateway API owner label instead.
+      const service = await eventually(`Gateway service ${names.gateway}`,() => { const items = kube.json<any>(["-n",gatewayNamespace,"get","service","-l",`gateway.networking.k8s.io/gateway-name=${names.gateway}`])?.items ?? []; return items.length === 1 ? items[0] : undefined; },{ timeoutMs:180_000 });
       expect(service.spec.type).toBe("LoadBalancer");
       const port = service.spec.ports.find((p: any) => p.port === 443)?.nodePort; expect(port).toBeGreaterThanOrEqual(30000); nodePorts.push(port);
     }

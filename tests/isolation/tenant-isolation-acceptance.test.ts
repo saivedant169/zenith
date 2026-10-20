@@ -49,6 +49,7 @@
  * docs/platform/TENANT-ISOLATION.md); noisy-neighbour behaviour at production node sizes.
  * The evidence file names the cluster, the engine and every check.
  */
+import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -73,6 +74,27 @@ const LONG = 600_000;
 const META_IP = "169.254.169.254";
 const PUBLIC_A = "203.0.113.10"; // TEST-NET-3: public address space as far as the policy is concerned
 const PUBLIC_B = "203.0.113.11";
+// Cilium enforces toFQDNs on resolved addresses, so the wildcard name needs its own address or it shares allowed.*'s.
+const PUBLIC_C = "203.0.113.12";
+
+/** Listeners on `addrs` in one owned container on the kind network, with /32 routes to it on every node of `cluster`. Returns its cleanup. */
+function startExternalFixture(cluster: string, addrs: string[], image: string, run: string): () => string[] {
+  const docker = (args: string[]) => { const r = spawnSync("docker", args, { encoding: "utf8", timeout: 120_000 }); if (r.status !== 0) throw new Error(`docker ${args[0]} failed: ${(r.stderr || "").slice(0, 300)}`); return r.stdout.trim(); };
+  const nodes = docker(["ps", "--filter", `label=io.x-k8s.kind.cluster=${cluster}`, "--format", "{{.Names}}"]).split("\n").filter(Boolean);
+  expect(nodes.length, "owned kind nodes").toBeGreaterThan(0);
+  const name = `zenith-iso-fixture-${run}`;
+  const script = `mkdir -p /www && echo ok > /www/index.html; for a in ${addrs.join(" ")}; do ip addr add $a/32 dev lo; httpd -f -p $a:443 -h /www & done; wait`;
+  docker(["run", "-d", "--name", name, "--label", `zenith.dev/acceptance-run=${run}`, "--network", "kind", "--cap-add", "NET_ADMIN", image, "sh", "-c", script]);
+  const ip = docker(["inspect", "-f", '{{(index .NetworkSettings.Networks "kind").IPAddress}}', name]);
+  expect(ip, "fixture address on the kind network").toMatch(/^\d+\.\d+\.\d+\.\d+$/);
+  for (const node of nodes) for (const a of addrs) docker(["exec", node, "ip", "route", "replace", `${a}/32`, "via", ip]);
+  return () => {
+    const notes: string[] = [];
+    for (const node of nodes) for (const a of addrs) if (spawnSync("docker", ["exec", node, "ip", "route", "del", `${a}/32`]).status !== 0) notes.push(`route ${a} on ${node} was not removed`);
+    if (spawnSync("docker", ["rm", "-f", name]).status !== 0) notes.push(`fixture container ${name} was not removed`);
+    return notes;
+  };
+}
 
 // A static title: the wave6 gate manifest matches it exactly; the profile is recorded in the evidence file.
 describe.skipIf(!enabled)("PROD-MAN-04/05 two untrusted tenants on a real cluster", () => {
@@ -93,6 +115,7 @@ describe.skipIf(!enabled)("PROD-MAN-04/05 two untrusted tenants on a real cluste
   let createdSystemNs = false;
   let probes = 0;
   let corednsOriginal: string | undefined;
+  let external: (() => string[]) | undefined;
   let victimIp = "";
   let victimAIp = "";
   const evidence: { requirement: string; profile: string; startedAt: string; finishedAt?: string; cluster?: Record<string, unknown>; checks: Record<string, Record<string, unknown>> } = {
@@ -162,42 +185,49 @@ describe.skipIf(!enabled)("PROD-MAN-04/05 two untrusted tenants on a real cluste
     applyOk([ns(gwNs), ns(fxNs, { "pod-security.kubernetes.io/enforce": "privileged" }), ...(createdSystemNs ? [ns(operatorNs)] : [])]);
 
     // the fixtures: a listener on a metadata address and on two public-looking addresses, on every node
-    const addrs = [META_IP, PUBLIC_A, PUBLIC_B];
-    applyOk([
-      labelled({
-        apiVersion: "apps/v1",
-        kind: "DaemonSet",
-        metadata: { name: "fixture-addrs", namespace: fxNs, labels: {} },
-        spec: {
-          selector: { matchLabels: { app: "fixture-addrs" } },
-          template: {
-            metadata: { labels: { app: "fixture-addrs" } },
-            spec: {
-              hostNetwork: true,
-              terminationGracePeriodSeconds: 5,
-              tolerations: [{ operator: "Exists" }],
-              containers: [
-                {
-                  name: "addrs",
-                  image,
-                  securityContext: { privileged: true, runAsUser: 0 },
-                  command: [
-                    "/bin/sh",
-                    "-c",
-                    `mkdir -p /www && echo ok > /www/index.html
-for a in ${addrs.join(" ")}; do ip addr add $a/32 dev lo 2>/dev/null || true; done
-trap 'for a in ${addrs.join(" ")}; do ip addr del $a/32 dev lo 2>/dev/null; done; exit 0' TERM INT
-for a in ${addrs.join(" ")}; do httpd -f -p $a:443 -h /www & done
-wait`,
-                  ],
-                },
-              ],
+    const addrs = [META_IP, PUBLIC_A, PUBLIC_B, PUBLIC_C];
+    if (fqdnMode) {
+      // Cilium gives any address on a node the reserved:host identity, which toFQDNs and toCIDR never select. Serve the
+      // fixture addresses from a container beside the nodes so the hostname allow and the metadata deny are both real.
+      external = startExternalFixture(context.slice("kind-".length), addrs, image, run);
+      record("network", { fixture: "external container on the kind network" });
+    } else {
+      applyOk([
+        labelled({
+          apiVersion: "apps/v1",
+          kind: "DaemonSet",
+          metadata: { name: "fixture-addrs", namespace: fxNs, labels: {} },
+          spec: {
+            selector: { matchLabels: { app: "fixture-addrs" } },
+            template: {
+              metadata: { labels: { app: "fixture-addrs" } },
+              spec: {
+                hostNetwork: true,
+                terminationGracePeriodSeconds: 5,
+                tolerations: [{ operator: "Exists" }],
+                containers: [
+                  {
+                    name: "addrs",
+                    image,
+                    securityContext: { privileged: true, runAsUser: 0 },
+                    command: [
+                      "/bin/sh",
+                      "-c",
+                      `mkdir -p /www && echo ok > /www/index.html
+  for a in ${addrs.join(" ")}; do ip addr add $a/32 dev lo 2>/dev/null || true; done
+  trap 'for a in ${addrs.join(" ")}; do ip addr del $a/32 dev lo 2>/dev/null; done; exit 0' TERM INT
+  for a in ${addrs.join(" ")}; do httpd -f -p $a:443 -h /www & done
+  wait`,
+                    ],
+                  },
+                ],
+              },
             },
           },
-        },
-      }),
-    ]);
-    kube.must(["-n", fxNs, "rollout", "status", "daemonset/fixture-addrs", "--timeout=180s"], { timeoutMs: 200_000 });
+        }),
+      ]);
+      kube.must(["-n", fxNs, "rollout", "status", "daemonset/fixture-addrs", "--timeout=180s"], { timeoutMs: 200_000 });
+    }
     await sleep(3000);
 
     // the two tenants, from the real generators, validated before they are applied
@@ -225,6 +255,7 @@ wait`,
       kube.run(["-n", "kube-system", "patch", "configmap", "coredns", "--type", "merge", "-p", JSON.stringify({ data: { Corefile: corednsOriginal } })]);
       kube.run(["-n", "kube-system", "rollout", "restart", "deployment/coredns"]);
     }
+    if (external) notes.push(...external());
     evidence.finishedAt = new Date().toISOString();
     if (notes.length) record("cleanup", { notes });
     const out = process.env.ZENITH_TEST_ISOLATION_EVIDENCE_OUT;
@@ -414,7 +445,8 @@ wait`,
         const cm = kube.json<any>(["-n", "kube-system", "get", "configmap", "coredns"]);
         corednsOriginal = String(cm.data.Corefile);
         const hosts = `    hosts {
-      ${PUBLIC_A} allowed.isolation.test sub.wild.isolation.test
+      ${PUBLIC_A} allowed.isolation.test
+      ${PUBLIC_C} sub.wild.isolation.test
       ${PUBLIC_B} denied.isolation.test
       ${META_IP} rebind.isolation.test
       fallthrough

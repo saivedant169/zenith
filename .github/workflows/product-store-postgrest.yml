@@ -54,8 +54,19 @@ jobs:
           set -euo pipefail
           test "$(docker ps -aq | wc -l)" -eq 0
           supabase --version
-          supabase start --exclude "$SUPABASE_EXCLUDE"
-          supabase status -o env > "$RUNNER_TEMP/supabase.env"
+          # supabase/config.toml carries keys newer than this pinned CLI accepts
+          # (config.local_smtp, experimental.pgdelta); the stack only needs the
+          # database, Auth and PostgREST, so use a minimal config over the same migrations.
+          work="$RUNNER_TEMP/supabase-project"; mkdir -p "$work/supabase"
+          cp -R supabase/migrations "$work/supabase/migrations"
+          printf '%s\n' 'project_id = "zenith-product-store-ci"' '[api]' 'enabled = true' 'port = 54321' \
+            'schemas = ["public", "graphql_public"]' 'extra_search_path = ["public", "extensions"]' \
+            '[db]' 'port = 54322' 'shadow_port = 54320' 'major_version = 17' '[db.migrations]' 'enabled = true' \
+            '[db.seed]' 'enabled = false' '[studio]' 'enabled = false' '[inbucket]' 'enabled = false' \
+            '[auth]' 'enabled = true' 'site_url = "http://127.0.0.1:3400"' > "$work/supabase/config.toml"
+          echo "SUPABASE_WORKDIR=$work" >> "$GITHUB_ENV"
+          supabase start --workdir "$work" --exclude "$SUPABASE_EXCLUDE"
+          supabase status --workdir "$work" -o env > "$RUNNER_TEMP/supabase.env"
           # CLI 2.x prints API_URL and SERVICE_ROLE_KEY (newer builds also SECRET_KEY).
           api=$(sed -n 's/^API_URL="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' "$RUNNER_TEMP/supabase.env")
           key=$(sed -n 's/^SERVICE_ROLE_KEY="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' "$RUNNER_TEMP/supabase.env")
@@ -93,7 +104,7 @@ jobs:
       - name: Stop the disposable stack
         if: always()
         run: |
-          supabase stop --no-backup || true
+          supabase stop --workdir "${SUPABASE_WORKDIR:-.}" --no-backup || true
           docker ps -a --format '{{.Names}} {{.Status}}'
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

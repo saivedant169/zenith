@@ -5147,7 +5147,7 @@
       ],
       "owner": null,
       "testPaths": [],
-      "implementationNotes": "Final integration: migration chain 1..58, shared human step-up, owned-stack and live-helper joins assembled. Local checks in verify/FINAL-INTEGRATION.md; Mac engine/browser/live verification remains pending. No verification promotion."
+      "implementationNotes": "Final integration: migration chain 1..58, shared human step-up, owned-stack and live-helper joins assembled. Local checks in verify/FINAL-INTEGRATION.md; Mac engine/browser/live verification remains pending. No verification promotion. 2026-10-21: owner approved the isolated-build seccomp, AppArmor zenith-build and zenith-build-gvisor RuntimeClass profiles as drafted in docs/build/production/verify/ISOLATED-BUILD-PROFILES-REVIEW.md (66704e8f), with instructions to validate them on a Linux runner and wire them in. Validation and wiring pending; no runtime acceptance yet."
     },
     {
       "id": "PROD-LIFE-09",
@@ -5160,7 +5160,7 @@
         "PROD-CI-09"
       ],
       "implementationStatus": "implementation_complete_verification_pending",
-      "implementationNotes": "J6 Step 2 joins default native/managed factories, tenant vault/RBAC custody, protected node runtime proofs, reviewed build semantics and immutable native source migration 59. Release-join collision repaired by assembly. Contract checks run locally; real PG/kind/Temporal/default-product SQL and HTTP acceptance awaits Mac gated harnesses. Final integration: migration chain 1..58, shared human step-up, owned-stack and live-helper joins assembled. Local checks in verify/FINAL-INTEGRATION.md; Mac engine/browser/live verification remains pending. No verification promotion.",
+      "implementationNotes": "J6 Step 2 joins default native/managed factories, tenant vault/RBAC custody, protected node runtime proofs, reviewed build semantics and immutable native source migration 59. Release-join collision repaired by assembly. Contract checks run locally; real PG/kind/Temporal/default-product SQL and HTTP acceptance awaits Mac gated harnesses. Final integration: migration chain 1..58, shared human step-up, owned-stack and live-helper joins assembled. Local checks in verify/FINAL-INTEGRATION.md; Mac engine/browser/live verification remains pending. No verification promotion. 2026-10-21: owner approved the isolated-build seccomp, AppArmor zenith-build and zenith-build-gvisor RuntimeClass profiles as drafted in docs/build/production/verify/ISOLATED-BUILD-PROFILES-REVIEW.md (66704e8f), with instructions to validate them on a Linux runner and wire them in. Validation and wiring pending; no runtime acceptance yet.",
       "evidence": [
         {
           "level": "contract",
@@ -5219,7 +5219,7 @@
         "PROD-CI-09"
       ],
       "implementationStatus": "implementation_complete_verification_pending",
-      "implementationNotes": "J6 Step 2 joins default native/managed factories, tenant vault/RBAC custody, protected node runtime proofs, reviewed build semantics and immutable native source migration 59. Release-join collision repaired by assembly. Contract checks run locally; real PG/kind/Temporal/default-product SQL and HTTP acceptance awaits Mac gated harnesses. Final integration: migration chain 1..58, shared human step-up, owned-stack and live-helper joins assembled. Local checks in verify/FINAL-INTEGRATION.md; Mac engine/browser/live verification remains pending. No verification promotion.",
+      "implementationNotes": "J6 Step 2 joins default native/managed factories, tenant vault/RBAC custody, protected node runtime proofs, reviewed build semantics and immutable native source migration 59. Release-join collision repaired by assembly. Contract checks run locally; real PG/kind/Temporal/default-product SQL and HTTP acceptance awaits Mac gated harnesses. Final integration: migration chain 1..58, shared human step-up, owned-stack and live-helper joins assembled. Local checks in verify/FINAL-INTEGRATION.md; Mac engine/browser/live verification remains pending. No verification promotion. 2026-10-21: owner approved the isolated-build seccomp, AppArmor zenith-build and zenith-build-gvisor RuntimeClass profiles as drafted in docs/build/production/verify/ISOLATED-BUILD-PROFILES-REVIEW.md (66704e8f), with instructions to validate them on a Linux runner and wire them in. Validation and wiring pending; no runtime acceptance yet.",
       "evidence": [
         {
           "level": "contract",

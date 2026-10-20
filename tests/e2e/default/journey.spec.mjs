@@ -147,6 +147,8 @@ test('default operated browser, REST, MCP and customer machine journey', async (
     ensure(encoded.length <= 160 * 1024, 'ux01-private-evidence-total-bound');
     const fd = fs.openSync(privatePath, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW, 0o600);
     try { fs.writeFileSync(fd, encoded); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+    // APFS counts a directory's entries in its link count, so the new file itself changes it: compare after the write.
+    const parentAfterWrite = fs.lstatSync(parentPath);
     const written = fs.lstatSync(privatePath), readFd = fs.openSync(privatePath, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
     try {
       const opened = fs.fstatSync(readFd);
@@ -161,7 +163,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
         !currentPath.isSymbolicLink() && currentPath.uid === process.getuid() && (currentPath.mode & 0o777) === 0o600 &&
         currentParent.isDirectory() && !currentParent.isSymbolicLink() && currentParent.dev === parent.dev &&
         currentParent.ino === parent.ino && currentParent.uid === process.getuid() && (currentParent.mode & 0o777) === 0o700 &&
-        currentParent.nlink === parent.nlink,
+        currentParent.nlink === parentAfterWrite.nlink && parentAfterWrite.ino === parent.ino,
         'ux01-private-evidence-readback-stable');
     } finally { fs.closeSync(readFd); }
     return privatePath;

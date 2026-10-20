@@ -5,7 +5,7 @@
  * `composeExecutionActivities` does.
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { openPlatformDb, type PlatformDbHandle } from "@/lib/controlplane/db";
+import type { PlatformDbHandle } from "@/lib/controlplane/db";
 import * as operations from "@/lib/controlplane/db/repos/operations";
 import * as leases from "@/lib/controlplane/db/repos/leases";
 import { digest } from "@/lib/controlplane/digest";
@@ -13,9 +13,9 @@ import { acceptCleanupEffect, beginCleanupEffect, cleanupDedupKey, priorCleanupR
 import { EffectTombstonedError, EffectUnresolvedError, createEffectLedger } from "@/lib/effects/ledger";
 import { createRuntime } from "@/lib/execution/runtime";
 import { createDestroyActivities, type DestroyProviderPorts, type TeardownInput, type TeardownResult } from "@/lib/execution/destroy";
-import { LANES, openLane } from "../controlplane/_support/harness";
+import { LANES, openLane, uid } from "../controlplane/_support/harness";
 import { createWorld, type World } from "../execution/fakes/world";
-import { ENV, OP, REVISION, WS, webDbManifest } from "../execution/fakes/fixtures";
+import { PROJECT, REVISION, webDbManifest } from "../execution/fakes/fixtures";
 import { lease, seed } from "./_support";
 
 describe.each(LANES)("cleanup effect helpers ($name)", (lane) => {
@@ -109,20 +109,31 @@ describe.each(LANES)("cleanup effect helpers ($name)", (lane) => {
 
 /* ---------------------- the real destroy activities with the ledger composed in ---------------------- */
 
-describe("destroy apply is recorded, deduplicated and never replayed after an unknown outcome", () => {
+describe.each(LANES)("destroy apply is recorded, deduplicated and never replayed after an unknown outcome ($name)", (lane) => {
   const worlds: World[] = [];
   let db: PlatformDbHandle;
+  // fresh ids per test: a persistent PostgreSQL lane keeps every row across tests and runs
+  let ws: string;
+  let op: string;
+  let env: string;
   beforeEach(async () => {
-    db = await openPlatformDb({ kind: "pglite" });
+    db = await lane.open();
+    ws = uid("ws");
+    op = uid("op");
+    env = uid("env");
     // the platform operation the effect belongs to, and the live environment lease (fence 1, like the world's first acquire)
-    await operations.create(db, { id: OP, workspaceId: WS, principal: { kind: "user", id: "user-1", name: "Alice" }, status: "approved",
-      proposal: { capability: "infrastructure.destroy", scope: { workspaceId: WS, projectId: "proj-act-1", environmentId: ENV }, input: {}, summary: "Destroy", details: [], risk: "high" } });
-    await leases.acquire(db, { scope: `env:${ENV}`, holder: "test-holder", ttlMs: 600_000, workspaceId: WS });
+    await operations.create(db, { id: op, workspaceId: ws, principal: { kind: "user", id: uid("user"), name: "Alice" }, status: "approved",
+      proposal: { capability: "infrastructure.destroy", scope: { workspaceId: ws, projectId: PROJECT, environmentId: env }, input: {}, summary: "Destroy", details: [], risk: "high" } });
+    await leases.acquire(db, { scope: `env:${env}`, holder: "test-holder", ttlMs: 600_000, workspaceId: ws });
   });
   afterEach(async () => { worlds.splice(0).forEach((w) => w.dispose()); vi.restoreAllMocks(); await db.close(); });
 
   function setup() {
-    const w = createWorld({ op: { capability: "infrastructure.destroy", status: "running" } }); worlds.push(w);
+    const w = createWorld({ op: { id: op, workspaceId: ws, environmentId: env, capability: "infrastructure.destroy", status: "running",
+      proposal: { capability: "infrastructure.destroy", scope: { workspaceId: ws, projectId: PROJECT, environmentId: env }, input: {}, summary: "Destroy", details: [], risk: "high" } } });
+    worlds.push(w);
+    w.product.base.workspace.id = ws;
+    w.product.base.environment.id = env;
     w.product.base.environment.provider = "zenith";
     w.product.base.environment.deployedRevisionId = REVISION;
     const manifest = webDbManifest(); manifest.routes = []; manifest.bindings = []; manifest.resources = [];
@@ -143,10 +154,10 @@ describe("destroy apply is recorded, deduplicated and never replayed after an un
   }
   async function reviewed() {
     const s = setup();
-    const lease = await s.w.lease();
-    const plan = await s.activities.planDestroyInfrastructure({ operationId: OP, lease });
+    const lease = await s.w.activities.acquireLease({ operationId: op, scope: `env:${env}`, ttlMs: 300_000 });
+    const plan = await s.activities.planDestroyInfrastructure({ operationId: op, lease });
     s.w.broker.approval = { approved: true, rejected: false, approvalId: "human-fixture" };
-    return { ...s, lease, plan, args: { operationId: OP, lease, planDigest: plan.planDigest } };
+    return { ...s, lease, plan, args: { operationId: op, lease, planDigest: plan.planDigest } };
   }
   const applies = (calls: TeardownInput[]) => calls.filter((c) => !c.dryRun).length;
 
@@ -154,9 +165,9 @@ describe("destroy apply is recorded, deduplicated and never replayed after an un
     const s = await reviewed();
     await expect(s.activities.applyDestroyInfrastructure(s.args)).resolves.toEqual({ deleted: 1 });
     expect(applies(s.calls)).toBe(1);
-    const effect = await s.ledger.getByDedup(WS, "cleanup_apply", cleanupDedupKey(OP, s.plan.planDigest));
-    expect(effect).toMatchObject({ state: "accepted", provider: "zenith", environmentId: ENV, providerReceipt: { identity: { deleted: "1" } }, target: { planDigest: s.plan.planDigest, addressCount: 1 } });
-    expect(effect!.fenceScope).toBe(`env:${ENV}`);
+    const effect = await s.ledger.getByDedup(ws, "cleanup_apply", cleanupDedupKey(op, s.plan.planDigest));
+    expect(effect).toMatchObject({ state: "accepted", provider: "zenith", environmentId: env, providerReceipt: { identity: { deleted: "1" } }, target: { planDigest: s.plan.planDigest, addressCount: 1 } });
+    expect(effect!.fenceScope).toBe(`env:${env}`);
     // a retried activity (new attempt, new worker) is answered from the receipt: no provider call of any kind
     const before = s.calls.length;
     await expect(s.activities.applyDestroyInfrastructure(s.args)).resolves.toEqual({ deleted: 1 });
@@ -170,13 +181,13 @@ describe("destroy apply is recorded, deduplicated and never replayed after an un
     s.failNextApply();
     await expect(s.activities.applyDestroyInfrastructure(s.args)).rejects.toThrow(/without a confirmed outcome/);
     expect(applies(s.calls)).toBe(1);
-    const effect = await s.ledger.getByDedup(WS, "cleanup_apply", cleanupDedupKey(OP, s.plan.planDigest));
+    const effect = await s.ledger.getByDedup(ws, "cleanup_apply", cleanupDedupKey(op, s.plan.planDigest));
     expect(effect).toMatchObject({ state: "uncertain" });
     const before = s.calls.length;
     await expect(s.activities.applyDestroyInfrastructure(s.args)).rejects.toBeInstanceOf(EffectUnresolvedError);
     await expect(s.activities.applyDestroyInfrastructure(s.args)).rejects.toBeInstanceOf(EffectUnresolvedError);
     expect(s.calls.length).toBe(before);
-    expect((await s.ledger.unresolvedForOperation(WS, OP)).map((e) => e.state)).toEqual(["uncertain"]);
+    expect((await s.ledger.unresolvedForOperation(ws, op)).map((e) => e.state)).toEqual(["uncertain"]);
   });
 
   it("human approval is still required before anything is recorded or applied", async () => {
@@ -184,14 +195,14 @@ describe("destroy apply is recorded, deduplicated and never replayed after an un
     s.w.broker.approval.approved = false;
     await expect(s.activities.applyDestroyInfrastructure(s.args)).rejects.toThrow(/approval/);
     expect(applies(s.calls)).toBe(0);
-    expect(await s.ledger.getByDedup(WS, "cleanup_apply", cleanupDedupKey(OP, s.plan.planDigest))).toBeNull();
+    expect(await s.ledger.getByDedup(ws, "cleanup_apply", cleanupDedupKey(op, s.plan.planDigest))).toBeNull();
   });
 
   it("a stale fence cannot start a new apply, and nothing is recorded", async () => {
     const s = await reviewed();
-    s.w.leases.steal(`env:${ENV}`);
+    s.w.leases.steal(`env:${env}`);
     await expect(s.activities.applyDestroyInfrastructure(s.args)).rejects.toThrow();
     expect(applies(s.calls)).toBe(0);
-    expect(await s.ledger.getByDedup(WS, "cleanup_apply", cleanupDedupKey(OP, s.plan.planDigest))).toBeNull();
+    expect(await s.ledger.getByDedup(ws, "cleanup_apply", cleanupDedupKey(op, s.plan.planDigest))).toBeNull();
   });
 });

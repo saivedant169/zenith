@@ -37,7 +37,7 @@ export class FakeProduct implements ProductPort {
   }
 
   async loadContext({ workspaceId, environmentId, revisionId, deploymentId }: { workspaceId: string; environmentId: string; revisionId?: string; deploymentId?: string }): Promise<ProductContext> {
-    if (workspaceId !== WS || environmentId !== ENV) throw new ProductNotFoundError("environment_not_found", "The environment was not found in this workspace.");
+    if (workspaceId !== this.base.workspace.id || environmentId !== this.base.environment.id) throw new ProductNotFoundError("environment_not_found", "The environment was not found in this workspace.");
     const wanted = revisionId ?? this.base.environment.deployedRevisionId;
     let revision: ProductRevision | undefined;
     if (wanted) {
@@ -52,7 +52,7 @@ export class FakeProduct implements ProductPort {
   }
 
   async resolveEnvironment(environmentId: string): Promise<{ workspaceId: string; projectId: string } | null> {
-    return environmentId === ENV ? { workspaceId: WS, projectId: PROJECT } : null;
+    return environmentId === this.base.environment.id ? { workspaceId: this.base.workspace.id, projectId: PROJECT } : null;
   }
 
   async recordStep(input: { workspaceId: string; environmentId: string; deploymentId: string; step: StepName; status: StepStatus; detail?: string; at: string; deploymentStatus?: DeploymentStatus }): Promise<void> {

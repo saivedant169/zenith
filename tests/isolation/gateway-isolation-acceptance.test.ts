@@ -89,9 +89,19 @@ describe.skipIf(!enabled)("J14 real Cilium Gateway tenant attachment and routing
     const script = `printf '%s' '${Buffer.from(ca).toString("base64")}' | base64 -d > /tmp/ca.pem; curl --fail --silent --show-error --max-time 20 --cacert /tmp/ca.pem --resolve '${host}:${nodePorts[i]}:${nodeIp}' -H 'Host: ${host}' 'https://${host}:${nodePorts[i]}/'`;
     return runPod(kube,{ name,namespace:gatewayNamespace,image:curlImage,script });
   }
+  /** A served tenant: Cilium's Envoy answers 403 while a newly labelled backend's policy converges, so retry within a bound and record how many tries it took. */
+  async function served(i: number, name: string) {
+    let result: Awaited<ReturnType<typeof request>> | undefined;
+    for (let attempt = 1; attempt <= 6; attempt++) {
+      result = await request(i,`${name}-${attempt}`);
+      if (result.phase === "Succeeded" && result.log === `tenant-${i}`) { checks[`${name}-attempts`] = { attempts: attempt }; return result; }
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+    return result!;
+  }
   it("routes HTTPS through both real Gateways to their distinct sandbox backends",async () => {
     for (let i=0;i<2;i++) {
-      const result = await request(i,`own-${i}`);
+      const result = await served(i,`own-${i}`);
       expect(result.phase,result.log).toBe("Succeeded"); expect(result.log).toBe(`tenant-${i}`);
       checks[`own-${i}`] = { hostname:hosts[i],gateway:gateways[i],body:result.log };
     }
@@ -99,13 +109,13 @@ describe.skipIf(!enabled)("J14 real Cilium Gateway tenant attachment and routing
   it("refuses a route from tenant A attaching to tenant B's listener, with B's routing still working",async () => {
     apply([route(tenants[0],"steal-listener",tenants[1])]);
     checks.foreignListener = await routeStatus(namespaces[0],"steal-listener","Accepted","False","NotAllowedByListeners");
-    const result = await request(1,"after-listener-attack"); expect(result.phase,result.log).toBe("Succeeded"); expect(result.log).toBe("tenant-1");
+    const result = await served(1,"after-listener-attack"); expect(result.phase,result.log).toBe("Succeeded"); expect(result.log).toBe("tenant-1");
   },timeout);
   it("refuses a cross-tenant backend without a ReferenceGrant and keeps the other tenant serving",async () => {
     const hostile = route(tenants[0],"foreign-backend",tenants[0],namespaces[1]);
     (hostile.spec.rules[0] as any).matches = [{path:{type:"PathPrefix",value:"/foreign"}}];
     apply([hostile]);
     checks.foreignBackend = await routeStatus(namespaces[0],"foreign-backend","ResolvedRefs","False","RefNotPermitted");
-    const result = await request(1,"after-backend-attack"); expect(result.phase,result.log).toBe("Succeeded"); expect(result.log).toBe("tenant-1");
+    const result = await served(1,"after-backend-attack"); expect(result.phase,result.log).toBe("Succeeded"); expect(result.log).toBe("tenant-1");
   },timeout);
 });

@@ -653,7 +653,8 @@ describe.skipIf(!enabled)("PROD-MAN-04/05 two untrusted tenants on a real cluste
       const hogs = [
         hog("burn", "i=0; while [ $i -lt 4 ]; do (while :; do :; done) & i=$((i + 1)); done; wait", res("400m", "64Mi")),
         hog("memhog", `awk 'BEGIN { while (1) { a[n++] = sprintf("%1048576s", "x") } }'`, res("150m", "256Mi")),
-        hog("diskhog", "dd if=/dev/zero of=/tmp/fill bs=1M count=400 2>/dev/null; echo FILLED; sleep 600", { requests: { cpu: "150m", memory: "64Mi", "ephemeral-storage": "32Mi" }, limits: { cpu: "150m", memory: "64Mi", "ephemeral-storage": "64Mi" } }),
+        // Direct I/O keeps the write out of the page cache, which counts against the hog's own 64Mi memory limit.
+        hog("diskhog", "dd if=/dev/zero of=/tmp/fill bs=1M count=400 oflag=direct 2>/dev/null; echo FILLED; sleep 600", { requests: { cpu: "150m", memory: "64Mi", "ephemeral-storage": "32Mi" }, limits: { cpu: "150m", memory: "64Mi", "ephemeral-storage": "64Mi" } }),
         hog("pids", spawnPids, res("200m", "128Mi")),
       ];
       for (const h of hogs) {
@@ -701,10 +702,11 @@ describe.skipIf(!enabled)("PROD-MAN-04/05 two untrusted tenants on a real cluste
       // disk: the kubelet evicts the pod that wrote past its ephemeral-storage limit
       const disk = await eventually("the disk hog to be evicted", () => {
         const p = kube.json<any>(["-n", nsA, "get", "pod", "diskhog"]);
-        return p?.status?.phase === "Failed" ? { reason: String(p.status.reason), message: String(p.status.message ?? "").slice(0, 160) } : undefined;
+        // The container's own termination is kept: a hog that dies some other way must say how, not just fail the reason check.
+        return p?.status?.phase === "Failed" ? { reason: String(p.status.reason), message: String(p.status.message ?? "").slice(0, 160), container: JSON.stringify(p.status.containerStatuses?.[0]?.state?.terminated ?? null).slice(0, 200) } : undefined;
       }, { timeoutMs: 360_000, intervalMs: 5000 });
       record("noisy_neighbour", { disk });
-      expect(disk.reason, `disk hog: ${disk.message}`).toBe("Evicted");
+      expect(disk.reason, `disk hog: ${disk.message} ${disk.container}`).toBe("Evicted");
       expect(disk.message).toMatch(/ephemeral/i);
     }, LONG);
 

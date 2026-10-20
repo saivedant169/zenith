@@ -7006,6 +7006,14 @@
           "receipt": "docs/build/production/evidence/PROD-UX-01/2026-10-20-29072e06-ux01-actual-browser-receipt.json",
           "receiptSha256": "b115135ccf65de696817448ef930dd173df0f7d872f0c989f9321dca5d4ff74d",
           "result": "Actual Google Chrome 155 UX-01 receipt passed 8/8 (axe wcag2a/2aa/21a/21aa at 1280x900 and 375x900, no violations or horizontal overflow) inside a J2 default journey that passed 18/18 on clean 29072e06; the wave6 UX-01 receipt case and both J2 receipt cases verify on the same source. The first real runs found two product accessibility defects (inline links distinguishable only by colour, keyboard-unreachable scrolling tables; fixed in 134b4a08 and fcd9f723) and several harness defects. UX-01 now passes 32 of its 34 non-live wave6 cases; the browser-issued OAuth token and platform plugin launcher cases are not run. Not promoted."
+        },
+        {
+          "level": "local_engine",
+          "commit": "63b26a58def9dca0af3c2a16452eca4540f89f49",
+          "command": "node deploy/acceptance/oauth-issuer/authorize-playwright.mjs, then the wave6 manifest argv for wave6-18c6df0bd1926f2f and wave6-gates.mjs --case",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable Keycloak 26.4.7 fixture (compose project zenith-oauth-ux02-a7f3) removed afterwards; protected services untouched.",
+          "logs": "docs/build/production/evidence/PROD-UX-02/2026-10-21-63b26a58-oauth-browser-token-automated.json",
+          "result": "OAuth browser-issued token case passed 1/0 with its case verifier; token obtained by automated browser, disposable user (owner-approved). UX-01 wave6 now 33/34; plugin-platform-live remains."
         }
       ],
       "requiredEvidence": [
@@ -7034,6 +7042,14 @@
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
           "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
           "result": "Wave6 local lanes 2026-10-20: 4 passed / 0 failed / 1 not run of the requirement's 5 non-live wave6 cases. Keycloak DCR 4/4 on d23fc0b4; browser-issued token case not run. Not promoted: local-engine slice only; acceptance judged separately."
+        },
+        {
+          "level": "local_engine",
+          "commit": "63b26a58def9dca0af3c2a16452eca4540f89f49",
+          "command": "node deploy/acceptance/oauth-issuer/authorize-playwright.mjs, then the wave6 manifest argv for wave6-18c6df0bd1926f2f and wave6-gates.mjs --case",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable Keycloak 26.4.7 fixture (compose project zenith-oauth-ux02-a7f3) removed afterwards; protected services untouched.",
+          "logs": "docs/build/production/evidence/PROD-UX-02/2026-10-21-63b26a58-oauth-browser-token-automated.json",
+          "result": "OAuth browser-issued token case passed 1/0 with its case verifier; token obtained by automated browser, disposable user (owner-approved). All 5 UX-02 wave6 cases now pass; the coding-agent client interoperability receipt (scoped consent, revocation, streaming, reconnect, cancellation) is still missing."
         }
       ],
       "requiredEvidence": [

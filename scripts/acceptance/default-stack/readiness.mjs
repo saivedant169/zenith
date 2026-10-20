@@ -6,6 +6,7 @@ import { assertPrivate, readPrepared, probeReadiness, sourceBinding } from '../.
 import { cli, requireEngineGate, inventory, compose, docker, readState, save } from './runtime.mjs';
 import { fail, topology, ports, root } from './config.mjs';
 import { createHash } from 'node:crypto';
+import { stagedPath } from '../../deploy/private-staging.mjs';
 
 /** Explicit private CA and hostname verification, without changing machine trust. */
 export function supabaseRequest(state, endpoint, headers = {}) {
@@ -20,13 +21,19 @@ export function supabaseRequest(state, endpoint, headers = {}) {
   });
 }
 
+// On native Linux the probe runs as 1001 and binds the copy compose() staged for the 1001 API.
+const caSource = (state, platform = process.platform) => {
+  const source = path.join(state.directory, 'tls/ca.crt');
+  return platform === 'linux' ? stagedPath(path.join(state.directory, 'staged'), 1001, source) : source;
+};
+
 export function poolerProbeArguments(state, mode = 'tls', migrationImage) {
   if (typeof migrationImage !== 'string' || !migrationImage) fail('pooler-probe-image');
   return ['run', '--rm', '--network', `${state.applicationProjectName}_installation`,
     '--label', `io.zenith.installation=${state.installationId}`, '--user', '1001:1001', '--read-only', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges:true',
     '--tmpfs', '/tmp:rw,noexec,nosuid,nodev,size=16m,uid=1001,gid=1001,mode=1777',
     '--memory', '192m', '--env-file', path.join(state.directory, 'installation/worker.env'), '-e', 'NODE_EXTRA_CA_CERTS=/run/zenith-ca.crt',
-    '--mount', `type=bind,source=${path.join(state.directory, 'tls/ca.crt')},target=/run/zenith-ca.crt,readonly`,
+    '--mount', `type=bind,source=${caSource(state)},target=/run/zenith-ca.crt,readonly`,
     '--mount', `type=bind,source=${path.join(root, 'scripts/acceptance/default-stack/pooler-probe.mjs')},target=/app/pooler-probe.mjs,readonly`,
     '--entrypoint', 'node', migrationImage, '--import', 'tsx', '/app/pooler-probe.mjs', mode];
 }

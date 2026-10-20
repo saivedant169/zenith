@@ -2,7 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
+import { load } from 'js-yaml';
 import { assertPrivate, privateLocation, composeEnvironment } from '../../deploy/installation.mjs';
+import { stagedComposition, stagingArguments } from '../../deploy/private-staging.mjs';
 import { cleanupPlan, fail, owns, portOffset, root, installationLabel, projectLabel } from './config.mjs';
 
 export function requireEngineGate() {
@@ -279,11 +281,31 @@ export function readState(directory) {
   if ((state.portOffset ?? 0) !== portOffset) fail('port-offset-drift');
   return state;
 }
-export function compose(state, args) {
+export async function compose(state, args) {
   const dir = path.join(state.directory, 'installation');
   const file = path.join(dir, 'stack.compose.json'); assertPrivate(file);
   if (createHash('sha256').update(fs.readFileSync(file)).digest('hex') !== state.compositionSha256) fail('composition-drift');
-  return docker(['compose', '--project-name', state.applicationProjectName, '--env-file', path.join(dir, 'compose.env'), '-f', path.join(dir, 'stack.compose.json'), ...args]);
+  // Native Linux only: bind least-privilege copies owned by each container uid (see private-staging.mjs).
+  // The hashed composition is unchanged; compose reads a derived file.
+  const stageRoot = path.join(state.directory, 'staged');
+  const staged = stagedComposition(JSON.parse(fs.readFileSync(file, 'utf8')), { privateRoot: state.directory, stageRoot });
+  let composeFile = file;
+  if (staged.copies.length) {
+    composeFile = path.join(dir, 'stack.compose.staged.json');
+    const text = `${JSON.stringify(staged.document, null, 2)}\n`;
+    // shortcut: copies are refreshed when the derived composition changes or a copy is missing, not when a source's bytes change; private TLS is written once per stack.
+    if (!fs.existsSync(composeFile) || fs.readFileSync(composeFile, 'utf8') !== text || staged.copies.some(copy => !fs.existsSync(copy.staged))) {
+      fs.mkdirSync(stageRoot, { mode: 0o700, recursive: true }); assertPrivate(stageRoot, true);
+      await docker(stagingArguments(staged.copies, { stageRoot, image: stagingImage(), labels: { [installationLabel]: state.installationId } }), { id: 'private-staging' });
+      fs.writeFileSync(composeFile, text, { mode: 0o600 });
+    }
+  }
+  return docker(['compose', '--project-name', state.applicationProjectName, '--env-file', path.join(dir, 'compose.env'), '-f', composeFile, ...args]);
+}
+
+/** The pinned alpine-based Temporal server image already in the disposable overlay. */
+export function stagingImage() {
+  return load(fs.readFileSync(path.join(root, 'deploy/self-hosted/compose.disposable.yml'), 'utf8')).services.temporal.image;
 }
 
 /** Enumerate only two exact owner labels. Independently inspect before any deletion. */

@@ -151,7 +151,10 @@ export async function upLocal(profile: Profile, variant: "lambda" | "container",
     state.createdCluster = true; save();
     await command(["kind", "create", "cluster", "--name", paths.cluster, "--config", "deploy/acceptance/local-targets/kind.yml", "--kubeconfig", state.kubeconfig, "--wait", "120s"], env, exec);
     await command(["docker", "update", "--memory", "2048m", "--memory-swap", "2560m", `${paths.cluster}-control-plane`], env, exec);
-    await command(["kind", "load", "docker-image", image, postgresImage, "--name", paths.cluster], env, exec);
+    await command(["kind", "load", "docker-image", image, "--name", paths.cluster], env, exec);
+    // kind load re-exports a pulled multi-platform index without its other platforms (containerd image store); the node
+    // pulls the pinned index itself so the exact digest resolves under imagePullPolicy Never.
+    await command(["docker", "exec", `${paths.cluster}-control-plane`, "crictl", "pull", postgresImage], env, exec);
     await command(["docker", "network", "connect", `${paths.cluster}-mixed`, `${paths.cluster}-control-plane`], env, exec);
     const cid = (await command([...composeArgs("mixed"), "ps", "-q", "localstack"], env, exec)).trim();
     const ip = (await command(["docker", "inspect", "-f", `{{(index .NetworkSettings.Networks "${paths.cluster}-mixed").IPAddress}}`, cid], env, exec)).trim();

@@ -149,6 +149,16 @@ describe("scoped Kubernetes guest sessions through the default stack", () => {
     expect(cluster.calls).toEqual([]);
   });
 
+  it("the broker refuses a guest request on a legacy kubeconfig_ref connection instead of serving the broad credential", async () => {
+    const f = await fixture("container.list", "app/pod-1", "kubeconfig_ref"), cluster = modeledCluster();
+    let entered = false;
+    await expect(f.credentials.withSession({ connectionId: f.connection.id, grant: f.request.grant, purpose: "observe", kubernetesGuest: { namespace: "app", profile: "read" } }, async (session) => { entered = true; safe(session); return "entered"; }))
+      .rejects.toMatchObject({ name: "CredentialDeniedError", reason: "guest_credential_refused" });
+    expect(entered).toBe(false);
+    expect(cluster.calls).toEqual([]);
+    expect(await bindings(f)).toEqual([]);
+  });
+
   it("the captured test credential adapter cannot serve a scoped_guest connection", async () => {
     const f = await fixture();
     const provider = createMachineSessionProvider({ credentials: f.credentials, connection: f.connection, grantJws: "", now: f.now,

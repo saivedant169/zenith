@@ -400,6 +400,10 @@ export function platformCredentialBroker(db: Sql, options: PlatformCredentialOpt
           } } as ProviderSession;
           close = () => { deployerEnded = true; }; break;
         }
+        // A guest request is served only by a minted scoped token, never by another connection mode's credential.
+        if (kubernetesGuest && kubernetesGuest !== "verify_minter" && kubernetesGuest !== "verify_deployer" && c.mode !== "scoped_guest") {
+          throw new CredentialDeniedError("This Kubernetes connection is not scoped for guest sessions.", { reason: "guest_credential_refused" });
+        }
         const handle = await kubernetesVaultSession(connection, c, now, ttlSec, options.kubernetes);
         if (c.mode === "scoped_guest" && kubernetesGuest && kubernetesGuest !== "verify_minter" && kubernetesGuest !== "verify_deployer") {
           // The minter stays inside this block. Guest callers receive only the scoped TokenRequest token.
@@ -500,6 +504,7 @@ export function platformCredentialBroker(db: Sql, options: PlatformCredentialOpt
             ? deny(error.reason ?? part, error.message)
             : deny(part, part === "guest_credential_refused" ? "The scoped Kubernetes guest credential could not be minted." : "The Kubernetes deployer credential could not be used.");
         }
+        if (!created && error instanceof CredentialDeniedError && error.reason === "guest_credential_refused") return deny("guest_credential_refused", error.message);
         if (!created) return deny("not_supported", "Provider session could not be created; check federation or vault configuration.");
         throw error;
       }

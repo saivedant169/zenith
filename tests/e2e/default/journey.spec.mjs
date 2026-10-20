@@ -180,7 +180,12 @@ test('default operated browser, REST, MCP and customer machine journey', async (
   const uxCase = async (id, work) => {
     const row = uxCases.find(value => value.id === id); ensure(Boolean(row) && row.status === 'not_run', 'ux01-case-id');
     try { await test.step(id, work); row.status = 'passed'; }
-    catch { row.status = 'failed'; if (id === 'ux01-uncertainty-a11y') markUxFailure(); throw new Error('journey:' + id); }
+    catch (error) {
+      // Only a fixed journey code (or the error class) reaches the private Playwright log; never page text or URLs.
+      const message = String(error?.message ?? '');
+      console.error('ux01-case-failure', id, /^journey:[A-Za-z0-9_.-]+$/.test(message) ? message : (error?.name ?? 'Error'));
+      row.status = 'failed'; if (id === 'ux01-uncertainty-a11y') markUxFailure(); throw new Error('journey:' + id);
+    }
   };
   const runId = nonce(), witnessNonce = nonce(), serviceId = 'witness';
   // Machines bind the platform resource row of the deployed witness: its graph address and canonical id.

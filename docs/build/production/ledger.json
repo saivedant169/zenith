@@ -5052,6 +5052,14 @@
           "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable PostgreSQL 16 (pinned ZENITH_LOCAL_POSTGRES_IMAGE) on 127.0.0.1:55433 with Supabase stand-in roles; removed after the run.",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-ac8e6c87-dur-life06-postgres.json",
           "result": "Exact-source clause tests: 126 passed / 0 failed / 0 skipped across 3 clause files on clean ac8e6c87."
+        },
+        {
+          "level": "contract",
+          "commit": "02c76116",
+          "command": "vitest run --config scripts/acceptance/live/dns/vitest.config.ts scripts/acceptance/live/dns/offline.test.ts ; vitest run tests/providers/dns-teardown-proof.test.ts tests/providers/{azure,oci,gcp}/dns-ownership.test.ts tests/acceptance/non-aws-dns-live.test.ts",
+          "environment": "Native Darwin ARM64, Node 22.23.3; clean tree",
+          "logs": "docs/build/production/evidence/PROD-LIFE-06/2026-10-21-02c76116-dns-contracts.json",
+          "result": "Current-source DNS teardown contracts: offline transport 59/0/0; provider DNS ownership and teardown proof 128 passed, 0 failed, 9 live-gated skipped. Local-engine real-OpenTofu rerun still open."
         }
       ],
       "requiredEvidence": [

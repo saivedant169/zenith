@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "requirement": "PROD-LIFE-06",
+  "level": "contract",
+  "date": "2026-10-21",
+  "commit": "02c76116",
+  "clean": true,
+  "runs": [
+    {
+      "command": "vitest run --config scripts/acceptance/live/dns/vitest.config.ts scripts/acceptance/live/dns/offline.test.ts",
+      "files": 1,
+      "passed": 59,
+      "failed": 0,
+      "skipped": 0,
+      "sha256": "fd0b6c25b51bf5b51d54d6063a3492bd5d32c0844e2e7c1483e4c94c9782a628"
+    },
+    {
+      "command": "vitest run tests/providers/dns-teardown-proof.test.ts tests/providers/{azure,oci,gcp}/dns-ownership.test.ts tests/acceptance/non-aws-dns-live.test.ts",
+      "files": 5,
+      "passed": 128,
+      "failed": 0,
+      "skipped": 9,
+      "sha256": "a7a78a0763b38776e66d51941b9b722ea95ce4b2b0ee5db55bc2505de1525496",
+      "note": "9 skipped are the live-gated DNS cases"
+    }
+  ],
+  "alsoOnCleanCommit": "ac8e6c87 run of destroy-dns-ownership, deletion-guards-clouds and destroy (126/0/0), evidence/engine-acceptance/2026-10-21-ac8e6c87-dur-life06-postgres.json",
+  "openForLocalEngine": "No current-source real-OpenTofu engine run; the c32d1167 engine entry records no command. Provider readbacks are modeled; live DNS teardown is deferred."
+}

@@ -168,7 +168,9 @@ export function classifyProxyJob(kind: ProxyKind, payload: unknown): ProxyClassi
 /* ----------------------------------- guard ------------------------------------ */
 
 export interface ProxyHttpResult { status: number; headers?: Record<string, string>; bodyB64?: string; truncated?: boolean }
-export interface ProxyAwaited<R> { jobId: string; status: AwaitedStatus; uncertain: boolean; result?: R; error?: string; exitCode?: number; startedAt?: string; finishedAt?: string }
+export interface ProxyAwaited<R> { jobId: string; status: AwaitedStatus; uncertain: boolean; result?: R; error?: string; exitCode?: number; startedAt?: string; finishedAt?: string;
+  /** Set when this exact mutating request was already accepted in this operation and is answered from its durable receipt, not sent again. */
+  replayedFromReceipt?: true }
 
 export interface ProxyScope {
   workspaceId: string;
@@ -233,7 +235,9 @@ export async function runProxyJob<R extends ProxyHttpResult>(args: {
       if (saved) {
         try {
           const result = JSON.parse(saved) as R;
-          return { jobId: effect.providerReceipt?.resourceId ?? "saved", status: "succeeded", uncertain: false, result };
+          // Exactly once per operation: a resumed or retried identical request must never re-send a mutation
+          // (a per-call nonce would let a resumed apply replay it). The answer is marked, never silent.
+          return { jobId: effect.providerReceipt?.resourceId ?? "saved", status: "succeeded", uncertain: false, result, replayedFromReceipt: true };
         } catch { /* fall through */ }
       }
       throw new EffectUnresolvedError(effect.effectId, effect.state, "This exact request was already accepted by the provider and its reply was not retained. It will not be sent again; read the result back.");

@@ -154,7 +154,7 @@ describe.each(LANES)("runProxyJob on the control store ($name)", (lane) => {
     const h = harness(async () => done(ok()));
     await runProxyJob({ ledger, scope: scopeOf(s), kind: "aws.http", payload: startBuild(), ...h.io });
     const again = await runProxyJob({ ledger, scope: scopeOf(s), kind: "aws.http", payload: startBuild(), ...h.io });
-    expect(again).toMatchObject({ status: "succeeded", uncertain: false, result: { status: 200 } });
+    expect(again).toMatchObject({ status: "succeeded", uncertain: false, result: { status: 200 }, replayedFromReceipt: true });
     expect(Buffer.from(again.result!.bodyB64!, "base64").toString()).toContain('"b-1"');
     expect(h.calls).toEqual({ enqueue: 1, settle: 1 });
     // a different request is a different effect

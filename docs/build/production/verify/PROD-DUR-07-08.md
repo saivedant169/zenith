@@ -195,4 +195,6 @@ Known gaps (honest limits):
 
 ### 6.5 Added limits
 
-Identical mutating proxied requests inside one operation are deduplicated by exact request digest, so a deliberate second identical mutation is answered from the first reply; right for idempotent provider calls, wrong for any API where repeating is the point (it would need a per-call nonce). The AWS read-verb allowlist is by action prefix (an action named `GetOrDeleteX` would count as read): add exceptions if one appears.
+Identical mutating proxied requests inside one operation are deduplicated by exact request digest, so a deliberate second identical mutation is answered from the first reply; right for idempotent provider calls, wrong for any API where repeating is the point (it would need a per-call nonce).
+
+Decision (2026-10-21): keep exact-digest exactly-once per operation. A per-call nonce (for example the AWS SDK invocation id) changes when an interrupted apply is resumed, so it would let the resumed apply re-send an already-accepted mutation, which is the blind replay this requirement forbids. Repeat-meaningful provider APIs differ in request content (client tokens, names), so they are separate effects. A repeat answered from the receipt is no longer silent: the result carries `replayedFromReceipt: true` (asserted in tests/effects/proxy.test.ts). The AWS read-verb allowlist is by action prefix (an action named `GetOrDeleteX` would count as read): add exceptions if one appears.

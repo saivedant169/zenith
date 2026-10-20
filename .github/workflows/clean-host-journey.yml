@@ -119,6 +119,19 @@ jobs:
           docker push -q "$tag"
           echo "WITNESS_IMAGE=$(docker image inspect "$tag" --format '{{index .RepoDigests 0}}')" >> "$GITHUB_ENV"
 
+      - name: Witness volume copy-up on this engine
+        # The witness seed requires a fresh volume to inherit the image's 65532:65532 0700
+        # /witness. Record the storage driver and what this engine's copy-up produced.
+        run: |
+          set -uo pipefail
+          docker info --format 'driver={{.Driver}} status={{json .DriverStatus}}'
+          stat_image=$(node -e "console.log(require('js-yaml').load(require('fs').readFileSync('deploy/self-hosted/compose.disposable.yml','utf8')).services.temporal.image)")
+          docker volume create zenith-copyup-probe >/dev/null
+          docker run --rm --network none --mount type=volume,source=zenith-copyup-probe,target=/witness "$WITNESS_IMAGE" probe >/dev/null 2>&1 || true
+          docker run --rm --network none --user 0:0 --mount type=volume,source=zenith-copyup-probe,target=/x,readonly --entrypoint stat "$stat_image" -c 'volume-root %u:%g %a' /x
+          docker run --rm --network none --user 0:0 --entrypoint stat "$stat_image" -c 'temporal-image-sanity %u:%g %a' /tmp || true
+          docker volume rm zenith-copyup-probe >/dev/null
+
       - name: Owned kind target and journey configuration
         run: |
           set -euo pipefail

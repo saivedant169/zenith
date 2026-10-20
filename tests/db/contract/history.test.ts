@@ -508,9 +508,16 @@ describe.skipIf(!postgresContractEnabled())("history contract — Postgres only"
       version: 1,
     });
 
+    // Reset from a freshly loaded snapshot: deletes are version-guarded, so a
+    // stale baseline (earlier cases moved rows through other snapshots) is a 409.
+    const { loadSnapshot } = await import("@/lib/db/postgres-store");
+    const { runWithSnapshot } = await import("@/lib/db/request-snapshot");
     const store = pgStore();
-    store.reset();
-    await settle(store);
+    const fresh = await loadSnapshot(client, user);
+    await runWithSnapshot(fresh, async () => {
+      store.reset();
+      await settle(store);
+    });
 
     const survived = await client.from("revisions").select("id").eq("workspace_id", OTHER);
     expect((survived.data ?? []).map((r) => (r as { id: string }).id)).toEqual([`${OTHER}-rev`]);

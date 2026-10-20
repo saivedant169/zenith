@@ -209,7 +209,8 @@ afterAll(async () => {
 
 describe.each(contractStores)("audit contract — $name", ({ name, store }) => {
   for (const step of SCENARIO)
-    it.runIf(!step.only || step.only === name)(step.name, async () => {
+    // registered only on the store it applies to: a skipped case fails the PostgREST lane
+    if (!step.only || step.only === name) it(step.name, async () => {
       step.run(store);
       // The file store's writes are already on disk; the Postgres store's
       // organisational writes are a round trip, and the next step must not

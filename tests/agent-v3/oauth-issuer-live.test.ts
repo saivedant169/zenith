@@ -77,6 +77,9 @@ describe.skipIf(!enabled || process.env.ZENITH_TEST_OAUTH_BROWSER_TOKEN !== "1")
       expect(dir, "Set ZENITH_INTEROP_DIR to the generated private fixture directory").toBeTruthy();
       const tokens = JSON.parse(await readFile(resolve(dir!, "tokens.json"), "utf8"));
       const realm = JSON.parse(await readFile(resolve(dir!, "realm.json"), "utf8"));
+      // Provenance is recorded by authorize.mjs / authorize-playwright.mjs (also in provenance.json).
+      expect(["human browser consent", "automated browser, disposable user"]).toContain(tokens.obtained);
+      console.info(`token obtained by: ${tokens.obtained}`);
       const jwksUrl = `${ISSUER}/protocol/openid-connect/certs`;
       const config = { issuer: ISSUER, jwksUrl, resource: tokens.resource, clientClaim: "azp" as const, subjectClaim: "zenith_subject" };
       const verified = await verifyOAuth(tokens.access_token, config);

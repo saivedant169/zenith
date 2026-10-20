@@ -137,6 +137,11 @@ TLS. It verifies the signed token identity/audience and writes `tokens.json` wit
 to overwrite it. Tokens expire after five minutes; renew by starting a new authorization, preserving
 old receipt files privately or regenerating the fixture.
 
+Automated alternative for the disposable fixture only: `ZENITH_TEST_OAUTH_ISSUER=1 node deploy/acceptance/oauth-issuer/authorize-playwright.mjs "$ZENITH_INTEROP_DIR"`
+(with `zenith.env` sourced and optional `ZENITH_TEST_BROWSER_BIN`). It drives the real Keycloak login and consent pages in Chromium
+as the runtime-generated `interop-user` (trusting only the fixture leaf by SPKI pin), then reuses `authorize.mjs` unchanged for DCR, PKCE and
+the code exchange. It records `"automated browser, disposable user"` in `tokens.json` and the non-secret `provenance.json`; the human path records `"human browser consent"`.
+
 ```bash
 export ZENITH_TEST_OAUTH_BROWSER_TOKEN=1
 npx vitest run tests/agent-v3/oauth-issuer-live.test.ts --no-file-parallelism --maxWorkers=2

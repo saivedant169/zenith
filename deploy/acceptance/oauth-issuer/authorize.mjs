@@ -1,5 +1,7 @@
 /** Mac-only browser handoff: real DCR + authorization code + S256 PKCE.
- * No password grant, synthesized JWT or browser consent automation. */
+ * No password grant or synthesized JWT. A human completes consent by default.
+ * authorize-playwright.mjs is the automated path: it drives the real Keycloak login and consent
+ * pages in a browser as the runtime-generated disposable interop user (never a real person). */
 import { createHash, randomBytes } from "node:crypto";
 import { createServer } from "node:http";
 import { readFile, writeFile } from "node:fs/promises";
@@ -9,6 +11,11 @@ import { discoverAuthorizationServerMetadata, registerClient } from "@modelconte
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { ISSUER } from "./prepare.mjs";
 
+async function defaultPresent({ url }) {
+  console.log("In Zenith Integrations authorize this exact client ID and issuer for the intended workspace/projects and read/plan/logs. Then open:");
+  console.log(url.href); // local authorization URL contains no credentials or tokens
+}
+
 export function validateCallback(callback, expectedState, expectedIssuer = ISSUER) {
   if (callback.searchParams.get("state") !== expectedState) throw new Error("OAuth state mismatch");
   if (callback.searchParams.get("iss") !== expectedIssuer) throw new Error("OAuth issuer mismatch");
@@ -17,7 +24,9 @@ export function validateCallback(callback, expectedState, expectedIssuer = ISSUE
   return code;
 }
 
-export async function authorize(dir) {
+/** `present` shows the authorization URL to whoever signs in (default: print it for a human);
+ * `obtained` is recorded in tokens.json and provenance.json. */
+export async function authorize(dir, { present = defaultPresent, obtained = "human browser consent" } = {}) {
   if (process.env.ZENITH_TEST_OAUTH_ISSUER !== "1") throw new Error("Set ZENITH_TEST_OAUTH_ISSUER=1 on the Mac verifier");
   const root = resolve(dir);
   const realm = JSON.parse(await readFile(resolve(root, "realm.json"), "utf8"));
@@ -52,15 +61,14 @@ export async function authorize(dir) {
   try {
     const client = await registerClient(ISSUER, { metadata, clientMetadata: {
       client_name: "Zenith local official conformance", redirect_uris: [redirect], token_endpoint_auth_method: "none",
-      grant_types: ["authorization_code", "refresh_token"], response_types: ["code"], scope: "zenith:read zenith:plan zenith:logs",
+      grant_types: ["authorization_code", "refresh_token"], response_types: ["code"],
+      // No registration `scope`: Keycloak would then replace the realm defaults (zenith-binding: audience + member claim) with the listed optional scopes.
     } });
     const url = new URL(metadata.authorization_endpoint);
     url.search = new URLSearchParams({ response_type: "code", client_id: client.client_id, redirect_uri: redirect,
       scope: "zenith:read zenith:plan zenith:logs", resource, state, code_challenge: challenge, code_challenge_method: "S256" }).toString();
     console.log(`Registered public client: ${client.client_id}`);
-    console.log("In Zenith Integrations authorize this exact client ID and issuer for the intended workspace/projects and read/plan/logs. Then open:");
-    console.log(url.href); // local authorization URL contains no credentials or tokens
-    const code = await callback;
+    const [code] = await Promise.all([callback, present({ url, client, redirect })]);
     const result = await fetch(metadata.token_endpoint, { method: "POST", redirect: "error",
       headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({
         grant_type: "authorization_code", client_id: client.client_id, redirect_uri: redirect, code, code_verifier: verifier, resource,
@@ -73,7 +81,9 @@ export async function authorize(dir) {
     if (payload.azp !== client.client_id || payload.zenith_subject !== realm.users[0].attributes.zenith_subject[0]
       || typeof payload.iat !== "number" || typeof payload.exp !== "number" || payload.exp - payload.iat > 3600
       || typeof payload.scope !== "string" || !payload.scope.split(" ").includes("zenith:read")) throw new Error("Signed token does not match the Zenith identity/resource contract");
-    await writeFile(resolve(root, "tokens.json"), JSON.stringify({ ...tokens, client_id: client.client_id, resource, issuer: ISSUER }), { mode: 0o600, flag: "wx" });
+    await writeFile(resolve(root, "tokens.json"), JSON.stringify({ ...tokens, client_id: client.client_id, resource, issuer: ISSUER, obtained }), { mode: 0o600, flag: "wx" });
+    // Non-secret evidence of how the token was obtained.
+    await writeFile(resolve(root, "provenance.json"), JSON.stringify({ obtained, client_id: client.client_id, issuer: ISSUER, resource, at: new Date().toISOString() }, null, 2), { mode: 0o600, flag: "wx" });
     console.log("Verified signed token saved privately to tokens.json. No token was printed.");
   } finally { clearTimeout(timer); server.closeAllConnections(); await new Promise((yes) => server.close(yes)); }
 }

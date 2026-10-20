@@ -49,9 +49,14 @@ function resourceFacts(manifest: Manifest, id: string): ResolvedScope["resource"
   return undefined;
 }
 
+const WORKLOAD_KINDS: ReadonlySet<string> = new Set(["container_service", "static_site", "scheduled_job"]);
+
 export function productScopeResolver(readResource: (workspaceId: string, id: string) => Promise<PlatformResource | null> = async (workspaceId, id) => {
   const { platformDb, repos } = await import("@/lib/controlplane/db");
   return repos.resources.get(await platformDb(), workspaceId, id);
+}, listResources: (workspaceId: string, environmentId: string) => Promise<PlatformResource[]> = async (workspaceId, environmentId) => {
+  const { platformDb, repos } = await import("@/lib/controlplane/db");
+  return repos.resources.listByEnvironment(await platformDb(), workspaceId, environmentId);
 }): ScopeResolver {
   return {
     async resolve(scope: Scope): Promise<ResolvedScope | null> {
@@ -81,9 +86,19 @@ export function productScopeResolver(readResource: (workspaceId: string, id: str
         // Day-two execution and the resource API use canonical platform IDs.
         // Resolve these against the authoritative tenant row, including its
         // current ownership after adoption/release, rather than a manifest ID.
-        if (scope.resourceId.startsWith("res_")) {
-          const row = await readResource(scope.workspaceId, scope.resourceId);
-          if (!row || row.id !== scope.resourceId || row.workspaceId !== scope.workspaceId || row.environmentId !== env.id
+        let canonical = scope.resourceId.startsWith("res_") ? scope.resourceId : undefined;
+        if (!canonical) {
+          // Agents and the REST API name a service by the manifest id get_topology returns. Once it is deployed,
+          // bind its one canonical workload row, which day-two execution and field ownership require.
+          const named = (env.deployedRevisionId ? await revisionManifestAsync(env.deployedRevisionId) : undefined) ?? d.projects.find((p) => p.id === projectId)?.workingManifest;
+          const service = named ? v1View(named).services.some((svc) => svc.id === scope.resourceId) : false;
+          // No platform store (or it is unavailable) keeps the manifest id, exactly as before; it never widens access.
+          const rows = service ? (await listResources(scope.workspaceId, env.id).catch(() => [] as PlatformResource[])).filter((row) => WORKLOAD_KINDS.has(row.kind) && row.origin.includes(scope.resourceId!)) : [];
+          if (rows.length === 1) canonical = rows[0].id;
+        }
+        if (canonical) {
+          const row = await readResource(scope.workspaceId, canonical);
+          if (!row || row.id !== canonical || row.workspaceId !== scope.workspaceId || row.environmentId !== env.id
             || row.projectId !== projectId || row.status === "deleted") return null;
           resolved.scope.resourceId = row.id;
           resolved.resourceProvider = row.provider;

@@ -185,6 +185,30 @@ describe("ScopeResolver canonical resource IDs", () => {
   });
 });
 
+describe("ScopeResolver deployed manifest services", () => {
+  const scope = { workspaceId: "ws-a", environmentId: "env-a", resourceId: "svc-web" };
+  const workload = (overrides: Partial<PlatformResource> = {}) => canonicalResource({ id: "res_web", address: "container_service/web", kind: "container_service", nativeType: "k8s:Deployment", origin: ["svc-web"], ...overrides });
+
+  it("binds a deployed service's one canonical workload row, which execution and field ownership require", async () => {
+    const list = vi.fn(async () => [workload(), workload({ id: "res_logs", address: "log_group/web", kind: "log_group" })]);
+    const read = vi.fn(async () => workload());
+    const resolved = await productScopeResolver(read, list).resolve(scope);
+    expect(list).toHaveBeenCalledExactlyOnceWith("ws-a", "env-a");
+    expect(read).toHaveBeenCalledExactlyOnceWith("ws-a", "res_web");
+    expect(resolved?.scope.resourceId).toBe("res_web");
+    expect(resolved?.resource).toMatchObject({ address: "container_service/web", kind: "container_service" });
+  });
+
+  it("keeps the manifest id when no row or several rows claim the service, and never canonicalizes a non-service id", async () => {
+    for (const rows of [[], [workload(), workload({ id: "res_web2" })]]) {
+      expect((await productScopeResolver(async () => null, async () => rows).resolve(scope))?.scope.resourceId).toBe("svc-web");
+    }
+    const list = vi.fn(async () => [workload({ origin: ["res-db"] })]);
+    expect((await productScopeResolver(async () => null, list).resolve({ ...scope, resourceId: "res-db" }))?.scope.resourceId).toBe("res-db");
+    expect(list).not.toHaveBeenCalled();
+  });
+});
+
 describe("RoleResolver over the product store", () => {
   const user = (id: string): Principal => ({ kind: "user", id, name: id });
   const roles = productRoleResolver({ integrations: async () => null });

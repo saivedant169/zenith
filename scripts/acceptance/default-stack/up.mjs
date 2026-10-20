@@ -5,7 +5,7 @@ import { randomBytes, createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { prepareJoin, privateLocation, assertPrivate, writeJson, readPrepared, sourceBinding } from '../../deploy/installation.mjs';
 import { root, cliVersion, ports, portOffset, topology, supabaseConfig, mailpitEnvironment, digestImage, excludedSupabaseServices, installationLabel, projectLabel, stackComposition, fail, assertHeadroom } from './config.mjs';
-import { cli, run, docker, compose, requireEngineGate, save, cleanup, setResourceGuard } from './runtime.mjs';
+import { cli, run, docker, compose, requireEngineGate, save, cleanup, setResourceGuard, stageFiles } from './runtime.mjs';
 import { readiness } from './readiness.mjs';
 import { deferredJ4Composition, initializeJ4Namespace, j4PrestartReadiness, prepareJ4Ownership } from './j4.mjs';
 import { envValues } from '../../deploy/pin-digests.mjs';
@@ -153,11 +153,12 @@ export async function up(directory, profile = 'default', imageLockFile, j4Option
     const mailpitImage = digestImage(envValues(fs.readFileSync(path.join(root, 'deploy/observability/images.env'), 'utf8')).ZENITH_MAILPIT_IMAGE);
     await docker(['pull', mailpitImage]);
     const [mailImage] = JSON.parse(await docker(['image', 'inspect', mailpitImage])); nativeArch(mailImage.Architecture);
+    const [mailpitCrt, mailpitKey] = await stageFiles(state, 1000, [path.join(dir, 'tls', 'mailpit.crt'), path.join(dir, 'tls', 'mailpit.key')]);
     await docker(['run', '-d', '--name', `zenith-local-${installationId}-mailpit`, '--network', state.supabaseNetwork, '--network-alias', 'mailpit',
       '--label', `${installationLabel}=${installationId}`, '--memory', '64m', '--cpus', '0.25', '--pids-limit', '64', '--user', '1000:1000',
       '--read-only', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges:true', '--tmpfs', '/tmp:rw,noexec,nosuid,size=32m,uid=1000,gid=1000,mode=1770',
-      '--mount', `type=bind,source=${path.join(dir, 'tls', 'mailpit.crt')},target=/run/zenith/mailpit.crt,readonly`,
-      '--mount', `type=bind,source=${path.join(dir, 'tls', 'mailpit.key')},target=/run/zenith/mailpit.key,readonly`,
+      '--mount', `type=bind,source=${mailpitCrt},target=/run/zenith/mailpit.crt,readonly`,
+      '--mount', `type=bind,source=${mailpitKey},target=/run/zenith/mailpit.key,readonly`,
       '--env-file', mailpitEnvFile, '-p', `127.0.0.1:${ports.mail}:8025`, mailpitImage]);
     state.mailpitUrl = `http://127.0.0.1:${ports.mail}`;
     state.mailpitImage = { reference: mailpitImage, imageId: mailImage.Id, architecture: mailImage.Architecture };

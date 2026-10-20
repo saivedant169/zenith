@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { load } from 'js-yaml';
 import { assertPrivate, privateLocation, composeEnvironment } from '../../deploy/installation.mjs';
-import { stagedComposition, stagingArguments } from '../../deploy/private-staging.mjs';
+import { stagedComposition, stagedPath, stagingArguments } from '../../deploy/private-staging.mjs';
 import { cleanupPlan, fail, owns, portOffset, root, installationLabel, projectLabel } from './config.mjs';
 
 export function requireEngineGate() {
@@ -301,6 +301,16 @@ export async function compose(state, args) {
     }
   }
   return docker(['compose', '--project-name', state.applicationProjectName, '--env-file', path.join(dir, 'compose.env'), '-f', composeFile, ...args]);
+}
+
+/** Stage private files for a container started outside compose (native Linux only; see private-staging.mjs). */
+export async function stageFiles(state, uid, sources) {
+  if (process.platform !== 'linux') return sources;
+  const stageRoot = path.join(state.directory, 'staged');
+  const copies = sources.map(source => ({ source: path.resolve(source), staged: stagedPath(stageRoot, uid, source), uid: String(uid), gid: String(uid) }));
+  fs.mkdirSync(stageRoot, { mode: 0o700, recursive: true }); assertPrivate(stageRoot, true);
+  await docker(stagingArguments(copies, { stageRoot, image: stagingImage(), labels: { [installationLabel]: state.installationId } }), { id: 'private-staging' });
+  return copies.map(copy => copy.staged);
 }
 
 /** The pinned alpine-based Temporal server image already in the disposable overlay. */

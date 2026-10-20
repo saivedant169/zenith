@@ -5,10 +5,11 @@
  * keep their previous approval behaviour (and are refused later at dispatch when a store is wired).
  */
 import { describe, expect, it } from "vitest";
+import type { StoreKind } from "../capabilities/support";
 import { tempDataDir } from "../_support/data-dir";
 
 tempDataDir("zenith-semantics-approval-", { fast: true });
-const { makeHarness, closeSharedPgliteAfterAll, scriptedEngine, requireApproval, user, sessionFor } = await import("../capabilities/support");
+const { STORE_KINDS, makeHarness, closeSharedPgliteAfterAll, scriptedEngine, requireApproval, user, sessionFor } = await import("../capabilities/support");
 const { makePlan, change } = await import("../execution/fakes/fixtures");
 const { migration0013ApprovedSourceSnapshots } = await import("@/lib/controlplane/db/migrations/0013_approved_source_snapshots");
 const { repos } = await import("@/lib/controlplane/db");
@@ -38,8 +39,8 @@ const semantics = computeExecutableSemantics({
   decommission: { adoptions: [] },
 });
 
-async function gated(withSemantics: boolean) {
-  const h = await makeHarness({ kind: "pglite", engine: scriptedEngine("plan-policy", () => requireApproval(1, "admin", true)) });
+async function gated(kind: StoreKind, withSemantics: boolean) {
+  const h = await makeHarness({ kind, engine: scriptedEngine("plan-policy", () => requireApproval(1, "admin", true)) });
   await h.db!.exec(migration0013ApprovedSourceSnapshots.sql);
   const proposal = await h.broker.propose({ capability: "deployment.deploy", scope: { workspaceId: h.ids.wsA, projectId: h.ids.projA, environmentId: h.ids.envAProd }, input: {} }, user("alice"));
   const op = proposal.operation;
@@ -59,29 +60,29 @@ async function gated(withSemantics: boolean) {
   return { h, op, decide, worker };
 }
 
-describe("approval binds the canonical executable semantics", () => {
+describe.each(STORE_KINDS.filter((k) => k !== "memory"))("approval binds the canonical executable semantics [%s]", (kind) => {
   it("shows the digest in the operation detail the browser and MCP read", async () => {
-    const { h, op } = await gated(true);
+    const { h, op } = await gated(kind, true);
     const detail = await h.broker.getOperationDetail({ workspaceId: h.ids.wsA, operationId: op.id, principal: user("erin") });
     expect(detail.planReview?.semantics?.digest).toBe(semantics.digest);
     expect(Object.keys(detail.planReview!.semantics!.components)).toHaveLength(13);
   });
 
   it("refuses an approval that omits the semantics digest", async () => {
-    const { h, op, decide } = await gated(true);
+    const { h, op, decide } = await gated(kind, true);
     await expect(decide(plan.planDigest)).rejects.toMatchObject({ code: "semantics_mismatch" });
     expect((await h.store.listApprovals(h.ids.wsA, op.id)).filter((a) => a.decision === "approve")).toHaveLength(1); // only round zero
   });
 
   it("refuses an approval of different semantics, without leaking the recorded value into the message", async () => {
-    const { decide } = await gated(true);
+    const { decide } = await gated(kind, true);
     const error = await decide(plan.planDigest, hex("0")).catch((e: unknown) => e as { code: string; message: string });
     expect((error as { code: string }).code).toBe("semantics_mismatch");
     expect((error as { message: string }).message).not.toContain(semantics.digest);
   });
 
   it("records the approval and an audit row naming the semantics it was given against", async () => {
-    const { h, op, decide, worker } = await gated(true);
+    const { h, op, decide, worker } = await gated(kind, true);
     const outcome = await decide(plan.planDigest, semantics.digest);
     expect(outcome.finalized).toBe(true);
     const events = await repos.events.list(h.db!, h.ids.wsA, { operationId: op.id });
@@ -91,13 +92,13 @@ describe("approval binds the canonical executable semantics", () => {
   });
 
   it("a rejection needs no semantics digest", async () => {
-    const { h, op } = await gated(true);
+    const { h, op } = await gated(kind, true);
     const rejected = await h.broker.reject({ workspaceId: h.ids.wsA, operationId: op.id, proposalDigest: op.proposalDigest, approver: user("erin"), session: sessionFor("erin") });
     expect(rejected.operation.status).toBe("rejected");
   });
 
   it("plans reviewed before the digest existed keep the previous approval behaviour", async () => {
-    const { h, op, decide } = await gated(false);
+    const { h, op, decide } = await gated(kind, false);
     const detail = await h.broker.getOperationDetail({ workspaceId: h.ids.wsA, operationId: op.id, principal: user("erin") });
     expect(detail.planReview?.semantics).toBeUndefined();
     expect((await decide(plan.planDigest)).finalized).toBe(true);

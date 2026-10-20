@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-05",
+    "PROD-DUR-03",
+    "PROD-DUR-04",
+    "PROD-LIFE-01",
+    "PROD-MACH-05",
+    "PROD-OBS-02",
+    "PROD-MACH-04"
+  ],
+  "level": "local_engine",
+  "date": "2026-10-20",
+  "commit": "082a027240ac30d9a74038c1d93a3dcbea2048f6",
+  "journey": {
+    "workflow": ".github/workflows/clean-host-journey.yml",
+    "runId": 39477790980,
+    "url": "https://github.com/saivedant169/zenith/actions/runs/39477790980",
+    "receipt": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-082a0272-clean-host-journey-receipt.json",
+    "status": "passed",
+    "ledgerEligible": true,
+    "counts": {
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0,
+      "not_run": 0
+    },
+    "environment": {
+      "host": "Linux AMD64",
+      "architectureEvidence": "native",
+      "node": "22.23.3",
+      "docker": "28.0.4",
+      "profile": "default",
+      "scope": "disposable local Supabase Auth, Mailpit, PostgreSQL, Temporal, zenithd and kind"
+    }
+  },
+  "ciOnSameCommit": {
+    "CI": 39477778904,
+    "nativePackagedWorkers": 39477778888,
+    "nativeSkippedPlatforms": 39477778935,
+    "conclusion": "success"
+  },
+  "installerLinuxBinds": {
+    "runId": 39468267865,
+    "commit": "952b8160",
+    "result": {
+      "withoutStaging": "refused",
+      "staged": 11,
+      "withStaging": "healthy",
+      "originalKeyMode": "600",
+      "cleanupExit": 0
+    }
+  },
+  "fixesFoundByTheseRuns": [
+    "0e5955aa: the J2 harness accepted only macOS ARM64 and the lean profile; it now accepts macOS ARM64 or Linux on its own architecture, requires engine and images to match it, and records the real host and profile.",
+    "082a0272: the runner's built-in BuildKit left the witness /witness and /var/lib/zenithd COPY destinations at 0755, so the seed's ownership check refused (witness:failed:seed-owner). Each 0700 directory is now copied as an entry of its parent."
+  ],
+  "retainedFailures": "Clean-host journey runs 39465245971 (native-mac-required), 39467637857 and 39470583005 (witness seed refused; second run named seed-owner) and 39473888935 (diagnostic) failed before this pass.",
+  "limits": "Disposable local engines; productionReady=false. One run on one fresh runner."
+}

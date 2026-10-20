@@ -3895,6 +3895,16 @@
           "environment": "Native Darwin ARM64, Node 22.23.3, Docker Desktop; owned disposable stacks at port offset 1000; protected Supabase/Kong services stayed running (11 before and after).",
           "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-0090d271-j4-wave6-identities.json",
           "result": "Both J4 wave6 identities passed again on 0090d271, which includes the apiFetch probe change: signed registered runbook delivery 1/0 and natural-timer maintenance 1/0, verifiers passed."
+        },
+        {
+          "level": "local_engine",
+          "commit": "082a027240ac30d9a74038c1d93a3dcbea2048f6",
+          "command": ".github/workflows/clean-host-journey.yml (ZENITH_DEFAULT_JOURNEY=1 node scripts/acceptance/default-journey.mjs)",
+          "environment": "GitHub-hosted ubuntu-latest amd64 fresh VM; default 2 API + 2 worker; no port offset; Docker 28.0.4; Node 22.23.3",
+          "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-082a0272-clean-host-journey.json",
+          "runId": 39477790980,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39477790980",
+          "result": "J2 default journey 18/18 passed on a clean Linux host (ledgerEligible, native AMD64, five readbacks): real browser and Supabase Auth, a registered zenithd and an owned kind target. Closes the customer-agents-from-a-clean-host gap; CI green on the same commit."
         }
       ],
       "requiredEvidence": [
@@ -3989,6 +3999,16 @@
           "commit": "98f03b4f9eae7e38f6cdf25c990a1bb129a6411d",
           "artifact": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-98f03b4f-pooler-pipelining.json",
           "result": "Exact-source CI: main 39380837921 20 success/8 conditional operated skips/0 failures; native packaged workers 39380838077 and native platforms 39380837852 success."
+        },
+        {
+          "level": "local_engine",
+          "commit": "082a027240ac30d9a74038c1d93a3dcbea2048f6",
+          "command": ".github/workflows/clean-host-journey.yml (ZENITH_DEFAULT_JOURNEY=1 node scripts/acceptance/default-journey.mjs)",
+          "environment": "GitHub-hosted ubuntu-latest amd64 fresh VM; default 2 API + 2 worker; no port offset; Docker 28.0.4; Node 22.23.3",
+          "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-082a0272-clean-host-journey.json",
+          "runId": 39477790980,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39477790980",
+          "result": "J2 default journey 18/18 passed on a clean Linux host (ledgerEligible, native AMD64, five readbacks): real browser and Supabase Auth, a registered zenithd and an owned kind target. Covers this requirement only where the journey exercises it."
         }
       ],
       "requiredEvidence": [
@@ -4401,6 +4421,16 @@
           "receipt": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-4fac547c-default-journey-receipt.json",
           "receiptSha256": "f81d8965f4e121f04632f92b930f9455a7f63f42a7507c6513f0e7f185eb5e3c",
           "result": "J2 default journey passed 18/18 on clean exact source 4fac547c (first attempt, ledger-eligible native receipt), the same commit as green CI, the signed runbook delivery and canonical J4."
+        },
+        {
+          "level": "local_engine",
+          "commit": "082a027240ac30d9a74038c1d93a3dcbea2048f6",
+          "command": ".github/workflows/clean-host-journey.yml (ZENITH_DEFAULT_JOURNEY=1 node scripts/acceptance/default-journey.mjs)",
+          "environment": "GitHub-hosted ubuntu-latest amd64 fresh VM; default 2 API + 2 worker; no port offset; Docker 28.0.4; Node 22.23.3",
+          "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-082a0272-clean-host-journey.json",
+          "runId": 39477790980,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39477790980",
+          "result": "J2 default journey 18/18 passed on a clean Linux host (ledgerEligible, native AMD64, five readbacks): real browser and Supabase Auth, a registered zenithd and an owned kind target. Covers this requirement only where the journey exercises it."
         }
       ],
       "requiredEvidence": [
@@ -4448,6 +4478,16 @@
           "receipt": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-4fac547c-default-journey-receipt.json",
           "receiptSha256": "f81d8965f4e121f04632f92b930f9455a7f63f42a7507c6513f0e7f185eb5e3c",
           "result": "J2 default journey passed 18/18 on clean exact source 4fac547c (first attempt, ledger-eligible native receipt), the same commit as green CI, the signed runbook delivery and canonical J4."
+        },
+        {
+          "level": "local_engine",
+          "commit": "082a027240ac30d9a74038c1d93a3dcbea2048f6",
+          "command": ".github/workflows/clean-host-journey.yml (ZENITH_DEFAULT_JOURNEY=1 node scripts/acceptance/default-journey.mjs)",
+          "environment": "GitHub-hosted ubuntu-latest amd64 fresh VM; default 2 API + 2 worker; no port offset; Docker 28.0.4; Node 22.23.3",
+          "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-082a0272-clean-host-journey.json",
+          "runId": 39477790980,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39477790980",
+          "result": "J2 default journey 18/18 passed on a clean Linux host (ledgerEligible, native AMD64, five readbacks): real browser and Supabase Auth, a registered zenithd and an owned kind target. Covers this requirement only where the journey exercises it."
         }
       ],
       "requiredEvidence": [
@@ -4703,6 +4743,16 @@
           "receipt": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-4fac547c-default-journey-receipt.json",
           "receiptSha256": "f81d8965f4e121f04632f92b930f9455a7f63f42a7507c6513f0e7f185eb5e3c",
           "result": "J2 default journey passed 18/18 on clean exact source 4fac547c (first attempt, ledger-eligible native receipt), the same commit as green CI, the signed runbook delivery and canonical J4."
+        },
+        {
+          "level": "local_engine",
+          "commit": "082a027240ac30d9a74038c1d93a3dcbea2048f6",
+          "command": ".github/workflows/clean-host-journey.yml (ZENITH_DEFAULT_JOURNEY=1 node scripts/acceptance/default-journey.mjs)",
+          "environment": "GitHub-hosted ubuntu-latest amd64 fresh VM; default 2 API + 2 worker; no port offset; Docker 28.0.4; Node 22.23.3",
+          "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-082a0272-clean-host-journey.json",
+          "runId": 39477790980,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39477790980",
+          "result": "J2 default journey 18/18 passed on a clean Linux host (ledgerEligible, native AMD64, five readbacks): real browser and Supabase Auth, a registered zenithd and an owned kind target. Covers this requirement only where the journey exercises it."
         }
       ],
       "requiredEvidence": [
@@ -5696,6 +5746,16 @@
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
           "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
           "result": "Wave6 local lanes 2026-10-20: 3 passed / 0 failed / 0 not run of the requirement's 3 non-live wave6 cases. J2 fresh-token native rejoin receipt case passed on d23fc0b4 against the 8776af2f J2 receipt; update/rollback acceptance is not shown by this case. Not promoted: local-engine slice only; acceptance judged separately."
+        },
+        {
+          "level": "local_engine",
+          "commit": "082a027240ac30d9a74038c1d93a3dcbea2048f6",
+          "command": ".github/workflows/clean-host-journey.yml (ZENITH_DEFAULT_JOURNEY=1 node scripts/acceptance/default-journey.mjs)",
+          "environment": "GitHub-hosted ubuntu-latest amd64 fresh VM; default 2 API + 2 worker; no port offset; Docker 28.0.4; Node 22.23.3",
+          "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-082a0272-clean-host-journey.json",
+          "runId": 39477790980,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39477790980",
+          "result": "J2 default journey 18/18 passed on a clean Linux host (ledgerEligible, native AMD64, five readbacks): real browser and Supabase Auth, a registered zenithd and an owned kind target. Covers this requirement only where the journey exercises it."
         }
       ],
       "requiredEvidence": [
@@ -5760,6 +5820,16 @@
           "receipt": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-4fac547c-default-journey-receipt.json",
           "receiptSha256": "f81d8965f4e121f04632f92b930f9455a7f63f42a7507c6513f0e7f185eb5e3c",
           "result": "J2 default journey passed 18/18 on clean exact source 4fac547c (first attempt, ledger-eligible native receipt), the same commit as green CI, the signed runbook delivery and canonical J4."
+        },
+        {
+          "level": "local_engine",
+          "commit": "082a027240ac30d9a74038c1d93a3dcbea2048f6",
+          "command": ".github/workflows/clean-host-journey.yml (ZENITH_DEFAULT_JOURNEY=1 node scripts/acceptance/default-journey.mjs)",
+          "environment": "GitHub-hosted ubuntu-latest amd64 fresh VM; default 2 API + 2 worker; no port offset; Docker 28.0.4; Node 22.23.3",
+          "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-082a0272-clean-host-journey.json",
+          "runId": 39477790980,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39477790980",
+          "result": "J2 default journey 18/18 passed on a clean Linux host (ledgerEligible, native AMD64, five readbacks): real browser and Supabase Auth, a registered zenithd and an owned kind target. Covers this requirement only where the journey exercises it."
         }
       ],
       "requiredEvidence": [
@@ -5921,6 +5991,16 @@
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
           "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
           "result": "Wave6 local lanes 2026-10-20: 2 passed / 0 failed / 0 not run of the requirement's 2 non-live wave6 cases. J2 receipt case passed on d23fc0b4 against the 8776af2f J2 receipt after the suite title fix (a27e4d71); the acceptance also covers logs, metrics, traces and provider events, not shown by this case. Not promoted: local-engine slice only; acceptance judged separately."
+        },
+        {
+          "level": "local_engine",
+          "commit": "082a027240ac30d9a74038c1d93a3dcbea2048f6",
+          "command": ".github/workflows/clean-host-journey.yml (ZENITH_DEFAULT_JOURNEY=1 node scripts/acceptance/default-journey.mjs)",
+          "environment": "GitHub-hosted ubuntu-latest amd64 fresh VM; default 2 API + 2 worker; no port offset; Docker 28.0.4; Node 22.23.3",
+          "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-082a0272-clean-host-journey.json",
+          "runId": 39477790980,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39477790980",
+          "result": "J2 default journey 18/18 passed on a clean Linux host (ledgerEligible, native AMD64, five readbacks): real browser and Supabase Auth, a registered zenithd and an owned kind target. Covers this requirement only where the journey exercises it."
         }
       ],
       "requiredEvidence": [

@@ -3505,11 +3505,11 @@
       "acceptance": [
         "Build AMD64 and ARM64 execution-worker images and exercise actual entrypoint; distinguish native/emulated architecture evidence."
       ],
-      "state": "in_progress",
+      "state": "verified",
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "in_progress; 2026-10-14 postboot evidence linked; requirement state and acceptance unchanged.",
+      "implementationStatus": "verified_4d3d9d77: fresh-source execution-worker images are built and their actual entrypoint exercised natively on GitHub-hosted linux/amd64 and linux/arm64 runners (22/22 checks each, emulated false recorded per artifact), exact-source CI green. Independent review: PROMOTE. Limits: the built target is the acceptance derivative of the worker image, not the production target; the committed artifacts are sanitized copies whose field validation runs in CI (--validate) against the run, while --validate-artifact checks shape only; hosted runners, not a production registry or signed release image.",
       "evidence": [
         {
           "level": "local_linux_arm64",
@@ -3619,6 +3619,15 @@
           "commit": "f2d0cb4cce4f0d97496bf134fdb2a66a8c755a98",
           "artifact": "docs/build/production/evidence/PROD-PKG-01/2026-10-14-f2d0-native-witness-build.json",
           "result": "Native linux/arm64 W image build-only passed (exit 0); no push and entrypoint not executed. No runtime or product acceptance."
+        },
+        {
+          "level": "native_runtime",
+          "commit": "4d3d9d7749bfbc8b0c3347e47424ec4bc49c537b",
+          "command": ".github/workflows/packaged-workers.yml (run 39506699638): scripts/ci/packaged-worker-native.mjs --run, --validate and --validate-artifact per architecture",
+          "environment": "GitHub-hosted ubuntu-24.04 (linux/amd64) and ubuntu-24.04-arm (linux/arm64) fresh runners, Docker native architecture, emulated false",
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39506699638",
+          "logs": "docs/build/production/evidence/packaged-worker/amd64-4d3d9d77-passed.json, docs/build/production/evidence/packaged-worker/arm64-4d3d9d77-passed.json",
+          "result": "Fresh-source execution-worker images built and their actual entrypoint run natively on both architectures: 22/22 checks passed on each, native-architecture recorded with emulated false and the runner label, exact-source CI 39506699546 green on the commit."
         }
       ],
       "requiredEvidence": [

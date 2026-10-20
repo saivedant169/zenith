@@ -103,6 +103,14 @@ export async function readiness(state, { j4Resume = false } = {}) {
       return fetch(request.url, request.options);
     });
     checks[`http-api-${i + 1}`] = result.ready; apiProbes.push(result.checks);
+    if (result.checks['mcp-bearer-boundary'] !== 'passed') {
+      // Diagnostic only: the unauthenticated MCP answer's status and challenge header (public origin, no credential).
+      try {
+        const request = apiProbeRequest(config.environment.NEXT_PUBLIC_SITE_URL, ports.api + i, `${config.environment.NEXT_PUBLIC_SITE_URL}/api/agent/v3/mcp`, { redirect: 'error', signal: AbortSignal.timeout(15_000), headers: { accept: 'application/json' } });
+        const response = await fetch(request.url, request.options);
+        result.checks['mcp-bearer-boundary-observed'] = `${response.status} ${(response.headers.get('www-authenticate') ?? 'none').slice(0, 200)}`;
+      } catch (error) { result.checks['mcp-bearer-boundary-observed'] = `error ${error instanceof Error ? error.name : 'unknown'}`; }
+    }
   }
   const headers = { apikey: config.environment.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY };
   checks['supabase-auth-https'] = (await supabaseRequest(state, '/auth/v1/health', headers)).status === 200;

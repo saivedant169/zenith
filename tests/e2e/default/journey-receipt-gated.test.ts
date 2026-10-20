@@ -81,12 +81,15 @@ function requirePassedCheck(id: string, readback: string) {
   expect(value.readbacks.find(row => row.target === readback)?.sha256).toMatch(/^[a-f0-9]{64}$/);
 }
 
-gated('J2 actual requirement receipts', () => {
+gated('PROD-OBS-02 actual J2 receipt', () => {
   it('requires the completed owned machine-health provenance check for OBS-02', () => {
     const value = actualReceipt();
     expect(value.requirementIds).toContain('PROD-OBS-02');
     requirePassedCheck('machine-health-provenance-readback', 'obs02');
   });
+});
+
+gated('PROD-MACH-04 actual J2 receipt', () => {
   it('requires the completed native fresh-token rejoin check for MACH-04', () => {
     const value = actualReceipt();
     expect(value.requirementIds).toContain('PROD-MACH-04');

@@ -17,7 +17,7 @@ import { readExecutableSemantics, type SemanticComponentName } from "@/lib/execu
 import { SemanticsChangedError } from "@/lib/execution/semantics/errors";
 import { TofuPlanChangedError } from "@/lib/tofu/types";
 import { MemorySemanticsStore, type SemanticsStore } from "@/lib/execution/semantics/store";
-import { FAILURE_TYPES } from "@/lib/workflows/types";
+import { FAILURE_TYPES, type LeaseRef } from "@/lib/workflows/types";
 import { StepFailedError } from "@/lib/execution/errors";
 import { ReleaseSafetyService, createMemoryReleaseStore, type ProvenanceVerifier } from "@/lib/release-safety";
 import { LANES, openLane, seedApprovedOperation } from "../controlplane/_support/harness";
@@ -264,17 +264,18 @@ describe.each(SEMANTICS_LANES)("execution dispatch [%s]", (name) => {
     const SAVED_PLAN_OTHER = "e".repeat(64);
     const otherOwnership = { address: SVC, resourceType: "aws_ecs_service", path: "desired_count", from: "iac", to: "autoscaler", approvalId: "apr_1", approvedAt: "2026-09-30T00:00:00.000Z", digest: "7".repeat(64) };
 
-    type Effect = "apply" | "rollout" | "migration";
+    type Effect = "apply" | "build" | "rollout" | "migration";
     type Base = "releasing" | "built";
     /**
      * The gate that refuses a changed component, as the product actually orders them:
      * - semantics: `assertApprovedSemantics` / `assertOperationSemantics` compares the recorded and current digests (SemanticsChangedError)
      * - tofuPlan: the engine's fresh re-plan digest differs from the approved plan, before the semantics compare (TofuPlanChangedError)
      * - custody: the approved-source store refuses a changed recipe before the semantics compare (StepFailedError)
+     * - admission: signed build provenance admission (`admitBuiltArtifacts`, release.ts) refuses the rollout, before the semantics compare (StepFailedError)
      * - reviewedPlan: the reviewed-plan custody has no plan for the dispatched digest (StepFailedError)
      * - noRecord: no executable semantics were recorded for the operation's plan digest (StepFailedError)
      */
-    type Gate = "semantics" | "tofuPlan" | "custody" | "reviewedPlan" | "noRecord";
+    type Gate = "semantics" | "tofuPlan" | "custody" | "admission" | "reviewedPlan" | "noRecord";
     interface Row {
       component: SemanticComponentName;
       label: string;
@@ -288,8 +289,8 @@ describe.each(SEMANTICS_LANES)("execution dispatch [%s]", (name) => {
     /** One representative mutation per component of the executable-semantics list (the full mutation matrix is in semantics.test.ts). */
     const ROWS: Row[] = [
       { component: "revision", label: "the revision id", base: "releasing", effects: ["apply", "rollout", "migration"], mutate: (w) => { w.product.revisions.set(REVISION, { ...w.product.revisions.get(REVISION)!, id: "rev-act-1-next" }); } },
-      // Built source: rollout and migration need signed build provenance admission for the built image, which this lane does not model.
-      { component: "recipe", label: "a Dockerfile / source recipe", base: "built", effects: ["apply"], gates: { apply: "custody" }, mutate: (w) => { const m = builtManifest(); m.services[0].source = { type: "git", repo: "github.com/acme/api", ref: "other", dockerfile: "Dockerfile" }; w.product.setManifest(m); } },
+      // Built source: the approved-source store refuses a changed recipe before the semantics compare, at every effect that reads it.
+      { component: "recipe", label: "a Dockerfile / source recipe", base: "built", effects: ["apply", "build", "rollout", "migration"], gates: { apply: "custody", build: "custody", rollout: "custody", migration: "custody" }, mutate: (w) => { w.product.setManifest(builtWithMigrate({ type: "git", repo: "github.com/acme/api", ref: "other", dockerfile: "Dockerfile" })); } },
       { component: "scripts", label: "the release script command", base: "releasing", effects: ["apply", "rollout", "migration"], mutate: (w) => { w.product.setManifest(withMigrate({ command: ["node", "migrate.js", "--down"] })); } },
       { component: "migrations", label: "the declared migration class", base: "releasing", effects: ["apply", "rollout", "migration"], mutate: (w) => { w.product.setManifest(withMigrate({ class: "contract" })); } },
       // The engine's fresh re-plan digest moves with the rendered workspace, so on apply the plan gate fires before the semantics compare.
@@ -300,7 +301,8 @@ describe.each(SEMANTICS_LANES)("execution dispatch [%s]", (name) => {
       // The saved plan is the digest argument itself: apply dispatches a different plan (no reviewed custody for it); release steps read a different op.planDigest (no recorded semantics).
       { component: "savedPlan", label: "the saved plan digest", base: "releasing", effects: ["apply", "rollout", "migration"], gates: { apply: "reviewedPlan", rollout: "noRecord", migration: "noRecord" }, mutate: async (w) => { const rec = (await w.ops.get(op))!; w.ops.seed({ ...rec, planDigest: SAVED_PLAN_OTHER }); } },
       // Built source: the approved-source store refuses a changed build context (pipeline spec digest) before the semantics compare.
-      { component: "provenance", label: "a build context directory", base: "built", effects: ["apply"], gates: { apply: "custody" }, mutate: (w) => { const m = builtManifest(); (m.services[0] as { source: unknown }).source = { type: "git", repo: "github.com/acme/api", ref: "main", dockerfile: "Dockerfile", contextDir: "services/api" }; w.product.setManifest(m); } },
+      // At rollout, admission (`contextDigestFor` in `admitBuiltArtifacts`) refuses the subdirectory build before the semantics compare.
+      { component: "provenance", label: "a build context directory", base: "built", effects: ["apply", "build", "rollout", "migration"], gates: { apply: "custody", build: "custody", rollout: "admission", migration: "custody" }, mutate: (w) => { w.product.setManifest(builtWithMigrate({ type: "git", repo: "github.com/acme/api", ref: "main", dockerfile: "Dockerfile", contextDir: "services/api" })); } },
       { component: "ownership", label: "an ownership transfer", base: "releasing", effects: ["apply", "rollout", "migration"], mutate: (w) => { (w.resources as unknown as Mutable).activeOwnershipTransfers = async () => [otherOwnership]; } },
       { component: "runbook", label: "the runbook version (MACH-03)", base: "releasing", effects: ["apply", "rollout", "migration"], mutate: async (w) => { const rec = (await w.ops.get(op))!; w.ops.seed({ ...rec, proposal: { ...rec.proposal, input: { ...(rec.proposal.input as object), runbook: { runbookId: "rb_1", version: 3, definitionDigest: "2".repeat(64) } } } }); } },
       { component: "decommission", label: "an adoption claim", base: "releasing", effects: ["apply", "rollout", "migration"], mutate: (w) => { w.deps.portability = { adoptionFacts: async () => [{ address: "postgres/db", externalId: "db-1", status: "active", lifecycle: "manage" }] } as unknown as typeof w.deps.portability; } },
@@ -312,12 +314,19 @@ describe.each(SEMANTICS_LANES)("execution dispatch [%s]", (name) => {
       return m;
     }
 
+    /** The built base: a git-built `api` service that also carries the release migration, so every release effect is reachable. */
+    function builtWithMigrate(source: Record<string, unknown> = { type: "git", repo: "github.com/acme/api", ref: "main", dockerfile: "Dockerfile" }): ReturnType<typeof migratingManifest> {
+      const m = builtManifest();
+      (m.services[0] as unknown as { source: unknown }).source = source;
+      return { ...m, version: 2, placement: { provider: "aws", regions: ["us-east-1"] }, release: { migrate: { service: "api", command: ["node", "migrate.js", "--up"], class: "expand" } } } as unknown as ReturnType<typeof migratingManifest>;
+    }
+
     /** A world with the reviewed plan recorded: the manifest of the base, the human approval and (for release steps) the verifier. */
     async function approvedWorld(row: Row) {
       const store = semantics();
       const safety = new ReleaseSafetyService({ store: createMemoryReleaseStore(), verifiers: [verifier], minProvenance: "pinned_digest" });
       const w = worldFor({ semantics: store, releaseSafety: safety });
-      w.product.setManifest(row.base === "built" ? builtManifest() : withMigrate({}));
+      w.product.setManifest(row.base === "built" ? builtWithMigrate() : withMigrate({}));
       w.broker.approval = { approved: true, rejected: false, approvalId: "isolated-reviewed-human-fixture" };
       const { lease, plan } = await planned(w);
       return { w, lease, plan };
@@ -341,6 +350,11 @@ describe.each(SEMANTICS_LANES)("execution dispatch [%s]", (name) => {
           expect(err).toBeInstanceOf(StepFailedError);
           expect((err as Error).message).toMatch(/Approved source recipe changed; a new operation and review are required/);
           return;
+        case "admission":
+          // signed build provenance admission (`admitBuiltArtifacts`) refuses before the semantics compare
+          expect(err).toBeInstanceOf(StepFailedError);
+          expect((err as Error).message).toMatch(/builds from the subdirectory services\/api without the digest source inspection/);
+          return;
         case "reviewedPlan":
           expect(err).toBeInstanceOf(StepFailedError);
           expect((err as Error).message).toMatch(/Isolated reviewed plan missing/);
@@ -353,6 +367,18 @@ describe.each(SEMANTICS_LANES)("execution dispatch [%s]", (name) => {
     }
 
     const cases = (effect: Effect) => ROWS.filter((r) => r.effects.includes(effect)).map((r) => [r.component, r, r.gates?.[effect] ?? "semantics"] as const);
+    /** The images a release deploys: the reviewed pinned image, or for the built base the image the isolated build produced and signed. */
+    const releaseImages = async (row: Row, w: World, lease: LeaseRef) => (row.base === "built" ? (await w.activities.buildArtifacts({ operationId: op, lease })).images : [image]);
+
+    describe("build dispatch", () => {
+      it.each(cases("build"))("refuses a changed %s before any build starts", async (component, row, gate) => {
+        const { w, lease } = await approvedWorld(row);
+        await row.mutate(w);
+        const err = await w.activities.buildArtifacts({ operationId: op, lease }).catch((e: unknown) => e);
+        expectGate(err, gate, component, "build dispatch");
+        expect(w.build.started).toHaveLength(0);
+      });
+    });
 
     describe("apply dispatch", () => {
       it.each(cases("apply"))("refuses a changed %s before any apply write", async (component, row, gate) => {
@@ -370,8 +396,9 @@ describe.each(SEMANTICS_LANES)("execution dispatch [%s]", (name) => {
     describe("rollout dispatch", () => {
       it.each(cases("rollout"))("refuses a changed %s before the first rollout effect", async (component, row, gate) => {
         const { w, lease } = await approvedWorld(row);
+        const images = await releaseImages(row, w, lease);
         await row.mutate(w);
-        const err = await w.activities.deployWorkloads({ operationId: op, lease, images: [image] }).catch((e: unknown) => e);
+        const err = await w.activities.deployWorkloads({ operationId: op, lease, images }).catch((e: unknown) => e);
         expectGate(err, gate, component, "rollout dispatch");
         expect(w.workloads.deployed).toHaveLength(0);
       });
@@ -380,7 +407,7 @@ describe.each(SEMANTICS_LANES)("execution dispatch [%s]", (name) => {
     describe("migration dispatch", () => {
       it.each(cases("migration"))("refuses a changed %s before the migration runs", async (component, row, gate) => {
         const { w, lease } = await approvedWorld(row);
-        await w.activities.deployWorkloads({ operationId: op, lease, images: [image] });
+        await w.activities.deployWorkloads({ operationId: op, lease, images: await releaseImages(row, w, lease) });
         await row.mutate(w);
         const err = await w.activities.runMigrations({ operationId: op, lease }).catch((e: unknown) => e);
         expectGate(err, gate, component, "migration dispatch");

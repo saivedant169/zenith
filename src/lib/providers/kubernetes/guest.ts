@@ -394,8 +394,12 @@ export function createGuestClusterPort(session: KubernetesSession, signal?: Abor
         try { live = await rbac.readNamespacedRole({ name, namespace }, options as never); }
         catch (e) {
           if (!absent(e)) throw e;
-          try { await rbac.createNamespacedRole({ namespace, body: { metadata: { name, namespace, labels }, rules } }, options as never); return; }
-          catch (c) { if (status(c) !== 409) throw c; live = await rbac.readNamespacedRole({ name, namespace }, options as never); }
+          // Create empty, then set the rules by name below. Kubernetes cannot match a create against
+          // the minter's name-pinned `escalate` (the name is unknown at authorization time), so a create
+          // carrying rules the minter does not hold is refused; the named update is allowed.
+          try { await rbac.createNamespacedRole({ namespace, body: { metadata: { name, namespace, labels }, rules: [] } }, options as never); }
+          catch (c) { if (status(c) !== 409) throw c; }
+          live = await rbac.readNamespacedRole({ name, namespace }, options as never);
         }
         if (!owned(live.metadata?.labels, labels)) throw new GuestCredentialError("object_conflict");
         // Out-of-band widening of the guest Role is reverted, never trusted.

@@ -163,7 +163,7 @@ describe.skipIf(!enabled)("default scoped Kubernetes guest credentials against t
     const claims: CapabilityGrantClaims = { jti: randomUUID(), iss: "kind-scoped-guest", aud: "worker", sub: "user:kind-scoped-guest", iat: now - 1, exp: now + 300, cap: operation, op: operationId, digest: "d".repeat(64), ws: workspaceId, env: environmentId, res: resourceId };
     const jws = await signCapabilityGrant(claims, { signer });
     const grant = await verifyCapabilityGrant(jws, { audience: "worker", expectedCapability: operation, expectedOperationId: operationId, keys: [key.publicJwk] });
-    const args = operation === "container.exec" ? { argv: ["/bin/sh", "-c", "echo scoped-guest-exec-ok"] } : { all: true };
+    const args = operation === "container.exec" ? { argv: ["/bin/sh", "-c", "echo scoped-guest-exec-ok"], timeoutSec: 20 } : { all: true };
     const request = requestFor(operation, args, { operationId, target: { workspaceId, environmentId, resourceId, address: "compute_instance/guest-marker", transport: "kubernetes", targetId: operation === "container.exec" ? `${namespace}/guest-marker/marker` : namespace }, timeoutSec: 20 });
     const sessionRequest: MachineSessionRequest = { operationId, operation, target: request.target, grant };
     const provider = createMachineSessionProvider({ credentials, connection, grantJws: jws, signal: controller.signal });

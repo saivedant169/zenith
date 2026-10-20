@@ -96,12 +96,13 @@ export async function readiness(state, { j4Resume = false } = {}) {
     if (peer.installationId !== config.installationId || !peer.workerId
       || JSON.stringify(peer.environment) !== JSON.stringify(config.environment)) fail('worker-keyring-drift');
   }
+  /** @type {Record<string, string>[]} */ const apiProbes = [];
   for (let i = 0; i < sizing.apis; i++) {
     const result = await probeReadiness(config, (input, init) => {
       const request = apiProbeRequest(config.environment.NEXT_PUBLIC_SITE_URL, ports.api + i, input, init);
       return fetch(request.url, request.options);
     });
-    checks[`http-api-${i + 1}`] = result.ready;
+    checks[`http-api-${i + 1}`] = result.ready; apiProbes.push(result.checks);
   }
   const headers = { apikey: config.environment.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY };
   checks['supabase-auth-https'] = (await supabaseRequest(state, '/auth/v1/health', headers)).status === 200;
@@ -121,7 +122,7 @@ export async function readiness(state, { j4Resume = false } = {}) {
   checks['platform-schema-current'] = true;
   const receipt = { schemaVersion: 1, kind: 'local_engine', source: state.source, architecture: state.architecture,
     minimumObservedFreeBytes: state.minimumObservedFreeBytes,
-    profile: state.profile, apis: sizing.apis, workers: sizing.workers, authority, checks,
+    profile: state.profile, apis: sizing.apis, workers: sizing.workers, authority, checks, apiProbes,
     passed: Object.values(checks).filter(Boolean).length, failed: Object.values(checks).filter(value => !value).length, skipped: 0,
     authenticatedJourney: false, crossWorkerExecution: false, hostedProductionAcceptance: false, productionReady: false };
   save(path.join(state.directory, 'readiness.receipt.json'), receipt);

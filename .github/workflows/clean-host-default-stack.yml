@@ -57,6 +57,26 @@ jobs:
           test "$(docker ps -aq | wc -l)" -eq 0
           ! ss -ltn | grep -E ':(54321|54322|54323|54324|54327)\b'
 
+      - name: Log command names and exit codes
+        # The stack's run() reports only a failure id. These shims record each
+        # docker/supabase call's exit code and plain-word subcommands; values,
+        # paths and environment arguments are never written.
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/shim"
+          for tool in docker supabase; do
+            real=$(command -v "$tool")
+            cat > "$RUNNER_TEMP/shim/$tool" <<EOF
+          #!/bin/bash
+          start=\$(date +%s); "$real" "\$@"; rc=\$?
+          words=\$(printf '%s\n' "\$@" | grep -E '^[a-z][a-z-]{1,30}$' | head -6 | tr '\n' ' ')
+          echo "\$(date -u +%T) rc=\$rc \$(( \$(date +%s) - start ))s $tool \$words" >> "$RUNNER_TEMP/commands.log"
+          exit \$rc
+          EOF
+            chmod +x "$RUNNER_TEMP/shim/$tool"
+          done
+          echo "$RUNNER_TEMP/shim" >> "$GITHUB_PATH"
+
       - name: Default stack engine acceptance
         run: |
           set -uo pipefail
@@ -77,7 +97,13 @@ jobs:
 
       - name: Owned resources after the run
         if: always()
-        run: docker ps -a --format '{{.Names}} {{.Status}}'
+        run: |
+          docker ps -a --format '{{.Names}} {{.Status}}'
+          df -h /
+          free -m
+          # Nonzero exit codes and slow calls first, then the full sequence.
+          grep -v ' rc=0 ' "$RUNNER_TEMP/commands.log" || true
+          cat "$RUNNER_TEMP/commands.log" || true
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()

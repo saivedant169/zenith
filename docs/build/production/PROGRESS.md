@@ -14,6 +14,8 @@ Also from this window:
 - The MFA browser acceptance passed 2/2 on the owned stack, after fixing a navigation race and adding the J2-style SPKI pin (`9dcece4a`).
 - Managed-kind now onboards through reviewed custody (`ee9e7c63`). It passes 4/6 on `3eee297a`; the source-build cases still need owner-reviewed isolated-build profiles.
 
+The wave6 lane record now covers these runs: 248 passed, 4 passed but unverifiable (managed-kind; its file still fails), 5 failed and 29 not run of 286 non-live cases (`evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json`). The MFA lane cases passed 2/2 through their manifest argv on `d69e9c3a`.
+
 New open defect: creating a workspace whose name slugifies to an existing slug fails with an unhandled 500 (`workspaces_slug_key`).
 
 ## Wave6 local engine lanes — 20 October 2026

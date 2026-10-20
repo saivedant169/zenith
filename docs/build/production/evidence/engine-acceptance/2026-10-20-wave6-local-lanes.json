@@ -7,9 +7,9 @@
  "note": "Each case is verified with scripts/ci/wave6-gates.mjs --case against its own Vitest JSON report on the clean exact-source commit named per case. Live-lane cases are excluded. Failures and skips are preserved; totals are not promotion evidence.",
  "totals": {
   "cases": 286,
-  "passed": 246,
-  "failed": 8,
-  "not_run": 31
+  "passed": 248,
+  "failed": 5,
+  "not_run": 29
  },
  "byRequirement": {
   "PROD-REL-04": {
@@ -63,9 +63,9 @@
    "not_run": 0
   },
   "PROD-UX-01": {
-   "passed": 29,
+   "passed": 31,
    "failed": 0,
-   "not_run": 5
+   "not_run": 3
   },
   "PROD-UX-02": {
    "passed": 4,
@@ -129,8 +129,8 @@
   },
   "PROD-MAN-07": {
    "passed": 32,
-   "failed": 6,
-   "not_run": 11
+   "failed": 3,
+   "not_run": 14
   },
   "PROD-MAN-05": {
    "passed": 24,
@@ -149,33 +149,33 @@
   },
   "PROD-LIFE-03": {
    "passed": 7,
-   "failed": 5,
-   "not_run": 3
+   "failed": 2,
+   "not_run": 6
   },
   "PROD-LIFE-07": {
    "passed": 7,
-   "failed": 5,
-   "not_run": 3
+   "failed": 2,
+   "not_run": 6
   },
   "PROD-LIFE-08": {
    "passed": 7,
-   "failed": 5,
-   "not_run": 3
+   "failed": 2,
+   "not_run": 6
   },
   "PROD-LIFE-09": {
    "passed": 7,
-   "failed": 5,
-   "not_run": 3
+   "failed": 2,
+   "not_run": 6
   },
   "PROD-LIFE-10": {
    "passed": 7,
-   "failed": 5,
-   "not_run": 4
+   "failed": 2,
+   "not_run": 7
   },
   "PROD-LIFE-12": {
    "passed": 7,
-   "failed": 5,
-   "not_run": 3
+   "failed": 2,
+   "not_run": 6
   },
   "PROD-REL-02": {
    "passed": 0,
@@ -513,8 +513,9 @@
    "requirements": [
     "PROD-UX-01"
    ],
-   "status": "not_run",
-   "reason": "not run: needs a two-admin password-login MFA fixture on a J1 stack and a Chromium trust path for the private CA (not built)"
+   "status": "passed",
+   "commit": "d69e9c3acbb64226b2d4175cb6b7a3f53aa18d02",
+   "run": "per-case lane argv (browser)"
   },
   {
    "id": "wave6-a19fd9525a62d581",
@@ -524,8 +525,9 @@
    "requirements": [
     "PROD-UX-01"
    ],
-   "status": "not_run",
-   "reason": "not run: needs a two-admin password-login MFA fixture on a J1 stack and a Chromium trust path for the private CA (not built)"
+   "status": "passed",
+   "commit": "d69e9c3acbb64226b2d4175cb6b7a3f53aa18d02",
+   "run": "per-case lane argv (browser)"
   },
   {
    "id": "wave6-ff5f66e171449b71",
@@ -3791,9 +3793,9 @@
     "PROD-MAN-07"
    ],
    "status": "failed",
-   "commit": "8e20b1f45a1b856bad5727a5e1884dae20d660a5",
+   "commit": "3eee297a66bb5eecef4a2d83ad875dea891f6869",
    "run": "scripts/k8s/managed-substrate-acceptance.sh (kind-calico, registry and kaniko v1.23.2 pinned by digest)",
-   "reason": "failed 5/6 on 8e20b1f4: the harness predates required tenant operator custody (ZENITH_MANAGED_OPERATOR_CREDENTIAL_PREFIX and a verified tenant operator identity through reviewed isolation custody); harness update open"
+   "reason": "onboarding through reviewed custody fixed in ee9e7c63 (4/6 then passed on 3eee297a); status and source build fail: source builds need ZENITH_ISOLATED_BUILD_PROFILES with owner-reviewed seccomp/AppArmor/userns runtime profiles"
   },
   {
    "id": "wave6-b5f40605f3cc1871",
@@ -3809,10 +3811,10 @@
     "PROD-LIFE-12",
     "PROD-MAN-07"
    ],
-   "status": "failed",
-   "commit": "8e20b1f45a1b856bad5727a5e1884dae20d660a5",
+   "status": "passed_unverifiable",
+   "commit": "3eee297a66bb5eecef4a2d83ad875dea891f6869",
    "run": "scripts/k8s/managed-substrate-acceptance.sh (kind-calico, registry and kaniko v1.23.2 pinned by digest)",
-   "reason": "failed 5/6 on 8e20b1f4: the harness predates required tenant operator custody (ZENITH_MANAGED_OPERATOR_CREDENTIAL_PREFIX and a verified tenant operator identity through reviewed isolation custody); harness update open"
+   "note": "the case passed, but wave6-gates refuses the whole report because other cases in the file failed"
   },
   {
    "id": "wave6-f874050669d5c165",
@@ -3828,10 +3830,10 @@
     "PROD-LIFE-12",
     "PROD-MAN-07"
    ],
-   "status": "failed",
-   "commit": "8e20b1f45a1b856bad5727a5e1884dae20d660a5",
+   "status": "passed_unverifiable",
+   "commit": "3eee297a66bb5eecef4a2d83ad875dea891f6869",
    "run": "scripts/k8s/managed-substrate-acceptance.sh (kind-calico, registry and kaniko v1.23.2 pinned by digest)",
-   "reason": "failed 5/6 on 8e20b1f4: the harness predates required tenant operator custody (ZENITH_MANAGED_OPERATOR_CREDENTIAL_PREFIX and a verified tenant operator identity through reviewed isolation custody); harness update open"
+   "note": "the case passed, but wave6-gates refuses the whole report because other cases in the file failed"
   },
   {
    "id": "wave6-adf87102d932856a",
@@ -3847,10 +3849,10 @@
     "PROD-LIFE-12",
     "PROD-MAN-07"
    ],
-   "status": "failed",
-   "commit": "8e20b1f45a1b856bad5727a5e1884dae20d660a5",
+   "status": "passed_unverifiable",
+   "commit": "3eee297a66bb5eecef4a2d83ad875dea891f6869",
    "run": "scripts/k8s/managed-substrate-acceptance.sh (kind-calico, registry and kaniko v1.23.2 pinned by digest)",
-   "reason": "failed 5/6 on 8e20b1f4: the harness predates required tenant operator custody (ZENITH_MANAGED_OPERATOR_CREDENTIAL_PREFIX and a verified tenant operator identity through reviewed isolation custody); harness update open"
+   "note": "the case passed, but wave6-gates refuses the whole report because other cases in the file failed"
   },
   {
    "id": "wave6-9a4769da866ad98b",
@@ -3867,9 +3869,9 @@
     "PROD-MAN-07"
    ],
    "status": "failed",
-   "commit": "8e20b1f45a1b856bad5727a5e1884dae20d660a5",
+   "commit": "3eee297a66bb5eecef4a2d83ad875dea891f6869",
    "run": "scripts/k8s/managed-substrate-acceptance.sh (kind-calico, registry and kaniko v1.23.2 pinned by digest)",
-   "reason": "failed 5/6 on 8e20b1f4: the harness predates required tenant operator custody (ZENITH_MANAGED_OPERATOR_CREDENTIAL_PREFIX and a verified tenant operator identity through reviewed isolation custody); harness update open"
+   "reason": "onboarding through reviewed custody fixed in ee9e7c63 (4/6 then passed on 3eee297a); status and source build fail: source builds need ZENITH_ISOLATED_BUILD_PROFILES with owner-reviewed seccomp/AppArmor/userns runtime profiles"
   },
   {
    "id": "wave6-18aaaf4f190d34ce",
@@ -3886,7 +3888,7 @@
     "PROD-MAN-07"
    ],
    "status": "passed_unverifiable",
-   "commit": "8e20b1f45a1b856bad5727a5e1884dae20d660a5",
+   "commit": "3eee297a66bb5eecef4a2d83ad875dea891f6869",
    "run": "scripts/k8s/managed-substrate-acceptance.sh (kind-calico, registry and kaniko v1.23.2 pinned by digest)",
    "note": "the case passed, but wave6-gates refuses the whole report because other cases in the file failed"
   },
@@ -3974,7 +3976,7 @@
     "PROD-LIFE-10"
    ],
    "status": "not_run",
-   "reason": "not run: needs a two-admin password-login MFA fixture on a J1 stack and a Chromium trust path for the private CA (not built)"
+   "reason": "not run: needs a J6 operated migration run, which needs owner-reviewed isolated-build profiles"
   },
   {
    "id": "wave6-03be46338cbeb148",

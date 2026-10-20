@@ -76,6 +76,8 @@ jobs:
             chmod +x "$RUNNER_TEMP/shim/$tool"
           done
           echo "$RUNNER_TEMP/shim" >> "$GITHUB_PATH"
+          # Container lifecycle and health transitions only: names and actions, no environment.
+          nohup docker events --filter type=container --format '{{.TimeNano}} {{.Action}} {{.Actor.Attributes.name}}' > "$RUNNER_TEMP/events.log" 2>&1 &
 
       - name: Default stack engine acceptance
         run: |
@@ -104,6 +106,7 @@ jobs:
           # Nonzero exit codes and slow calls first, then the full sequence.
           grep -v ' rc=0 ' "$RUNNER_TEMP/commands.log" || true
           cat "$RUNNER_TEMP/commands.log" || true
+          grep -E ' (die|oom|kill|health_status: unhealthy) ' "$RUNNER_TEMP/events.log" | awk '{ printf "%s %s\n", strftime("%T", $1/1e9), substr($0, index($0,$2)) }' || true
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()

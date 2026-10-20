@@ -185,15 +185,18 @@ test('default operated browser, REST, MCP and customer machine journey', async (
   const runId = nonce(), witnessNonce = nonce(), serviceId = 'witness';
   // Machines bind the platform resource row of the deployed witness: its graph address and canonical id.
   const witnessAddress = 'container_service/witness';
-  const witnessResourceId = async () => {
-    // Manifest service IDs identify graph origins, not persisted resource
-    // primary keys. Resolve the active target from this owned J1 database.
+  // Reads of this owned J1 database, only after its ownership labels are confirmed.
+  const psql = async (sql, variables) => {
     const database = 'supabase_db_' + stack.state.projectId;
     const [databaseContainer] = JSON.parse(await docker(['inspect', database]));
     ensure(databaseContainer.Config.Labels?.['com.supabase.cli.project'] === stack.state.projectId &&
       databaseContainer.Config.Labels?.['io.zenith.installation'] === stack.state.installationId, 'health-evidence-database-ownership');
-    const psql = (sql, variables) => command('docker', ['exec', '-i', database, 'psql', '-X', '-U', 'postgres', '-d', 'postgres',
+    return command('docker', ['exec', '-i', database, 'psql', '-X', '-U', 'postgres', '-d', 'postgres',
       '-v', 'ON_ERROR_STOP=1', ...Object.entries(variables).flatMap(([name, value]) => ['-v', name + '=' + value]), '-At'], { input: sql });
+  };
+  const witnessResourceId = async () => {
+    // Manifest service IDs identify graph origins, not persisted resource
+    // primary keys. Resolve the active target from this owned J1 database.
     const resourceSql = "select coalesce(json_agg(json_build_object('id',id,'workspaceId',workspace_id,'projectId',project_id,'environmentId',environment_id,'address',address,'ownership',ownership,'status',status)), '[]'::json)::text from platform.resources where workspace_id=:'workspace_id' and project_id=:'project_id' and environment_id=:'environment_id' and address=:'address' and ownership='managed' and status='active'";
     const resources = JSON.parse(await psql(resourceSql, { workspace_id: workspaceId, project_id: project.id, environment_id: environmentId, address: witnessAddress }));
     ensure(resources.length === 1 && resources[0].workspaceId === workspaceId && resources[0].projectId === project.id &&
@@ -722,6 +725,14 @@ test('default operated browser, REST, MCP and customer machine journey', async (
         arguments: { workspaceId, operationId: stepOperationId } });
       ensure(events.data.count > 0 && events.data.events?.length > 0, 'machine-events-readback-empty');
       ensure(!JSON.stringify(events).includes(machine.credential), 'model-visible-credential');
+      // One registered machine binds a resource at a time: B revokes the customer machine before the health machine
+      // takes the witness binding, and the native agent must exit as revoked (3). Rejoin later reuses this identity volume.
+      const handoff = ok(await browserRequest(b, '/api/platform/v1/machines/' + machine.id + '/revoke', {}, 'POST', workspaceId));
+      ensure(handoff.id === machine.id && handoff.status === 'revoked', 'machine-revocation');
+      const stoppedAgent = await until(async () => JSON.parse(await command('docker', ['inspect', machine.container])),
+        value => value[0].State.Running === false);
+      ensure(stoppedAgent.length === 1 && stoppedAgent[0].Config.Labels?.['io.zenith.journey'] === runId &&
+        stoppedAgent[0].State.ExitCode === 3, 'machine-native-revoked-exit-code');
     });
     if (UX_ENABLED) await uxCase('ux01-cancel-operation-a11y', async () => {
       const pending = await mcp(stack, linked.token, 'tools/call', { name: 'zenith_scale_service',
@@ -1257,15 +1268,21 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       await kindReadback(config, 2, witnessNonce);
       const verify = await browserRequest(a, '/api/platform/v1/connections/' + project.connectionId + '/verify', {}, 'POST', workspaceId);
       ensure(verify.status < 500 && verify.data.ok === false && /revoked/i.test(verify.data.error ?? ''), 'revoked-verification');
-      const machineRevocationResponse = ok(await browserRequest(b, '/api/platform/v1/machines/' + machine.id + '/revoke', {}, 'POST', workspaceId));
-      ensure(machineRevocationResponse.id === machine.id && machineRevocationResponse.status === 'revoked', 'machine-revocation');
-      const stoppedAgent = await until(async () => JSON.parse(await command('docker', ['inspect', machine.container])),
-        value => value[0].State.Running === false);
-      ensure(stoppedAgent.length === 1 && stoppedAgent[0].Config.Labels?.['io.zenith.journey'] === runId &&
-        stoppedAgent[0].State.Running === false && stoppedAgent[0].State.ExitCode === 3,
-        'machine-native-revoked-exit-code');
-      const oldRow = ok(await browserRequest(a, '/api/platform/v1/machines', undefined, 'GET', workspaceId)).machines.find(value => value.id === machine.id);
-      ensure(oldRow?.status === 'revoked' && oldRow.revokedAt, 'machine-revocation-durable-readback');
+      // The witness binding's current machine is the health machine; the customer machine was revoked at handoff.
+      if (!healthMachine.revocationConfirmed) {
+        const machineRevocationResponse = ok(await browserRequest(b, '/api/platform/v1/machines/' + healthMachine.id + '/revoke', {}, 'POST', workspaceId));
+        ensure(machineRevocationResponse.id === healthMachine.id && machineRevocationResponse.status === 'revoked', 'machine-revocation');
+        healthMachine.revocationConfirmed = true;
+        const stoppedAgent = await until(async () => JSON.parse(await command('docker', ['inspect', healthMachine.container])),
+          value => value[0].State.Running === false);
+        ensure(stoppedAgent.length === 1 && stoppedAgent[0].Config.Labels?.['io.zenith.journey'] === healthMachine.runId &&
+          stoppedAgent[0].State.ExitCode === 3, 'machine-native-revoked-exit-code');
+      }
+      const roster = ok(await browserRequest(a, '/api/platform/v1/machines', undefined, 'GET', workspaceId)).machines;
+      for (const id of [machine.id, healthMachine.id]) {
+        const row = roster.find(value => value.id === id);
+        ensure(row?.status === 'revoked' && row.revokedAt, 'machine-revocation-durable-readback');
+      }
     });
     await step('machine-fresh-token-native-rejoin', async () => {
       const oldId = machine.id;

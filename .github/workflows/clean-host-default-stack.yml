@@ -1,0 +1,88 @@
+name: Clean-host default stack
+
+# PROD-PKG-04 clean-host acceptance: the default 2 API + 2 worker topology on a
+# fresh GitHub-hosted Linux runner, with no port offset and no other Supabase.
+# Manual only: it pulls and builds several GiB of images.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clean-host-default-stack-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  default-stack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      SUPABASE_CLI_VERSION: 2.75.0
+      SUPABASE_CLI_SHA256: e5597462f865d5ac72af0453358e37ecb0d85962ad6914a114a53de847303bde
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.23.3'
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+
+      - name: Free runner disk for stack images
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup
+          df -h /
+
+      - name: Install the pinned Supabase CLI
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -fsSL -o "$RUNNER_TEMP/supabase.tar.gz" "https://github.com/supabase/cli/releases/download/v${SUPABASE_CLI_VERSION}/supabase_linux_amd64.tar.gz"
+          echo "${SUPABASE_CLI_SHA256}  $RUNNER_TEMP/supabase.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/supabase.tar.gz" -C "$RUNNER_TEMP/bin" supabase
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Record the clean host
+        run: |
+          set -euo pipefail
+          uname -a
+          docker version --format '{{.Server.Version}}'
+          supabase --version
+          # A clean host has no containers, and nothing listens on Supabase's default ports.
+          test "$(docker ps -aq | wc -l)" -eq 0
+          ! ss -ltn | grep -E ':(54321|54322|54323|54324|54327)\b'
+
+      - name: Default stack engine acceptance
+        run: |
+          set -uo pipefail
+          umask 077
+          mkdir -m 700 "$RUNNER_TEMP/zenith" "$RUNNER_TEMP/zenith/tmp"
+          mkdir -p .data-ci-lane
+          env -u ZENITH_DEFAULT_STACK_PORT_OFFSET TMPDIR="$RUNNER_TEMP/zenith/tmp" \
+            ZENITH_ACCEPTANCE_DEFAULT_STACK=1 ZENITH_ACCEPTANCE_DEFAULT_STACK_DIR="$RUNNER_TEMP/zenith/stack" \
+            ZENITH_DEFAULT_STACK_PROFILE=default \
+            ZENITH_DEFAULT_STACK_REGISTRY_IMAGE=registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373 \
+            node node_modules/vitest/vitest.mjs run tests/deploy/default-stack.engine.test.ts \
+              --no-file-parallelism --maxWorkers=1 --reporter=default --reporter=json --outputFile.json=.data-ci-lane/clean-host-default-stack.json
+          status=$?
+          for c in wave6-810d104725df25f3 wave6-2cdaf7b373b8a9cf wave6-845f5dc2afc8380f; do
+            node scripts/ci/wave6-gates.mjs --case "$c" --report .data-ci-lane/clean-host-default-stack.json || status=1
+          done
+          exit $status
+
+      - name: Owned resources after the run
+        if: always()
+        run: docker ps -a --format '{{.Names}} {{.Status}}'
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: clean-host-default-stack
+          path: .data-ci-lane/clean-host-default-stack.json
+          if-no-files-found: warn
+          retention-days: 30

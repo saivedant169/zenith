@@ -210,7 +210,8 @@ describe.each(STORE_KINDS)("authoritative facts [%s]", (kind) => {
     }
   });
 
-  it.skipIf(kind === "memory")("forces a reviewed infrastructure.destroy to admin approval", async () => {
+  // Lane-specific cases are registered only on their lane: a skipped case fails the required lane group.
+  if (kind !== "memory") it("forces a reviewed infrastructure.destroy to admin approval", async () => {
     const h = await makeHarness({ kind });
     const { request, ctx } = await reviewedDestroy(h, h.ids.envASbx);
     const r = await proposeOk(h, request, user("alice"), ctx);
@@ -221,7 +222,7 @@ describe.each(STORE_KINDS)("authoritative facts [%s]", (kind) => {
     expect(r.operation.status).toBe("awaiting_approval");
   });
 
-  it.runIf(kind === "memory")("refuses a reviewed-plan teardown on the memory lane, which keeps no plan evidence", async () => {
+  if (kind === "memory") it("refuses a reviewed-plan teardown on the memory lane, which keeps no plan evidence", async () => {
     const h = await makeHarness({ kind });
     const { request, ctx } = await reviewedDestroy(h, h.ids.envASbx);
     await expectBrokerError(h.broker.propose(request, user("alice"), ctx), "invalid_state");

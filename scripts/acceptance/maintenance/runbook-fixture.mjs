@@ -5,14 +5,17 @@
  * Auth operator signed in through Chromium, a workspace/project/environment
  * created after the seeded epoch, a one-use machine token from the browser
  * consent route, and the real zenithd (exec disabled) registered from an owned
- * container sharing the API's network namespace. It then runs the unchanged
- * run-runbooks.ts acceptance and removes only resources it labelled.
+ * container sharing the API's network namespace. The environment is bound to a
+ * Kubernetes connection on the J2 kind target, and a deploy proposal's own
+ * validation persists the real container_service/witness resource row the delivery binds;
+ * the proposal is never approved, so nothing reaches the cluster. It then runs
+ * the unchanged run-runbooks.ts acceptance and removes only resources it labelled.
  *
  * Chromium trusts the stack's own edge certificate through an exact SPKI pin
  * in an isolated profile; no OS trust store or TLS verification is changed.
  *
  * Usage: NODE_EXTRA_CA_CERTS=<stack>/tls/ca.crt ZENITH_ACCEPTANCE_DEFAULT_STACK=1 \
- *   node scripts/acceptance/maintenance/runbook-fixture.mjs <stack-directory> <new-private-fixture-dir> <zenithd-image>
+ *   node scripts/acceptance/maintenance/runbook-fixture.mjs <stack-directory> <new-private-fixture-dir> <j2-journey-config>
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -21,9 +24,10 @@ import { spawn } from 'node:child_process';
 import { chromium } from '@playwright/test';
 import { readState, compose, requireEngineGate } from '../default-stack/runtime.mjs';
 import { hostEnvironment } from '../default-stack/env.mjs';
+import { j4Mode } from '../default-stack/j4.mjs';
 import { readPrepared, privateLocation, assertPrivate } from '../../deploy/installation.mjs';
 import { enrollOperator } from '../../../tests/e2e/default/mfa.mjs';
-import { browserRequest, ok, action, nonce, ensure, docker, jsonRequest, adminHeaders, until } from '../../../tests/e2e/default/support.mjs';
+import { browserRequest, ok, action, nonce, ensure, docker, jsonRequest, adminHeaders, until, Config, privateFile, kubeconfig, command } from '../../../tests/e2e/default/support.mjs';
 import { Machine } from '../../../tests/e2e/default/engines.mjs';
 
 class ExecDisabledMachine extends Machine {
@@ -99,12 +103,14 @@ function runChild(argv, env) {
 
 async function main() {
   requireEngineGate();
-  const [stackArg, fixtureArg, image, ...extra] = process.argv.slice(2);
-  ensure(stackArg && fixtureArg && image && extra.length === 0, 'runbook-fixture-usage');
-  ensure(/^[a-z0-9][a-z0-9._/-]*:[a-z0-9._-]+$/.test(image), 'zenithd-image-reference');
-  ensure(/^[a-z0-9./_-]+@sha256:[a-f0-9]{64}$/.test(process.env.ZENITH_DEFAULT_STACK_REGISTRY_IMAGE ?? ''), 'pinned-witness-service-image');
+  const [stackArg, fixtureArg, journeyArg, ...extra] = process.argv.slice(2);
+  ensure(stackArg && fixtureArg && journeyArg && extra.length === 0, 'runbook-fixture-usage');
+  // J2 prepare's private config: digest-pinned zenithd and witness images, and the owned kind target.
+  const kind = Config.parse(JSON.parse(privateFile(path.resolve(journeyArg))));
+  const image = kind.machine.image;
   const state = readState(stackArg);
-  ensure(state.j4Mode === 'canonical', 'canonical-stack-required');
+  ensure(path.resolve(kind.stackDirectory) === path.resolve(state.directory), 'j2-config-binds-this-stack');
+  ensure(j4Mode(state) === 'canonical', 'canonical-stack-required');
   const caFile = path.join(state.directory, 'tls/ca.crt');
   ensure(process.env.NODE_EXTRA_CA_CERTS === caFile, 'node-extra-ca-is-stack-ca');
   const fixture = privateLocation(fixtureArg);
@@ -118,7 +124,7 @@ async function main() {
   ensure(/^[a-f0-9]{64}$/.test(stack.api), 'owned-api-container');
   const runId = nonce();
   const receipt = { schemaVersion: 1, kind: 'j4-runbook-fixture', runId, source: state.source, image, acceptanceClaim: false, steps: [] };
-  const machine = new ExecDisabledMachine({ machine: { image } }, stack, 'j4rb-' + runId);
+  const machine = new ExecDisabledMachine(kind, stack, 'j4rb-' + runId);
   const context = await chromium.launchPersistentContext(path.join(fixture, 'browser'), { headless: true,
     args: [`--ignore-certificate-errors-spki-list=${spkiPin(fs.readFileSync(path.join(state.directory, 'tls/edge.crt')))}`] });
   let child;
@@ -130,17 +136,46 @@ async function main() {
     const workspaceId = ok(await browserRequest(page, '/api/workspace', { name: 'Zenith J4 runbooks ' + runId })).workspace.id;
     ok(await browserRequest(page, '/api/bootstrap'));
     const created = await action(page, 'project.create', { name: 'J4 runbooks ' + runId, withEnvironment: false });
-    await action(page, 'project.updateManifest', { projectId: created.projectId, manifest: { version: 2,
-      placement: { provider: 'kubernetes', regions: ['in-cluster'] }, providerConfig: { kubernetes: { namespace: 'zenith-j4' } },
-      services: [{ id: 'witness', name: 'witness', kind: 'web', source: { type: 'image', image: process.env.ZENITH_DEFAULT_STACK_REGISTRY_IMAGE },
-        size: 'small', replicas: 1, port: 8080, healthPath: '/', ownership: 'managed', env: [] }], resources: [], routes: [], bindings: [] } });
-    const environmentId = (await action(page, 'env.create', { projectId: created.projectId, name: 'runbooks', class: 'staging', approvalRequired: true }, { workspaceId })).environmentId;
+    const manifest = { version: 2,
+      placement: { provider: 'kubernetes', regions: ['in-cluster'] }, providerConfig: { kubernetes: { namespace: kind.kind.namespace } },
+      services: [{ id: 'witness', name: 'witness', kind: 'web', source: { type: 'image', image: kind.kind.image },
+        size: 'small', replicas: 1, port: 8080, healthPath: '/', ownership: 'managed', env: [] }], resources: [], routes: [], bindings: [] };
+    await action(page, 'project.updateManifest', { projectId: created.projectId, manifest });
+    // Same tenant-vault credential path as J2, then re-apply the manifest to drop the temporary env reference.
+    await action(page, 'system.setSecret', { projectId: created.projectId, serviceId: 'witness', key: 'J4_KUBE', secretRef: 'vault:J4_KUBE',
+      secretValue: privateFile(kind.kind.kubeconfigFile) });
+    await action(page, 'project.updateManifest', { projectId: created.projectId, manifest });
+    const connectionId = (await action(page, 'connection.createKubernetes', { label: 'J4 kind ' + runId, server: kind.kind.server,
+      caData: kubeconfig(kind.kind.kubeconfigFile, kind).caData, namespaces: [kind.kind.namespace], credentialRef: 'vault:J4_KUBE', scopedGuest: false })).connectionId;
+    ok(await browserRequest(page, '/api/platform/v1/connections/' + connectionId + '/verify', {}, 'POST', workspaceId));
+    const environmentId = (await action(page, 'env.create', { projectId: created.projectId, name: 'runbooks', class: 'staging',
+      connectionId, approvalRequired: true }, { workspaceId })).environmentId;
     receipt.steps.push('workspace-project-environment');
+    const deploy = await action(page, 'deploy.apply', {}, { workspaceId, projectId: created.projectId, environmentId });
+    ensure(typeof deploy?.operationId === 'string' && typeof deploy?.deploymentId === 'string', 'deploy-proposal');
+    // Resource rows are written when the approved deploy workflow validates its desired state. Approve the
+    // proposal and start the workflow; it then stops at the concrete-plan re-approval gate, which is never
+    // given, so nothing reaches the cluster.
+    const proposal = ok(await browserRequest(page, '/api/platform/v1/operations/' + deploy.operationId, undefined, 'GET', workspaceId));
+    if (proposal.operation.status === 'awaiting_approval') {
+      ok(await browserRequest(page, '/api/platform/v1/operations/' + deploy.operationId + '/approve',
+        { proposalDigest: proposal.operation.proposalDigest }, 'POST', workspaceId));
+    }
+    await action(page, 'deploy.approve', { deploymentId: deploy.deploymentId }, { projectId: created.projectId, environmentId });
+    const database = 'supabase_db_' + state.projectId;
+    const [db] = JSON.parse(await docker(['inspect', database]));
+    ensure(db.Config.Labels?.['com.supabase.cli.project'] === state.projectId && db.Config.Labels?.['io.zenith.installation'] === state.installationId, 'owned-database');
+    const rows = await until(async () => JSON.parse(await command('docker', ['exec', '-i', database, 'psql', '-X', '-U', 'postgres', '-d', 'postgres',
+      '-v', 'ON_ERROR_STOP=1', '-v', 'ws=' + workspaceId, '-v', 'env=' + environmentId, '-At'], { input:
+      "select coalesce(json_agg(json_build_object('id',id,'ownership',ownership)), '[]'::json)::text from platform.resources where workspace_id=:'ws' and environment_id=:'env' and address='container_service/witness'" })),
+      value => value.length === 1);
+    ensure(rows[0].ownership === 'managed' && typeof rows[0].id === 'string', 'witness-resource-row');
+    receipt.steps.push('deploy-validation-resource-row');
     const token = ok(await browserRequest(page, '/api/platform/v1/runners/tokens',
-      { kind: 'machine', ttlMinutes: 10, binding: { environmentId, address: 'service/witness' } }, 'POST', workspaceId));
+      { kind: 'machine', ttlMinutes: 10, binding: { environmentId, address: 'container_service/witness' } }, 'POST', workspaceId));
     ensure(token.shownOnce === true && token.workspaceId === workspaceId && typeof token.token === 'string', 'browser-machine-consent');
     receipt.steps.push('browser-machine-consent');
-    await machine.startExecDisabled(token.token, environmentId, 'service/witness');
+    await machine.startExecDisabled(token.token, environmentId, 'container_service/witness');
     const listed = await until(async () => ok(await browserRequest(page, '/api/platform/v1/machines', undefined, 'GET', workspaceId)),
       value => value.machines?.some(row => row.name === machine.container && row.connection?.state === 'online'));
     const registered = listed.machines.find(row => row.name === machine.container);
@@ -148,13 +183,13 @@ async function main() {
       environmentId: registered.environmentId, address: registered.address, capabilities: registered.capabilities };
     // The machine list (agentView) carries no transport; run-runbooks.ts asserts transport=zenithd from the database.
     ensure(registered.status === 'active' && registered.environmentId === environmentId
-      && registered.address === 'service/witness', 'machine-consent-binding');
+      && registered.address === 'container_service/witness', 'machine-consent-binding');
     machine.startupUncertain = false;
     ensure(!registered.capabilities?.includes('machine.exec') && !registered.capabilities?.includes('container.exec'), 'exec-disabled-agent');
     receipt.steps.push('signed-agent-registered');
     const cookieFile = path.join(fixture, 'operator.cookie'), targetFile = path.join(fixture, 'target.json');
     privateWrite(cookieFile, (await context.cookies(stack.apiUrl)).map(cookie => `${cookie.name}=${cookie.value}`).join('; ') + '\n');
-    privateWrite(targetFile, JSON.stringify({ workspaceId, targetId: registered.id, environmentId, resourceId: 'witness' }) + '\n');
+    privateWrite(targetFile, JSON.stringify({ workspaceId, targetId: registered.id, environmentId, resourceId: rows[0].id }) + '\n');
     child = await runChild(['node_modules/tsx/dist/cli.mjs', 'scripts/acceptance/maintenance/run-runbooks.ts'], {
       ...process.env, ...host, ZENITH_TEST_RUNBOOK_DELIVERY: '1', ZENITH_J4_BROWSER_COOKIE_FILE: cookieFile, ZENITH_J4_TARGET_FILE: targetFile });
     receipt.acceptanceExit = child.code;

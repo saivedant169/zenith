@@ -70,7 +70,10 @@ gated("MFA browser acceptance (not run unless ZENITH_MFA_BROWSER=1; needs real l
     if (!["127.0.0.1", "localhost", "[::1]"].includes(url.hostname) || url.origin !== fixture.origin) throw new Error("MFA acceptance only operates a disposable loopback installation.");
     if (fixture.identities?.length !== 2 || fixture.identities.some((user) => !user.email || !user.password || !user.workspaceId) || fixture.identities[0].email === fixture.identities[1].email) throw new Error("Provide two distinct disposable admitted workspace admins.");
     axeSource = (await import("axe-core")).default.source;
-    browser = await (await import("playwright-core")).chromium.launch({ executablePath, headless: true });
+    // Optional: trust exactly the owned stack's edge leaf (base64 SHA-256 of its SPKI), as the J2 journey does.
+    const spki = process.env.ZENITH_MFA_BROWSER_SPKI;
+    if (spki !== undefined && !/^[A-Za-z0-9+/]{43}=$/.test(spki)) throw new Error("ZENITH_MFA_BROWSER_SPKI must be one base64 SHA-256 SPKI pin.");
+    browser = await (await import("playwright-core")).chromium.launch({ executablePath, headless: true, ...(spki ? { args: [`--ignore-certificate-errors-spki-list=${spki}`] } : {}) });
   }, 60_000);
   afterAll(async () => { await browser?.close(); });
   it.each([0, 1])("operator %i cannot mutate at AAL1 and can complete real TOTP enrollment and later step-up", async (index) => {
@@ -96,7 +99,8 @@ gated("MFA browser acceptance (not run unless ZENITH_MFA_BROWSER=1; needs real l
       expect(await probe(page, identity.workspaceId, "/api/auth/mfa/verify", {})).toBe(200);
       expect(await setup.count()).toBe(0); await audit(page);
       await page.getByRole("link", { name: "Return to review", exact: true }).click();
-      expect(new URL(page.url()).pathname).toBe("/platform/settings");
+      // A client-side Link navigates after the click resolves; wait for the exact destination.
+      await page.waitForURL((url) => url.pathname === "/platform/settings");
       await page.getByLabel("Require verification for all changes by people", { exact: true }).check();
       await page.getByLabel("Verification lifetime (seconds)", { exact: true }).fill("300");
       await page.getByLabel("Verification lifetime (seconds)", { exact: true }).press("Enter");

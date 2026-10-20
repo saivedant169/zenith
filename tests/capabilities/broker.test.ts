@@ -258,6 +258,19 @@ describe.each(STORE_KINDS)("authoritative facts [%s]", (kind) => {
     expect(r.operation.status).toBe("awaiting_approval");
   });
 
+  it("requires a person's approval for agent-initiated high-risk work even at the highest autonomy level (5)", async () => {
+    const h = await makeHarness({ kind });
+    await h.store.putEnvironmentAutonomy({ workspaceId: h.ids.wsA, environmentId: h.ids.envASbx, autonomyLevel: 5, updatedBy: "alice" });
+    for (const capability of ["firewall.modify", "dns.modify", "secret.write"] as const) {
+      const agent = await h.broker.check(requestFor(h, capability, "sbx"), navigator("bob"));
+      expect(agent.decision.outcome, `${capability} by an agent`).toBe("require_approval");
+      expect(agent.decision.reasons.map((x) => x.code), `${capability} by an agent`).toContain("agent_high_risk_requires_approval");
+      // control: the same request by a person does not carry the agent reason
+      const person = await h.broker.check(requestFor(h, capability, "sbx"), user("alice"));
+      expect(person.decision.reasons.map((x) => x.code), `${capability} by a person`).not.toContain("agent_high_risk_requires_approval");
+    }
+  });
+
   it("does not let an agent create executable proposals at autonomy 0 or 1, and lets it at 2", async () => {
     const h = await makeHarness({ kind });
     for (const level of [0, 1] as const) {

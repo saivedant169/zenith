@@ -8,7 +8,8 @@ const parsed = new URL(url);
 assert.equal(parsed.hostname, 'supabase-pooler'); assert.equal(parsed.port, '6543');
 assert.equal(parsed.search, '?sslmode=verify-full');
 assert.equal(process.env.ZENITH_PLATFORM_DB_URL, url, 'platform authority must be the product database');
-const options = { prepare: false, max: 1, connect_timeout: 5, idle_timeout: 1 };
+// stdout carries only the JSON receipt; server notices (drop ... cascade) go to stderr.
+const options = { prepare: false, max: 1, connect_timeout: 5, idle_timeout: 1, onnotice: notice => process.stderr.write(`${notice.severity}: ${notice.message}\n`) };
 const open = extra => postgres(url, { ...options, ...extra });
 const primary = open({});
 try {

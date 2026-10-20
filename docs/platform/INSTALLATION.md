@@ -117,6 +117,22 @@ node scripts/deploy/installation.mjs preflight "$HOME/.zenith/installations/revi
 node scripts/deploy/installation.mjs compose-check "$HOME/.zenith/installations/review"
 ```
 
+On native Linux in `mode: "disposable"`, run one more step before `compose-check`
+and before starting Compose:
+
+```sh
+node scripts/deploy/installation.mjs stage-linux-binds "$HOME/.zenith/installations/review"
+```
+
+Linux bind mounts keep the host owner and mode, so Temporal (uid 1000), the API
+(1001) and the worker (10001) cannot read the operator's 0600 Temporal TLS files.
+This step writes a 0400 copy of each file owned by the uid that mounts it, under
+`staged/` in the private directory, and an override that the helper's Compose
+argv then includes. A short-lived root container with no network and only the
+CHOWN, DAC_OVERRIDE and FOWNER capabilities makes the copies; the originals keep
+mode 0600. It does nothing for production mode or on Docker Desktop, which maps
+bind-mount ownership. Re-run it after regenerating Temporal TLS.
+
 The target directory must not already exist; choose an ASCII path without spaces
 or shell metacharacters. Preparation creates mode 0700
 directories and mode 0600 files, a random project/ownership ID, a 32-byte secret,

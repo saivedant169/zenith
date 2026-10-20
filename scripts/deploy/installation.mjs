@@ -3,6 +3,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash, createPrivateKey, generateKeyPairSync, randomBytes } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
+import { load } from 'js-yaml';
+import { stagedComposition, stagingArguments } from './private-staging.mjs';
 
 /** @typedef {{mode:'production'|'disposable', apiPort:number, images:{api:string,worker:string,migration:string}, environment:Record<string,string>}} InstallationInput */
 /** @typedef {InstallationInput & {schemaVersion:2,installationId:string,projectName:string,workerId?:string,source:{head:string,contentSha256:string,dirty:boolean}}} PreparedInstallation */
@@ -363,14 +365,60 @@ export function readPrepared(directory) {
     assertPrivate(file);
     if (fs.readFileSync(file, 'utf8') !== `${JSON.stringify(joinComposition(config, dir), null, 2)}\n`) refuse('effective-configuration-drift');
   }
+  const linuxBinds = path.join(dir, LINUX_BINDS_FILE);
+  if (fs.existsSync(linuxBinds)) {
+    assertPrivate(linuxBinds);
+    if (fs.readFileSync(linuxBinds, 'utf8') !== `${JSON.stringify(linuxPrivateBinds(config, dir).document, null, 2)}\n`) refuse('effective-configuration-drift');
+  }
   return config;
 }
 /** Safe argv, with no secret values; no startup/cleanup commands.
  * @param {PreparedInstallation} config @param {string} directory */
 export function composeArgs(config, directory) {
-  if (config.workerId) return ['compose', '--project-name', config.projectName, '--env-file', path.join(privateLocation(directory), 'compose.env'), '-f', path.join(privateLocation(directory), 'worker.compose.json')];
+  const linuxBinds = path.join(privateLocation(directory), LINUX_BINDS_FILE);
+  const staged = fs.existsSync(linuxBinds) ? ['-f', linuxBinds] : [];
+  if (config.workerId) return ['compose', '--project-name', config.projectName, '--env-file', path.join(privateLocation(directory), 'compose.env'), '-f', path.join(privateLocation(directory), 'worker.compose.json'), ...staged];
   return ['compose', '--project-name', config.projectName, '--env-file', path.join(privateLocation(directory), 'compose.env'), '-f', compose,
-    ...(config.mode === 'disposable' ? ['-f', overlay] : [])];
+    ...(config.mode === 'disposable' ? ['-f', overlay] : []), ...staged];
+}
+
+export const LINUX_BINDS_FILE = 'linux-private-binds.compose.json';
+/** Disposable mode on native Linux. Compose bind mounts keep the host owner and mode, so a container
+ * user other than the operator cannot read a 0600 private file (Docker Desktop maps ownership).
+ * The override remaps each private bind target to a 0400 copy owned by its consuming uid; Compose
+ * merges service volumes by target path. Empty for production mode and other platforms.
+ * @param {PreparedInstallation} config @param {string} directory */
+export function linuxPrivateBinds(config, directory, platform = process.platform) {
+  const dir = privateLocation(directory), stageRoot = path.join(dir, 'staged');
+  if (config.mode !== 'disposable') return { document: { services: {} }, copies: [] };
+  /** @type {Record<string, { user?: string, volumes?: unknown[] }>} */
+  let services;
+  if (config.workerId) services = joinComposition(config, dir).services;
+  else {
+    const base = load(fs.readFileSync(compose, 'utf8')), engines = load(fs.readFileSync(overlay, 'utf8'));
+    services = Object.fromEntries(Object.entries(engines.services).filter(([, service]) => service.volumes).map(([name, service]) => [name, {
+      user: service.user ?? base.services[name]?.user,
+      volumes: service.volumes.map(mount => mount.replace('${ZENITH_PRIVATE_DIR:?prepare private configuration}', dir)) }]));
+  }
+  const staged = stagedComposition({ services }, { privateRoot: dir, stageRoot, platform });
+  const document = { services: Object.fromEntries(Object.entries(staged.document.services).flatMap(([name, service]) => {
+    const volumes = (service.volumes ?? []).filter(mount => typeof mount === 'string' && mount.startsWith(stageRoot + path.sep));
+    return volumes.length ? [[name, { volumes }]] : [];
+  })) };
+  return { document, copies: staged.copies };
+}
+/** Write the per-uid copies and the Compose override (native Linux, disposable mode only).
+ * @param {PreparedInstallation} config @param {string} directory */
+export function stageLinuxBinds(config, directory) {
+  const { document, copies } = linuxPrivateBinds(config, directory);
+  if (!copies.length) return { schemaVersion: 1, kind: 'linux-private-binds', staged: 0 };
+  const dir = privateLocation(directory), stageRoot = path.join(dir, 'staged');
+  fs.mkdirSync(stageRoot, { mode: 0o700, recursive: true }); assertPrivate(stageRoot, true);
+  const image = load(fs.readFileSync(overlay, 'utf8')).services.temporal.image;
+  const result = spawnSync('docker', stagingArguments(copies, { stageRoot, image, labels: { 'io.zenith.installation': config.installationId } }), { stdio: 'ignore', timeout: 300_000 });
+  if (result.status !== 0) refuse('linux-private-binds');
+  fs.writeFileSync(path.join(dir, LINUX_BINDS_FILE), `${JSON.stringify(document, null, 2)}\n`, { mode: 0o600 });
+  return { schemaVersion: 1, kind: 'linux-private-binds', staged: copies.length };
 }
 /** Compose interpolation must use validated private settings, not shell overrides.
  * @param {Record<string,string|undefined>} environment @returns {Record<string,string|undefined>} */
@@ -432,6 +480,7 @@ async function main(args) {
   const config = readPrepared(directory);
   if (command === 'preflight') process.stdout.write(`${JSON.stringify(planFor(config))}\n`);
   else if (command === 'compose-check') process.stdout.write(`${JSON.stringify(checkCompose(config, directory))}\n`);
+  else if (command === 'stage-linux-binds') process.stdout.write(`${JSON.stringify(stageLinuxBinds(config, directory))}\n`);
   else if (command === 'readiness') {
     const result = await probeReadiness(config);
     process.stdout.write(`${JSON.stringify(result)}\n`);

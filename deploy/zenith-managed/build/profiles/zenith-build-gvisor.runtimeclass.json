@@ -5,7 +5,7 @@
     "name": "zenith-build-gvisor",
     "labels": { "zenith.dev/purpose": "isolated-build" },
     "annotations": {
-      "zenith.dev/status": "DRAFT, pending owner approval (PROD-LIFE-09). Not applied, not wired.",
+      "zenith.dev/status": "Owner-approved 2026-10-21 (see docs/build/production/verify/ISOLATED-BUILD-PROFILES-REVIEW.md).",
       "zenith.dev/handler-source": "Reuses the runsc handler installed by deploy/zenith-managed/runtime/setup-kind.ts (J14)."
     }
   },

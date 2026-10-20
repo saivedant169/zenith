@@ -50,7 +50,7 @@
         "pipe2"
       ],
       "action": "SCMP_ACT_ALLOW",
-      "comment": "DRAFT, PENDING OWNER APPROVAL (PROD-LIFE-09). Not installed, not wired. Allow-list group 1. Files: open, read, write, close, copy, sync, descriptors and pipes. Every compiler, package manager and BuildKit itself needs these."
+      "comment": "Owner-approved 2026-10-21 (see docs/build/production/verify/ISOLATED-BUILD-PROFILES-REVIEW.md). Allow-list group 1. Files: open, read, write, close, copy, sync, descriptors and pipes. Every compiler, package manager and BuildKit itself needs these."
     },
     {
       "names": [

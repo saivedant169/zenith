@@ -1,4 +1,4 @@
-# DRAFT, PENDING OWNER APPROVAL (PROD-LIFE-09). Not installed, not wired.
+# Owner-approved 2026-10-21 (see docs/build/production/verify/ISOLATED-BUILD-PROFILES-REVIEW.md).
 # Review: docs/build/production/verify/ISOLATED-BUILD-PROFILES-REVIEW.md
 #
 # AppArmor profile "zenith-build" for the J6 rootless BuildKit build Job.

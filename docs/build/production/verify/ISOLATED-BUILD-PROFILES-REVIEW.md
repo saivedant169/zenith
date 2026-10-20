@@ -1,14 +1,14 @@
 # Isolated-build security profiles: owner review
 
-**DRAFT, pending owner approval (PROD-LIFE-09 / J6).** Nothing here is installed, enabled or wired. `ZENITH_ISOLATED_BUILD_PROFILES` is not set anywhere, and no product code or workflow changed.
+**APPROVED by the owner on 2026-10-21. Linux-runner validation and wiring are tracked separately.** Nothing here is installed, enabled or wired. `ZENITH_ISOLATED_BUILD_PROFILES` is not set anywhere, and no product code or workflow changed.
 
 Untrusted-source builds run in a rootless BuildKit pod. The pod needs three node-side things before it will start: a seccomp profile (which system calls are allowed), an AppArmor profile (which files, networks and capabilities are allowed) and a RuntimeClass (which sandbox runs the pod). The drafts are in `deploy/zenith-managed/build/profiles/`.
 
 | File | SHA-256 |
 | --- | --- |
-| `zenith-build-seccomp.json` (install as `/var/lib/kubelet/seccomp/zenith-build.json`) | `3109665915b07a9ed3d70ff4618370027fffee9f30d2416a06faa757ef06c9d8` |
-| `zenith-build.apparmor` (install as `/etc/apparmor.d/zenith-build`) | `ceb43b0720fea5eb924902e9f934929f90d9b1b61689a841fae40836d79ef260` |
-| `zenith-build-gvisor.runtimeclass.json` | `d632e8055604fe5bfd1d8ebfa7442ae8c9fbbc147fbb092a054439ffcded5036` |
+| `zenith-build-seccomp.json` (install as `/var/lib/kubelet/seccomp/zenith-build.json`) | `15391af9e1f9b9a6dcdc6b3c3abdd26128b5ca327d2d7e6afeb4487b1069dd3b` |
+| `zenith-build.apparmor` (install as `/etc/apparmor.d/zenith-build`) | `802290e2d2b6b172fb5f5a404862ea1b70e784b0c6ff2137f77845b95ca42878` |
+| `zenith-build-gvisor.runtimeclass.json` | `104ba2f070d622912f5899c44d5562776e62fa4d91708782ff8cba069eda8359` |
 
 ## What each profile does
 
@@ -37,13 +37,13 @@ Explicitly denied (and listed so the intent is visible): kexec, module loading, 
       deploy/zenith-managed/build/profiles/zenith-build-seccomp.json \
       deploy/zenith-managed/build/profiles/zenith-build.apparmor \
       deploy/zenith-managed/build/profiles/zenith-build-gvisor.runtimeclass.json profile.json
-    {"tenant":"cea14098...","runtimeProfileDigest":"9eea01d713b96b69d4fe98f2869032d5cd3e1d1557d27163e246a20f248e2e64","reviewedBuildProfileDigest":"e1f83ea0...00c4"}
+    {"tenant":"cea14098...","runtimeProfileDigest":"897374eb4b9c19774a93cd50f56b07603968e066051bc3c8dc1b8097fe88db6e","reviewedBuildProfileDigest":"e1f83ea0...00c4"}
 
-- `config.nodeIsolation.profileDigest` = `9eea01d7...2e64` (tenant-independent). The node label `zenith.node-restriction.kubernetes.io/build-profile` takes its first 63 characters.
+- `config.nodeIsolation.profileDigest` = `897374eb...db6e` (tenant-independent). The node label `zenith.node-restriction.kubernetes.io/build-profile` takes its first 63 characters.
 - `reviewedBuildProfileDigest` covers the whole tenant profile (cluster, credentials, images, proxy), so it differs per tenant and is computed at provisioning.
 - Fixed config values: `runtimeClass: "zenith-build-gvisor"`, `seccompProfile: "zenith-build.json"`, `appArmorProfile: "zenith-build"`.
 - `ZENITH_ISOLATED_BUILD_PROFILES` = a JSON array, one object per workspace, environment and provider: `workspaceId`, `environmentId`, `provider`, `server`, `credentialRef`, `verifierCredentialRef`, optional `caData`/`registryRepositoryRoot`, and `config` (the output of `review-profile.ts`). Namespaces must be `zb-<key>` and `zp-<key>`.
-- The draft hashes above are of the files as committed, including the DRAFT banners. On approval I remove the banners in a follow-up commit and publish the final hashes; use those, not these.
+- The hashes above are the final approved hashes, of the files as committed with the banners removed.
 
 ## How to approve
 Reply "approve", or name changes (for example a syscall to add or remove, the gVisor-versus-runc choice, or a split AppArmor profile).

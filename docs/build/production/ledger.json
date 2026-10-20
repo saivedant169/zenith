@@ -5199,6 +5199,15 @@
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
           "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
           "result": "Wave6 local lanes 2026-10-20: 7 passed / 5 failed / 3 not run of the requirement's 15 non-live wave6 cases. managed-kind on 8e20b1f4: 1 passed (build egress policy), 5 failed (harness predates tenant operator custody); J6 kind and operated-release not run. Not promoted: local-engine slice only; acceptance judged separately."
+        },
+        {
+          "level": "remote_ci",
+          "commit": "8e95ceac",
+          "command": ".github/workflows/build-profiles-linux.yml",
+          "environment": "GitHub-hosted ubuntu-latest; apparmor_restrict_unprivileged_userns=1",
+          "runId": 39489617442,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39489617442",
+          "result": "Owner-approved profiles validated on native Linux: AppArmor zenith-build parses and loads; containers under seccomp zenith-build + AppArmor zenith-build + no-new-privileges run build-like actions (tmp I/O, TCP/UDP, unshare -U) and are denied /proc/sys writes, raw sockets, ptrace, keyring and debugfs mount. Profile validation only: no J6 source build or RuntimeClass (gVisor) run yet."
         }
       ],
       "requiredEvidence": [

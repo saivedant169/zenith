@@ -513,7 +513,7 @@ jobs:
         # `live-acceptance.yml` is on the list on purpose: it is the one
         # workflow that assumes an AWS role, and it is dispatch-only, so nothing
         # would otherwise parse it until somebody needed it and it was broken.
-        run: '"$RUNNER_TEMP/actionlint" .github/workflows/ci.yml .github/workflows/tick.yml .github/workflows/agent-control.yml .github/workflows/live-acceptance.yml .github/workflows/packaged-workers.yml .github/workflows/skipped-platforms.yml .github/workflows/release.yml .github/workflows/clean-host-default-stack.yml .github/workflows/clean-host-journey.yml .github/workflows/clean-host-kind-guest.yml'
+        run: '"$RUNNER_TEMP/actionlint" .github/workflows/ci.yml .github/workflows/tick.yml .github/workflows/agent-control.yml .github/workflows/live-acceptance.yml .github/workflows/packaged-workers.yml .github/workflows/skipped-platforms.yml .github/workflows/release.yml .github/workflows/clean-host-default-stack.yml .github/workflows/clean-host-journey.yml .github/workflows/clean-host-kind-guest.yml .github/workflows/build-profiles-linux.yml'
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:

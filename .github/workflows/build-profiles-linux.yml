@@ -1,0 +1,135 @@
+name: Build profiles on Linux
+
+# PROD-LIFE-09: loads the draft isolated-build profiles on a throwaway Linux
+# runner (AppArmor and Docker), then checks what they allow and deny. Nothing is
+# installed on a build node. No secrets.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'deploy/zenith-managed/build/profiles/**'
+      - '.github/workflows/build-profiles-linux.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  profiles:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PROFILE_DIR: deploy/zenith-managed/build/profiles
+      # The repo has no bare alpine digest; this is the pinned node alpine image
+      # from scripts/acceptance/default-stack/up.mjs.
+      PROBE_BASE_IMAGE: node:22.23.3-alpine@sha256:0a7108bf6c7bf5de370ffb1a3ed6be93d405b43ff159f681a8d18c0e2bc2e402
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - name: Record the runner and start the summary
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/probes"
+          {
+            uname -a
+            docker version --format 'docker server {{.Server.Version}}'
+            echo "apparmor_restrict_unprivileged_userns=$(cat /proc/sys/kernel/apparmor_restrict_unprivileged_userns 2>/dev/null || echo absent)"
+          } | tee "$RUNNER_TEMP/build-profiles-summary.txt"
+
+      - name: Validate profile syntax and load the AppArmor profile
+        run: |
+          set -euo pipefail
+          jq -e .defaultAction "$PROFILE_DIR/zenith-build-seccomp.json"
+          sudo apparmor_parser -Q -K "$PROFILE_DIR/zenith-build.apparmor"
+          sudo apparmor_parser -r -W "$PROFILE_DIR/zenith-build.apparmor"
+          sudo aa-status | grep -w zenith-build
+          echo "syntax: seccomp defaultAction present, apparmor parses and zenith-build is loaded" | tee -a "$RUNNER_TEMP/build-profiles-summary.txt"
+
+      - name: Build the probe image without the profile
+        # Tools are installed here under Docker's default profile. The probes then
+        # run them under zenith-build, so the tools themselves are never blocked.
+        run: |
+          set -euo pipefail
+          ctx="$RUNNER_TEMP/probe-context"
+          mkdir -p "$ctx"
+          printf 'FROM %s\nRUN apk add --no-cache keyutils python3 strace\n' "$PROBE_BASE_IMAGE" > "$ctx/Dockerfile"
+          docker build -q -t zenith-build-probe:ci "$ctx"
+
+      - name: Write the probe scripts
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/probes/positive.sh" <<'EOF'
+          #!/bin/sh
+          # Build-like actions that must succeed under zenith-build.
+          fail=0
+          for t in nc unshare uname ls; do command -v "$t" >/dev/null || { echo "FAIL missing tool $t"; exit 1; }; done
+          check() {
+            if out=$(sh -c "$2" 2>&1); then
+              echo "PASS $1"
+            else
+              echo "FAIL $1: $out"
+              fail=1
+            fi
+          }
+          check "write and read a file in /tmp" 'echo ok > /tmp/zenith-probe && grep -qx ok /tmp/zenith-probe'
+          check "list the root filesystem" 'ls / > /dev/null'
+          check "uname" 'uname -a'
+          check "TCP connect to 1.1.1.1:443" 'nc -z -w3 1.1.1.1 443'
+          check "UDP socket (nc -u) to 1.1.1.1:53" 'nc -u -z -w3 1.1.1.1 53'
+          check "user namespace (unshare -U)" 'unshare -U true'
+          exit "$fail"
+          EOF
+          cat > "$RUNNER_TEMP/probes/negative.sh" <<'EOF'
+          #!/bin/sh
+          # Each action must be denied under zenith-build. A success is a FAIL.
+          fail=0
+          for t in ping strace keyctl python3 mount; do command -v "$t" >/dev/null || { echo "FAIL missing tool $t"; exit 1; }; done
+          denied() {
+            if out=$(sh -c "$2" 2>&1); then
+              echo "FAIL $1: succeeded, expected denial"
+              fail=1
+            else
+              echo "PASS $1: denied ($(echo "$out" | tail -n1))"
+            fi
+          }
+          denied "write /proc/sys (sysrq)" 'echo 1 > /proc/sys/kernel/sysrq'
+          denied "raw ICMP socket (python3)" 'python3 -c "import socket; socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)"'
+          denied "ping 127.0.0.1 (raw ICMP)" 'ping -c1 127.0.0.1'
+          denied "ptrace (strace true)" 'strace true'
+          denied "keyring (keyctl show)" 'keyctl show'
+          denied "mount debugfs" 'mount -t debugfs none /mnt'
+          exit "$fail"
+          EOF
+
+      - name: Positive probes (must succeed)
+        run: |
+          set -euo pipefail
+          echo "positive probes (must succeed):" | tee -a "$RUNNER_TEMP/build-profiles-summary.txt"
+          docker run --rm \
+            --security-opt seccomp="$GITHUB_WORKSPACE/$PROFILE_DIR/zenith-build-seccomp.json" \
+            --security-opt apparmor=zenith-build \
+            --security-opt no-new-privileges \
+            -v "$RUNNER_TEMP/probes:/probes:ro" \
+            zenith-build-probe:ci sh /probes/positive.sh \
+            | tee -a "$RUNNER_TEMP/build-profiles-summary.txt"
+
+      - name: Negative probes (must be denied)
+        run: |
+          set -euo pipefail
+          echo "negative probes (must be denied):" | tee -a "$RUNNER_TEMP/build-profiles-summary.txt"
+          docker run --rm \
+            --security-opt seccomp="$GITHUB_WORKSPACE/$PROFILE_DIR/zenith-build-seccomp.json" \
+            --security-opt apparmor=zenith-build \
+            --security-opt no-new-privileges \
+            -v "$RUNNER_TEMP/probes:/probes:ro" \
+            zenith-build-probe:ci sh /probes/negative.sh \
+            | tee -a "$RUNNER_TEMP/build-profiles-summary.txt"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: build-profiles-linux
+          path: ${{ runner.temp }}/build-profiles-summary.txt
+          if-no-files-found: warn
+          retention-days: 30

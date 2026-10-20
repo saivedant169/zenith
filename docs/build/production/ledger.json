@@ -3867,6 +3867,26 @@
           "url": "https://github.com/saivedant169/zenith/actions/runs/39455451832",
           "runId": 39455451832,
           "result": "First clean-host engine run: default 2 API + 2 worker topology from a fresh Linux host with no port offset. 3/3 engine cases and 3/3 case verifiers passed; readiness 19/19 including both APIs' MCP boundary with the canonical Host; zero owned resources after cleanup. Promotion still needs a current contract run and independent review."
+        },
+        {
+          "level": "contract",
+          "commit": "9f8e046831347fb79f82eb7296b203c30201297f",
+          "command": "CI (.github/workflows/ci.yml) Verify and all required jobs",
+          "environment": "GitHub-hosted ubuntu-latest",
+          "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-9f8e0468-clean-host-and-ci.json",
+          "runId": 39458228043,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39458228043",
+          "result": "Current-commit contract run: 20 success / 8 conditional skips / 0 failures on attempt 2, including the installation, default-stack, private-staging and canonical-Host tests. Attempt 1 agent browser timeout retained."
+        },
+        {
+          "level": "local_engine",
+          "commit": "9f8e046831347fb79f82eb7296b203c30201297f",
+          "command": ".github/workflows/clean-host-default-stack.yml",
+          "environment": "GitHub-hosted ubuntu-latest amd64, fresh VM, no port offset, nothing else running",
+          "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-9f8e0468-clean-host-and-ci.json",
+          "runId": 39458288274,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39458288274",
+          "result": "Clean-host default 2 API + 2 worker engine run on the same commit as the green CI: 3/3 cases and verifiers, readiness 19/19, zero owned resources. Customer-agent receipts cited in the evidence file."
         }
       ],
       "requiredEvidence": [

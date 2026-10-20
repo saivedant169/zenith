@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+  ],
+  "date": "2026-10-20",
+  "commit": "9f8e046831347fb79f82eb7296b203c30201297f",
+  "contract": {
+    "level": "remote_ci",
+    "workflow": "CI",
+    "runId": 39458228043,
+    "url": "https://github.com/saivedant169/zenith/actions/runs/39458228043",
+    "result": "attempt 2: 20 success / 8 conditional skips / 0 failures. Attempt 1 failed only the agent real-browser approval-screen job (20 s TimeoutError waiting for the approved message, desktop viewport; no OOM, clean server exit); retained, not attributed to this change.",
+    "allRunsOnCommit": "Clean-host default stack=success#39458288274, Native packaged workers=success#39458228009, Native skipped platforms=success#39458228052, CI=success#39458228043",
+    "coverage": "Verify runs the full unit suite including tests/deploy/default-stack.test.ts, installation tests, tests/deploy/private-staging.test.ts and the canonical-Host apiFetch test; actionlint over every workflow; typecheck and lint."
+  },
+  "engine": {
+    "level": "local_engine",
+    "workflow": ".github/workflows/clean-host-default-stack.yml",
+    "runId": 39458288274,
+    "url": "https://github.com/saivedant169/zenith/actions/runs/39458288274",
+    "runner": "GitHub-hosted ubuntu-latest amd64, fresh VM, no port offset, nothing else running",
+    "result": {
+      "tests": {
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0
+      },
+      "caseVerifiers": "3/3",
+      "reportSha256": "56e40439d21c925430f80eb5123f9766ed4909b54a54f7ade6732abf931f6e91"
+    },
+    "readinessReceipt": {
+      "schemaVersion": 1,
+      "kind": "local_engine",
+      "source": {
+        "head": "9f8e046831347fb79f82eb7296b203c30201297f",
+        "contentSha256": "e66e47d07c06c05f44422a5b00cca9a714163237efb66d7b0648ca86342f2b1a",
+        "dirty": false
+      },
+      "architecture": "amd64",
+      "minimumObservedFreeBytes": 92985737216,
+      "profile": "default",
+      "apis": 2,
+      "workers": 2,
+      "authority": {
+        "verifiedTls": true,
+        "wrongCaRefused": true,
+        "wrongHostnameRefused": true,
+        "sameDatabase": true,
+        "sameSystemIdentifier": true,
+        "database": "postgres",
+        "systemIdentifier": "7698789466389209132",
+        "maxMigrationVersion": 58,
+        "highestRegisteredVersion": 58,
+        "privateSchemaUsageRefused": true,
+        "platformTablesRlsEnabled": true,
+        "platformTableCount": 121
+      },
+      "checks": {
+        "mailpit-owned-running": true,
+        "mailpit-api": true,
+        "api": true,
+        "execution-worker": true,
+        "temporal": true,
+        "api-peer": true,
+        "execution-worker-peer": true,
+        "http-api-1": true,
+        "http-api-2": true,
+        "supabase-auth-https": true,
+        "supabase-postgrest-https": true,
+        "postgrest-platform-not-exposed": true,
+        "postgrest-agent-not-exposed": true,
+        "pooler-verify-full": true,
+        "single-database-authority": true,
+        "native-role-boundary": true,
+        "platform-rls": true,
+        "registered-migration-version": true,
+        "platform-schema-current": true
+      },
+      "apiProbes": [
+        {
+          "api-configured": "passed",
+          "browser-login-http": "passed",
+          "mcp-bearer-boundary": "passed",
+          "mcp-oauth-metadata": "not-configured"
+        },
+        {
+          "api-configured": "passed",
+          "browser-login-http": "passed",
+          "mcp-bearer-boundary": "passed",
+          "mcp-oauth-metadata": "not-configured"
+        }
+      ],
+      "passed": 19,
+      "failed": 0,
+      "skipped": 0,
+      "authenticatedJourney": false,
+      "crossWorkerExecution": false,
+      "hostedProductionAcceptance": false,
+      "productionReady": false
+    }
+  },
+  "previousCleanHostPass": "f3bf1b09 run 39455451832 (evidence/PROD-PKG-04/2026-10-20-f3bf1b09-clean-host-default-stack.json); 9f8e0468 differs only by test type annotations and evidence files.",
+  "customerAgents": [
+    "J2 default journey 18/18 with a real registered zenithd on owned kind (evidence/PROD-PKG-05/2026-10-20-98f03b4f-default-journey-receipt-1.json and -2.json)",
+    "J4 signed registered runbook delivery through an exec-disabled zenithd, wave6-55718f085353604a 1/0 (evidence/PROD-PKG-04/2026-10-20-55aa480b-j4-wave6-identities.json)"
+  ],
+  "limits": "Local disposable engines: hostedProductionAcceptance=false, crossWorkerExecution=false, productionReady=false. Customer-agent receipts ran on the Mac default stack, not on this clean host."
+}

@@ -7,13 +7,42 @@
  */
 import { describe, expect, it, vi } from "vitest";
 import { verifyCapabilityGrant, type PublicJwk } from "@/lib/credentials";
+import { repos } from "@/lib/controlplane/db";
+import { buildPlanFacts } from "@/lib/capabilities/evaluate";
+import { planEvidence } from "@/lib/execution/plan-evidence";
 import { loadPlanFixture } from "../policy/plan-fixtures";
-import { STORE_KINDS, allowDecision, closeSharedPgliteAfterAll, expectBrokerError, integrationOf, makeHarness, navigator, proposeOk, requestFor, scriptedEngine, systemPrincipal, user } from "./support";
+import { change, makePlan } from "../execution/fakes/fixtures";
+import { STORE_KINDS, allowDecision, closeSharedPgliteAfterAll, expectBrokerError, integrationOf, makeHarness, navigator, proposeOk, requestFor, scriptedEngine, sessionFor, systemPrincipal, user, type Harness } from "./support";
 
 closeSharedPgliteAfterAll();
 
 const CANARY_AWS = "AKIAIOSFODNN7EXAMPLE";
 const CANARY_JWT = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dBjftJeZ4CVPmB92K27uhbUJU1p1r_wW1gFWFOEjXk";
+
+/**
+ * A destroy-only plan reviewed as an infrastructure.plan operation, with its
+ * planning evidence recorded the way the destroy gate reads it. The memory
+ * ledger has no evidence store, so there nothing is recorded and the gate refuses.
+ */
+async function reviewedDestroy(h: Harness, environmentId: string) {
+  const plan = makePlan({ changes: [change({ address: "aws_s3_bucket.assets", nodeAddress: "object_store/assets", type: "aws_s3_bucket", action: "delete", destroysData: true })] });
+  const facts = buildPlanFacts(plan)!;
+  const scope = { workspaceId: h.ids.wsA, projectId: h.ids.projA, environmentId };
+  const source = await proposeOk(h, { capability: "infrastructure.plan", scope }, user("alice"), { plan });
+  if (h.db) {
+    const summary = {
+      ...planEvidence({ plan, facts, cost: {}, graphDigest: "a".repeat(64), stage: "plan" }).summary,
+      destroy: true,
+      destroyAddresses: [...facts.destroyedStatefulAddresses],
+      statefulDeletes: [...facts.destroyedStatefulAddresses],
+    };
+    await repos.evidence.insert(h.db, { workspaceId: h.ids.wsA, operationId: source.id, kind: "tofu_plan", digest: plan.planDigest, summary, simulated: false });
+  }
+  return {
+    request: { capability: "infrastructure.destroy", scope },
+    ctx: { session: sessionFor("alice"), destroyPlan: { operationId: source.id, planDigest: plan.planDigest } },
+  };
+}
 
 describe.each(STORE_KINDS)("propose [%s]", (kind) => {
   it("allows a low-risk mutation in a sandbox and records an approved operation", async () => {
@@ -179,6 +208,51 @@ describe.each(STORE_KINDS)("authoritative facts [%s]", (kind) => {
       expect(r.decision.outcome).toBe("deny");
       expect(r.decision.reasons[0]).toMatchObject({ code: "plan_required", rule: "zenith.broker.plan_required" });
     }
+  });
+
+  it.skipIf(kind === "memory")("forces a reviewed infrastructure.destroy to admin approval", async () => {
+    const h = await makeHarness({ kind });
+    const { request, ctx } = await reviewedDestroy(h, h.ids.envASbx);
+    const r = await proposeOk(h, request, user("alice"), ctx);
+    expect(r.decision.outcome).toBe("require_approval");
+    // policy alone asks an editor (autonomy below 6, stateful delete); the forced path raises it to admin
+    expect(r.decision.approval).toEqual({ count: 1, minRole: "admin", separationOfDuties: false });
+    expect(r.decision.reasons.map((x) => x.code)).toEqual(expect.arrayContaining(["autonomy_below_capability", "stateful_deletes_require_approval"]));
+    expect(r.operation.status).toBe("awaiting_approval");
+  });
+
+  it.runIf(kind === "memory")("refuses a reviewed-plan teardown on the memory lane, which keeps no plan evidence", async () => {
+    const h = await makeHarness({ kind });
+    const { request, ctx } = await reviewedDestroy(h, h.ids.envASbx);
+    await expectBrokerError(h.broker.propose(request, user("alice"), ctx), "invalid_state");
+  });
+
+  it("keeps database.delete and database.restore behind approval outside production", async () => {
+    const h = await makeHarness({ kind });
+    for (const where of ["sbx", "stg"] as const) {
+      for (const capability of ["database.delete", "database.restore"] as const) {
+        const r = await h.broker.check(requestFor(h, capability, where), user("alice"));
+        expect(r.decision.outcome, `${capability} in ${where}`).toBe("require_approval");
+        expect(r.decision.approval).toEqual({ count: 1, minRole: "editor", separationOfDuties: false });
+        expect(r.decision.reasons.map((x) => x.code)).toContain("autonomy_below_capability");
+      }
+    }
+    // autonomy 5 is still below the level (6) these capabilities ever run unattended at
+    await h.store.putEnvironmentAutonomy({ workspaceId: h.ids.wsA, environmentId: h.ids.envASbx, autonomyLevel: 5, updatedBy: "alice" });
+    for (const capability of ["database.delete", "database.restore"] as const) {
+      const r = await h.broker.check(requestFor(h, capability, "sbx"), user("alice"));
+      expect(r.decision.outcome, `${capability} at autonomy 5`).toBe("require_approval");
+    }
+  });
+
+  it("keeps a stateful-delete plan behind approval at the highest autonomy level (5)", async () => {
+    const h = await makeHarness({ kind });
+    await h.store.putEnvironmentAutonomy({ workspaceId: h.ids.wsA, environmentId: h.ids.envASbx, autonomyLevel: 5, updatedBy: "alice" });
+    const r = await proposeOk(h, requestFor(h, "infrastructure.apply", "sbx"), user("alice"), { plan: loadPlanFixture("stateful-destroy") });
+    expect(r.decision.environment).toMatchObject({ autonomyLevel: 5, autonomyIsDefault: false });
+    expect(r.decision.outcome).toBe("require_approval");
+    expect(r.decision.reasons.map((x) => x.code)).toContain("stateful_deletes_require_approval");
+    expect(r.operation.status).toBe("awaiting_approval");
   });
 
   it("does not let an agent create executable proposals at autonomy 0 or 1, and lets it at 2", async () => {

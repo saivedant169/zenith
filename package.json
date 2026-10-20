@@ -126,7 +126,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "three": "^0.185.1",
-    "vite": "7.3.6",
+    "vite": "7.3.7",
     "zod": "^3.25.0"
   },
   "devDependencies": {
@@ -134,7 +134,7 @@
     "@gltf-transform/core": "^4.5.0",
     "@gltf-transform/extensions": "^4.5.0",
     "@gltf-transform/functions": "^4.5.0",
-    "@modelcontextprotocol/client": "2.2.0",
+    "@modelcontextprotocol/client": "2.3.0",
     "@playwright/test": "1.56.1",
     "@tailwindcss/postcss": "^4.1.7",
     "@temporalio/testing": "1.24.0",

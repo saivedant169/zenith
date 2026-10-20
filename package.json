@@ -101,7 +101,7 @@
     "@dagrejs/dagre": "^1.1.4",
     "@electric-sql/pglite": "0.5.8",
     "@kubernetes/client-node": "2.0.0",
-    "@modelcontextprotocol/server": "2.0.0",
+    "@modelcontextprotocol/server": "2.3.0",
     "@supabase/ssr": "0.12.5",
     "@supabase/supabase-js": "2.112.4",
     "@temporalio/activity": "1.24.0",

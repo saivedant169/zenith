@@ -63,12 +63,12 @@ describe("MCP v3 HTTP", () => {
     // SDK 2.0 exports the legacy version as LATEST_PROTOCOL_VERSION; its
     // modern request metadata negotiates the separate 2026 wire protocol.
     const meta = { [PROTOCOL_VERSION_META_KEY]: "2026-07-28", [CLIENT_CAPABILITIES_META_KEY]: {} };
-    const list = await route.POST(request("tools/list", { _meta: meta }, { "mcp-method": "tools/list" }));
+    const list = await route.POST(request("tools/list", { _meta: meta }, { "mcp-protocol-version": "2026-07-28", "mcp-method": "tools/list" }));
     expect(list.status, await list.clone().text()).toBe(200); expect(list.headers.get("content-type")).toContain("application/json");
     const listedTools = (await list.json()).result.tools;
     expect(listedTools).toHaveLength(TOOL_NAMES.length);
     expect(listedTools.map((tool: { name: string }) => tool.name)).toContain("zenith_get_operation_events");
-    const call = await route.POST(request("tools/call", { _meta: meta, name: "zenith_get_topology", arguments: argsFor("zenith_get_topology") }, { "mcp-method": "tools/call", "mcp-name": "zenith_get_topology" }));
+    const call = await route.POST(request("tools/call", { _meta: meta, name: "zenith_get_topology", arguments: argsFor("zenith_get_topology") }, { "mcp-protocol-version": "2026-07-28", "mcp-method": "tools/call", "mcp-name": "zenith_get_topology" }));
     expect(call.status).toBe(200); expect((await call.json()).result.structuredContent.ok).toBe(true);
     expect(h.authorizeRead).toHaveBeenCalledTimes(1);
   });

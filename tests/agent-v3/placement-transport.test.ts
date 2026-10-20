@@ -54,7 +54,7 @@ describe.each(["2025-06-18", "2026-07-28"])("placement MCP HTTP %s", (protocol) 
       method: "POST",
       headers: {
         authorization: `Bearer ${bearer}`, "content-type": "application/json", accept: "application/json, text/event-stream",
-        ...(modern ? { "mcp-method": method, ...(method === "tools/call" ? { "mcp-name": name } : {}) } : {}),
+        ...(modern ? { "mcp-protocol-version": protocol, "mcp-method": method, ...(method === "tools/call" ? { "mcp-name": name } : {}) } : {}),
       },
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params: {
         ...params,

@@ -8,6 +8,7 @@ import path from "node:path";
 import type { World } from "../execution/fakes/world";
 import type { WorkflowResult, WorkerActivities, StepName } from "@/lib/workflows/types";
 import type { Sql } from "@/lib/controlplane/types";
+import type { MigrationsPort } from "@/lib/execution/ports";
 import { tempDataDir } from "../_support/data-dir";
 
 vi.mock("@/lib/controlplane/db/repos/workflow-start-deploy-authority", async original => ({
@@ -43,7 +44,7 @@ const { executionWorkerConfigFromEnv } = await import("../../workers/execution/c
 const { startTestServer, workflowBundlePath, uniqueId, findTemporalCli, waitFor } = await import("../workflows/support");
 const { LeaseLostError } = await import("@/lib/execution/errors");
 const { createWorld,createSqlPlanArtifactFixture } = await import("../execution/fakes/world");
-const { webDbManifest, makePlan, change, connectionConfig, WS, PROJECT, ENV, REVISION, DEPLOYMENT, PRODUCT_CONNECTION, PLATFORM_CONNECTION } = await import("../execution/fakes/fixtures");
+const { webDbManifest, migratingManifest, makePlan, change, connectionConfig, WS, PROJECT, ENV, REVISION, DEPLOYMENT, PRODUCT_CONNECTION, PLATFORM_CONNECTION } = await import("../execution/fakes/fixtures");
 const { mockAwsCloud, SESSION_CANARY } = await import("./aws-cloud");
 
 const author = { type: "user" as const, id: "local", name: "Requester" };
@@ -137,13 +138,35 @@ beforeEach(async () => {
 }, 60_000);
 afterEach(async () => { cloud?.restore(); custodyWorld?.dispose(); await db?.close(); });
 afterAll(async () => { await server?.env.teardown(); vi.unstubAllEnvs(); resetSignerCache(); });
-function composed(temporal = true) {
+function composed(temporal = true, overrides: { migrations?: MigrationsPort } = {}) {
   const prober = createSafeProber({ resolve: async () => [{ address: "8.8.8.8", family: 4 }], transport: async (req) => {
     expect(req.host).toBe("app.atlas.zenith.test"); expect(req.path).toBe("/healthz");
     return { status: 200, latencyMs: 5, bytes: 2, truncated: false, bodyDigest: "0".repeat(64), tlsExpiresAt: new Date(Date.now() + 365 * 86400_000).toISOString() };
   } });
   const executionBroker=createExecutionBroker(db,async()=>broker);
-  return composeExecutionActivities({ db, workerIdentity: "compose-contract", planDir, secretKey: "1".repeat(64), ports: { tofu, planArtifacts:createSqlPlanArtifactFixture(custodyWorld,db,executionBroker), prober, broker: executionBroker, heartbeat: temporal ? (d) => Context.current().heartbeat(d) : () => undefined, activitySignal: temporal ? () => Context.current().cancellationSignal : () => undefined } });
+  return composeExecutionActivities({ db, workerIdentity: "compose-contract", planDir, secretKey: "1".repeat(64), ports: { tofu, planArtifacts:createSqlPlanArtifactFixture(custodyWorld,db,executionBroker), prober, broker: executionBroker, heartbeat: temporal ? (d) => Context.current().heartbeat(d) : () => undefined, activitySignal: temporal ? () => Context.current().cancellationSignal : () => undefined, ...overrides } });
+}
+
+// Same approval and rollout as the rollout test, but on a revision that declares a release migration. The one-off
+// migration runner is an injected fake (the AWS task itself is not modeled); the broker and policy are the real ones.
+async function migratingReleaseThroughRollout(runOneOffTask: MigrationsPort["runOneOffTask"]) {
+  const manifest = migratingManifest();
+  manifest.services[0].source = { type: "image", image };
+  manifest.release = { migrate: { ...manifest.release!.migrate!, class: "expand" } };
+  q.revision(REVISION)!.manifest = manifest; save();
+  await db.query("update public.revision_manifests set manifest=$2::text::jsonb where revision_id=$1", [REVISION, JSON.stringify(manifest)]);
+  activities = composed(false, { migrations: { runOneOffTask } });
+  const operationId = await approvedOperation();
+  await activities.validateDesiredState({ operationId });
+  let lease = await activities.acquireLease({ operationId, scope: `env:${ENV}`, ttlMs: 180_000 });
+  const plan = await activities.planInfrastructure({ operationId, lease });
+  await activities.evaluatePolicy({ operationId, planDigest: plan.planDigest });
+  lease = await planRound(operationId, lease);
+  await activities.finalPlan({ operationId, approvedPlanDigest: plan.planDigest, lease });
+  await activities.applyInfrastructure({ operationId, planDigest: plan.planDigest, lease });
+  const built = await activities.buildArtifacts({ operationId, lease });
+  await activities.deployWorkloads({ operationId, lease, images: built.images });
+  return { operationId, lease };
 }
 
 async function approvedOperation() {
@@ -513,6 +536,28 @@ describe("composed activities against local stores (no Temporal fallback)", () =
       const ecsCalls = cloud.ecs.calls().length;
       await expect(activities.deployWorkloads({ operationId, lease, images: built.images })).rejects.toThrow(/Current policy or human approval changed before rollout dispatch/);
       expect(cloud.ecs.calls()).toHaveLength(ecsCalls);
+    } finally { await activities.releaseLease({ lease }); }
+  }, 60_000);
+  it("refuses migration dispatch when policy is tightened to deny after approval, through the real broker and policy", async () => {
+    const runOneOffTask = vi.fn<MigrationsPort["runOneOffTask"]>(async () => ({ exitCode: 0 }));
+    const { operationId, lease } = await migratingReleaseThroughRollout(runOneOffTask);
+    try {
+      // the human approval is still genuine; only the current policy changes
+      const tightened = await loadPolicyEngine();
+      broker.deps.policy = async () => ({
+        version: "tightened-after-approval",
+        evaluate: async (input) => ({ ...(await tightened.evaluate(input)), decision: { outcome: "deny", reasons: [{ code: "tightened_after_approval", message: "Policy was tightened after approval.", rule: "test" }] } }),
+      });
+      await expect(activities.runMigrations({ operationId, lease })).rejects.toThrow(/Current policy or human approval changed before migration dispatch/);
+      expect(runOneOffTask).toHaveBeenCalledTimes(0);
+    } finally { await activities.releaseLease({ lease }); }
+  }, 60_000);
+  it("runs the declared migration once when policy is unchanged, so the refusal above is not vacuous", async () => {
+    const runOneOffTask = vi.fn<MigrationsPort["runOneOffTask"]>(async () => ({ exitCode: 0 }));
+    const { operationId, lease } = await migratingReleaseThroughRollout(runOneOffTask);
+    try {
+      expect(await activities.runMigrations({ operationId, lease })).toMatchObject({ ran: true });
+      expect(runOneOffTask).toHaveBeenCalledTimes(1);
     } finally { await activities.releaseLease({ lease }); }
   }, 60_000);
   it("evaluates a public database plan as deny without any apply call", async () => {

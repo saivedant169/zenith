@@ -52,6 +52,7 @@ const COVERED_BY: Record<string, string> = {
   "tests/acceptance/clients.test.ts": "scripts/acceptance/aws-live.ts",
   "tests/cost/billing.test.ts": "tests/cost/live-billing.live.test.ts",
   "tests/cost/catalog-refresh.test.ts": "tests/cost/live-billing.live.test.ts",
+  "tests/cost/catalog-refresh.local.test.ts": "tests/cost/live-billing.live.test.ts",
   "tests/cost/spend-service.test.ts": "tests/cost/live-billing.live.test.ts",
   // Contract and local-engine tests of the mixed harness; the harness code they drive enforces the scope itself.
   "tests/acceptance/mixed-live-run.test.ts": "scripts/acceptance/mixed/live-run.ts",

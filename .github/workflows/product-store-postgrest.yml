@@ -56,12 +56,14 @@ jobs:
           supabase --version
           # supabase/config.toml carries keys newer than this pinned CLI accepts
           # (config.local_smtp, experimental.pgdelta); the stack only needs the
-          # database, Auth and PostgREST, so use a minimal config over the same migrations.
+          # database, Auth and PostgREST, so use a minimal config. The CLI's
+          # statement splitter refuses 0004 ("cannot insert multiple commands into
+          # a prepared statement"), so migrations are applied with psql below, as
+          # scripts/ci/apply-supabase-migrations.sh does.
           work="$RUNNER_TEMP/supabase-project"; mkdir -p "$work/supabase"
-          cp -R supabase/migrations "$work/supabase/migrations"
           printf '%s\n' 'project_id = "zenith-product-store-ci"' '[api]' 'enabled = true' 'port = 54321' \
             'schemas = ["public", "graphql_public"]' 'extra_search_path = ["public", "extensions"]' \
-            '[db]' 'port = 54322' 'shadow_port = 54320' 'major_version = 17' '[db.migrations]' 'enabled = true' \
+            '[db]' 'port = 54322' 'shadow_port = 54320' 'major_version = 17' '[db.migrations]' 'enabled = false' \
             '[db.seed]' 'enabled = false' '[studio]' 'enabled = false' '[inbucket]' 'enabled = false' \
             '[auth]' 'enabled = true' 'site_url = "http://127.0.0.1:3400"' > "$work/supabase/config.toml"
           echo "SUPABASE_WORKDIR=$work" >> "$GITHUB_ENV"
@@ -75,6 +77,12 @@ jobs:
           echo "::add-mask::$key"
           { echo "NEXT_PUBLIC_SUPABASE_URL=$api"; echo "SUPABASE_SERVICE_ROLE_KEY=$key"; echo "SUPABASE_DB_URL=$db"; } >> "$GITHUB_ENV"
           rm -f "$RUNNER_TEMP/supabase.env"
+          for file in supabase/migrations/*.sql; do
+            echo "apply $(basename "$file")"
+            psql --quiet -v ON_ERROR_STOP=1 -f "$file" "$db" >/dev/null
+          done
+          psql --quiet -v ON_ERROR_STOP=1 -c "notify pgrst, 'reload schema'" "$db" >/dev/null
+          sleep 3
           curl -fsS -o /dev/null -w 'rest %{http_code}\n' -H "apikey: $key" -H "Authorization: Bearer $key" "$api/rest/v1/projects?select=id&limit=1"
 
       - name: Product-store contract suites on PostgREST

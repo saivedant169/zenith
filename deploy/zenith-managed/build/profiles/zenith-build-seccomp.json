@@ -1,0 +1,689 @@
+{
+  "defaultAction": "SCMP_ACT_ERRNO",
+  "defaultErrnoRet": 1,
+  "architectures": [
+    "SCMP_ARCH_X86_64",
+    "SCMP_ARCH_AARCH64"
+  ],
+  "syscalls": [
+    {
+      "names": [
+        "open",
+        "openat",
+        "openat2",
+        "creat",
+        "close",
+        "close_range",
+        "read",
+        "write",
+        "readv",
+        "writev",
+        "pread64",
+        "preadv",
+        "preadv2",
+        "pwrite64",
+        "pwritev",
+        "pwritev2",
+        "lseek",
+        "readahead",
+        "sendfile",
+        "splice",
+        "tee",
+        "vmsplice",
+        "copy_file_range",
+        "fallocate",
+        "fadvise64",
+        "ftruncate",
+        "truncate",
+        "fsync",
+        "fdatasync",
+        "sync",
+        "syncfs",
+        "sync_file_range",
+        "flock",
+        "fcntl",
+        "ioctl",
+        "dup",
+        "dup2",
+        "dup3",
+        "pipe",
+        "pipe2"
+      ],
+      "action": "SCMP_ACT_ALLOW",
+      "comment": "DRAFT, PENDING OWNER APPROVAL (PROD-LIFE-09). Not installed, not wired. Allow-list group 1. Files: open, read, write, close, copy, sync, descriptors and pipes. Every compiler, package manager and BuildKit itself needs these."
+    },
+    {
+      "names": [
+        "access",
+        "faccessat",
+        "faccessat2",
+        "stat",
+        "lstat",
+        "fstat",
+        "newfstatat",
+        "statx",
+        "statfs",
+        "fstatfs",
+        "getdents",
+        "getdents64",
+        "getcwd",
+        "chdir",
+        "fchdir",
+        "mkdir",
+        "mkdirat",
+        "rmdir",
+        "rename",
+        "renameat",
+        "renameat2",
+        "link",
+        "linkat",
+        "unlink",
+        "unlinkat",
+        "symlink",
+        "symlinkat",
+        "readlink",
+        "readlinkat",
+        "chmod",
+        "fchmod",
+        "fchmodat",
+        "fchmodat2",
+        "chown",
+        "fchown",
+        "lchown",
+        "fchownat",
+        "umask",
+        "utime",
+        "utimes",
+        "utimensat",
+        "futimesat",
+        "mknod",
+        "mknodat",
+        "name_to_handle_at",
+        "getxattr",
+        "lgetxattr",
+        "fgetxattr",
+        "getxattrat",
+        "listxattr",
+        "llistxattr",
+        "flistxattr",
+        "listxattrat",
+        "setxattr",
+        "lsetxattr",
+        "fsetxattr",
+        "setxattrat",
+        "removexattr",
+        "lremovexattr",
+        "fremovexattr",
+        "removexattrat",
+        "inotify_init",
+        "inotify_init1",
+        "inotify_add_watch",
+        "inotify_rm_watch",
+        "landlock_create_ruleset",
+        "landlock_add_rule",
+        "landlock_restrict_self",
+        "listmount",
+        "statmount"
+      ],
+      "action": "SCMP_ACT_ALLOW",
+      "comment": "Files: metadata, directories, links, permissions, extended attributes, inotify, Landlock (self-restriction only). Used by tar/COPY unpacking, snapshotter and every build tool."
+    },
+    {
+      "names": [
+        "mmap",
+        "mprotect",
+        "munmap",
+        "mremap",
+        "brk",
+        "madvise",
+        "mincore",
+        "mlock",
+        "mlock2",
+        "mlockall",
+        "munlock",
+        "munlockall",
+        "msync",
+        "remap_file_pages",
+        "membarrier",
+        "memfd_create",
+        "pkey_alloc",
+        "pkey_free",
+        "pkey_mprotect",
+        "mseal",
+        "cachestat",
+        "map_shadow_stack"
+      ],
+      "action": "SCMP_ACT_ALLOW",
+      "comment": "Memory management and shared-memory primitives for every user-space program (allocators, JIT, Go runtime)."
+    },
+    {
+      "names": [
+        "fork",
+        "vfork",
+        "execve",
+        "execveat",
+        "exit",
+        "exit_group",
+        "wait4",
+        "waitid",
+        "getpid",
+        "getppid",
+        "gettid",
+        "getpgid",
+        "getpgrp",
+        "getsid",
+        "setpgid",
+        "setsid",
+        "kill",
+        "tkill",
+        "tgkill",
+        "pidfd_open",
+        "pidfd_send_signal",
+        "process_mrelease",
+        "prctl",
+        "seccomp",
+        "capget",
+        "capset",
+        "getuid",
+        "geteuid",
+        "getgid",
+        "getegid",
+        "getgroups",
+        "getresuid",
+        "getresgid",
+        "setuid",
+        "setgid",
+        "setreuid",
+        "setregid",
+        "setresuid",
+        "setresgid",
+        "setgroups",
+        "setfsuid",
+        "setfsgid",
+        "getrlimit",
+        "setrlimit",
+        "prlimit64",
+        "getrusage",
+        "times",
+        "getpriority",
+        "setpriority",
+        "sched_getaffinity",
+        "sched_setaffinity",
+        "sched_getattr",
+        "sched_setattr",
+        "sched_getparam",
+        "sched_setparam",
+        "sched_getscheduler",
+        "sched_setscheduler",
+        "sched_get_priority_max",
+        "sched_get_priority_min",
+        "sched_rr_get_interval",
+        "sched_yield",
+        "ioprio_get",
+        "ioprio_set",
+        "getcpu",
+        "futex",
+        "futex_requeue",
+        "futex_wait",
+        "futex_waitv",
+        "futex_wake",
+        "set_tid_address",
+        "set_robust_list",
+        "get_robust_list",
+        "rseq",
+        "restart_syscall",
+        "sigaltstack",
+        "rt_sigaction",
+        "rt_sigprocmask",
+        "rt_sigreturn",
+        "rt_sigpending",
+        "rt_sigsuspend",
+        "rt_sigtimedwait",
+        "rt_sigqueueinfo",
+        "rt_tgsigqueueinfo",
+        "pause",
+        "uretprobe"
+      ],
+      "action": "SCMP_ACT_ALLOW",
+      "comment": "Processes, threads, signals, credentials and scheduling. fork/exec and signals are what a build step is; credential calls are used by newuidmap and by tools that drop privileges inside the build. Kernel still enforces who may change what."
+    },
+    {
+      "names": [
+        "clock_gettime",
+        "clock_getres",
+        "clock_nanosleep",
+        "nanosleep",
+        "gettimeofday",
+        "time",
+        "alarm",
+        "getitimer",
+        "setitimer",
+        "timer_create",
+        "timer_delete",
+        "timer_getoverrun",
+        "timer_gettime",
+        "timer_settime",
+        "timerfd_create",
+        "timerfd_gettime",
+        "timerfd_settime",
+        "select",
+        "pselect6",
+        "poll",
+        "ppoll",
+        "epoll_create",
+        "epoll_create1",
+        "epoll_ctl",
+        "epoll_wait",
+        "epoll_pwait",
+        "epoll_pwait2",
+        "eventfd",
+        "eventfd2",
+        "signalfd",
+        "signalfd4",
+        "io_setup",
+        "io_destroy",
+        "io_submit",
+        "io_cancel",
+        "io_getevents",
+        "io_pgetevents"
+      ],
+      "action": "SCMP_ACT_ALLOW",
+      "comment": "Time, timers, polling and event descriptors. Needed by every event loop (Go runtime, BuildKit, package managers). Setting the clock is NOT here; see the deny block."
+    },
+    {
+      "names": [
+        "bind",
+        "listen",
+        "accept",
+        "accept4",
+        "connect",
+        "getsockname",
+        "getpeername",
+        "getsockopt",
+        "setsockopt",
+        "shutdown",
+        "sendto",
+        "recvfrom",
+        "sendmsg",
+        "recvmsg",
+        "sendmmsg",
+        "recvmmsg",
+        "socketpair",
+        "msgctl",
+        "msgget",
+        "msgrcv",
+        "msgsnd",
+        "semctl",
+        "semget",
+        "semop",
+        "semtimedop",
+        "shmat",
+        "shmctl",
+        "shmdt",
+        "shmget",
+        "mq_open",
+        "mq_unlink",
+        "mq_timedsend",
+        "mq_timedreceive",
+        "mq_notify",
+        "mq_getsetattr",
+        "sysinfo",
+        "uname",
+        "getrandom"
+      ],
+      "action": "SCMP_ACT_ALLOW",
+      "comment": "Sockets (the socket() call itself is restricted separately), System V and POSIX IPC, and system information. The proxy connection, BuildKit's own unix sockets and test suites that use IPC need these."
+    },
+    {
+      "names": [
+        "socket"
+      ],
+      "action": "SCMP_ACT_ALLOW",
+      "args": [
+        {
+          "index": 0,
+          "value": 1,
+          "op": "SCMP_CMP_EQ"
+        }
+      ],
+      "comment": "socket(): unix sockets of any type (BuildKit/rootlesskit control sockets)."
+    },
+    {
+      "names": [
+        "socket"
+      ],
+      "action": "SCMP_ACT_ALLOW",
+      "args": [
+        {
+          "index": 0,
+          "value": 2,
+          "op": "SCMP_CMP_EQ"
+        },
+        {
+          "index": 1,
+          "value": 15,
+          "valueTwo": 1,
+          "op": "SCMP_CMP_MASKED_EQ"
+        }
+      ],
+      "comment": "socket(): IPv4 TCP. Raw sockets (type 3), packet sockets and every other family (AF_PACKET, AF_VSOCK, AF_ALG, AF_KEY, ...) are not allowed."
+    },
+    {
+      "names": [
+        "socket"
+      ],
+      "action": "SCMP_ACT_ALLOW",
+      "args": [
+        {
+          "index": 0,
+          "value": 2,
+          "op": "SCMP_CMP_EQ"
+        },
+        {
+          "index": 1,
+          "value": 15,
+          "valueTwo": 2,
+          "op": "SCMP_CMP_MASKED_EQ"
+        }
+      ],
+      "comment": "socket(): IPv4 UDP."
+    },
+    {
+      "names": [
+        "socket"
+      ],
+      "action": "SCMP_ACT_ALLOW",
+      "args": [
+        {
+          "index": 0,
+          "value": 10,
+          "op": "SCMP_CMP_EQ"
+        },
+        {
+          "index": 1,
+          "value": 15,
+          "valueTwo": 1,
+          "op": "SCMP_CMP_MASKED_EQ"
+        }
+      ],
+      "comment": "socket(): IPv6 TCP."
+    },
+    {
+      "names": [
+        "socket"
+      ],
+      "action": "SCMP_ACT_ALLOW",
+      "args": [
+        {
+          "index": 0,
+          "value": 10,
+          "op": "SCMP_CMP_EQ"
+        },
+        {
+          "index": 1,
+          "value": 15,
+          "valueTwo": 2,
+          "op": "SCMP_CMP_MASKED_EQ"
+        }
+      ],
+      "comment": "socket(): IPv6 UDP."
+    },
+    {
+      "names": [
+        "socket"
+      ],
+      "action": "SCMP_ACT_ALLOW",
+      "args": [
+        {
+          "index": 0,
+          "value": 16,
+          "op": "SCMP_CMP_EQ"
+        },
+        {
+          "index": 2,
+          "value": 0,
+          "op": "SCMP_CMP_EQ"
+        }
+      ],
+      "comment": "socket(): netlink, route protocol only (protocol 0). Go's net package and getaddrinfo list interfaces this way. Other netlink families (audit, netfilter, crypto, ...) stay denied."
+    },
+    {
+      "names": [
+        "personality"
+      ],
+      "action": "SCMP_ACT_ALLOW",
+      "args": [
+        {
+          "index": 0,
+          "value": 0,
+          "op": "SCMP_CMP_EQ"
+        }
+      ],
+      "comment": "personality(): only the values Docker's default profile allows (execution domains that do not disable ASLR or enable legacy behaviour)."
+    },
+    {
+      "names": [
+        "personality"
+      ],
+      "action": "SCMP_ACT_ALLOW",
+      "args": [
+        {
+          "index": 0,
+          "value": 8,
+          "op": "SCMP_CMP_EQ"
+        }
+      ]
+    },
+    {
+      "names": [
+        "personality"
+      ],
+      "action": "SCMP_ACT_ALLOW",
+      "args": [
+        {
+          "index": 0,
+          "value": 131072,
+          "op": "SCMP_CMP_EQ"
+        }
+      ]
+    },
+    {
+      "names": [
+        "personality"
+      ],
+      "action": "SCMP_ACT_ALLOW",
+      "args": [
+        {
+          "index": 0,
+          "value": 131080,
+          "op": "SCMP_CMP_EQ"
+        }
+      ]
+    },
+    {
+      "names": [
+        "personality"
+      ],
+      "action": "SCMP_ACT_ALLOW",
+      "args": [
+        {
+          "index": 0,
+          "value": 4294967295,
+          "op": "SCMP_CMP_EQ"
+        }
+      ]
+    },
+    {
+      "names": [
+        "arch_prctl"
+      ],
+      "action": "SCMP_ACT_ALLOW",
+      "comment": "x86-64 only (name does not exist on arm64 and is skipped there): thread-local storage setup for every process."
+    },
+    {
+      "names": [
+        "unshare",
+        "setns",
+        "clone",
+        "pivot_root",
+        "chroot",
+        "sethostname"
+      ],
+      "action": "SCMP_ACT_ALLOW",
+      "comment": "ROOTLESS BUILDER GROUP A. RootlessKit and runc create a nested user+mount+pid+ipc+uts namespace per build step (clone/unshare), enter namespaces (setns), switch the step's root filesystem (pivot_root, chroot fallback) and set the step's hostname. Same filter also applies to tenant code, which is why the kernel's user-namespace rules, hostUsers:false and the absence of CAP_SYS_ADMIN on the outer container are the real gate. Taken from Docker's CAP_SYS_ADMIN/CAP_SYS_CHROOT blocks, made unconditional because a seccomp list cannot see capabilities inside a user namespace."
+    },
+    {
+      "names": [
+        "mount",
+        "umount",
+        "umount2",
+        "mount_setattr",
+        "move_mount",
+        "open_tree",
+        "fsopen",
+        "fsconfig",
+        "fsmount",
+        "fspick"
+      ],
+      "action": "SCMP_ACT_ALLOW",
+      "comment": "ROOTLESS BUILDER GROUP B. Mounting the step's /proc, /dev, tmpfs and bind mounts inside the nested mount namespace (classic mount API plus the new fsopen/fsmount API used by runc 1.2+). Seccomp cannot restrict mount by target or by namespace: mounts outside the user namespace are refused by the kernel (needs CAP_SYS_ADMIN in the mount namespace's owning user namespace), and AppArmor rule 'deny mount fstype=...' removes the dangerous filesystems. Dangerous fstypes and 'mount outside the userns' are NOT blocked by this file alone."
+    },
+    {
+      "names": [
+        "clone3"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 38,
+      "comment": "clone3 returns ENOSYS so glibc and runc fall back to clone(), whose flags this filter can see. Same treatment as Docker's default profile for processes without CAP_SYS_ADMIN."
+    },
+    {
+      "names": [
+        "keyctl",
+        "add_key",
+        "request_key"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 38,
+      "comment": "EXPLICIT DENY: kernel keyring. ENOSYS (not EPERM) so runc and libc treat the keyring as unsupported and continue instead of failing; BuildKit also starts runc with --no-new-keyring."
+    },
+    {
+      "names": [
+        "kexec_load",
+        "kexec_file_load",
+        "init_module",
+        "finit_module",
+        "delete_module",
+        "create_module",
+        "query_module",
+        "get_kernel_syms",
+        "reboot"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1,
+      "comment": "EXPLICIT DENY (already denied by the default action; listed so a reviewer can see the intent and so a later allow-list edit cannot silently re-enable it). Kernel replacement and module loading."
+    },
+    {
+      "names": [
+        "bpf",
+        "perf_event_open",
+        "userfaultfd",
+        "io_uring_setup",
+        "io_uring_enter",
+        "io_uring_register"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1,
+      "comment": "EXPLICIT DENY (already denied by the default action; listed so a reviewer can see the intent and so a later allow-list edit cannot silently re-enable it). Kernel attack surface used for escapes: eBPF, perf events, userfaultfd, io_uring."
+    },
+    {
+      "names": [
+        "ptrace",
+        "process_vm_readv",
+        "process_vm_writev",
+        "kcmp",
+        "pidfd_getfd",
+        "process_madvise"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1,
+      "comment": "EXPLICIT DENY (already denied by the default action; listed so a reviewer can see the intent and so a later allow-list edit cannot silently re-enable it). Inspecting or controlling other processes. Seccomp cannot tell own children from foreign processes, so ptrace and cross-process memory access are denied outright (strace/gdb/proot will not work in builds)."
+    },
+    {
+      "names": [
+        "open_by_handle_at",
+        "quotactl",
+        "quotactl_fd",
+        "lookup_dcookie",
+        "fanotify_init",
+        "fanotify_mark",
+        "swapon",
+        "swapoff",
+        "acct"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1,
+      "comment": "EXPLICIT DENY (already denied by the default action; listed so a reviewer can see the intent and so a later allow-list edit cannot silently re-enable it). Handle-based file access that bypasses mount namespaces (the 'shocker' escape), quotas, dcookies, fanotify, swap and accounting."
+    },
+    {
+      "names": [
+        "settimeofday",
+        "clock_settime",
+        "clock_settime64",
+        "stime",
+        "adjtimex",
+        "clock_adjtime",
+        "clock_adjtime64",
+        "setdomainname",
+        "syslog",
+        "vhangup"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1,
+      "comment": "EXPLICIT DENY (already denied by the default action; listed so a reviewer can see the intent and so a later allow-list edit cannot silently re-enable it). Changing the system clock or hostname domain; syslog ring buffer."
+    },
+    {
+      "names": [
+        "iopl",
+        "ioperm",
+        "modify_ldt",
+        "vm86",
+        "vm86old",
+        "pciconfig_read",
+        "pciconfig_write",
+        "pciconfig_iobase"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1,
+      "comment": "EXPLICIT DENY (already denied by the default action; listed so a reviewer can see the intent and so a later allow-list edit cannot silently re-enable it). Raw hardware and legacy x86 interfaces."
+    },
+    {
+      "names": [
+        "mbind",
+        "get_mempolicy",
+        "set_mempolicy",
+        "set_mempolicy_home_node",
+        "migrate_pages",
+        "move_pages",
+        "lsm_get_self_attr",
+        "lsm_set_self_attr",
+        "lsm_list_modules",
+        "memfd_secret"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1,
+      "comment": "EXPLICIT DENY (already denied by the default action; listed so a reviewer can see the intent and so a later allow-list edit cannot silently re-enable it). NUMA memory policy that can act on other processes' pages, and Linux security module self-attribute calls."
+    },
+    {
+      "names": [
+        "nfsservctl",
+        "_sysctl",
+        "sysfs",
+        "ustat",
+        "uselib"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 1,
+      "comment": "EXPLICIT DENY (already denied by the default action; listed so a reviewer can see the intent and so a later allow-list edit cannot silently re-enable it). Obsolete or removed system calls."
+    }
+  ]
+}

@@ -4332,11 +4332,11 @@
       "acceptance": [
         "Product, platform, Temporal and runner authorities have durable intent/outbox and idempotent start/signal across every crash window."
       ],
-      "state": "in_progress",
+      "state": "verified",
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "implementation_complete_verification_pending",
+      "implementationStatus": "verified_8f0c18e2: platform, Temporal and runner authorities keep a durable intent/outbox with idempotent start and signal across the W1-W17 crash windows on real PostgreSQL and the Temporal CLI (deciding-transaction crash, CAS replay, prepared/attempted/accepted start recovery, signal intent claim/transport/settle, cancel intent, idempotent runner enqueue with racing workers, lost-ack attach, hand-over cancel and reaped timeout attached never requeued, late effect receipts); the product projection of an acknowledged start is repaired from the authority. 1579/0/8 combined batch, exact-source CI green on bf0b2ef5. Independent review: PROMOTE. Limits: local engines only (no hosted Supabase, live cloud or signoff); the product store is a projection and its crash mid-flush is outside W1-W17; signalDurably is exercised through its commit step, not called directly; W3 (dies before the start intent exists) ends as explicit uncertain by design; the 50-row newest-first projection sweep has no backlog test; operator continuation and recovery epochs belong to OPS-04; provider HTTP proxy jobs are unkeyed by design.",
       "evidence": [
         {
           "level": "local_engine",
@@ -4374,6 +4374,14 @@
           "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 (pinned image) with Supabase stand-in roles, removed after; owned Temporal CLI dev server (start-recovery spawns its own, default port refused); real OpenTofu 1.12.5 and pg_dump/pg_restore 16 for the plan handoff.",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-b5c61f4d-dur-combined.json",
           "result": "Real engines: 83 passed / 0 failed / 0 skipped across 4 clause files on clean b5c61f4d (33 real PostgreSQL cases; real Temporal start-recovery). Raw report kept."
+        },
+        {
+          "level": "local_engine",
+          "commit": "8f0c18e202608232022a3dea3ed741298684a15f",
+          "command": "combined DUR batch (scratchpad run-dur-all.sh, extended with the crash-window files) in the clean acceptance worktree j4-e9a95-acceptance-oct19 at the commit",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 with Supabase-accurate roles, migrated 1..58; owned Temporal CLI; real OpenTofu 1.12.5 with pg_dump/pg_restore 16.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-8f0c18e2-dur-combined.json",
+          "result": "1579 passed / 0 failed / 8 skipped across 41 files (raw sha256 14084ceabdf7ac41819142d2b93c85d15985a341aaa7067862449eab65f2eb5b); the 8 skips are memory/PGlite registrations of database-boundary cases that ran on PostgreSQL. Crash windows W1-W17 covered on real PostgreSQL and Temporal, including the fixed runner hand-over cancel (4d3d9d77), W13 cancel intent and W17 reaped hand-over (dd416478). Exact-source CI 39511367302 green on bf0b2ef5, a descendant."
         }
       ],
       "requiredEvidence": [

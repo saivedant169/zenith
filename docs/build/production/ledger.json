@@ -6724,6 +6724,15 @@
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
           "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
           "result": "Wave6 local lanes 2026-10-20: 29 passed / 0 failed / 5 not run of the requirement's 34 non-live wave6 cases. Plugin sandbox 3/3 and Keycloak DCR 4/4 on d23fc0b4 (DCR fixture repaired for Keycloak 26.4 and MCP client 2.2.0 in b68a5829); MFA browser, browser-issued token, platform launcher and UX receipt not run. Not promoted: local-engine slice only; acceptance judged separately."
+        },
+        {
+          "level": "local_engine",
+          "commit": "29072e06",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "57fe8d01c0fd78ee8ed9d47905c464a02a56ee535fe0b019329b2dbb6064c84f",
+          "receipt": "docs/build/production/evidence/PROD-UX-01/2026-10-20-29072e06-ux01-actual-browser-receipt.json",
+          "receiptSha256": "b115135ccf65de696817448ef930dd173df0f7d872f0c989f9321dca5d4ff74d",
+          "result": "Actual Google Chrome 155 UX-01 receipt passed 8/8 (axe wcag2a/2aa/21a/21aa at 1280x900 and 375x900, no violations or horizontal overflow) inside a J2 default journey that passed 18/18 on clean 29072e06; the wave6 UX-01 receipt case and both J2 receipt cases verify on the same source. The first real runs found two product accessibility defects (inline links distinguishable only by colour, keyboard-unreachable scrolling tables; fixed in 134b4a08 and fcd9f723) and several harness defects. UX-01 now passes 32 of its 34 non-live wave6 cases; the browser-issued OAuth token and platform plugin launcher cases are not run. Not promoted."
         }
       ],
       "requiredEvidence": [

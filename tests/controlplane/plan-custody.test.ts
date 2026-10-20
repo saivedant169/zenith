@@ -150,6 +150,35 @@ describe.each(LANES)("plan custody grants [$name]", (lane) => {
     expect(states[1].revoke_reason).toBeNull();
   });
 
+  it("two independent connections admitting the same worker and fence converge on exactly one grant", async () => {
+    const f = await fixture();
+    const results = await Promise.allSettled([custody.admit(ctx.db, f.access(), "worker-a", crypto), custody.admit(ctx.db2, f.access(), "worker-a", crypto)]);
+    expect(results.map(r => r.status)).toEqual(["fulfilled", "fulfilled"]);
+    expect(await db.query("select 1 from platform.plan_custody_grants where workspace_id=$1 and worker_identity='worker-a' and revoked_at is null", [f.workspaceId])).toHaveLength(1);
+    const reads = await custody.listReads(db, f.workspaceId, f.op.id);
+    expect(reasons(reads, "allowed")).toEqual(["admitted", "admitted"]);
+    expect(reasons(reads, "refused")).toEqual([]);
+    await custody.verify(ctx.db2, f.access(), "worker-a", crypto, "inspect_verified");
+  });
+
+  it("when a superseding fence races a stale-fence admission from another connection exactly one live grant survives", async () => {
+    const f = await fixture();
+    const next = (await repos.leases.acquire(db, { scope: `env:${f.environmentId}`, holder: f.lease.holder, ttlMs: 600_000, workspaceId: f.workspaceId }))!;
+    await f.bind(next.fenceToken);
+    const [stale, current] = await Promise.allSettled([
+      custody.admit(ctx.db, f.access(f.lease.fenceToken), "worker-a", crypto),
+      custody.admit(ctx.db2, f.access(next.fenceToken), "worker-b", crypto),
+    ]);
+    expect(stale.status).toBe("rejected");
+    expect(((stale as PromiseRejectedResult).reason as custody.PlanCustodyError).reason).toMatch(/fence_lost|operation_not_live/);
+    expect(current.status).toBe("fulfilled");
+    const live = await db.query<{ worker_identity: string; fence_token: number }>(
+      "select worker_identity, fence_token from platform.plan_custody_grants where workspace_id=$1 and revoked_at is null", [f.workspaceId]);
+    expect(live).toHaveLength(1);
+    expect(live[0].worker_identity).toBe("worker-b");
+    expect(Number(live[0].fence_token)).toBe(next.fenceToken);
+  });
+
   it("receipts and probes are append-only", async () => {
     const f = await fixture();
     await custody.admit(db, f.access(), "worker-a", crypto);

@@ -84,7 +84,7 @@ jobs:
           #!/bin/sh
           # Each action must be denied under zenith-build. A success is a FAIL.
           fail=0
-          for t in ping strace keyctl python3 mount; do command -v "$t" >/dev/null || { echo "FAIL missing tool $t"; exit 1; }; done
+          for t in strace keyctl python3 mount; do command -v "$t" >/dev/null || { echo "FAIL missing tool $t"; exit 1; }; done
           denied() {
             if out=$(sh -c "$2" 2>&1); then
               echo "FAIL $1: succeeded, expected denial"
@@ -95,7 +95,7 @@ jobs:
           }
           denied "write /proc/sys (sysrq)" 'echo 1 > /proc/sys/kernel/sysrq'
           denied "raw ICMP socket (python3)" 'python3 -c "import socket; socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_ICMP)"'
-          denied "ping 127.0.0.1 (raw ICMP)" 'ping -c1 127.0.0.1'
+          # BusyBox ping falls back to an unprivileged ICMP datagram socket (not raw), which the profile does not deny; the python3 probe above tests raw sockets.
           denied "ptrace (strace true)" 'strace true'
           denied "keyring (keyctl show)" 'keyctl show'
           denied "mount debugfs" 'mount -t debugfs none /mnt'

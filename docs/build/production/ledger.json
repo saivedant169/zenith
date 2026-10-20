@@ -4451,11 +4451,11 @@
       "acceptance": [
         "Approval binds revision, recipe, scripts/migrations, targets/configuration, provider locks/backend and saved plan; changed relevant semantics invalidates approval."
       ],
-      "state": "in_progress",
+      "state": "verified",
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "implementation_complete_verification_pending",
+      "implementationStatus": "verified_6613583d: approval binds the 13-component executable-semantics digest (revision, recipe, scripts, migrations, targets, configuration, provider locks, backend, saved plan, provenance, ownership, runbook, decommission); a change to any of them after approval is refused at apply, build, rollout, migration and teardown dispatch with zero effects on memory and real PostgreSQL lanes (1320/0/0 combined batch, real Temporal and OpenTofu), exact-source CI green on 4d3d9d77. Independent review: PROMOTE. Limits: local engines with the aws fixture only (no live cloud, no production signoff); recipe and provenance changes are refused by approved-source custody or signed-provenance admission before the semantics compare; the kubernetes/zenith buildProfile collector input is not exercised; migration SQL is not hashed at dispatch and is bound indirectly through the approved commit, image digest and command digest, with the migration class declared, not inspected.",
       "evidence": [
         {
           "level": "local_engine",
@@ -4552,6 +4552,14 @@
           "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 with Supabase-accurate roles, migrated by scripts/platform/migrate.ts; owned Temporal CLI; real OpenTofu 1.12.5 with pg_dump/pg_restore 16.",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-6a82de21-dur-combined.json",
           "result": "238 passed / 0 failed / 0 skipped across 5 clause files on clean 6a82de21 (90 real PostgreSQL cases). Added: 6a82de21: teardown dispatch refuses 10 changed components (semantics, tofu-plan and reviewed-plan gates) with no tofu_apply on both lanes. Recipe and provenance at rollout/migration are reachable through built images (admitBuiltArtifacts, assertOperationSemantics) but the fakes do not model signed provenance, so those rows are not tested."
+        },
+        {
+          "level": "local_engine",
+          "commit": "6613583dbd9e64d75ff84e9f0641b5f2f2a1a954",
+          "command": "combined DUR batch (scratchpad run-dur-all.sh) in the clean acceptance worktree j4-e9a95-acceptance-oct19 at the commit",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 with Supabase-accurate roles, migrated 1..58; owned Temporal CLI; real OpenTofu 1.12.5 with pg_dump/pg_restore 16.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-6613583d-dur-combined.json",
+          "result": "1320 passed / 0 failed / 0 skipped across 35 files on clean 6613583d (raw sha256 dd3e8c3178488da08fdc8a02750252a00f38991ae94cc233e7b8985f80059506). Added 7fc2da4a: recipe and provenance changes after approval are refused at build, rollout and migration dispatch on memory and PostgreSQL lanes with zero builds, workloads or migrations."
         }
       ],
       "requiredEvidence": [
@@ -4572,11 +4580,11 @@
       "acceptance": [
         "Policy/authorization rechecked at dispatch; browser-human approvals unforgeable; destructive/high-risk gates mandatory; standing grants are explicitly bounded."
       ],
-      "state": "in_progress",
+      "state": "verified",
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "implementation_complete_verification_pending",
+      "implementationStatus": "verified_6613583d: policy and human approval are re-evaluated at apply, rollout and migration dispatch through the real broker and policy (refused after a post-approval tightening with zero effects); browser-human approvals resist forgery, self-approval and bearer substitution on real PostgreSQL; destructive work stays behind approval at autonomy 5 and agent-initiated high-risk work always needs a person; standing grants are bounded and revoked at dispatch. 1320/0/0 combined batch, exact-source CI green on 4d3d9d77. Independent review: PROMOTE under the owner's 2026-10-21 decision to verify against ADR-0007. Limits: local engines only; the composed rollout/migration tightening runs on PGlite while real-PostgreSQL coverage of the recheck is broker-level; a signed-in human's non-destructive high-risk work at autonomy 5 outside production is governed by ADR-0007 configured limits, not a mandatory second approval (owner decision 2026-10-21); policy production_destroys_data denies the production infrastructure.plan proposed by destroy review (fail-closed, open product decision).",
       "evidence": [
         {
           "level": "local_engine",
@@ -4681,6 +4689,14 @@
           "environment": "Native Darwin ARM64; opa 1.19.1",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-6a82de21-dur-combined.json",
           "result": "Rego policy suite PASS 219/219; policy/dist matches a fresh build (sha256 708b2e07eff3762498bbbf8f99c2574717dcf7a8346acf788e3d40e3bce539e1)."
+        },
+        {
+          "level": "local_engine",
+          "commit": "6613583dbd9e64d75ff84e9f0641b5f2f2a1a954",
+          "command": "combined DUR batch (scratchpad run-dur-all.sh) in the clean acceptance worktree j4-e9a95-acceptance-oct19 at the commit",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 with Supabase-accurate roles, migrated 1..58; owned Temporal CLI; real OpenTofu 1.12.5 with pg_dump/pg_restore 16.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-6613583d-dur-combined.json",
+          "result": "1320 passed / 0 failed / 0 skipped across 35 files on clean 6613583d (raw sha256 dd3e8c3178488da08fdc8a02750252a00f38991ae94cc233e7b8985f80059506). Added c1f96ea8: migration dispatch refused through the real broker and policy after a post-approval tightening, zero migration runs, non-vacuous companion. 6613583d: agent-initiated high-risk firewall.modify, dns.modify and secret.write require a person at autonomy 5 on memory, PGlite and PostgreSQL."
         }
       ],
       "requiredEvidence": [
@@ -5912,11 +5928,11 @@
       "acceptance": [
         "Default supported Kubernetes guest credential resolution is tenant-scoped, revocable and never falls back to higher privilege."
       ],
-      "state": "in_progress",
+      "state": "verified",
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "implementation_complete_verification_pending",
+      "implementationStatus": "verified_4d3d9d77: default Kubernetes guest credentials are minted per dispatch as namespace-bound, audience-bound short-lived TokenRequest tokens for a per-binding ServiceAccount and least-privilege Role; foreign namespaces, secrets and cluster scope are refused by the real API server; revocation deletes the cluster objects and a held token turns 401; every failure, a minter without RoleBinding rights, the captured test adapter and legacy kubeconfig_ref connections are refused with guest_credential_refused and no fallback, now also inside the credential broker. Kind 59/0/0 on a fresh hosted runner and real-PostgreSQL binding store, exact-source CI green. Independent review: PROMOTE. Limits: one fresh kind v1.37.0 cluster, not a managed EKS/GKE/AKS/OKE cluster; minter sufficiency is six SelfSubjectAccessReview probes, not a full RBAC audit; a failed replace of a widened Role leaves it until the next successful mint; a cluster outage during revoke leaves bindings revoking for manual retry.",
       "evidence": [
         {
           "level": "local_cluster",
@@ -5930,6 +5946,15 @@
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-1650e6c4-postgres-halves.json",
           "artifactSha256": "b0a81178930178ee289668ad7c457b76415ce448dda04981c8f85fa1a206100e",
           "result": "Real-PostgreSQL lanes of durable-intent-authority (22), k8s-guest-bindings (7), state-backend-recovery (13), cleanup-writer-barriers (100) and late-effect-receipts (40) passed 182/182 on clean 1650e6c4; these are ungated, recorded as additional evidence. late-effect-receipts real-PG lane 40/40. Still missing: gated kind guest-scoped and k8s-guest-binding cluster evidence on a clean commit (never falls back to higher privilege, revocation on ServiceAccount deletion). Not promoted (independent review, 2026-10-20)."
+        },
+        {
+          "level": "local_engine",
+          "commit": "4d3d9d7749bfbc8b0c3347e47424ec4bc49c537b",
+          "command": ".github/workflows/clean-host-kind-guest.yml (run 39506718767) plus the MACH-02 suites with the PostgreSQL lane in the clean acceptance worktree at the commit",
+          "environment": "GitHub-hosted ubuntu-latest amd64 fresh VM with kind v0.33.0 and kindest/node v1.37.0 (pinned digest); native Darwin ARM64 with owned PostgreSQL 16 and Supabase-accurate roles",
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39506718767",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-4d3d9d77-mach02.json",
+          "result": "Kind guest suites 59/0/0 on a fresh hosted runner (scoped TokenRequest tokens, SelfSubjectAccessReviews as the guest, foreign-namespace and secret refusal, Role drift revert, minter without RoleBinding rights refused, revocation kills a held token: 200 before, 401 after). Local MACH-02 suites 1830 passed / 0 failed / 62 skipped (other gated lanes; the 19 kind clause cases ran on the runner), k8s-guest-bindings on real PostgreSQL. Exact-source CI 39506699546 green on the commit."
         }
       ],
       "requiredEvidence": [

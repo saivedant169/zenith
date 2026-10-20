@@ -1,0 +1,395 @@
+{
+ "schemaVersion": 1,
+ "kind": "local_engine",
+ "requirement": "PROD-MACH-02",
+ "date": "2026-10-21",
+ "commit": "4d3d9d7749bfbc8b0c3347e47424ec4bc49c537b",
+ "kindGuest": {
+  "environment": "GitHub-hosted ubuntu-latest amd64 fresh VM; kind v0.33.0, kindest/node v1.37.0 (pinned digest); BusyBox fixture by digest",
+  "runId": 39506718767,
+  "url": "https://github.com/saivedant169/zenith/actions/runs/39506718767",
+  "rawReport": "docs/build/production/evidence/engine-acceptance/2026-10-21-4d3d9d77-mach02-kind-guest-vitest.json",
+  "rawReportSha256": "0cad01bfeda74709597570de7d880017cf7314791fe0c26e8851ea1318d0f110",
+  "totals": {
+   "passed": 59,
+   "failed": 0,
+   "skipped": 0
+  },
+  "files": {
+   "zenith/tests/machines/kubernetes-connection-join-kind.test.ts": {
+    "passed": 3,
+    "failed": 0,
+    "skipped": 0
+   },
+   "zenith/tests/machines/kubernetes-guest-scoped-kind.test.ts": {
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0
+   },
+   "zenith/tests/machines/kubernetes-kind.test.ts": {
+    "passed": 49,
+    "failed": 0,
+    "skipped": 0
+   }
+  }
+ },
+ "local": {
+  "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 with Supabase-accurate roles; clean acceptance worktree at the commit",
+  "note": "skipped cases are other gated suites (kind files proven on the hosted runner above; azure, ssm, runner-browser, kubernetes lifecycle/build/release lanes)",
+  "rawReport": "docs/build/production/evidence/engine-acceptance/2026-10-21-4d3d9d77-mach02-local-vitest.json",
+  "rawReportSha256": "f17457ccaea7d238ff067a9ec2271b540f8657b4e493249206d529d577de7be4",
+  "totals": {
+   "passed": 1830,
+   "failed": 0,
+   "skipped": 62
+  },
+  "files": {
+   "tests/connections/lifecycle.test.ts": {
+    "passed": 32,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/connections/rotations-repo.test.ts": {
+    "passed": 8,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/connections/runner-action-registry.test.ts": {
+    "passed": 11,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/connections/runner-browser.test.ts": {
+    "passed": 0,
+    "failed": 0,
+    "skipped": 5
+   },
+   "tests/connections/runner-routes.test.ts": {
+    "passed": 77,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/connections/zenith-connection.test.ts": {
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/controlplane/k8s-guest-bindings.test.ts": {
+    "passed": 14,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/controlplane/migrations.test.ts": {
+    "passed": 36,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/controlplane/tenancy.test.ts": {
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/args.test.ts": {
+    "passed": 137,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/azure-run-command.test.ts": {
+    "passed": 53,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/azure-scripts.test.ts": {
+    "passed": 0,
+    "failed": 0,
+    "skipped": 6
+   },
+   "tests/machines/default-kubernetes-session.test.ts": {
+    "passed": 28,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/dispatcher.test.ts": {
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/file-upload.test.ts": {
+    "passed": 14,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/file-write.test.ts": {
+    "passed": 10,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/gcp-os-management.test.ts": {
+    "passed": 39,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/go-results.test.ts": {
+    "passed": 27,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/k8s-connection-join.test.ts": {
+    "passed": 19,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/kubernetes-connection-join-kind.test.ts": {
+    "passed": 0,
+    "failed": 0,
+    "skipped": 3
+   },
+   "tests/machines/kubernetes-guest-scoped-kind.test.ts": {
+    "passed": 0,
+    "failed": 0,
+    "skipped": 7
+   },
+   "tests/machines/kubernetes-kind.test.ts": {
+    "passed": 40,
+    "failed": 0,
+    "skipped": 9
+   },
+   "tests/machines/kubernetes-server.test.ts": {
+    "passed": 11,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/kubernetes.test.ts": {
+    "passed": 50,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/package-install.test.ts": {
+    "passed": 10,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/persistence.test.ts": {
+    "passed": 14,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/runbook-delivery.test.ts": {
+    "passed": 54,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/runbook-gate.test.ts": {
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/runbook-routes.test.ts": {
+    "passed": 42,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/runbook-step-executor.test.ts": {
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/runbooks.test.ts": {
+    "passed": 35,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/scoped-guest-session.test.ts": {
+    "passed": 15,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/service-configure.test.ts": {
+    "passed": 18,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/service.test.ts": {
+    "passed": 41,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/sessions.test.ts": {
+    "passed": 15,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/ssm-documents.test.ts": {
+    "passed": 90,
+    "failed": 0,
+    "skipped": 6
+   },
+   "tests/machines/ssm-parse.test.ts": {
+    "passed": 19,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/ssm-transport.test.ts": {
+    "passed": 60,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/telemetry.test.ts": {
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/machines/zenithd.test.ts": {
+    "passed": 39,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/platform/credentials-verification.test.ts": {
+    "passed": 89,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/providers/kubernetes/apply.test.ts": {
+    "passed": 34,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/providers/kubernetes/drivers.test.ts": {
+    "passed": 43,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/providers/kubernetes/fields.test.ts": {
+    "passed": 9,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/providers/kubernetes/guest.test.ts": {
+    "passed": 19,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/providers/kubernetes/identity-apply.test.ts": {
+    "passed": 30,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/providers/kubernetes/identity-render.test.ts": {
+    "passed": 42,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/providers/kubernetes/kind.test.ts": {
+    "passed": 0,
+    "failed": 0,
+    "skipped": 6
+   },
+   "tests/providers/kubernetes/lifecycle-acceptance.test.ts": {
+    "passed": 0,
+    "failed": 0,
+    "skipped": 10
+   },
+   "tests/providers/kubernetes/lifecycle-contract.test.ts": {
+    "passed": 62,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/providers/kubernetes/lifecycle-profile.test.ts": {
+    "passed": 16,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/providers/kubernetes/lifecycle-render.test.ts": {
+    "passed": 44,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/providers/kubernetes/naming-util.test.ts": {
+    "passed": 16,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/providers/kubernetes/ops.test.ts": {
+    "passed": 37,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/providers/kubernetes/prune.test.ts": {
+    "passed": 14,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/providers/kubernetes/release-kind.test.ts": {
+    "passed": 0,
+    "failed": 0,
+    "skipped": 1
+   },
+   "tests/providers/kubernetes/release.test.ts": {
+    "passed": 33,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/providers/kubernetes/render.test.ts": {
+    "passed": 44,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/providers/kubernetes/rollout.test.ts": {
+    "passed": 22,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/providers/kubernetes/session.test.ts": {
+    "passed": 26,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/providers/kubernetes/teardown.test.ts": {
+    "passed": 43,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/providers/kubernetes/vault-target.test.ts": {
+    "passed": 45,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/providers/kubernetes/build/contracts.test.ts": {
+    "passed": 38,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/providers/kubernetes/build/dispatch.test.ts": {
+    "passed": 9,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/providers/kubernetes/build/graph.test.ts": {
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/providers/kubernetes/build/joins.test.ts": {
+    "passed": 14,
+    "failed": 0,
+    "skipped": 0
+   },
+   "tests/providers/kubernetes/build/kind.test.ts": {
+    "passed": 0,
+    "failed": 0,
+    "skipped": 1
+   },
+   "tests/providers/kubernetes/build/operated-release.test.ts": {
+    "passed": 0,
+    "failed": 0,
+    "skipped": 1
+   },
+   "tests/providers/kubernetes/build/schema.test.ts": {
+    "passed": 8,
+    "failed": 0,
+    "skipped": 7
+   }
+  }
+ },
+ "fixed": "7a75157c: the scoped-guest exec case raced pod startup (500 container not found) and read stdout from result.data; it now waits for the container and reads result.output.stdout. 88eb25de: guest Roles are created empty then replaced, so the name-pinned minter escalate rule applies. 3876ccb5: the credential broker itself refuses a guest request on a connection that is not scoped_guest (guest_credential_refused) before reading the vault; review finding closed."
+}

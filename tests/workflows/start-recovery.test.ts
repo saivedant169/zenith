@@ -22,7 +22,7 @@ import { adoptStartIntents, enqueueIntent, getIntent, intentId, relayOnce } from
 import { createTemporalIntentHandlers } from "@/lib/controlplane/outbox/temporal";
 import { createIsolatedWorkflowStarterForTests, recoverWorkflowStartIntent, START_RECOVERY_WINDOW_MS, WorkflowStartUnconfirmedError } from "@/lib/workflows/start-intent";
 import { temporalConfigFromEnv } from "@/lib/workflows/config";
-import type { WorkflowResult } from "@/lib/workflows/types";
+import { WORKFLOW_ID, type WorkflowResult } from "@/lib/workflows/types";
 import { approveAs, closeSharedPgliteAfterAll, makeHarness as brokerHarness, PG_URL, proposeOk, requestFor,
   requireApproval, scriptedEngine, user } from "../capabilities/support";
 import { findTemporalCli, makeHarness as temporalHarness, workflowBundlePath,
@@ -217,6 +217,37 @@ scenario("the relay adopts an abandoned start intent, recovers it, and the proje
       expect(await getIntent(f.db, f.ws, "workflow_start", `start:${f.op}`)).toMatchObject({ state: "delivered", outcome: "delivered" });
       expect(await projectOperation(f.db, f.ws, f.op)).toMatchObject({ phase: "running", startIntent: { phase: "acknowledged" } });
     });
+  } finally { await f.close(); }
+});
+
+scenario("a successful signal redelivered under the same requestId is dispatched to the workflow exactly once", async (t) => {
+  const f = await fixture(t);
+  const signalRpc = vi.spyOn(f.client.workflowService, "signalWorkflowExecution");
+  try {
+    // No worker polls: the workflow stays open, so the history shows exactly what the server accepted.
+    const workflowId = WORKFLOW_ID(f.op);
+    const handle = await f.client.workflow.start("dayTwoOperationWorkflow", { workflowId, taskQueue: t.taskQueue, args: [f.input] });
+    const signaled = async () => (await handle.fetchHistory()).events!.filter((e) => e.workflowExecutionSignaledEventAttributes).length;
+    const intent = await enqueueIntent(f.db, { workspaceId: f.ws, operationId: f.op, kind: "workflow_signal", idempotencyKey: `approval:${f.op}:1`, payload: { signal: "approvalRecorded" } });
+    const only = { workspaceId: f.ws, id: intent.id };
+    const handlers = createTemporalIntentHandlers({ sql: f.db, config: () => f.config, client: async () => f.client });
+    // the relay crashes after the successful dispatch and before the delivered settlement commits
+    await expect(relayOnce(f.db, handlers, { holder: "relay-a", only, faults: { afterDeliver: async () => { throw new Error("relay died before settling"); } } })).rejects.toThrow("relay died");
+    expect(await signaled()).toBe(1);
+    expect(await getIntent(f.db, f.ws, "workflow_signal", `approval:${f.op}:1`)).toMatchObject({ state: "pending" });
+    await f.db.query("update platform.durable_intents set lease_until = clock_timestamp() - interval '1 second' where id = $1", [intent.id]);
+    // redelivery carries the same intent id as requestId and is settled this time
+    expect(await relayOnce(f.db, handlers, { holder: "relay-b", only })).toMatchObject({ claimed: 1, delivered: 1 });
+    expect(await getIntent(f.db, f.ws, "workflow_signal", `approval:${f.op}:1`)).toMatchObject({ state: "delivered", outcome: "delivered" });
+    // transport saw two sends under one requestId; the workflow history recorded one signal
+    expect(signalRpc).toHaveBeenCalledTimes(2);
+    expect(signalRpc.mock.calls.map(([req]) => req.requestId)).toEqual([intent.id, intent.id]);
+    expect(await signaled()).toBe(1);
+    // a different requestId is a different effect and is accepted: the dedupe is by id, not by blanket suppression
+    const next = await enqueueIntent(f.db, { workspaceId: f.ws, operationId: f.op, kind: "workflow_signal", idempotencyKey: `approval:${f.op}:2`, payload: { signal: "approvalRecorded" } });
+    expect(await handlers.workflow_signal(next)).toEqual({ status: "delivered" });
+    expect(await signaled()).toBe(2);
+    await handle.terminate("test done");
   } finally { await f.close(); }
 });
 

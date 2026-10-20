@@ -8,7 +8,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { packagedWorkerManifest } from "./gate-manifest.mjs";
-import { assertOwnedPackagedBuilder, command as acceptanceCommand, createPrivateScratch, packagedSourceDigest, sanitizeClientEvidence, sanitizePackagedReadiness, sanitizePackagedSweepEvidence, sanitizePgWaiterEvidence, sanitizeTemporalControlEvidence, sanitizePackagedBuildFailure } from "../acceptance/packaged-worker.mjs";
+import { assertOwnedPackagedBuilder, command as acceptanceCommand, createPrivateScratch, packagedSourceDigest, sanitizeClientEvidence, sanitizePackagedReadiness, sanitizePackagedSweepEvidence, sanitizePgWaiterEvidence, sanitizeRuntimeFilesystemEvidence, sanitizeTemporalControlEvidence, sanitizePackagedBuildFailure } from "../acceptance/packaged-worker.mjs";
 
 const BUILDKIT_IMAGE = "moby/buildkit:buildx-stable-1@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea";
 const REFUSALS = ["missing-schema", "invalid-secret", "invalid-signer", "plaintext-temporal", "missing-namespace", "wrong-queue"];
@@ -269,8 +269,13 @@ export function executedChecks(value, platform, childExitCode) {
   put("owned-reconcile-schedule", current(c.ownedSchedule));
   put("permitted-read-operation", sanitizeClientEvidence("operations", value.operations).operation.signedReadGrantVerified === true);
   const assets = sanitizeClientEvidence("assets", value.assets);
+  // Runtime filesystem and nonroot uid are folded here: this check owns the worker's filesystem and uid contract.
+  const runtime = sanitizeRuntimeFilesystemEvidence(value.runtimeFilesystem);
   put("packaged-assets-and-plan-retention", assets.arch === (platform === "linux/amd64" ? "x64" : "arm64") && assets.tofu[1] === `on linux_${platform.split("/")[1]}`
-    && Object.entries(assets.dependencies).every(([name, version]) => value.lockedDependencies?.[name] === version));
+    && Object.entries(assets.dependencies).every(([name, version]) => value.lockedDependencies?.[name] === version)
+    && assets.ssmDocuments.count === value.hostSsmDocuments?.count && assets.ssmDocuments.sha256 === value.hostSsmDocuments?.sha256
+    && runtime.readonlyRootfs === true && runtime.capDropAll === true && runtime.noNewPrivileges === true && runtime.user === 10001
+    && runtime.rootWriteRefused === true && runtime.tmpWritable === true);
   sanitizePgWaiterEvidence([c.sqlPrerequisiteOutage?.actualPgWaiter]);
   const deferred = sanitizeTemporalControlEvidence("observe", c.sqlPrerequisiteOutage?.deferred);
   put("sql-prerequisite-outage-and-recovery", c.sqlPrerequisiteOutage?.readinessRevoked === true && c.sqlPrerequisiteOutage.automaticPause === false

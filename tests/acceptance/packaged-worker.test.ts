@@ -7,7 +7,7 @@ import { chmod, link, lstat, mkdir, mkdtemp, readdir, realpath, rm, symlink, wri
 import os from "node:os";
 import path from "node:path";
 import { runInNewContext } from "node:vm";
-import { assertOwnedPackagedBuilder, assertPackagedSourceUnchanged, cleanupOwnedImage, cleanupOwnedResource, command, createPrivateScratch, inFlightSchemaObserverSql, packagedPrivateTransferPayload, packagedPrivateTransferSource, packagedShutdownAuthoritySql, packagedSourceDigest, packagedTemporalControlSource, packagedTemporalSessionRequest, packagedVolumeCustodySource, PackagedCommandError, parsePackagedArgs, preparePackagedPrivateTransfer, prepareTemporalTls, PRIVATE_TRANSFER_LIMIT_BYTES, privateTemporaryBase, redactDiagnosticLogs, refusalFailureCategory, renderTemporalServerConfiguration, sanitizeClientEvidence, sanitizeContainerState, sanitizeImageId, sanitizeLockedDependencies, sanitizePackagedCommandFailure, sanitizePackagedInFlightFailure, sanitizePackagedReadiness, sanitizePackagedSweepEvidence, sanitizePackagedTemporalSessionFrame, sanitizePgWaiterEvidence, sanitizeShutdownAuthorityEvidence, sanitizeTemporalControlEvidence, schemaOutageObserverSql, TEMPORAL_ADMIN_IMAGE, TEMPORAL_CONFIG_DIR, TEMPORAL_IMAGE, waitForPackagedReadiness, waitForRefusalExit, workerFailureCategory } from "../../scripts/acceptance/packaged-worker.mjs";
+import { assertOwnedPackagedBuilder, assertPackagedSourceUnchanged, cleanupOwnedImage, cleanupOwnedResource, command, createPrivateScratch, inFlightSchemaObserverSql, packagedPrivateTransferPayload, packagedPrivateTransferSource, packagedShutdownAuthoritySql, packagedSourceDigest, packagedTemporalControlSource, packagedTemporalSessionRequest, packagedVolumeCustodySource, PackagedCommandError, parsePackagedArgs, preparePackagedPrivateTransfer, prepareTemporalTls, PRIVATE_TRANSFER_LIMIT_BYTES, privateTemporaryBase, redactDiagnosticLogs, refusalFailureCategory, renderTemporalServerConfiguration, sanitizeClientEvidence, sanitizeContainerState, sanitizeImageId, sanitizeLockedDependencies, sanitizeRuntimeFilesystemEvidence, runtimeFilesystemProbeSource, ssmDocumentsDigest, sanitizePackagedCommandFailure, sanitizePackagedInFlightFailure, sanitizePackagedReadiness, sanitizePackagedSweepEvidence, sanitizePackagedTemporalSessionFrame, sanitizePgWaiterEvidence, sanitizeShutdownAuthorityEvidence, sanitizeTemporalControlEvidence, schemaOutageObserverSql, TEMPORAL_ADMIN_IMAGE, TEMPORAL_CONFIG_DIR, TEMPORAL_IMAGE, waitForPackagedReadiness, waitForRefusalExit, workerFailureCategory } from "../../scripts/acceptance/packaged-worker.mjs";
 import { assertPackagedAcceptanceTarget } from "../../workers/execution/packaged-target";
 import { EXECUTION_FAILURE_CATEGORIES } from "../../workers/execution/startup";
 import { digest as controlDigest } from "../../src/lib/controlplane/digest";
@@ -872,6 +872,34 @@ describe("packaged worker acceptance safety", () => {
   it("never promotes cloud-write or successful-operation claims from the scoped read fixture", () => {
     expect(() => sanitizeClientEvidence("operations", { reconcile: { status: "observed", drift: 0, unknown: 0 },
       operation: { workflowStatus: "succeeded" }, cloudWritesProven: true })).toThrow("trusted schema");
+  });
+  it("hashes deploy/aws SSM documents as the packaged client hashes the TypeScript module", async () => {
+    const { ZENITH_SSM_DOCUMENTS } = await import("../../src/lib/machines/transports/aws-ssm-docs");
+    expect(await ssmDocumentsDigest()).toEqual({ count: 12, sha256: createHash("sha256").update(JSON.stringify(ZENITH_SSM_DOCUMENTS)).digest("hex") });
+  });
+  it("changes the host SSM digest when any source document changes", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "zenith-ssm-digest-"));
+    try {
+      const source = "deploy/aws/ssm-documents";
+      await mkdir(path.join(root, source), { recursive: true });
+      for (const file of await readdir(source)) await writeFile(path.join(root, source, file), readFileSync(path.join(source, file)));
+      const original = await ssmDocumentsDigest(root);
+      await writeFile(path.join(root, source, "Zenith-DnsCheck.json"), "{}");
+      expect((await ssmDocumentsDigest(root)).sha256).not.toBe(original.sha256);
+    } finally { await rm(root, { recursive: true, force: true }); }
+  });
+  it("whitelists runtime filesystem evidence and rejects loose values", () => {
+    const ok = { readonlyRootfs: true, capDropAll: true, noNewPrivileges: true, user: 10001, rootWriteRefused: true, tmpWritable: true };
+    expect(sanitizeRuntimeFilesystemEvidence({ ...ok, privatePath: "/var/secret" })).toEqual(ok);
+    expect(() => sanitizeRuntimeFilesystemEvidence({ ...ok, user: "10001" })).toThrow("trusted schema");
+    expect(() => sanitizeRuntimeFilesystemEvidence({ ...ok, readonlyRootfs: "true" })).toThrow("trusted schema");
+    expect(() => sanitizeRuntimeFilesystemEvidence(undefined)).toThrow("trusted schema");
+  });
+  it("distinguishes a refused root write from a writable tmpfs probe", async () => {
+    const result = await command(process.execPath, ["-e", runtimeFilesystemProbeSource()], "runtime-probe-fixture");
+    const probe = JSON.parse(result.out.trim());
+    expect(probe.tmpWrite).toBe("written");
+    expect(probe.rootWrite).not.toBe("written");
   });
   it("suppresses raw child-process errors", async () => {
     await expect(command(process.execPath, ["-e", "console.error('private-password private-sql'); process.exit(1)"], "fixture-phase"))

@@ -805,6 +805,34 @@ export function sanitizeClientEvidence(action, value) {
   fail();
 }
 
+/** Same suffix order as ZENITH_SSM_DOCUMENTS in src/lib/machines/transports/aws-ssm-docs.ts. */
+const SSM_DOCUMENT_SUFFIXES = ["MachineInspect", "ProcessList", "ServiceStatus", "ServiceRestart", "ContainerList", "ContainerInspect",
+  "ContainerLogs", "FileRead", "PortCheck", "DnsCheck", "SystemMetrics", "SystemLogs"];
+/** Host mirror of workers/execution/packaged-client.ts: sha256 of JSON.stringify over the same ordered documents. */
+export async function ssmDocumentsDigest(root = process.cwd()) {
+  const documents = {};
+  for (const suffix of SSM_DOCUMENT_SUFFIXES) {
+    documents[suffix] = JSON.parse(await readFile(path.join(root, "deploy/aws/ssm-documents", `Zenith-${suffix}.json`), "utf8"));
+  }
+  return { count: Object.keys(documents).length, sha256: createHash("sha256").update(JSON.stringify(documents)).digest("hex") };
+}
+
+const RUNTIME_ROOT_PROBE = "/app/.zenith-ro-probe";
+const RUNTIME_TMP_PROBE = "/tmp/.zenith-tmp-probe";
+/** Runs inside the worker container as its configured user; prints one JSON line. */
+export function runtimeFilesystemProbeSource() {
+  return `const f=require("node:fs");const probe=p=>{try{f.writeFileSync(p,"probe");f.rmSync(p,{force:true});return "written"}catch(e){return e.code}};`
+    + `console.log(JSON.stringify({uid:process.getuid(),rootWrite:probe(${JSON.stringify(RUNTIME_ROOT_PROBE)}),tmpWrite:probe(${JSON.stringify(RUNTIME_TMP_PROBE)})}));`;
+}
+
+export function sanitizeRuntimeFilesystemEvidence(value) {
+  const fail = () => { throw new Error("Packaged runtime filesystem evidence does not match its trusted schema."); };
+  if (typeof value?.readonlyRootfs !== "boolean" || typeof value.capDropAll !== "boolean" || typeof value.noNewPrivileges !== "boolean"
+    || typeof value.rootWriteRefused !== "boolean" || typeof value.tmpWritable !== "boolean" || !Number.isSafeInteger(value.user)) fail();
+  return { readonlyRootfs: value.readonlyRootfs, capDropAll: value.capDropAll, noNewPrivileges: value.noNewPrivileges,
+    user: value.user, rootWriteRefused: value.rootWriteRefused, tmpWritable: value.tmpWritable };
+}
+
 function clientEvidence(action, result) {
   const line = result.out.split("\n").find((value) => value.startsWith("PACKAGED_ACCEPTANCE "));
   if (!line) throw new Error("Packaged client produced no acceptance evidence.");
@@ -1623,6 +1651,22 @@ export async function packagedWorkerMain(args = process.argv.slice(2), env = pro
     evidence.checks.readiness = ready;
     evidence.checks.ownedSchedule = await observation();
     evidence.checks.liveness = { alive: true };
+    // Still inside "actual-worker-entrypoint": no new phase label, so the child-failure phase allowlist is unchanged.
+    const runtimeInspect = JSON.parse((await docker(["inspect", worker], "runtime-inspect")).out)[0];
+    const runtimeProbe = JSON.parse((await docker(["exec", worker, "node", "-e", runtimeFilesystemProbeSource()], "runtime-filesystem-probe")).out.trim());
+    if (!["zenith", "10001"].includes(runtimeInspect.Config?.User)) throw new Error("Worker container user differs from the required nonroot uid.");
+    evidence.runtimeFilesystem = sanitizeRuntimeFilesystemEvidence({
+      readonlyRootfs: runtimeInspect.HostConfig?.ReadonlyRootfs === true,
+      capDropAll: Array.isArray(runtimeInspect.HostConfig?.CapDrop) && runtimeInspect.HostConfig.CapDrop.includes("ALL"),
+      noNewPrivileges: Array.isArray(runtimeInspect.HostConfig?.SecurityOpt) && runtimeInspect.HostConfig.SecurityOpt.includes("no-new-privileges"),
+      user: runtimeProbe.uid,
+      rootWriteRefused: runtimeProbe.rootWrite === "EROFS",
+      tmpWritable: runtimeProbe.tmpWrite === "written",
+    });
+    const runtime = evidence.runtimeFilesystem;
+    if (!runtime.readonlyRootfs || !runtime.capDropAll || !runtime.noNewPrivileges || runtime.user !== 10001 || !runtime.rootWriteRefused || !runtime.tmpWritable) {
+      throw new Error("Worker runtime filesystem constraints differ from the packaged contract.");
+    }
     phase = "real-temporal-operations";
     evidence.operations = await client("operations");
     phase = "filesystem-plan-maintenance";
@@ -1631,6 +1675,10 @@ export async function packagedWorkerMain(args = process.argv.slice(2), env = pro
       || dependencies.some((name) => evidence.assets.dependencies[name] !== evidence.lockedDependencies[name])
       || evidence.assets.policySha256 !== JSON.parse(await readFile("policy/dist/manifest.json", "utf8")).wasmSha256) {
       throw new Error("Packaged architecture, locked versions or verified policy assets differ from the source.");
+    }
+    evidence.hostSsmDocuments = await ssmDocumentsDigest();
+    if (evidence.assets.ssmDocuments.count !== evidence.hostSsmDocuments.count || evidence.assets.ssmDocuments.sha256 !== evidence.hostSsmDocuments.sha256) {
+      throw new Error("Packaged SSM documents differ from deploy/aws/ssm-documents.");
     }
     phase = "bounded-sql-prerequisite-outage";
     const prior = await control("observe");

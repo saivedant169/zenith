@@ -88,6 +88,8 @@ function harness() {
     },
     operations: { reconcile: { status: "observed", drift: 0, unknown: 0 }, operation: { workflowStatus: "failed", ledgerStatus: "failed", outcome: "expected no-target refusal", signedReadGrantVerified: true,
       policyDecisions: 2, activityTypes: ["acquireLease", "evaluatePolicy", "executeCapability", "markOperation", "releaseLease"], identity: operationIdentity() }, cloudWritesProven: false, browserApprovalPerformed: false },
+    runtimeFilesystem: { readonlyRootfs: true, capDropAll: true, noNewPrivileges: true, user: 10001, rootWriteRefused: true, tmpWritable: true },
+    hostSsmDocuments: { count: 1, sha256: hex },
     assets: { uid: 10001, arch: "x64", node: "v22.23.3", tofu: ["OpenTofu v1.12.5", "on linux_amd64"], policySha256: hex,
       ssmDocuments: { count: 1, sha256: hex }, dependencies,
       plans: { logicallyExpired: true, ciphertextRetained: true, terminalRetained: true, encryptedLifecycleFixture: true, activeRetained: true, unownedRetained: true, sentinelFiles: true } },
@@ -186,6 +188,14 @@ describe("native packaged worker fixed evidence models", () => {
     for (const status of ["failed", "skipped", "pending", "unknown"]) expect(() => executedChecks({ ...harness(), status }, platform, 0)).toThrow();
     expect(() => executedChecks({ ...harness(), operations: { ...harness().operations, cloudWritesProven: true } }, platform, 0)).toThrow();
   });
+  it.each([["readonlyRootfs", false], ["capDropAll", false], ["noNewPrivileges", false], ["user", 0], ["rootWriteRefused", false], ["tmpWritable", false]] as const)(
+    "refuses runtime filesystem fault %s=%s in packaged-assets-and-plan-retention", (key, bad) => {
+      expect(() => executedChecks({ ...harness(), runtimeFilesystem: { ...harness().runtimeFilesystem, [key]: bad } }, platform, 0)).toThrow();
+    });
+  it.each([["count", { count: 2 }], ["sha256", { sha256: "b".repeat(64) }], ["missing host record", undefined]] as const)(
+    "refuses in-image SSM documents differing from deploy/aws (%s) in packaged-assets-and-plan-retention", (_name, host) => {
+      expect(() => executedChecks({ ...harness(), hostSsmDocuments: host === undefined ? undefined : { ...harness().hostSsmDocuments, ...host } }, platform, 0)).toThrow();
+    });
   it.each(["missing identity", "missing operation ID", "foreign ID shape", "foreign workspace", "foreign project", "foreign environment", "resource present",
     "missing resource absence", "foreign capability", "foreign principal kind", "foreign subject", "raw key", "different scoped key", "SQL injection ID"] as const)("refuses packaged child operation identity %s", fault => {
     const original = harness(), value: Record<string, unknown> = { ...operationIdentity() };

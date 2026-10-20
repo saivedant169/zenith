@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+  ],
+  "level": "local_engine",
+  "date": "2026-10-20",
+  "commit": "f3bf1b092f728227c0ce8ffedb28226bcc5e50ce",
+  "run": {
+    "workflow": ".github/workflows/clean-host-default-stack.yml",
+    "runId": 39455451832,
+    "url": "https://github.com/saivedant169/zenith/actions/runs/39455451832",
+    "runner": "GitHub-hosted ubuntu-latest, amd64, fresh VM"
+  },
+  "cleanHost": "Recorded before the run: zero containers and nothing listening on Supabase default ports. No ZENITH_DEFAULT_STACK_PORT_OFFSET. Supabase CLI 2.75.0 pinned by SHA-256; Supabase images from Docker Hub via SUPABASE_INTERNAL_IMAGE_REGISTRY.",
+  "command": "node node_modules/vitest/vitest.mjs run tests/deploy/default-stack.engine.test.ts with ZENITH_DEFAULT_STACK_PROFILE=default, then scripts/ci/wave6-gates.mjs --case for wave6-810d104725df25f3, wave6-2cdaf7b373b8a9cf, wave6-845f5dc2afc8380f",
+  "result": {
+    "tests": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    "caseVerifiers": "3/3 passed",
+    "reportSha256": "6869e8e3b362bf2c15356075e09af338369a2f28d1c7ff102a5a5eb39b49b144",
+    "durationSeconds": 682
+  },
+  "readinessReceipt": {
+    "schemaVersion": 1,
+    "kind": "local_engine",
+    "source": {
+      "head": "f3bf1b092f728227c0ce8ffedb28226bcc5e50ce",
+      "contentSha256": "e2a69ff6dbbcb70ea8089541e53fa79a48f8cb85d8073dc5c3cd203bf29c7d32",
+      "dirty": false
+    },
+    "architecture": "amd64",
+    "minimumObservedFreeBytes": 93026385920,
+    "profile": "default",
+    "apis": 2,
+    "workers": 2,
+    "authority": {
+      "verifiedTls": true,
+      "wrongCaRefused": true,
+      "wrongHostnameRefused": true,
+      "sameDatabase": true,
+      "sameSystemIdentifier": true,
+      "database": "postgres",
+      "systemIdentifier": "7698784731324059692",
+      "maxMigrationVersion": 58,
+      "highestRegisteredVersion": 58,
+      "privateSchemaUsageRefused": true,
+      "platformTablesRlsEnabled": true,
+      "platformTableCount": 121
+    },
+    "checks": {
+      "mailpit-owned-running": true,
+      "mailpit-api": true,
+      "api": true,
+      "execution-worker": true,
+      "temporal": true,
+      "api-peer": true,
+      "execution-worker-peer": true,
+      "http-api-1": true,
+      "http-api-2": true,
+      "supabase-auth-https": true,
+      "supabase-postgrest-https": true,
+      "postgrest-platform-not-exposed": true,
+      "postgrest-agent-not-exposed": true,
+      "pooler-verify-full": true,
+      "single-database-authority": true,
+      "native-role-boundary": true,
+      "platform-rls": true,
+      "registered-migration-version": true,
+      "platform-schema-current": true
+    },
+    "apiProbes": [
+      {
+        "api-configured": "passed",
+        "browser-login-http": "passed",
+        "mcp-bearer-boundary": "passed",
+        "mcp-oauth-metadata": "not-configured"
+      },
+      {
+        "api-configured": "passed",
+        "browser-login-http": "passed",
+        "mcp-bearer-boundary": "passed",
+        "mcp-oauth-metadata": "not-configured"
+      }
+    ],
+    "passed": 19,
+    "failed": 0,
+    "skipped": 0,
+    "authenticatedJourney": false,
+    "crossWorkerExecution": false,
+    "hostedProductionAcceptance": false,
+    "productionReady": false
+  },
+  "fixesFoundByThisRun": [
+    "f0da64a3/95e5320b: native Linux bind mounts keep host ownership, so containers running as 1000/1001/10001 could not read the 0600 private TLS files (Temporal, API, workers, Mailpit). Linux now binds 0400 copies owned by each consuming uid; Docker Desktop had hidden this on the Mac.",
+    "f3bf1b09 parent: Node fetch() drops a caller-supplied Host header, so the peer API probe arrived as a foreign host and the product correctly refused it (403 origin_denied). The probe now uses node:http.",
+    "Workflow: public.ecr.aws anonymous pulls failed with \"toomanyrequests: Data limit exceeded\"; Supabase images now come from Docker Hub."
+  ],
+  "retainedFailures": "Clean-host runs 39431939014, 39434529725, 39438098987, 39439198119, 39442250507, 39443318361, 39446153966, 39449038179, 39451786258 and 39454557463 failed before this pass; each led to a fix or a diagnostic above.",
+  "limits": "Disposable local engines on one host: hostedProductionAcceptance=false, crossWorkerExecution=false, authenticatedJourney=false, productionReady=false. Not a hosted Supabase or production signoff."
+}

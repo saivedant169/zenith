@@ -3857,6 +3857,16 @@
           "environment": "Native Darwin ARM64, Node 22.23.3, Docker Desktop. Owned disposable stacks at port offset 1000 beside the protected Supabase/Kong services, which stayed running (11 before and after). Temporal Server 1.32.0 with frontend and internode mTLS for J4.",
           "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-55aa480b-j4-wave6-identities.json",
           "result": "Both J4 wave6 identities passed on one clean commit: signed registered runbook delivery 1/0 and natural-timer maintenance 1/0 (409 s), verifier exit 0 each. With these, all 70 non-live wave6 cases for this requirement pass. Promotion is decided separately after independent review."
+        },
+        {
+          "level": "local_engine",
+          "commit": "f3bf1b092f728227c0ce8ffedb28226bcc5e50ce",
+          "command": "node node_modules/vitest/vitest.mjs run tests/deploy/default-stack.engine.test.ts with ZENITH_DEFAULT_STACK_PROFILE=default, then scripts/ci/wave6-gates.mjs --case for wave6-810d104725df25f3, wave6-2cdaf7b373b8a9cf, wave6-845f5dc2afc8380f",
+          "environment": "GitHub-hosted ubuntu-latest amd64 fresh VM, Docker Engine, Node 22.23.3, Supabase CLI 2.75.0; default profile 2 API + 2 worker; no port offset.",
+          "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-f3bf1b09-clean-host-default-stack.json",
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39455451832",
+          "runId": 39455451832,
+          "result": "First clean-host engine run: default 2 API + 2 worker topology from a fresh Linux host with no port offset. 3/3 engine cases and 3/3 case verifiers passed; readiness 19/19 including both APIs' MCP boundary with the canonical Host; zero owned resources after cleanup. Promotion still needs a current contract run and independent review."
         }
       ],
       "requiredEvidence": [
@@ -4003,6 +4013,16 @@
           "environment": "Native Darwin ARM64, Node 22.23.3, Docker Desktop. Owned disposable stacks at port offset 1000 beside the protected Supabase/Kong services, which stayed running (11 before and after). Temporal Server 1.32.0 with frontend and internode mTLS for J4.",
           "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-55aa480b-j4-wave6-identities.json",
           "result": "Both J4 wave6 identities passed on one clean commit: signed registered runbook delivery 1/0 and natural-timer maintenance 1/0 (409 s), verifier exit 0 each. With these, all 70 non-live wave6 cases for this requirement pass. Promotion is decided separately after independent review."
+        },
+        {
+          "level": "local_engine",
+          "commit": "f3bf1b092f728227c0ce8ffedb28226bcc5e50ce",
+          "command": "node node_modules/vitest/vitest.mjs run tests/deploy/default-stack.engine.test.ts with ZENITH_DEFAULT_STACK_PROFILE=default, then scripts/ci/wave6-gates.mjs --case for wave6-810d104725df25f3, wave6-2cdaf7b373b8a9cf, wave6-845f5dc2afc8380f",
+          "environment": "GitHub-hosted ubuntu-latest amd64 fresh VM, Docker Engine, Node 22.23.3, Supabase CLI 2.75.0; default profile 2 API + 2 worker; no port offset.",
+          "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-f3bf1b09-clean-host-default-stack.json",
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39455451832",
+          "runId": 39455451832,
+          "result": "Clean-host database verification passed on a fresh Linux host (real local Supabase migrations, authorization, concurrent transactions, restore readback). Local engines only: hostedProductionAcceptance=false, so PKG-06 hosted acceptance remains open."
         }
       ],
       "requiredEvidence": [

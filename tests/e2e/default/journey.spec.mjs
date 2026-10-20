@@ -608,6 +608,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
     if (UX_ENABLED) await uxCase('ux01-operation-review-a11y', async () => {
       uxStage = 'ui';
       await uxA.goto(stack.apiUrl + '/platform/operations/' + operationId);
+      await uxA.getByRole('heading', { name: 'Operation details', exact: true }).first().waitFor();
       ensure(await uxA.getByRole('heading', { name: 'Operation details', exact: true }).count() === 1, 'ux01-operation-heading');
       ensure(await uxA.getByRole('region', { name: 'Progress', exact: true }).count() === 1, 'ux01-progress-region');
       ensure((await uxA.getByTestId('journey-live').innerText()).length > 0, 'ux01-progress-status');
@@ -661,6 +662,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       await uxA.goto(stack.apiUrl + '/platform/operations/' + operationId);
       const stage = (await uxA.getByTestId('journey-live').innerText()).split('. ')[0];
       await uxA.goto(stack.apiUrl + '/platform/deployments/' + deploymentId);
+      await uxA.getByRole('heading', { name: 'Deployment', exact: true }).first().waitFor();
       ensure(await uxA.getByRole('heading', { name: 'Deployment', exact: true }).count() === 1, 'ux01-deployment-heading');
       ensure((await uxA.getByTestId('journey-live').innerText()).split('. ')[0] === stage, 'ux01-legacy-projection');
       await auditUx(uxA, 'linked-workflow-deployment', axeSource, uxCases.find(row => row.id === 'ux01-legacy-projection-a11y').scans);
@@ -704,7 +706,8 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       await runApprover.goto(stack.apiUrl + '/platform/runbooks/runs/' + run.id);
       if (UX_ENABLED) await uxCase('ux01-runbook-approval-progress-a11y', async () => {
         ensure(await runApprover.getByRole('region', { name: 'Run progress', exact: true }).count() === 1, 'ux01-runbook-progress');
-        ensure(await runApprover.getByRole('heading', { name: 'Exact effect', exact: true }).count() === 1, 'ux01-runbook-effect');
+        await runApprover.getByRole('heading', { name: 'Exact effect', exact: true }).first().waitFor();
+      ensure(await runApprover.getByRole('heading', { name: 'Exact effect', exact: true }).count() === 1, 'ux01-runbook-effect');
         await auditUx(runApprover, 'runbook-pending-approval', axeSource, uxCases.find(row => row.id === 'ux01-runbook-approval-progress-a11y').scans);
       });
       const approved = runApprover.waitForResponse(value => value.url().endsWith('/runbooks/runs/' + run.id + '/approve') && value.request().method() === 'POST');
@@ -1066,6 +1069,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
 
       uxStage = 'ui';
       await uxA.goto(stack.apiUrl + '/platform/operations/' + operationId);
+      await uxA.getByRole('heading', { name: 'Operation details', exact: true }).first().waitFor();
       ensure(new URL(uxA.url()).origin === stack.apiUrl && new URL(uxA.url()).pathname === '/platform/operations/' + operationId &&
         await uxA.getByRole('heading', { name: 'Operation details', exact: true }).count() === 1,
         'ux01-uncertainty-route-identity');

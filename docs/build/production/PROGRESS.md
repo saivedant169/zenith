@@ -1,3 +1,39 @@
+## Wave6 local engine lanes — 20 October 2026
+
+The docker, kind and browser owner lanes ran for the first time on the Mac, case by case through their manifest argv, each verified with `wave6-gates.mjs --case` on clean exact source. Across the 286 non-live cases (including the earlier native-tools, postgres and temporal runs): 246 passed, 1 passed but cannot be verified (its file failed), 8 failed and 31 were not run. Every case is listed with its commit and reason in `evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json`.
+
+Passing results by commit:
+- `d23fc0b4`: plugin sandbox 3/3, Keycloak DCR 4/4, real observability import 1/1, J2 receipt cases 2/2 (against the 8776af2f receipt), onboarding readiness 3/3, serving-kind 3/3, tenant isolation 24/26 (kind-calico, plus the unbounded control).
+- `fd5aa0af`: default-stack engine 3/3. This includes the first passing database rehearsal.
+- `fd5aa0af`, `283a6868` and `9fb9e635`: local rehearsals billing, dns-tls, stateful-traffic and mixed-recovery.
+
+These first real runs exposed defects, all fixed with tests or hand reproduction:
+- Observability import refused every run: `images.env` gained keys and an exact-count check rejected it.
+- The Keycloak DCR fixture failed three ways. Keycloak 26.4 needs `email` in the user profile and the `basic` scope, and MCP client 2.2.0 strips the RFC 7592 management fields.
+- The J2 receipt and tenant-isolation suite titles never matched the manifest.
+- Three tenant-isolation checks were vacuous or broken:
+  - the privileged pod was refused by API validation, not PodSecurity;
+  - the `can-i` subresource checks asked about pods named `exec`;
+  - busybox exits on a failed fork, so the PID hog never reported.
+- The pooler probe's NOTICEs corrupted its JSON receipt.
+- The recovery rehearsal's whole-database Supabase dump cannot be restored by `postgres`. It now restores the product-authority schemas.
+- ACME setup crashed on host and none networks, whose `IPAM.Config` is null.
+- kind could not load a pulled multi-platform postgres index on the containerd image store.
+- The mixed fixture database reported Ready before it served TCP.
+
+Still failing:
+- managed-kind, 5 of 6 cases. The harness predates the required tenant operator custody.
+- The MAN-03 enforcement case. Moto's SigV4 check breaks on query values containing `/`.
+- The two cost/placement cases, which need Prometheus fixtures.
+
+Not run:
+- gVisor, Cilium Gateway and hostname egress need toolchain downloads.
+- MFA browser, the browser-issued token, platform launcher, runner browser, UX receipt and J6 build need browser and J1/J6 fixtures not built yet.
+- The release candidate needs production signoff.
+- Lambda needs LocalStack or live AWS.
+
+Ledger local_engine entries were added to 22 requirements. None is promoted: each entry names what its acceptance still needs.
+
 ## Coherent exact-source verification — 20 October 2026
 
 On clean exact source `4fac547c39ea0ee346112f113245bf7c5e10ced0`, the following all passed:

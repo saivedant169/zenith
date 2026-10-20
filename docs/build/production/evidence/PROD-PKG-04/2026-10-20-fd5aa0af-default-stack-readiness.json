@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "kind": "local_engine",
+  "source": {
+    "head": "fd5aa0af62e8bf0873ebc825a270a30678826ebd",
+    "contentSha256": "3e58005b85434beab8b0dcb8bbf4fe7f9a30010dff8812b7df87e50d2a35ffe7",
+    "dirty": false
+  },
+  "architecture": "arm64",
+  "minimumObservedFreeBytes": 170693545984,
+  "profile": "lean",
+  "apis": 1,
+  "workers": 1,
+  "authority": {
+    "verifiedTls": true,
+    "wrongCaRefused": true,
+    "wrongHostnameRefused": true,
+    "sameDatabase": true,
+    "sameSystemIdentifier": true,
+    "database": "postgres",
+    "systemIdentifier": "7698609590988378156",
+    "maxMigrationVersion": 58,
+    "highestRegisteredVersion": 58,
+    "privateSchemaUsageRefused": true,
+    "platformTablesRlsEnabled": true,
+    "platformTableCount": 121
+  },
+  "checks": {
+    "mailpit-owned-running": true,
+    "mailpit-api": true,
+    "api": true,
+    "execution-worker": true,
+    "temporal": true,
+    "http-api-1": true,
+    "supabase-auth-https": true,
+    "supabase-postgrest-https": true,
+    "postgrest-platform-not-exposed": true,
+    "postgrest-agent-not-exposed": true,
+    "pooler-verify-full": true,
+    "single-database-authority": true,
+    "native-role-boundary": true,
+    "platform-rls": true,
+    "registered-migration-version": true,
+    "platform-schema-current": true
+  },
+  "passed": 16,
+  "failed": 0,
+  "skipped": 0,
+  "authenticatedJourney": false,
+  "crossWorkerExecution": false,
+  "hostedProductionAcceptance": false,
+  "productionReady": false
+}

@@ -1,0 +1,101 @@
+{
+  "requirement": "PROD-MAN-04+PROD-MAN-05",
+  "profile": "kind-existing",
+  "startedAt": "2026-10-20T04:31:34.901Z",
+  "checks": {
+    "pod_security": {
+      "privileged container": "refused",
+      "hostPath volume": "refused",
+      "host network": "refused",
+      "host PID": "refused",
+      "host IPC": "refused",
+      "root user": "refused",
+      "added NET_ADMIN": "refused",
+      "added SYS_ADMIN": "refused",
+      "privilege escalation allowed": "refused",
+      "no seccomp profile": "refused",
+      "unconfined seccomp": "refused",
+      "host port": "refused",
+      "systemPriority": "refused by quota and by the gate"
+    },
+    "quota": {
+      "containerCeiling": "refused (cpu, memory, ephemeral-storage)",
+      "cpuQuota": "third 500m pod refused on a 1 CPU namespace",
+      "secrets": "20 of 25 created, quota 20",
+      "exposure": "LoadBalancer, NodePort and PVC refused on the free plan"
+    },
+    "network": {
+      "controls": "gateway to A and B reached; B client to B server reached",
+      "crossTenantByIp": "blocked both ways",
+      "crossTenantByName": "A resolves=true and is blocked",
+      "metadata": "blocked",
+      "kubelet": "blocked",
+      "apiServer": "blocked",
+      "publicControl": "443 reachable"
+    },
+    "secrets": {
+      "workloadToken": "forbidden everywhere"
+    },
+    "operator_separation": {
+      "canIMatrix": "23 refusals and the control grants hold",
+      "realToken": "works in A (create secret, patch own namespace); refused for B, cluster scope, kube-system, escalation and exec"
+    },
+    "storage": {
+      "crossTenantClaim": "pod stays Pending; A has no claim and B's claim is untouched"
+    },
+    "runtime": {
+      "status": "skipped",
+      "reason": "ZENITH_TEST_ISOLATION_RUNTIME_CLASS not set; the cluster has no sandbox runtime (kind does not)"
+    },
+    "noisy_neighbour": {
+      "baseline": {
+        "n": 200,
+        "failures": 0,
+        "p50": 0,
+        "p95": 10,
+        "p99": 10,
+        "max": 10
+      },
+      "loaded": {
+        "n": 250,
+        "failures": 0,
+        "p50": 0,
+        "p95": 10,
+        "p99": 10,
+        "max": 10
+      },
+      "bound": 260,
+      "factor": 5,
+      "absMs": 250,
+      "burnerCpuCores": 0.4001093159882501,
+      "cpuLimitCores": 0.4,
+      "provisional": "latency bound is a provisional target, not a commercial commitment",
+      "pids": {
+        "processesReached": 255,
+        "forkAttempts": 253,
+        "ceiling": 1024
+      },
+      "memory": "OOMKilled",
+      "disk": {
+        "reason": "Evicted",
+        "message": "Pod ephemeral local storage usage exceeds the total limit of containers 64Mi. "
+      },
+      "control": {
+        "n": 250,
+        "failures": 0,
+        "p50": 10,
+        "p95": 20,
+        "p99": 30,
+        "max": 80
+      }
+    }
+  },
+  "cluster": {
+    "gitVersion": "v1.37.0",
+    "platform": "linux/arm64",
+    "context": "kind-zenith-life07-isodbg",
+    "engine": "calico",
+    "fqdnMode": false
+  },
+  "finishedAt": "2026-10-20T04:34:24.745Z"
+}

@@ -3840,6 +3840,15 @@
           "commit": "a9fea8968d41e4639d4c2566eb238cec74ef957a",
           "result": "Root62installationcontracttests+5realTOFU checks passed,0failed,0skipped;fulltypecheck/lint/Go passed. ActualComposeconfig--quiet acceptsproduction/disposable variants withfixture-onlyinputs;servicesStartedfalse. DedicatedplatformPostgres/Temporaloverlay, explicitmigrator, separateprivatevolumes, immutableimages, strictTLS/keys/symlink/cacheguards. NoAPI/serverstarted; authenticatedjourney/TLS/pooler/recovery andadditionalworkerkeysharing remainunproved.",
           "artifact": "docs/platform/INSTALLATION.md"
+        },
+        {
+          "level": "local_engine",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
+          "result": "Wave6 local lanes 2026-10-20: 68 passed / 0 failed / 2 not run of the requirement's 70 non-live wave6 cases. Default-stack engine 3/3 on clean fd5aa0af (first passing database rehearsal: pooler TLS concurrency, migration reapply, product-schema backup/restore with marker, ledger and ACL/RLS readback; zero owned Docker resources left). Fixes found by this run: pooler probe notices on stdout (8e20b1f4) and the unrestorable whole-database dump (fd5aa0af). Not promoted: local-engine slice only; acceptance judged separately.",
+          "commit": "fd5aa0af62e8bf0873ebc825a270a30678826ebd",
+          "receipt": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-fd5aa0af-default-stack-database.json",
+          "receiptSha256": "744edf6aa0dc5fac6369a06868132d53b698dd81b771d49b05c6ed7dcbde6046"
         }
       ],
       "requiredEvidence": [
@@ -3940,6 +3949,12 @@
           "coreSummarySha256": "76ee81cf757774f17e42fae69cc30db94d7896e15b19fde05c008bae85a147a9",
           "executionReceiptSha256": "81f3aaef3dc788d2e32a278fbad9c5bc74a340d4de042138843f23f0d14d19ed",
           "acceptanceClaim": false
+        },
+        {
+          "level": "local_engine",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
+          "result": "Wave6 local lanes 2026-10-20: 68 passed / 0 failed / 2 not run of the requirement's 70 non-live wave6 cases. Same default-stack engine run as PKG-04 on fd5aa0af. Not promoted: local-engine slice only; acceptance judged separately."
         }
       ],
       "requiredEvidence": [
@@ -4638,6 +4653,12 @@
           "testedCandidateCommit": "b46fb8a2617f59448f943088e3ed1a446a9a7c38",
           "result": "Root independently verified combined ECS candidate: 1,232 tests passed, zero failures or skips; full typecheck/lint, five real network OpenTofu checks and Go 226 top-level plus 539 subtests passed, with three Linux-only skips on macOS. Fresh actual PostgreSQL 16.15 passed 1,422 cases and all 45 mandatory groups, including six genuine PostgreSQL grant behaviors; all 12 schema-2 bindings and separate required-execution validation passed. Fresh local kind provider 6/6 and release 1/1 passed. Owned database, cluster, containers and kubeconfig were removed. Final guide-only clarification passed 109 documentation cases and independent exact-source review. Source 4895569 merged cb33a61. This bounded recipe retains browser-human plan approval, immutable ownership/autoscaler binding, raw one-field guards and durable owned readback; original approval-time binary handoff, live AWS/IAM and broader production acceptance remain incomplete.",
           "artifact": "docs/build/production/evidence/ecs-replica-repair/combined-root-verification.json"
+        },
+        {
+          "level": "local_engine",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
+          "result": "Wave6 local lanes 2026-10-20: 7 passed / 5 failed / 3 not run of the requirement's 15 non-live wave6 cases. managed-kind on 8e20b1f4: 1 passed (build egress policy), 5 failed (harness predates tenant operator custody); J6 kind and operated-release not run. Not promoted: local-engine slice only; acceptance judged separately."
         }
       ],
       "requiredEvidence": [
@@ -4753,6 +4774,12 @@
           "commit": "07728546bcc3489bdf8a382c646d57218b87e147",
           "result": "Exact077 fresh disposable kind provider6/6 and release1/1 passed; matching kubectl/server1.37, cluster/kubeconfig/newimages removed. StatefulSet/CronJob/CNI/managed-cluster/cloud acceptance remains open.",
           "artifact": "docs/build/production/verification/2026-10-03-g1-integration.json"
+        },
+        {
+          "level": "local_engine",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
+          "result": "Wave6 local lanes 2026-10-20: 7 passed / 5 failed / 3 not run of the requirement's 15 non-live wave6 cases. managed-kind on 8e20b1f4: 1 passed (build egress policy), 5 failed (harness predates tenant operator custody); J6 kind and operated-release not run. Not promoted: local-engine slice only; acceptance judged separately."
         }
       ],
       "requiredEvidence": [
@@ -4798,6 +4825,12 @@
           "environment": "Node22.23.3 native Darwin ARM64,768MiB heap; owned PostgreSQL16.15 ARM64,384MiB memory,strict verify-full TLS and private CA. Bare-PG SET ROLE stand-ins; no Supabase Auth or pooler proof.",
           "logs": "docs/build/production/evidence/PROD-LIFE-08/2026-10-07-prod-life-08-retry-roles.json",
           "result": "312 passed /0 failed /1 private GitHub App skip. Actual PostgreSQL contract cases executed; private App/repository runtime binding acceptance remains unapproved and unexecuted."
+        },
+        {
+          "level": "local_engine",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
+          "result": "Wave6 local lanes 2026-10-20: 7 passed / 5 failed / 3 not run of the requirement's 15 non-live wave6 cases. managed-kind on 8e20b1f4: 1 passed (build egress policy), 5 failed (harness predates tenant operator custody); J6 kind and operated-release not run. Not promoted: local-engine slice only; acceptance judged separately."
         }
       ],
       "requiredEvidence": [
@@ -4852,6 +4885,12 @@
           "commit": "434512b5c6d0f0a7be7590f6061ef3c4360823b5",
           "result": "Read-only installed GnuPG prerequisite verification passed:19/19 dependency receipts matched and17/17 retained expected bottle hashes matched; runtime dependency set matched manifest, GPG2.5.24 executed, zero findings. Scope closes only installed prerequisite verification; it does not prove MinIO runtime/source acceptance.",
           "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-10-434512b5-current.json"
+        },
+        {
+          "level": "local_engine",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
+          "result": "Wave6 local lanes 2026-10-20: 7 passed / 5 failed / 3 not run of the requirement's 15 non-live wave6 cases. managed-kind on 8e20b1f4: 1 passed (build egress policy), 5 failed (harness predates tenant operator custody); J6 kind and operated-release not run. Not promoted: local-engine slice only; acceptance judged separately."
         }
       ],
       "requiredEvidence": [
@@ -4891,6 +4930,12 @@
           "environment": "Node22.23.3 native Darwin ARM64,768MiB heap; owned PostgreSQL16.15 ARM64,384MiB memory,strict verify-full TLS and private CA. Bare-PG SET ROLE stand-ins; no Supabase Auth or pooler proof.",
           "logs": "docs/build/production/evidence/PROD-LIFE-10/2026-10-07-prod-life-10-serial-r2.json",
           "result": "899 passed /0 failed /13 skipped in broad leaf lane. Separate actual Temporal deploy rerun21/0/0 executed six previously skipped Temporal scenarios; counts overlap and are not summed. Seven kind cases were not executed in this leaf lane; prior native cluster/CI evidence remains separately scoped. Default isolated build/DNS/traffic/migration rollback journey remains open."
+        },
+        {
+          "level": "local_engine",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
+          "result": "Wave6 local lanes 2026-10-20: 7 passed / 5 failed / 4 not run of the requirement's 16 non-live wave6 cases. managed-kind on 8e20b1f4: 1 passed (build egress policy), 5 failed (harness predates tenant operator custody); J6 kind and operated-release not run. Not promoted: local-engine slice only; acceptance judged separately."
         }
       ],
       "requiredEvidence": [
@@ -5140,6 +5185,12 @@
           "command": "Complete gate-manifest, platform-coverage and evidence-sanitizer files, maxWorkers1/no-file-parallelism",
           "environment": "Node22.23.3/Vitest4.1.11 native Mac ARM64; report models test admission only, genuine SQL evidence recorded separately.",
           "logs": "docs/build/production/evidence/PROD-LIFE-12/2026-10-08-ownership-snapshot-cas.json"
+        },
+        {
+          "level": "local_engine",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
+          "result": "Wave6 local lanes 2026-10-20: 7 passed / 5 failed / 3 not run of the requirement's 15 non-live wave6 cases. managed-kind on 8e20b1f4: 1 passed (build egress policy), 5 failed (harness predates tenant operator custody); J6 kind and operated-release not run. Not promoted: local-engine slice only; acceptance judged separately."
         }
       ],
       "requiredEvidence": [
@@ -5479,6 +5530,12 @@
           "receipt": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-4fac547c-default-journey-receipt.json",
           "receiptSha256": "f81d8965f4e121f04632f92b930f9455a7f63f42a7507c6513f0e7f185eb5e3c",
           "result": "J2 default journey passed 18/18 on clean exact source 4fac547c (first attempt, ledger-eligible native receipt), the same commit as green CI, the signed runbook delivery and canonical J4."
+        },
+        {
+          "level": "local_engine",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
+          "result": "Wave6 local lanes 2026-10-20: 3 passed / 0 failed / 0 not run of the requirement's 3 non-live wave6 cases. J2 fresh-token native rejoin receipt case passed on d23fc0b4 against the 8776af2f J2 receipt; update/rollback acceptance is not shown by this case. Not promoted: local-engine slice only; acceptance judged separately."
         }
       ],
       "requiredEvidence": [
@@ -5690,6 +5747,12 @@
           "receipt": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-4fac547c-default-journey-receipt.json",
           "receiptSha256": "f81d8965f4e121f04632f92b930f9455a7f63f42a7507c6513f0e7f185eb5e3c",
           "result": "J2 default journey passed 18/18 on clean exact source 4fac547c (first attempt, ledger-eligible native receipt), the same commit as green CI, the signed runbook delivery and canonical J4."
+        },
+        {
+          "level": "local_engine",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
+          "result": "Wave6 local lanes 2026-10-20: 2 passed / 0 failed / 0 not run of the requirement's 2 non-live wave6 cases. J2 receipt case passed on d23fc0b4 against the 8776af2f J2 receipt after the suite title fix (a27e4d71); the acceptance also covers logs, metrics, traces and provider events, not shown by this case. Not promoted: local-engine slice only; acceptance judged separately."
         }
       ],
       "requiredEvidence": [
@@ -6042,7 +6105,14 @@
       ],
       "implementationStatus": "implementation_complete_verification_pending",
       "implementationNote": "L3 gated observation/cleanup/inventory harness built; live and operational evidence plus owner fixtures/decisions pending. No verification claimed.",
-      "evidence": [],
+      "evidence": [
+        {
+          "level": "local_engine",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
+          "result": "Wave6 local lanes 2026-10-20: 2 passed / 1 failed / 0 not run of the requirement's 3 non-live wave6 cases. Scoped object storage on IAM-enforcing moto 5.2.3 (d23fc0b4): create/rotate and policy passed; the enforcement case failed on a moto SigV4 defect with \"/\" in query values (reproduced with the admin key), so prefix-scoped listing is unproven here. Not promoted: local-engine slice only; acceptance judged separately."
+        }
+      ],
       "requiredEvidence": [
         "contract",
         "local_engine",
@@ -6073,7 +6143,14 @@
       ],
       "implementationStatus": "implementation_complete_verification_pending",
       "implementationNote": "J11: Cilium exact-version/archive-SHA resolver interface; compatible chart selection, kind and Wave 5/J14 two-tenant runtime acceptance pending. L3 gated observation/cleanup/inventory harness built; live and operational evidence plus owner fixtures/decisions pending. No verification claimed. J14 step 2: default first deploy binds isolation and scoped token constraints into DUR-B composite review, authenticates immutable encrypted direct-object custody (migration 56), records effects before bootstrap apply, verifies readback and stores only scoped tokens. Cilium Gateway ingress identity join and gated two-tenant attachment/HTTPS harnesses built. Mac real-engine, live and operational acceptance pending; not verified.",
-      "evidence": [],
+      "evidence": [
+        {
+          "level": "local_engine",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
+          "result": "Wave6 local lanes 2026-10-20: 3 passed / 0 failed / 8 not run of the requirement's 11 non-live wave6 cases. Managed onboarding readiness 3/3 on real kind (d23fc0b4); gVisor and Cilium Gateway cases not run (toolchain not installed). Not promoted: local-engine slice only; acceptance judged separately."
+        }
+      ],
       "requiredEvidence": [
         "contract",
         "local_engine",
@@ -6106,7 +6183,17 @@
       ],
       "implementationStatus": "implementation_complete_verification_pending",
       "implementationNote": "L3 gated observation/cleanup/inventory harness built; live and operational evidence plus owner fixtures/decisions pending. No verification claimed. J14 step 2: reviewed default onboarding activates quota, CNI and gVisor runtime before tenant workload dispatch; existing CPU/memory/disk/PID/latency and sandbox OOM harnesses retained. Lean same-node Mac verification pending; latency/PID/quota bounds provisional; not verified.",
-      "evidence": [],
+      "evidence": [
+        {
+          "level": "local_engine",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
+          "result": "Wave6 local lanes 2026-10-20: 24 passed / 0 failed / 2 not run of the requirement's 26 non-live wave6 cases. Tenant isolation on a fresh kind-calico cluster (d23fc0b4): 23 passed, plus the unbounded control on the kept cluster; hostname egress (Cilium) and RuntimeClass (gVisor) not run. The first real run (8776af2f) found three vacuous or broken checks, fixed in d23fc0b4. Not promoted: local-engine slice only; acceptance judged separately.",
+          "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+          "receipt": "docs/build/production/evidence/PROD-MAN-05/2026-10-20-d23fc0b4-tenant-isolation-kind-calico.json",
+          "receiptSha256": "abcf0782cda8e6d671108f3419597c6d009fca653a9e267e293198d6a45a2bf8"
+        }
+      ],
       "requiredEvidence": [
         "contract",
         "local_engine",
@@ -6163,7 +6250,14 @@
       ],
       "implementationStatus": "implementation_complete_verification_pending",
       "implementationNote": "L3 gated observation/cleanup/inventory harness built; live and operational evidence plus owner fixtures/decisions pending. No verification claimed. DEC-BUSINESS (pricing) approved 2026-10-13: plan entitlements enforced in managed billing mode only: Explore cannot dispatch work (plan_feature_unavailable); organizational policy edits need Team or Enterprise; existing policies stay enforced after a downgrade. Terms and payment account still pending.",
-      "evidence": [],
+      "evidence": [
+        {
+          "level": "local_engine",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
+          "result": "Wave6 local lanes 2026-10-20: 32 passed / 6 failed / 11 not run of the requirement's 49 non-live wave6 cases. Isolation, readiness, serving-kind and storage lanes as recorded for MAN-03/04/05; managed-kind failed 5/6 on 8e20b1f4 (harness predates required tenant operator custody). Not promoted: local-engine slice only; acceptance judged separately."
+        }
+      ],
       "requiredEvidence": [
         "contract",
         "local_engine",
@@ -6212,7 +6306,14 @@
       ],
       "implementationStatus": "implementation_complete_verification_pending",
       "implementationNote": "J11: gated local Grafana/Prometheus/OTel import and offline contracts; Docker import, fairness and outage rehearsal remain pending. L3 gated observation/cleanup/inventory harness built; live and operational evidence plus owner fixtures/decisions pending. No verification claimed.",
-      "evidence": [],
+      "evidence": [
+        {
+          "level": "local_engine",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
+          "result": "Wave6 local lanes 2026-10-20: 19 passed / 0 failed / 0 not run of the requirement's 19 non-live wave6 cases. Real observability import passed on d23fc0b4 after fixing the images.env key-count refusal (5892d60c); recovery rehearsal 10/10 on 8776af2f. Not promoted: local-engine slice only; acceptance judged separately."
+        }
+      ],
       "requiredEvidence": [
         "contract",
         "local_engine",
@@ -6272,6 +6373,12 @@
           "commit": "94d60798a376c49beaa5c1bc60f14d2e6aa5e430",
           "result": "Current-source committed workflow histories replayed deterministically with versioning audit34/0/0; all34 required identities passed. Local SDK replay only; previous-release compatibility, in-flight rolling upgrade/schema-protocol compatibility and rollback acceptance remain open. No whole-requirement promotion.",
           "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-11-94-bounded-local-gates.json"
+        },
+        {
+          "level": "local_engine",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
+          "result": "Wave6 local lanes 2026-10-20: 19 passed / 0 failed / 0 not run of the requirement's 19 non-live wave6 cases. Same lanes as OPS-02. Not promoted: local-engine slice only; acceptance judged separately."
         }
       ],
       "requiredEvidence": [
@@ -6322,7 +6429,14 @@
       ],
       "implementationStatus": "implementation_complete_verification_pending",
       "implementationNote": "L3 gated observation/cleanup/inventory harness built; live and operational evidence plus owner fixtures/decisions pending. No verification claimed.",
-      "evidence": [],
+      "evidence": [
+        {
+          "level": "local_engine",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
+          "result": "Wave6 local lanes 2026-10-20: 19 passed / 0 failed / 0 not run of the requirement's 19 non-live wave6 cases. Same lanes as OPS-02. Not promoted: local-engine slice only; acceptance judged separately."
+        }
+      ],
       "requiredEvidence": [
         "contract",
         "local_engine",
@@ -6345,7 +6459,14 @@
       ],
       "implementationStatus": "implementation_complete_verification_pending",
       "implementationNote": "L3 gated observation/cleanup/inventory harness built; live and operational evidence plus owner fixtures/decisions pending. No verification claimed. DEC-RETENTION approved 2026-10-13: the payload minimizer now requires an approved retention policy plus ZENITH_DATA_MINIMIZE_APPLY=1, defaults to the approved 72 hours, and skips results under a legal hold.",
-      "evidence": [],
+      "evidence": [
+        {
+          "level": "local_engine",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
+          "result": "Wave6 local lanes 2026-10-20: 19 passed / 0 failed / 0 not run of the requirement's 19 non-live wave6 cases. Same lanes as OPS-02. Not promoted: local-engine slice only; acceptance judged separately."
+        }
+      ],
       "requiredEvidence": [
         "contract",
         "local_engine",
@@ -6474,6 +6595,12 @@
           "environment": "This8GiB Mac; Docker configured6144MiB memory4096MiB swap,VirtioFS,ResourceSaveroff; intended native API768MiB/worker1024MiB not started",
           "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-07-reduced-resource-local.json",
           "result": "Resource blocked before service startup:24.68GiB initial free fell to21.77GiB during required image pulls; exit130,zero tests/containers. Owned downloaded images/network removed; baseline resources preserved. No signed-in/default scheduling/runbook/telemetry/installed-agent acceptance. NOT_READY maintenance draft unrun; builder wiring and Linux delegation admission remain explicit."
+        },
+        {
+          "level": "local_engine",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
+          "result": "Wave6 local lanes 2026-10-20: 29 passed / 0 failed / 5 not run of the requirement's 34 non-live wave6 cases. Plugin sandbox 3/3 and Keycloak DCR 4/4 on d23fc0b4 (DCR fixture repaired for Keycloak 26.4 and MCP client 2.2.0 in b68a5829); MFA browser, browser-issued token, platform launcher and UX receipt not run. Not promoted: local-engine slice only; acceptance judged separately."
         }
       ],
       "requiredEvidence": [
@@ -6496,7 +6623,14 @@
       ],
       "implementationStatus": "implementation_complete_verification_pending",
       "implementationNote": "J10: pinned official SDK 2.2.0 conformance and local TLS Keycloak DCR/browser harness built. Targeted in-process verification recorded in verify/PROD-UX-02.md; actual issuer, PostgreSQL and Claude Code/Codex operated acceptance await Mac verification. MCP client bumped to 2.2.0 on 2026-10-10 to clear GHSA-6qxp-vccf-f47h.",
-      "evidence": [],
+      "evidence": [
+        {
+          "level": "local_engine",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
+          "result": "Wave6 local lanes 2026-10-20: 4 passed / 0 failed / 1 not run of the requirement's 5 non-live wave6 cases. Keycloak DCR 4/4 on d23fc0b4; browser-issued token case not run. Not promoted: local-engine slice only; acceptance judged separately."
+        }
+      ],
       "requiredEvidence": [
         "contract",
         "local_engine"
@@ -6624,6 +6758,12 @@
           "hostFloorPassed": true,
           "dockerVmFloorPassed": true,
           "requirementScope": "PROD-UX-03 local_engine component evidence only; does not complete required contract level or overall acceptance."
+        },
+        {
+          "level": "local_engine",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
+          "result": "Wave6 local lanes 2026-10-20: 3 passed / 0 failed / 1 not run of the requirement's 4 non-live wave6 cases. Plugin sandbox 3/3 on d23fc0b4 per the documented Mac runtime spec; platform launcher not run. Not promoted: local-engine slice only; acceptance judged separately."
         }
       ],
       "requiredEvidence": [
@@ -6828,7 +6968,14 @@
       "dependencies": [],
       "implementationStatus": "implementation_complete_verification_pending",
       "implementationNote": "L3 gated observation/cleanup/inventory harness built; live and operational evidence plus owner fixtures/decisions pending. No verification claimed.",
-      "evidence": [],
+      "evidence": [
+        {
+          "level": "local_engine",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
+          "result": "Wave6 local lanes 2026-10-20: 4 passed / 0 failed / 3 not run of the requirement's 7 non-live wave6 cases. Local rehearsals billing (fd5aa0af), dns-tls (283a6868), stateful-traffic and mixed-recovery (9fb9e635) passed after three setup fixes found by these runs (ACME null IPAM, kind multi-platform load, db readiness). Not promoted: local-engine slice only; acceptance judged separately."
+        }
+      ],
       "requiredEvidence": [
         "contract",
         "local_engine",

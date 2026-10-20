@@ -1,0 +1,4017 @@
+{
+ "schemaVersion": 1,
+ "kind": "wave6_local_lanes",
+ "level": "local_engine",
+ "date": "2026-10-20",
+ "host": "Mac mini, Darwin arm64, Docker Desktop 29.8.2 (8 GiB), kind v0.33 node v1.37.0",
+ "note": "Each case is verified with scripts/ci/wave6-gates.mjs --case against its own Vitest JSON report on the clean exact-source commit named per case. Live-lane cases are excluded. Failures and skips are preserved; totals are not promotion evidence.",
+ "totals": {
+  "cases": 286,
+  "passed": 246,
+  "failed": 8,
+  "not_run": 31
+ },
+ "byRequirement": {
+  "PROD-REL-04": {
+   "passed": 4,
+   "failed": 0,
+   "not_run": 3
+  },
+  "PROD-PKG-04": {
+   "passed": 68,
+   "failed": 0,
+   "not_run": 2
+  },
+  "PROD-PKG-06": {
+   "passed": 68,
+   "failed": 0,
+   "not_run": 2
+  },
+  "PROD-MACH-03": {
+   "passed": 1,
+   "failed": 0,
+   "not_run": 2
+  },
+  "PROD-OBS-04": {
+   "passed": 0,
+   "failed": 0,
+   "not_run": 2
+  },
+  "PROD-OPS-02": {
+   "passed": 19,
+   "failed": 0,
+   "not_run": 0
+  },
+  "PROD-OPS-03": {
+   "passed": 19,
+   "failed": 0,
+   "not_run": 0
+  },
+  "PROD-OPS-05": {
+   "passed": 19,
+   "failed": 0,
+   "not_run": 0
+  },
+  "PROD-OPS-06": {
+   "passed": 19,
+   "failed": 0,
+   "not_run": 0
+  },
+  "PROD-OPS-08": {
+   "passed": 8,
+   "failed": 0,
+   "not_run": 0
+  },
+  "PROD-UX-01": {
+   "passed": 29,
+   "failed": 0,
+   "not_run": 5
+  },
+  "PROD-UX-02": {
+   "passed": 4,
+   "failed": 0,
+   "not_run": 1
+  },
+  "PROD-UX-03": {
+   "passed": 3,
+   "failed": 0,
+   "not_run": 1
+  },
+  "PROD-DUR-01": {
+   "passed": 39,
+   "failed": 0,
+   "not_run": 0
+  },
+  "PROD-DUR-02": {
+   "passed": 39,
+   "failed": 0,
+   "not_run": 0
+  },
+  "PROD-DUR-05": {
+   "passed": 39,
+   "failed": 0,
+   "not_run": 0
+  },
+  "PROD-DUR-06": {
+   "passed": 39,
+   "failed": 0,
+   "not_run": 0
+  },
+  "PROD-DUR-07": {
+   "passed": 39,
+   "failed": 0,
+   "not_run": 0
+  },
+  "PROD-DUR-08": {
+   "passed": 39,
+   "failed": 0,
+   "not_run": 0
+  },
+  "PROD-COST-01": {
+   "passed": 3,
+   "failed": 0,
+   "not_run": 1
+  },
+  "PROD-COST-02": {
+   "passed": 3,
+   "failed": 0,
+   "not_run": 1
+  },
+  "PROD-COST-03": {
+   "passed": 3,
+   "failed": 0,
+   "not_run": 1
+  },
+  "PROD-MAN-04": {
+   "passed": 3,
+   "failed": 0,
+   "not_run": 8
+  },
+  "PROD-MAN-07": {
+   "passed": 32,
+   "failed": 6,
+   "not_run": 11
+  },
+  "PROD-MAN-05": {
+   "passed": 24,
+   "failed": 0,
+   "not_run": 2
+  },
+  "PROD-MAN-03": {
+   "passed": 2,
+   "failed": 1,
+   "not_run": 0
+  },
+  "PROD-OPS-04": {
+   "passed": 10,
+   "failed": 0,
+   "not_run": 0
+  },
+  "PROD-LIFE-03": {
+   "passed": 7,
+   "failed": 5,
+   "not_run": 3
+  },
+  "PROD-LIFE-07": {
+   "passed": 7,
+   "failed": 5,
+   "not_run": 3
+  },
+  "PROD-LIFE-08": {
+   "passed": 7,
+   "failed": 5,
+   "not_run": 3
+  },
+  "PROD-LIFE-09": {
+   "passed": 7,
+   "failed": 5,
+   "not_run": 3
+  },
+  "PROD-LIFE-10": {
+   "passed": 7,
+   "failed": 5,
+   "not_run": 4
+  },
+  "PROD-LIFE-12": {
+   "passed": 7,
+   "failed": 5,
+   "not_run": 3
+  },
+  "PROD-REL-02": {
+   "passed": 0,
+   "failed": 0,
+   "not_run": 3
+  },
+  "PROD-REL-03": {
+   "passed": 0,
+   "failed": 0,
+   "not_run": 3
+  },
+  "PROD-MACH-02": {
+   "passed": 1,
+   "failed": 0,
+   "not_run": 0
+  },
+  "PROD-MACH-04": {
+   "passed": 3,
+   "failed": 0,
+   "not_run": 0
+  },
+  "PROD-MACH-06": {
+   "passed": 1,
+   "failed": 0,
+   "not_run": 0
+  },
+  "PROD-OBS-02": {
+   "passed": 2,
+   "failed": 0,
+   "not_run": 0
+  }
+ },
+ "cases": [
+  {
+   "id": "wave6-109b77a8d84910e0",
+   "lane": "kind",
+   "file": "tests/acceptance/local-targets.engine.test.ts",
+   "test": "executes the real engine and accepts only the exact run/source checks",
+   "requirements": [
+    "PROD-REL-04"
+   ],
+   "status": "passed",
+   "commit": "9fb9e6356bed88fda0b20463dee7565412f3b5af",
+   "run": "per-case lane argv (kind)"
+  },
+  {
+   "id": "wave6-b43e1b3bdeb40a79",
+   "lane": "kind",
+   "file": "tests/acceptance/local-targets.engine.test.ts",
+   "test": "executes the real engine and accepts only the exact run/source checks",
+   "requirements": [
+    "PROD-REL-04"
+   ],
+   "status": "passed",
+   "commit": "9fb9e6356bed88fda0b20463dee7565412f3b5af",
+   "run": "per-case lane argv (kind)"
+  },
+  {
+   "id": "wave6-a009f398e918e5c6",
+   "lane": "docker",
+   "file": "tests/acceptance/local-targets.engine.test.ts",
+   "test": "executes the real engine and accepts only the exact run/source checks",
+   "requirements": [
+    "PROD-REL-04"
+   ],
+   "status": "passed",
+   "commit": "283a68685bc3d8f68042afdebb469df23b2eaa71",
+   "run": "per-case lane argv (docker)"
+  },
+  {
+   "id": "wave6-2e6ab42db4b9da1a",
+   "lane": "docker",
+   "file": "tests/acceptance/local-targets.engine.test.ts",
+   "test": "executes the real engine and accepts only the exact run/source checks",
+   "requirements": [
+    "PROD-REL-04"
+   ],
+   "status": "passed",
+   "commit": "fd5aa0af62e8bf0873ebc825a270a30678826ebd",
+   "run": "per-case lane argv (docker)"
+  },
+  {
+   "id": "wave6-72ab835f34c19371",
+   "lane": "temporal",
+   "file": "tests/acceptance/maintenance-default.test.ts",
+   "test": "executes seven critical jobs plus billing on natural timers across worker restart without overlap",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06",
+    "PROD-MACH-03",
+    "PROD-OBS-04"
+   ],
+   "status": "not_run",
+   "reason": "not run through lane argv; the canonical J4 and signed runbook delivery evidence for these requirements is recorded separately"
+  },
+  {
+   "id": "wave6-55718f085353604a",
+   "lane": "temporal",
+   "file": "tests/acceptance/maintenance-default.test.ts",
+   "test": "joins real signed registered delivery, broker semantics, evidence and cancellation audit",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06",
+    "PROD-MACH-03",
+    "PROD-OBS-04"
+   ],
+   "status": "not_run",
+   "reason": "not run through lane argv; the canonical J4 and signed runbook delivery evidence for these requirements is recorded separately"
+  },
+  {
+   "id": "wave6-6f38c3a44b8d05c6",
+   "lane": "native-tools",
+   "file": "tests/acceptance/mixed-lambda-package.gated.test.ts",
+   "test": "binds actual source/package bytes and refuses changed artifacts or source metadata",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-e47c763ec5afa2e4",
+   "lane": "docker",
+   "file": "tests/acceptance/mixed-lambda.gated.test.ts",
+   "test": "real published Lambda returns the fixture checksum through authenticated invocation",
+   "requirements": [],
+   "status": "not_run",
+   "reason": "not run: needs explicit LocalStack Lambda or the deferred live AWS gate"
+  },
+  {
+   "id": "wave6-04c66f4729d0cf44",
+   "lane": "browser",
+   "file": "tests/acceptance/w5-gaps-ui.gated.test.ts",
+   "test": "shows the actual billing source and separate restore milestones; readiness still requires its bearer",
+   "requirements": [],
+   "status": "not_run",
+   "reason": "not run: browser fixture on an operated J1/J2 stack not prepared in this run"
+  },
+  {
+   "id": "wave6-0fab65976a889e81",
+   "lane": "native-tools",
+   "file": "tests/adversarial/integration-compromise.test.ts",
+   "test": "the control: a genuine signed revocation is authenticated, and only then",
+   "requirements": [
+    "PROD-OPS-02",
+    "PROD-OPS-03",
+    "PROD-OPS-05",
+    "PROD-OPS-06",
+    "PROD-OPS-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-0237abb396418d12",
+   "lane": "native-tools",
+   "file": "tests/adversarial/integration-compromise.test.ts",
+   "test": "every near-miss signature is refused (wrong key, edited body, re-serialised JSON, wrong scheme, case, length)",
+   "requirements": [
+    "PROD-OPS-02",
+    "PROD-OPS-03",
+    "PROD-OPS-05",
+    "PROD-OPS-06",
+    "PROD-OPS-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-546b2beb60d474e5",
+   "lane": "native-tools",
+   "file": "tests/adversarial/integration-compromise.test.ts",
+   "test": "a validly signed body from another App (or with a mismatched app id) is refused",
+   "requirements": [
+    "PROD-OPS-02",
+    "PROD-OPS-03",
+    "PROD-OPS-05",
+    "PROD-OPS-06",
+    "PROD-OPS-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-6a7f857c0addab7e",
+   "lane": "native-tools",
+   "file": "tests/adversarial/integration-compromise.test.ts",
+   "test": "no event other than installation lifecycle can carry authority, even validly signed",
+   "requirements": [
+    "PROD-OPS-02",
+    "PROD-OPS-03",
+    "PROD-OPS-05",
+    "PROD-OPS-06",
+    "PROD-OPS-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-d7f48725d5b1be4a",
+   "lane": "native-tools",
+   "file": "tests/adversarial/integration-compromise.test.ts",
+   "test": "creation, unsuspension and repository additions can never open authority: they authenticate to nothing",
+   "requirements": [
+    "PROD-OPS-02",
+    "PROD-OPS-03",
+    "PROD-OPS-05",
+    "PROD-OPS-06",
+    "PROD-OPS-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-7f6e59c009b88b7e",
+   "lane": "native-tools",
+   "file": "tests/adversarial/integration-compromise.test.ts",
+   "test": "refuses malformed identifiers, duplicate and aliased keys, hostile transport headers and oversize bodies, even when signed",
+   "requirements": [
+    "PROD-OPS-02",
+    "PROD-OPS-03",
+    "PROD-OPS-05",
+    "PROD-OPS-06",
+    "PROD-OPS-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-fb92b791c6c18942",
+   "lane": "native-tools",
+   "file": "tests/adversarial/integration-compromise.test.ts",
+   "test": "the HTTP handler never touches the database for an unauthenticated request",
+   "requirements": [
+    "PROD-OPS-02",
+    "PROD-OPS-03",
+    "PROD-OPS-05",
+    "PROD-OPS-06",
+    "PROD-OPS-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-1ac8d841914adff2",
+   "lane": "native-tools",
+   "file": "tests/adversarial/residual-hardening.test.ts",
+   "test": "accepts a private regular file and refuses group or world access, symlinks, hard links and foreign files",
+   "requirements": [
+    "PROD-OPS-02",
+    "PROD-OPS-03",
+    "PROD-OPS-05",
+    "PROD-OPS-06",
+    "PROD-OPS-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-2bb7d1d95be98cdc",
+   "lane": "docker",
+   "file": "tests/agent-v3/oauth-issuer-live.test.ts",
+   "test": "advertises exact issuer, S256, authorization-code flow and DCR",
+   "requirements": [
+    "PROD-UX-01",
+    "PROD-UX-02"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "per-case lane argv (docker)"
+  },
+  {
+   "id": "wave6-c93632e05b15b121",
+   "lane": "docker",
+   "file": "tests/agent-v3/oauth-issuer-live.test.ts",
+   "test": "registers an anonymous public coding-agent client with a loopback redirect",
+   "requirements": [
+    "PROD-UX-01",
+    "PROD-UX-02"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "per-case lane argv (docker)"
+  },
+  {
+   "id": "wave6-de67db2c43dccacd",
+   "lane": "docker",
+   "file": "tests/agent-v3/oauth-issuer-live.test.ts",
+   "test": "refuses non-loopback redirect registration under the real issuer policy",
+   "requirements": [
+    "PROD-UX-01",
+    "PROD-UX-02"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "per-case lane argv (docker)"
+  },
+  {
+   "id": "wave6-77c8d26ff58ce05a",
+   "lane": "docker",
+   "file": "tests/agent-v3/oauth-issuer-live.test.ts",
+   "test": "serves public signing keys with no private material",
+   "requirements": [
+    "PROD-UX-01",
+    "PROD-UX-02"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "per-case lane argv (docker)"
+  },
+  {
+   "id": "wave6-18c6df0bd1926f2f",
+   "lane": "browser",
+   "file": "tests/agent-v3/oauth-issuer-live.test.ts",
+   "test": "passes production signature/issuer/audience/client/member checks and refuses a foreign audience/issuer",
+   "requirements": [
+    "PROD-UX-01",
+    "PROD-UX-02"
+   ],
+   "status": "not_run",
+   "reason": "not run: browser-issued token case needs authorize.mjs with a signed-in browser session on a J1 stack"
+  },
+  {
+   "id": "wave6-bc53c98868197436",
+   "lane": "browser",
+   "file": "tests/auth/mfa-browser.test.ts",
+   "test": "operator 0 cannot mutate at AAL1 and can complete real TOTP enrollment and later step-up",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "not_run",
+   "reason": "not run: needs a two-admin password-login MFA fixture on a J1 stack and a Chromium trust path for the private CA (not built)"
+  },
+  {
+   "id": "wave6-a19fd9525a62d581",
+   "lane": "browser",
+   "file": "tests/auth/mfa-browser.test.ts",
+   "test": "operator 1 cannot mutate at AAL1 and can complete real TOTP enrollment and later step-up",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "not_run",
+   "reason": "not run: needs a two-admin password-login MFA fixture on a J1 stack and a Chromium trust path for the private CA (not built)"
+  },
+  {
+   "id": "wave6-ff5f66e171449b71",
+   "lane": "postgres",
+   "file": "tests/auth/mfa-workspace-state.test.ts",
+   "test": "reads defaults without writing and preserves the mandatory privileged minimum",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-116c94f580ee0281",
+   "lane": "postgres",
+   "file": "tests/auth/mfa-workspace-state.test.ts",
+   "test": "persists settings and an exact actor/before/after audit in one transaction",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-31728615b6490eba",
+   "lane": "postgres",
+   "file": "tests/auth/mfa-workspace-state.test.ts",
+   "test": "isolates reads, changes and audit history by workspace",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-54cfaee71ba6b367",
+   "lane": "postgres",
+   "file": "tests/auth/mfa-workspace-state.test.ts",
+   "test": "allows exactly one racing initial writer and refuses stale or missing versions",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-08328bdebd543633",
+   "lane": "postgres",
+   "file": "tests/auth/mfa-workspace-state.test.ts",
+   "test": "refuses invalid persisted MFA age 59 without writes/audits",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-f10de5eb37f9d631",
+   "lane": "postgres",
+   "file": "tests/auth/mfa-workspace-state.test.ts",
+   "test": "refuses invalid persisted MFA age 86401 without writes/audits",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-fbabbb58998b32de",
+   "lane": "postgres",
+   "file": "tests/auth/mfa-workspace-state.test.ts",
+   "test": "refuses invalid persisted MFA age 60.5 without writes/audits",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-a5d03612101a53f7",
+   "lane": "postgres",
+   "file": "tests/auth/mfa-workspace-state.test.ts",
+   "test": "refuses invalid persisted MFA age NaN without writes/audits",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-e522d51d12084a15",
+   "lane": "postgres",
+   "file": "tests/auth/mfa-workspace-state.test.ts",
+   "test": "rejects a non-human writer and empty tenancy before any write",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-a95aadfeb54d40a6",
+   "lane": "postgres",
+   "file": "tests/auth/mfa-workspace-state.test.ts",
+   "test": "rolls back the settings change when the actual audit insert is refused",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-5f0bd4aa09440d6d",
+   "lane": "postgres",
+   "file": "tests/auth/mfa-workspace-state.test.ts",
+   "test": "requires AAL2 on the real settings PUT, then saves and enforces the new policy",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-c0c51007bebf9cb9",
+   "lane": "postgres",
+   "file": "tests/auth/mfa-workspace-state.test.ts",
+   "test": "refuses expired step-up before changing existing enforcement",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-4e01859917bd5751",
+   "lane": "postgres",
+   "file": "tests/auth/mfa-workspace-state.test.ts",
+   "test": "refuses a changed selected workspace and stale version without creating extra audit events",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-5241cd6a90de0665",
+   "lane": "postgres",
+   "file": "tests/auth/mfa-workspace-state.test.ts",
+   "test": "rejects malformed/weakening controls at the API {}",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-d08d25b3a9f68b9d",
+   "lane": "postgres",
+   "file": "tests/auth/mfa-workspace-state.test.ts",
+   "test": "rejects malformed/weakening controls at the API {\"requireForAllMutations\":\"true\"}",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-2af3359a6bbd3c7b",
+   "lane": "postgres",
+   "file": "tests/auth/mfa-workspace-state.test.ts",
+   "test": "rejects malformed/weakening controls at the API {\"maxAgeSeconds\":0}",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-2683ef8a30dd3ae2",
+   "lane": "postgres",
+   "file": "tests/auth/mfa-workspace-state.test.ts",
+   "test": "rejects malformed/weakening controls at the API {\"maxAgeSeconds\":90000}",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-cb920e2be6ac8d0f",
+   "lane": "postgres",
+   "file": "tests/auth/mfa-workspace-state.test.ts",
+   "test": "rejects malformed/weakening controls at the API {\"maxAgeSeconds\":60.5}",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-4e7bc7b223756fa8",
+   "lane": "postgres",
+   "file": "tests/auth/mfa-workspace-state.test.ts",
+   "test": "rejects malformed/weakening controls at the API {\"privilegedActionsRequireAal2\":false}",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-253c73d94af4e4d3",
+   "lane": "postgres",
+   "file": "tests/auth/mfa-workspace-state.test.ts",
+   "test": "rejects malformed/weakening controls at the API {\"expectedVersion\":-1}",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-f5a1d60994bb0eb2",
+   "lane": "postgres",
+   "file": "tests/auth/mfa-workspace-state.test.ts",
+   "test": "keeps viewer access read-only even with AAL2",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-5dceba4b0cf5ef89",
+   "lane": "postgres",
+   "file": "tests/auth/mfa-workspace-state.test.ts",
+   "test": "fails closed when the platform store is unavailable",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-804f49145d9c6b23",
+   "lane": "docker",
+   "file": "tests/cli/plugin-launcher-docker.test.ts",
+   "test": "proves actual process isolation and forced cleanup on revoke",
+   "requirements": [
+    "PROD-UX-01",
+    "PROD-UX-03"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "per-case lane argv (docker)"
+  },
+  {
+   "id": "wave6-4de28b8c5378d1de",
+   "lane": "docker",
+   "file": "tests/cli/plugin-launcher-docker.test.ts",
+   "test": "proves actual process isolation and forced cleanup on outage",
+   "requirements": [
+    "PROD-UX-01",
+    "PROD-UX-03"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "per-case lane argv (docker)"
+  },
+  {
+   "id": "wave6-a5f94528790619de",
+   "lane": "docker",
+   "file": "tests/cli/plugin-launcher-docker.test.ts",
+   "test": "proves actual process isolation and forced cleanup on cancel",
+   "requirements": [
+    "PROD-UX-01",
+    "PROD-UX-03"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "per-case lane argv (docker)"
+  },
+  {
+   "id": "wave6-546689f4b22fdb85",
+   "lane": "browser",
+   "file": "tests/cli/plugin-platform-live.test.ts",
+   "test": "requires real browser AAL2 consent and stops Docker after existing RFC and browser revocation paths",
+   "requirements": [
+    "PROD-UX-01",
+    "PROD-UX-03"
+   ],
+   "status": "not_run",
+   "reason": "not run: browser fixture on an operated J1/J2 stack not prepared in this run"
+  },
+  {
+   "id": "wave6-8eeeed170f63cbfc",
+   "lane": "browser",
+   "file": "tests/connections/runner-browser.test.ts",
+   "test": "CLI initiates; browser human creates, verifies, rotates and revokes a aws runner connection",
+   "requirements": [],
+   "status": "not_run",
+   "reason": "not run: browser fixture on an operated J1/J2 stack not prepared in this run"
+  },
+  {
+   "id": "wave6-9d31ba6aa97ad264",
+   "lane": "browser",
+   "file": "tests/connections/runner-browser.test.ts",
+   "test": "CLI initiates; browser human creates, verifies, rotates and revokes a gcp runner connection",
+   "requirements": [],
+   "status": "not_run",
+   "reason": "not run: browser fixture on an operated J1/J2 stack not prepared in this run"
+  },
+  {
+   "id": "wave6-d63fde5fc8ecd8dd",
+   "lane": "browser",
+   "file": "tests/connections/runner-browser.test.ts",
+   "test": "CLI initiates; browser human creates, verifies, rotates and revokes a azure runner connection",
+   "requirements": [],
+   "status": "not_run",
+   "reason": "not run: browser fixture on an operated J1/J2 stack not prepared in this run"
+  },
+  {
+   "id": "wave6-4bf983d21246566d",
+   "lane": "browser",
+   "file": "tests/connections/runner-browser.test.ts",
+   "test": "CLI initiates; browser human creates, verifies, rotates and revokes a oci runner connection",
+   "requirements": [],
+   "status": "not_run",
+   "reason": "not run: browser fixture on an operated J1/J2 stack not prepared in this run"
+  },
+  {
+   "id": "wave6-72bc310f8eb514b3",
+   "lane": "browser",
+   "file": "tests/connections/runner-browser.test.ts",
+   "test": "CLI initiates; browser human creates, verifies, rotates and revokes a kubernetes runner connection",
+   "requirements": [],
+   "status": "not_run",
+   "reason": "not run: browser fixture on an operated J1/J2 stack not prepared in this run"
+  },
+  {
+   "id": "wave6-e2211eee500ae512",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "central connection.createRunner has the same browser-only boundary",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-ea7cc654fea6a6c7",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "central connection.rotate has the same browser-only boundary",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-00f336fa4c27b2a1",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "central connection.promoteRotation has the same browser-only boundary",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-18a46833525dced7",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "central connection.abortRotation has the same browser-only boundary",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-4d8fd8f79e9fe61e",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "central create/verify/rotate/promote/abort/revoke preserve lifecycle and human confirmation",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-a3882dc730818d04",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "requires current AAL2 before creating a runner connection",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-cb43096a776648e7",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "creates, verifies, rotates and revokes a aws customer runner through handlers",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-7200a3867f41b180",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "creates, verifies, rotates and revokes a gcp customer runner through handlers",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-508f1a73a5d96c24",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "creates, verifies, rotates and revokes a azure customer runner through handlers",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-a77bd6e753888509",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "creates, verifies, rotates and revokes a oci customer runner through handlers",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-10e35ccf7aa8f588",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "creates, verifies, rotates and revokes a kubernetes customer runner through handlers",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-09572ab883ed6243",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "refuses bearer credentials at a browser-only handler",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-44f3d029002d6252",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "refuses browser proof {\"origin\":\"https://attacker.test\"}",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-b9f03bb32f395b78",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "refuses browser proof {\"origin\":\"\"}",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-0b450af860bdaa98",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "refuses browser proof {\"sec-fetch-site\":\"cross-site\"}",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-8619b4bddf156713",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "refuses browser proof {\"x-zenith-actor\":\"navigator\"}",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-517e1bcc14b2f198",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "refuses an identity-authority outage",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-bf1cc2f4894d6b60",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "refuses a missing browser session",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-c2bcc69486eb9eee",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "allows linked-human verify/revoke, requires exact confirmation and re-reads the role",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-bffb8f673aa9708a",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "refuses editor creation/rotation/revocation and re-reads current role",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-d8f23d4744f7556b",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "refuses viewer creation/rotation/revocation and re-reads current role",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-5834913b9fc4af4f",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "treats unknown and foreign runner ids identically without writes",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-011f536c14b78a8c",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "refuses a revoked runner at creation",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-ce282de24accd35b",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "records failed verification for revoked runner readiness",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-0ed9ed1160f9a128",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "records failed verification for stale runner readiness",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-74e3f6e87a7f0baf",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "records failed verification for protocol runner readiness",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-d8ba790f7a34c52c",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "records failed verification for kind runner readiness",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-96584783f932b9e1",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "records failed verification for custody runner readiness",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-7386c9643d50790c",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "keeps live access when a candidate fails and refuses promotion after its runner is revoked",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-0400b5c04aafbe6f",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "retires only unused runners during promotion and revocation",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-81ce47e3ee0e96bd",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "preserves identity and refuses secrets, invalid accounts and runner mode conversion",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-ce98aafca3a905b2",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "retains existing provider access-field rotation on runner connections",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-b4ffee05422b812e",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "replays a browser creation once and refuses an invalid idempotency key",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-765cf0da7ea7aa15",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "rolls back runner creation and verification when their platform event cannot be written",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-c97a473876fb54e2",
+   "lane": "postgres",
+   "file": "tests/connections/runner-routes.test.ts",
+   "test": "refuses foreign connection ids for every lifecycle handler",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-f5b07a4bdee75e45",
+   "lane": "postgres",
+   "file": "tests/controlplane/migrations.test.ts",
+   "test": "fresh direct migration and emitted SQL have identical incident RLS and exact grants",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-fc7742b1152a7bcb",
+   "lane": "postgres",
+   "file": "tests/controlplane/migrations.test.ts",
+   "test": "schema20 upgrade preserves incident rows and old ledger while adding exact hardening and tenant index",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-3317310625862606",
+   "lane": "postgres",
+   "file": "tests/controlplane/migrations.test.ts",
+   "test": "fresh canonical migrations keep permanent agent receipts select/insert-only",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-460c9f9f49c2e326",
+   "lane": "postgres",
+   "file": "tests/controlplane/migrations.test.ts",
+   "test": "same-owner schema6 canonical migrations keep permanent agent receipts select/insert-only",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-96e0a505ad4f60f7",
+   "lane": "postgres",
+   "file": "tests/controlplane/migrations.test.ts",
+   "test": "fresh canonical migrations keep permanent approved source snapshots select/insert-only",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-8f8c99084a830553",
+   "lane": "postgres",
+   "file": "tests/controlplane/migrations.test.ts",
+   "test": "same-owner schema6 canonical migrations keep permanent approved source snapshots select/insert-only",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-7b6172d51e68745f",
+   "lane": "postgres",
+   "file": "tests/controlplane/migrations.test.ts",
+   "test": "schema12 refuses startup and even source-free plan review until the canonical source migration is applied",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-7811f6c1566337ed",
+   "lane": "postgres",
+   "file": "tests/controlplane/migrations.test.ts",
+   "test": "schema 6 emitted hardening upgrades through the canonical migrator under a distinct owner with RLS, role isolation and immutable artifacts",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-a5f176daa31b1596",
+   "lane": "postgres",
+   "file": "tests/controlplane/migrations.test.ts",
+   "test": "two migrators racing on an empty database converge: one applies, the other finds it done",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-fc4a5692d6710993",
+   "lane": "postgres",
+   "file": "tests/controlplane/migrations.test.ts",
+   "test": "openPlatformDb({ kind: 'postgres' }) does not migrate unless asked, and a bare open sees the schema as behind",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-6b559ab5b73e7690",
+   "lane": "postgres",
+   "file": "tests/controlplane/migrations.test.ts",
+   "test": "BOOTSTRAP_SQL is idempotent",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-35f8dae4e9a172a6",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-serialization.test.ts",
+   "test": "claim waits for new owner and rechecks committed ownership",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-49fcde3acc371d45",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-serialization.test.ts",
+   "test": "claim waits for new fact and rechecks committed ownership",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-61244396f4d23e54",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-serialization.test.ts",
+   "test": "claim waits for new spec and rechecks committed ownership",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-26083973e1c66731",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-serialization.test.ts",
+   "test": "grant waits for new owner and rechecks committed ownership",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-8969efaf671ae381",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-serialization.test.ts",
+   "test": "grant waits for new fact and rechecks committed ownership",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-f08ea9f23cb1138c",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-serialization.test.ts",
+   "test": "grant waits for new spec and rechecks committed ownership",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-82a7dfb238822f3b",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-serialization.test.ts",
+   "test": "readback waits for new owner and reads facts and transfers from one committed graph",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-ba99c72062c5311c",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-serialization.test.ts",
+   "test": "readback waits for new fact and reads facts and transfers from one committed graph",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-ee7dbd39a81039f3",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-serialization.test.ts",
+   "test": "readback waits for new spec and reads facts and transfers from one committed graph",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-a6a981db1d5be367",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-serialization.test.ts",
+   "test": "dispatch winning first blocks owner mutation until admission commits",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-f05d036bd64b16a9",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-serialization.test.ts",
+   "test": "dispatch winning first blocks fact mutation until admission commits",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-b35e91f76c287bf6",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-serialization.test.ts",
+   "test": "dispatch winning first blocks spec mutation until admission commits",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-dde334da4574cc83",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-serialization.test.ts",
+   "test": "reads without tuple-lock inversion when a fact update already owns its resource row",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-736111144ae6ecdd",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-serialization.test.ts",
+   "test": "transaction lock rollback releases a waiting claim without phantom facts",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-139580033efaa967",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-serialization.test.ts",
+   "test": "an absent target cannot bypass final operation expiry after a real coordinator wait",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-27490083836ea527",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-serialization.test.ts",
+   "test": "another workspace or environment does not share the held coordinator",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-5e945b4534e6043d",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-serialization.test.ts",
+   "test": "direct transfer INSERT waits for its operation FK before taking the coordinator",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-0886b9ea0d20fa80",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-serialization.test.ts",
+   "test": "upgrades genuine schema 43 through migration 53 with unchanged earlier checksums and service-role ACLs",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-683a6a3ff8b581c2",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-transfers.test.ts",
+   "test": "refuses a size grant after the exact IaC transfer expires behind the final native coordinator",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-f0a05d82f97b9132",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-transfers.test.ts",
+   "test": "records and replays an exact human-approved transfer without immutable-column UPDATE privileges",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-3c7a77c7d1e51104",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-transfers.test.ts",
+   "test": "two independent service-role replay transactions preserve the original immutable receipt",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-a7811442ed100bbc",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-transfers.test.ts",
+   "test": "foreign, differently approved and revoked replays cannot rewrite or revive the stored transfer",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-31f87982e7f16fc0",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-transfers.test.ts",
+   "test": "rechecks a revoked enabling transfer after the owning operation lock wait without consuming approval",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-d510dab8099d2c4f",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-transfers.test.ts",
+   "test": "rechecks a transfer whose one-way revocation committed during the native transfer row wait",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-64f21532bc7f56ec",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-transfers.test.ts",
+   "test": "rolls back approval consumption when the selected transfer expires during the real approval row wait",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-e93ff16729b612ea",
+   "lane": "postgres",
+   "file": "tests/controlplane/ownership-transfers.test.ts",
+   "test": "refuses final mutation grant insertion after transfer expiry behind the actual cleanup coordinator",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-1be1e0d1f78036f0",
+   "lane": "postgres",
+   "file": "tests/controlplane/tenancy.test.ts",
+   "test": "sweeps claim/get/acknowledge/observeTerminal with current owning authority and preserves A exactly",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-860b97102b74ee50",
+   "lane": "postgres",
+   "file": "tests/controlplane/tenancy.test.ts",
+   "test": "sweeps get/prepare/claim/acknowledge with owning approval and fence while preserving A's immutable attempt and authority",
+   "requirements": [
+    "PROD-DUR-01",
+    "PROD-DUR-02",
+    "PROD-DUR-05",
+    "PROD-DUR-06",
+    "PROD-DUR-07",
+    "PROD-DUR-08"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-756bde47cd4150de",
+   "lane": "browser",
+   "file": "tests/cost/optimizer-settings.http.local.test.ts",
+   "test": "requires a human session and same-origin consent, enforces tenant scope/CAS and restores opt-out",
+   "requirements": [
+    "PROD-COST-01",
+    "PROD-COST-02",
+    "PROD-COST-03"
+   ],
+   "status": "not_run",
+   "reason": "not run: browser fixture on an operated J1/J2 stack not prepared in this run"
+  },
+  {
+   "id": "wave6-ac781b050767380f",
+   "lane": "postgres",
+   "file": "tests/cost/optimizer-settings.test.ts",
+   "test": "defaults off and records consent plus audit, without operations or approvals",
+   "requirements": [
+    "PROD-COST-01",
+    "PROD-COST-02",
+    "PROD-COST-03"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-10989827a06e8386",
+   "lane": "postgres",
+   "file": "tests/cost/optimizer-settings.test.ts",
+   "test": "refuses bearer-shaped actors, non-admins, cross-tenant scope and malformed consent",
+   "requirements": [
+    "PROD-COST-01",
+    "PROD-COST-02",
+    "PROD-COST-03"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-e09de5021ae52ed7",
+   "lane": "postgres",
+   "file": "tests/cost/optimizer-settings.test.ts",
+   "test": "refuses a nonexistent expected version and serializes simultaneous first opt-ins",
+   "requirements": [
+    "PROD-COST-01",
+    "PROD-COST-02",
+    "PROD-COST-03"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-810d104725df25f3",
+   "lane": "docker",
+   "file": "tests/deploy/default-stack.engine.test.ts",
+   "test": "observes real API and worker health, HTTPS and verified pooler TLS",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "fd5aa0af62e8bf0873ebc825a270a30678826ebd",
+   "run": "full-file report (one owned lean stack per file)"
+  },
+  {
+   "id": "wave6-2cdaf7b373b8a9cf",
+   "lane": "docker",
+   "file": "tests/deploy/default-stack.engine.test.ts",
+   "test": "applies real Supabase migrations and proves authorization, concurrent transactions and restore readback",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "fd5aa0af62e8bf0873ebc825a270a30678826ebd",
+   "run": "full-file report (one owned lean stack per file)"
+  },
+  {
+   "id": "wave6-845f5dc2afc8380f",
+   "lane": "docker",
+   "file": "tests/deploy/default-stack.engine.test.ts",
+   "test": "leaves zero ownership-labelled Docker resources",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "fd5aa0af62e8bf0873ebc825a270a30678826ebd",
+   "run": "full-file report (one owned lean stack per file)"
+  },
+  {
+   "id": "wave6-73da625411010bf6",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "requires one durable Supabase database and authenticated Temporal inputs",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-51d711ce827b44c1",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects 'public auth absent' without exposing values",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-5124accafc892d61",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects 'service auth absent' without exposing values",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-aba25de661bdd749",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects 'public auth mismatch' without exposing values",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-8b658e1dc5e8e32a",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects 'placeholder' without exposing values",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-e5e4ebd60ed19a2e",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects 'non-TLS public origin' without exposing values",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-626baaaa2c6e49ce",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects 'nonverifying pooler TLS' without exposing values",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-ad3354dbd8ab2655",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects 'wrong pooler mode' without exposing values",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-6fd882f5dd0b17b0",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects 'TLS override parameter' without exposing values",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-0c9d013625ca2bcd",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects 'nonverifying platform TLS' without exposing values",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-5be46fcffc70e65e",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects 'separate database authority' without exposing values",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-2a5c5e71763020d1",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects 'different migration authority' without exposing values",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-6cea8d51ac45b758",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects 'file backend override' without exposing values",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-2ab0d6feb1762c3e",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects 'PGlite platform' without exposing values",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-d112136d437f4520",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects 'Temporal auth absent' without exposing values",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-f25310bf0ca78025",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects 'Temporal TLS disabled' without exposing values",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-11dd9de68c3212dd",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects 'unpaired OAuth config' without exposing values",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-9e53dc8bb3fdacb4",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects 'floating image' without exposing values",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-6c9052b648839b68",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects 'out-of-range port' without exposing values",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-1a118e66e57147c8",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'SUPABASE_DB_URL': 'sslmode=verify-full&sslmode=require'",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-35dca04f6ff4658b",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'SUPABASE_DB_URL': 'sslmode=require&sslmode=verify-full'",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-e23a76ff3df91df6",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'SUPABASE_DB_URL': 'sslmode=verify-full&sslmode=verify-fu…'",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-c43bd23f8d45eeb9",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'SUPABASE_DB_URL': 'sslmode=verify-full&%73slmode=require'",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-f045da0f2240ec81",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'SUPABASE_DB_URL': '%73slmode=require&sslmode=verify-full'",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-11d9dbbcc319bd8d",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'SUPABASE_DB_URL': 'sslmode=require'",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-cdf097a72ee07843",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'SUPABASE_DB_URL': 'sslmode=prefer'",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-ee617f88a7f51981",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'SUPABASE_DB_URL': ''",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-e6b608dd60664b17",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'ZENITH_PLATFORM_DB_URL': 'sslmode=verify-full&sslmode=require'",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-243268acee302243",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'ZENITH_PLATFORM_DB_URL': 'sslmode=require&sslmode=verify-full'",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-1a0938717c55c1c7",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'ZENITH_PLATFORM_DB_URL': 'sslmode=verify-full&sslmode=verify-fu…'",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-3e7c6b700e3f540e",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'ZENITH_PLATFORM_DB_URL': 'sslmode=verify-full&%73slmode=require'",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-2570f46fe0592083",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'ZENITH_PLATFORM_DB_URL': '%73slmode=require&sslmode=verify-full'",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-4667b2d205be8c87",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'ZENITH_PLATFORM_DB_URL': 'sslmode=require'",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-4aa3f759fca9592a",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'ZENITH_PLATFORM_DB_URL': 'sslmode=prefer'",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-95b7ff068d8b8c9e",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'ZENITH_PLATFORM_DB_URL': ''",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-f13aa4440ff7f612",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'ZENITH_PLATFORM_MIGRATION_URL': 'sslmode=verify-full&sslmode=require'",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-c0a7ea16ab417643",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'ZENITH_PLATFORM_MIGRATION_URL': 'sslmode=require&sslmode=verify-full'",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-05ba901fdbd90634",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'ZENITH_PLATFORM_MIGRATION_URL': 'sslmode=verify-full&sslmode=verify-fu…'",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-3a37e98089e6b319",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'ZENITH_PLATFORM_MIGRATION_URL': 'sslmode=verify-full&%73slmode=require'",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-514f69c6b4545067",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'ZENITH_PLATFORM_MIGRATION_URL': '%73slmode=require&sslmode=verify-full'",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-f5cd793d901679c0",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'ZENITH_PLATFORM_MIGRATION_URL': 'sslmode=require'",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-00984984e6dcb177",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'ZENITH_PLATFORM_MIGRATION_URL': 'sslmode=prefer'",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-d1338818584f131e",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ambiguous or weaker TLS on 'ZENITH_PLATFORM_MIGRATION_URL': ''",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-925ed4ab52fda31e",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "refuses credentials in the source tree or an existing private installation",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-980ca90692eb4301",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "refuses upstream local engine overrides in disposable mode",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-a969db57c3325233",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects a private input file inside the build context before any preparation writes",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-6d6902863a5ff23d",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects unknown top-level and image keys before printing private input fields",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-4ccbd7730d84603d",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects an outside input path whose ancestor symlink aliases the build context",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-b6051a89d4e92e07",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "prepares an additional worker from the private keyring with independent scratch and unchanged keys",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-20fa6980b6657e71",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "refuses keyring drift before creating any joined worker files",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-f433c9f0fd7c9dcf",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "refuses a v1 private directory before reading effective env or copying data",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-467bf8a50a044a9f",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "generates private keys and a unique project at runtime, with separate scratch paths",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-4589ff457dac9000",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects permissions drift and effective-env drift",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-95f1bf5eeb25252e",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "labels preparation evidence and unobserved acceptance honestly without secrets",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-f0a4b8c316529723",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "uses an explicit project and private env file, never the root fixture",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-dace2ca5a075c9ee",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "removes shell overrides of validated Compose settings while retaining Docker transport settings",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-5641d9f233db64d6",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects ancestor symlinks for preparation and reopened private installations",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-4bef9c2d1ffec712",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects unknown prepared source keys and emits only explicit image/provenance fields",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-ce05bf2dc96145e2",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "separates scratch volumes, uses live worker readiness and an explicit migrator",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-83e1fdfcd8ea9a6a",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "pins Temporal, publishes no engine port, and waits for its real health check",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-d6b39ec2860fbe32",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "validates production and disposable Compose without pulling images or starting services",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-518a7bb9be686033",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "checks auth configuration, HTML and the bearer boundary without claiming authenticated acceptance",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-ea30861ba0223eb3",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "fails demo authentication, unavailable API, or a permissive MCP boundary",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-994f7cc92baf87f7",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "rejects a bearer challenge for a different MCP resource",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-171de586557608dd",
+   "lane": "native-tools",
+   "file": "tests/deploy/installation.native.test.ts",
+   "test": "requires configured OAuth discovery to name the trusted issuer and v3 resource",
+   "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-bc0928296031b521",
+   "lane": "kind",
+   "file": "tests/isolation/gateway-isolation-acceptance.test.ts",
+   "test": "routes HTTPS through both real Gateways to their distinct sandbox backends",
+   "requirements": [
+    "PROD-MAN-04",
+    "PROD-MAN-07"
+   ],
+   "status": "not_run",
+   "reason": "not run: needs Cilium Gateway; helm is not installed and scripts/isolation/cilium.env chart pins are empty"
+  },
+  {
+   "id": "wave6-eb1b303e8b6d24db",
+   "lane": "kind",
+   "file": "tests/isolation/gateway-isolation-acceptance.test.ts",
+   "test": "refuses a route from tenant A attaching to tenant B's listener, with B's routing still working",
+   "requirements": [
+    "PROD-MAN-04",
+    "PROD-MAN-07"
+   ],
+   "status": "not_run",
+   "reason": "not run: needs Cilium Gateway; helm is not installed and scripts/isolation/cilium.env chart pins are empty"
+  },
+  {
+   "id": "wave6-766d337f66ae01ef",
+   "lane": "kind",
+   "file": "tests/isolation/gateway-isolation-acceptance.test.ts",
+   "test": "refuses a cross-tenant backend without a ReferenceGrant and keeps the other tenant serving",
+   "requirements": [
+    "PROD-MAN-04",
+    "PROD-MAN-07"
+   ],
+   "status": "not_run",
+   "reason": "not run: needs Cilium Gateway; helm is not installed and scripts/isolation/cilium.env chart pins are empty"
+  },
+  {
+   "id": "wave6-4ec7a4dd6504ae54",
+   "lane": "kind",
+   "file": "tests/isolation/gvisor-onboarding-acceptance.test.ts",
+   "test": "refuses unreviewed first provisioning, then issues independently scoped real tokens for two tenants",
+   "requirements": [
+    "PROD-MAN-04",
+    "PROD-MAN-07"
+   ],
+   "status": "not_run",
+   "reason": "not run: needs gVisor runsc installed in the kind nodes (toolchain download not authorized in this run)"
+  },
+  {
+   "id": "wave6-43d7f3de21941fa3",
+   "lane": "kind",
+   "file": "tests/isolation/gvisor-runtime-acceptance.test.ts",
+   "test": "independently reads containerd's actual runsc runtime for BOTH tenant workloads",
+   "requirements": [
+    "PROD-MAN-04",
+    "PROD-MAN-07"
+   ],
+   "status": "not_run",
+   "reason": "not run: needs gVisor runsc installed in the kind nodes (toolchain download not authorized in this run)"
+  },
+  {
+   "id": "wave6-ad49950ddfb0aaab",
+   "lane": "kind",
+   "file": "tests/isolation/gvisor-runtime-acceptance.test.ts",
+   "test": "the gateway reaches both sandboxes while cross-tenant traffic is blocked in both directions",
+   "requirements": [
+    "PROD-MAN-04",
+    "PROD-MAN-07"
+   ],
+   "status": "not_run",
+   "reason": "not run: needs gVisor runsc installed in the kind nodes (toolchain download not authorized in this run)"
+  },
+  {
+   "id": "wave6-dc20b5b07fe54d7c",
+   "lane": "kind",
+   "file": "tests/isolation/gvisor-runtime-acceptance.test.ts",
+   "test": "sandboxed workloads still obey restricted Pod Security admission",
+   "requirements": [
+    "PROD-MAN-04",
+    "PROD-MAN-07"
+   ],
+   "status": "not_run",
+   "reason": "not run: needs gVisor runsc installed in the kind nodes (toolchain download not authorized in this run)"
+  },
+  {
+   "id": "wave6-9189a46a8273063a",
+   "lane": "kind",
+   "file": "tests/isolation/gvisor-runtime-acceptance.test.ts",
+   "test": "a sandboxed memory exhaustion is OOM-killed without restarting the other tenant",
+   "requirements": [
+    "PROD-MAN-04",
+    "PROD-MAN-07"
+   ],
+   "status": "not_run",
+   "reason": "not run: needs gVisor runsc installed in the kind nodes (toolchain download not authorized in this run)"
+  },
+  {
+   "id": "wave6-7b3244de69d83ec6",
+   "lane": "kind",
+   "file": "tests/isolation/managed-onboarding-readiness.test.ts",
+   "test": "billing upgrades and downgrades preserve readiness of the exact applied capacity bundle without quota writes",
+   "requirements": [
+    "PROD-MAN-04",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "per-case lane argv (kind)"
+  },
+  {
+   "id": "wave6-981b0f91aafe4801",
+   "lane": "kind",
+   "file": "tests/isolation/managed-onboarding-readiness.test.ts",
+   "test": "refuses an absent tenant namespace without creating it",
+   "requirements": [
+    "PROD-MAN-04",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "per-case lane argv (kind)"
+  },
+  {
+   "id": "wave6-3dc1c833fedf5a45",
+   "lane": "kind",
+   "file": "tests/isolation/managed-onboarding-readiness.test.ts",
+   "test": "accepts a complete read-back bundle only with the real least-authority tenant identity",
+   "requirements": [
+    "PROD-MAN-04",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "per-case lane argv (kind)"
+  },
+  {
+   "id": "wave6-fa9b64b46891c8a4",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "refuses each adversarial pod at admission and creates nothing",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+  },
+  {
+   "id": "wave6-666b0ce4b0f1b8f8",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "the control: the same pod without the violation is admitted",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+  },
+  {
+   "id": "wave6-69b718d22b64fa8f",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "a system-priority pod is refused by the priority quota, and the isolation gate agrees on a rendered workload",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+  },
+  {
+   "id": "wave6-a9a3d94f64a9c65b",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "a pod that names a RuntimeClass the platform does not serve never runs",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+  },
+  {
+   "id": "wave6-b134f0c72b5c2764",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "refuses a container above the plan's per-container ceiling",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+  },
+  {
+   "id": "wave6-baca1188ff22b75b",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "refuses the pod that would exceed the namespace CPU quota",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+  },
+  {
+   "id": "wave6-6e39db441c989872",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "refuses secrets past the object-count quota",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+  },
+  {
+   "id": "wave6-75d7f39b3c8458a0",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "refuses LoadBalancer and NodePort services and a PVC on a plan with no storage",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+  },
+  {
+   "id": "wave6-0b4449bed035144d",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "starts a server in each tenant, the intra-namespace allow in B, and measures nothing yet",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+  },
+  {
+   "id": "wave6-b5fbfa35acaf08cd",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "controls: the gateway namespace reaches both tenants, and B's labelled client reaches B's server",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+  },
+  {
+   "id": "wave6-89ea273fc627a605",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "A cannot reach B by pod IP, and B cannot reach A",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+  },
+  {
+   "id": "wave6-cde8e506420e6199",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "A cannot reach B by service name: DNS resolves, the packet is dropped",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+  },
+  {
+   "id": "wave6-308429f9772444e0",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "an unlabelled pod in the SAME namespace cannot reach its neighbour (default deny applies inside a namespace)",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+  },
+  {
+   "id": "wave6-4adc945248655d71",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "A cannot reach the kubelet, the API server or the metadata address; the public control IS reachable (block is specific)",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+  },
+  {
+   "id": "wave6-a3693b27e6f60f3b",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "an allowlisted name is reachable, an unlisted one is not, and a name resolving to metadata is blocked by the deny",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "not_run",
+   "reason": "skipped by the suite on kind-calico: hostname egress needs Cilium; RuntimeClass needs a gVisor node"
+  },
+  {
+   "id": "wave6-db7b3803162d63d4",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "static analysis of the rendered operator access finds no cross-tenant grant",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+  },
+  {
+   "id": "wave6-f6bbddf3e8ba217f",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "a tenant workload ServiceAccount token reads nothing, in B or in its own namespace",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+  },
+  {
+   "id": "wave6-037d2f9c28e2320c",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "a tenant pod has no Kubernetes credential mounted",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+  },
+  {
+   "id": "wave6-90f896733453dfe2",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "A's operator identity: can-i matrix (control: it can work in A; nothing in B, the cluster or escalation)",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+  },
+  {
+   "id": "wave6-d51e91dea2e0b959",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "A's operator, with its own real token, works in A and is refused in B",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+  },
+  {
+   "id": "wave6-1da052852773cbc2",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "a pod in A that names B's claim never gets B's volume",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+  },
+  {
+   "id": "wave6-1b602effba3f5fb3",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "a pod under the mandated RuntimeClass runs, and reports a different kernel surface from the node",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "not_run",
+   "reason": "skipped by the suite on kind-calico: hostname egress needs Cilium; RuntimeClass needs a gVisor node"
+  },
+  {
+   "id": "wave6-38677a11bfbfa79c",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "makes room on the free plan for the hogs",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+  },
+  {
+   "id": "wave6-7fff0d0ad27600f5",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "measures B's baseline latency through the gateway path",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+  },
+  {
+   "id": "wave6-f66256798febedac",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "A runs CPU, memory, disk and PID exhaustion at once; B's p95 stays within the bound and nothing of B's restarts",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+  },
+  {
+   "id": "wave6-71e0aeabf0676b91",
+   "lane": "kind",
+   "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
+   "test": "the unbounded control: the same load with no quota or limits (recorded, not asserted; shows namespaces alone are not isolation)",
+   "requirements": [
+    "PROD-MAN-05",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "tenant-isolation-acceptance.sh kind-existing with ZENITH_TEST_ISOLATION_CONTROL=1"
+  },
+  {
+   "id": "wave6-585983632e0b1951",
+   "lane": "kind",
+   "file": "tests/managed-serving/serving-kind.test.ts",
+   "test": "admits the managed baseline and workloads, including the autoscaler, and delivers the secret from the vault reference",
+   "requirements": [
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "per-case lane argv (kind)"
+  },
+  {
+   "id": "wave6-64e965b681adec8d",
+   "lane": "kind",
+   "file": "tests/managed-serving/serving-kind.test.ts",
+   "test": "refuses a privileged pod in the tenant namespace",
+   "requirements": [
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "full-file report (cases share the first test's client)"
+  },
+  {
+   "id": "wave6-96c3d2556f360013",
+   "lane": "kind",
+   "file": "tests/managed-serving/serving-kind.test.ts",
+   "test": "refuses a container above the tier's LimitRange ceiling",
+   "requirements": [
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "full-file report (cases share the first test's client)"
+  },
+  {
+   "id": "wave6-cca17712c9d6960d",
+   "lane": "docker",
+   "file": "tests/managed-serving/storage-emulator.test.ts",
+   "test": "creates a principal with exactly the scoped policy, one key, and rotates cleanly",
+   "requirements": [
+    "PROD-MAN-03",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "per-case lane argv (docker)"
+  },
+  {
+   "id": "wave6-e15db1e3c9cfdb5e",
+   "lane": "docker",
+   "file": "tests/managed-serving/storage-emulator.test.ts",
+   "test": "a scoped key reads and writes inside its prefix and is denied everywhere else (needs IAM enforcement)",
+   "requirements": [
+    "PROD-MAN-03",
+    "PROD-MAN-07"
+   ],
+   "status": "failed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "per-case lane argv (docker)",
+   "failure": "\"Vitest run did not succeed\"",
+   "reason": "failed on moto 5.2.3: SigV4 SignatureDoesNotMatch for any query value containing '/', reproduced with the admin key and without the TLS proxy (emulator defect); prefix-scoped Put/Get were enforced"
+  },
+  {
+   "id": "wave6-38923a4dcd3377e5",
+   "lane": "docker",
+   "file": "tests/managed-serving/storage-emulator.test.ts",
+   "test": "the policy it enforces is the one the unit tests evaluate",
+   "requirements": [
+    "PROD-MAN-03",
+    "PROD-MAN-07"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "per-case lane argv (docker)"
+  },
+  {
+   "id": "wave6-e391be5ae4c18297",
+   "lane": "docker",
+   "file": "tests/ops/observability-import.test.ts",
+   "test": "imports/readbacks dashboard, rules, tenant metrics and correlated traces; production-duration alert fires; owned containers are removed",
+   "requirements": [
+    "PROD-OPS-02",
+    "PROD-OPS-03",
+    "PROD-OPS-05",
+    "PROD-OPS-06"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "per-case lane argv (docker)"
+  },
+  {
+   "id": "wave6-89243835226ff884",
+   "lane": "temporal",
+   "file": "tests/ops/recovery-rehearsal.test.ts",
+   "test": "captures the platform store with a manifest that names every component and verifies",
+   "requirements": [
+    "PROD-OPS-02",
+    "PROD-OPS-03",
+    "PROD-OPS-04",
+    "PROD-OPS-05",
+    "PROD-OPS-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (temporal)"
+  },
+  {
+   "id": "wave6-42117789f6c707ad",
+   "lane": "temporal",
+   "file": "tests/ops/recovery-rehearsal.test.ts",
+   "test": "writes no connection string, password or key material",
+   "requirements": [
+    "PROD-OPS-02",
+    "PROD-OPS-03",
+    "PROD-OPS-04",
+    "PROD-OPS-05",
+    "PROD-OPS-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (temporal)"
+  },
+  {
+   "id": "wave6-057163d927f55e66",
+   "lane": "temporal",
+   "file": "tests/ops/recovery-rehearsal.test.ts",
+   "test": "refuses to write into a directory that already holds a backup",
+   "requirements": [
+    "PROD-OPS-02",
+    "PROD-OPS-03",
+    "PROD-OPS-04",
+    "PROD-OPS-05",
+    "PROD-OPS-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (temporal)"
+  },
+  {
+   "id": "wave6-f3a13e0f0261375a",
+   "lane": "temporal",
+   "file": "tests/ops/recovery-rehearsal.test.ts",
+   "test": "a tampered backup restores nothing and leaves the target empty",
+   "requirements": [
+    "PROD-OPS-02",
+    "PROD-OPS-03",
+    "PROD-OPS-04",
+    "PROD-OPS-05",
+    "PROD-OPS-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (temporal)"
+  },
+  {
+   "id": "wave6-26a1c4d431b37591",
+   "lane": "temporal",
+   "file": "tests/ops/recovery-rehearsal.test.ts",
+   "test": "refuses a host that lacks the backup's keys before touching the target",
+   "requirements": [
+    "PROD-OPS-02",
+    "PROD-OPS-03",
+    "PROD-OPS-04",
+    "PROD-OPS-05",
+    "PROD-OPS-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (temporal)"
+  },
+  {
+   "id": "wave6-d8be5fe39aa61944",
+   "lane": "temporal",
+   "file": "tests/ops/recovery-rehearsal.test.ts",
+   "test": "restores atomically, verifies the counts, bumps the epoch and opens the work list",
+   "requirements": [
+    "PROD-OPS-02",
+    "PROD-OPS-03",
+    "PROD-OPS-04",
+    "PROD-OPS-05",
+    "PROD-OPS-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (temporal)"
+  },
+  {
+   "id": "wave6-ebd7a5a7fd8aa27b",
+   "lane": "temporal",
+   "file": "tests/ops/recovery-rehearsal.test.ts",
+   "test": "the approval the lost timeline consumed cannot run again; only a fresh approval in the new epoch can, once",
+   "requirements": [
+    "PROD-OPS-02",
+    "PROD-OPS-03",
+    "PROD-OPS-04",
+    "PROD-OPS-05",
+    "PROD-OPS-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f",
+   "run": "full-file report (cases depend on earlier tests in tests/ops/recovery-rehearsal.test.ts)"
+  },
+  {
+   "id": "wave6-e4011ea0f6aed539",
+   "lane": "temporal",
+   "file": "tests/ops/recovery-rehearsal.test.ts",
+   "test": "the running operation and the pending effect stay uncertain; the effect is never created twice",
+   "requirements": [
+    "PROD-OPS-02",
+    "PROD-OPS-03",
+    "PROD-OPS-04",
+    "PROD-OPS-05",
+    "PROD-OPS-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f",
+   "run": "full-file report (cases depend on earlier tests in tests/ops/recovery-rehearsal.test.ts)"
+  },
+  {
+   "id": "wave6-801b33af912a2ec2",
+   "lane": "temporal",
+   "file": "tests/ops/recovery-rehearsal.test.ts",
+   "test": "running the restore again with the same run id is idempotent; a different run id is refused as non-empty",
+   "requirements": [
+    "PROD-OPS-02",
+    "PROD-OPS-03",
+    "PROD-OPS-04",
+    "PROD-OPS-05",
+    "PROD-OPS-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f",
+   "run": "full-file report (cases depend on earlier tests in tests/ops/recovery-rehearsal.test.ts)"
+  },
+  {
+   "id": "wave6-3d411c986749d627",
+   "lane": "temporal",
+   "file": "tests/ops/recovery-rehearsal.test.ts",
+   "test": "inventories open workflows in the backup and terminates the lost timeline's operation workflows at restore",
+   "requirements": [
+    "PROD-OPS-02",
+    "PROD-OPS-03",
+    "PROD-OPS-04",
+    "PROD-OPS-05",
+    "PROD-OPS-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (temporal)"
+  },
+  {
+   "id": "wave6-bfaabb6d29b15b8b",
+   "lane": "postgres",
+   "file": "tests/placement/measurement-collector.local.test.ts",
+   "test": "reads real scoped measurements and produces a bounded proposal with current approved field ownership",
+   "requirements": [],
+   "status": "failed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)",
+   "failure": "\"Vitest run did not succeed\"",
+   "reason": "unverified: the lane ran without Prometheus and the opt-in cost/placement fixtures, so the case did not pass (fixture gap, not a product finding)"
+  },
+  {
+   "id": "wave6-e47caf9ae7fe5299",
+   "lane": "postgres",
+   "file": "tests/placement/optimizer-sweep.local.test.ts",
+   "test": "does not propose before consent, proposes bounded unexecuted changes after consent and retains cooldown on another natural pass",
+   "requirements": [],
+   "status": "failed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)",
+   "failure": "\"Vitest run did not succeed\"",
+   "reason": "unverified: the lane ran without Prometheus and the opt-in cost/placement fixtures, so the case did not pass (fixture gap, not a product finding)"
+  },
+  {
+   "id": "wave6-b69fb35c1524e772",
+   "lane": "kind",
+   "file": "tests/providers/kubernetes/build/kind.test.ts",
+   "test": "builds source through default ports, proves actual isolation, migrates, waits ready and independently reads the running artifact",
+   "requirements": [
+    "PROD-LIFE-03",
+    "PROD-LIFE-07",
+    "PROD-LIFE-08",
+    "PROD-LIFE-09",
+    "PROD-LIFE-10",
+    "PROD-LIFE-12"
+   ],
+   "status": "not_run",
+   "reason": "not run: J6 operated isolated-build fixture (workspace, environment and fixture binary) not prepared in this run"
+  },
+  {
+   "id": "wave6-d619a3904fed6789",
+   "lane": "docker",
+   "file": "tests/providers/kubernetes/build/operated-release.test.ts",
+   "test": "observes real review/workflow, immutable source, signed provenance, migration and independent SQL/HTTP readbacks",
+   "requirements": [
+    "PROD-LIFE-03",
+    "PROD-LIFE-07",
+    "PROD-LIFE-08",
+    "PROD-LIFE-09",
+    "PROD-LIFE-10",
+    "PROD-LIFE-12"
+   ],
+   "status": "not_run",
+   "reason": "not run: J6 operated isolated-build fixture (workspace, environment and fixture binary) not prepared in this run"
+  },
+  {
+   "id": "wave6-f2eed433c84f3969",
+   "lane": "postgres",
+   "file": "tests/providers/kubernetes/build/schema.test.ts",
+   "test": "widens only the provider list and remains idempotent",
+   "requirements": [
+    "PROD-LIFE-03",
+    "PROD-LIFE-07",
+    "PROD-LIFE-08",
+    "PROD-LIFE-09",
+    "PROD-LIFE-10",
+    "PROD-LIFE-12"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-045f73e3cf707b69",
+   "lane": "postgres",
+   "file": "tests/providers/kubernetes/build/schema.test.ts",
+   "test": "retains aws records while enforcing immutable rows",
+   "requirements": [
+    "PROD-LIFE-03",
+    "PROD-LIFE-07",
+    "PROD-LIFE-08",
+    "PROD-LIFE-09",
+    "PROD-LIFE-10",
+    "PROD-LIFE-12"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-15f5beed3ff4f86a",
+   "lane": "postgres",
+   "file": "tests/providers/kubernetes/build/schema.test.ts",
+   "test": "retains gcp records while enforcing immutable rows",
+   "requirements": [
+    "PROD-LIFE-03",
+    "PROD-LIFE-07",
+    "PROD-LIFE-08",
+    "PROD-LIFE-09",
+    "PROD-LIFE-10",
+    "PROD-LIFE-12"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-8de5188519bfa3c5",
+   "lane": "postgres",
+   "file": "tests/providers/kubernetes/build/schema.test.ts",
+   "test": "retains azure records while enforcing immutable rows",
+   "requirements": [
+    "PROD-LIFE-03",
+    "PROD-LIFE-07",
+    "PROD-LIFE-08",
+    "PROD-LIFE-09",
+    "PROD-LIFE-10",
+    "PROD-LIFE-12"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-c6a9a2c8651386e4",
+   "lane": "postgres",
+   "file": "tests/providers/kubernetes/build/schema.test.ts",
+   "test": "retains zenith records while enforcing immutable rows",
+   "requirements": [
+    "PROD-LIFE-03",
+    "PROD-LIFE-07",
+    "PROD-LIFE-08",
+    "PROD-LIFE-09",
+    "PROD-LIFE-10",
+    "PROD-LIFE-12"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-e1f8e310c6c071f3",
+   "lane": "postgres",
+   "file": "tests/providers/kubernetes/build/schema.test.ts",
+   "test": "retains kubernetes records while enforcing immutable rows",
+   "requirements": [
+    "PROD-LIFE-03",
+    "PROD-LIFE-07",
+    "PROD-LIFE-08",
+    "PROD-LIFE-09",
+    "PROD-LIFE-10",
+    "PROD-LIFE-12"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-541f684105e5c207",
+   "lane": "postgres",
+   "file": "tests/providers/kubernetes/build/schema.test.ts",
+   "test": "preserves malformed snapshot and archive-format refusal",
+   "requirements": [
+    "PROD-LIFE-03",
+    "PROD-LIFE-07",
+    "PROD-LIFE-08",
+    "PROD-LIFE-09",
+    "PROD-LIFE-10",
+    "PROD-LIFE-12"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-ee3dd4060c9d3114",
+   "lane": "browser",
+   "file": "tests/release/candidate.live.test.ts",
+   "test": "every requirement has its execution levels and real source files at the same candidate",
+   "requirements": [
+    "PROD-REL-02",
+    "PROD-REL-03",
+    "PROD-REL-04"
+   ],
+   "status": "not_run",
+   "reason": "not run: requires production signoff (ZENITH_VERIFY_PRODUCTION_SIGNOFF), which is the owner's authority"
+  },
+  {
+   "id": "wave6-34d670d694583a08",
+   "lane": "browser",
+   "file": "tests/release/candidate.live.test.ts",
+   "test": "the dossier maps all candidate requirements, evidence files and operating instructions",
+   "requirements": [
+    "PROD-REL-02",
+    "PROD-REL-03",
+    "PROD-REL-04"
+   ],
+   "status": "not_run",
+   "reason": "not run: requires production signoff (ZENITH_VERIFY_PRODUCTION_SIGNOFF), which is the owner's authority"
+  },
+  {
+   "id": "wave6-f55ef0f82edbdef7",
+   "lane": "docker",
+   "file": "tests/release/candidate.live.test.ts",
+   "test": "approves only with actual evidence, an external identity/key pin and a real signature",
+   "requirements": [
+    "PROD-REL-02",
+    "PROD-REL-03",
+    "PROD-REL-04"
+   ],
+   "status": "not_run",
+   "reason": "not run: requires production signoff (ZENITH_VERIFY_PRODUCTION_SIGNOFF), which is the owner's authority"
+  },
+  {
+   "id": "wave6-16945d5b63122abb",
+   "lane": "kind",
+   "file": "tests/providers/zenith/managed-kind.test.ts",
+   "test": "is configured from the environment alone and says what it can do",
+   "requirements": [
+    "PROD-LIFE-03",
+    "PROD-LIFE-07",
+    "PROD-LIFE-08",
+    "PROD-LIFE-09",
+    "PROD-LIFE-10",
+    "PROD-LIFE-12",
+    "PROD-MAN-07"
+   ],
+   "status": "failed",
+   "commit": "8e20b1f45a1b856bad5727a5e1884dae20d660a5",
+   "run": "scripts/k8s/managed-substrate-acceptance.sh (kind-calico, registry and kaniko v1.23.2 pinned by digest)",
+   "reason": "failed 5/6 on 8e20b1f4: the harness predates required tenant operator custody (ZENITH_MANAGED_OPERATOR_CREDENTIAL_PREFIX and a verified tenant operator identity through reviewed isolation custody); harness update open"
+  },
+  {
+   "id": "wave6-b5f40605f3cc1871",
+   "lane": "kind",
+   "file": "tests/providers/zenith/managed-kind.test.ts",
+   "test": "opens tenant-scoped sessions through the platform vault and applies the managed baseline and a workload",
+   "requirements": [
+    "PROD-LIFE-03",
+    "PROD-LIFE-07",
+    "PROD-LIFE-08",
+    "PROD-LIFE-09",
+    "PROD-LIFE-10",
+    "PROD-LIFE-12",
+    "PROD-MAN-07"
+   ],
+   "status": "failed",
+   "commit": "8e20b1f45a1b856bad5727a5e1884dae20d660a5",
+   "run": "scripts/k8s/managed-substrate-acceptance.sh (kind-calico, registry and kaniko v1.23.2 pinned by digest)",
+   "reason": "failed 5/6 on 8e20b1f4: the harness predates required tenant operator custody (ZENITH_MANAGED_OPERATOR_CREDENTIAL_PREFIX and a verified tenant operator identity through reviewed isolation custody); harness update open"
+  },
+  {
+   "id": "wave6-f874050669d5c165",
+   "lane": "kind",
+   "file": "tests/providers/zenith/managed-kind.test.ts",
+   "test": "scopes each session to its own tenant namespace: not another tenant, not the build namespace, not kube-system",
+   "requirements": [
+    "PROD-LIFE-03",
+    "PROD-LIFE-07",
+    "PROD-LIFE-08",
+    "PROD-LIFE-09",
+    "PROD-LIFE-10",
+    "PROD-LIFE-12",
+    "PROD-MAN-07"
+   ],
+   "status": "failed",
+   "commit": "8e20b1f45a1b856bad5727a5e1884dae20d660a5",
+   "run": "scripts/k8s/managed-substrate-acceptance.sh (kind-calico, registry and kaniko v1.23.2 pinned by digest)",
+   "reason": "failed 5/6 on 8e20b1f4: the harness predates required tenant operator custody (ZENITH_MANAGED_OPERATOR_CREDENTIAL_PREFIX and a verified tenant operator identity through reviewed isolation custody); harness update open"
+  },
+  {
+   "id": "wave6-adf87102d932856a",
+   "lane": "kind",
+   "file": "tests/providers/zenith/managed-kind.test.ts",
+   "test": "rolls the Deployment to a new pinned digest through the release adapter and the managed session",
+   "requirements": [
+    "PROD-LIFE-03",
+    "PROD-LIFE-07",
+    "PROD-LIFE-08",
+    "PROD-LIFE-09",
+    "PROD-LIFE-10",
+    "PROD-LIFE-12",
+    "PROD-MAN-07"
+   ],
+   "status": "failed",
+   "commit": "8e20b1f45a1b856bad5727a5e1884dae20d660a5",
+   "run": "scripts/k8s/managed-substrate-acceptance.sh (kind-calico, registry and kaniko v1.23.2 pinned by digest)",
+   "reason": "failed 5/6 on 8e20b1f4: the harness predates required tenant operator custody (ZENITH_MANAGED_OPERATOR_CREDENTIAL_PREFIX and a verified tenant operator identity through reviewed isolation custody); harness update open"
+  },
+  {
+   "id": "wave6-9a4769da866ad98b",
+   "lane": "kind",
+   "file": "tests/providers/zenith/managed-kind.test.ts",
+   "test": "builds a source archive in the platform build namespace and returns an admitted, attested digest",
+   "requirements": [
+    "PROD-LIFE-03",
+    "PROD-LIFE-07",
+    "PROD-LIFE-08",
+    "PROD-LIFE-09",
+    "PROD-LIFE-10",
+    "PROD-LIFE-12",
+    "PROD-MAN-07"
+   ],
+   "status": "failed",
+   "commit": "8e20b1f45a1b856bad5727a5e1884dae20d660a5",
+   "run": "scripts/k8s/managed-substrate-acceptance.sh (kind-calico, registry and kaniko v1.23.2 pinned by digest)",
+   "reason": "failed 5/6 on 8e20b1f4: the harness predates required tenant operator custody (ZENITH_MANAGED_OPERATOR_CREDENTIAL_PREFIX and a verified tenant operator identity through reviewed isolation custody); harness update open"
+  },
+  {
+   "id": "wave6-18aaaf4f190d34ce",
+   "lane": "kind",
+   "file": "tests/providers/zenith/managed-kind.test.ts",
+   "test": "enforces the build namespace egress policy with real traffic (needs an enforcing CNI)",
+   "requirements": [
+    "PROD-LIFE-03",
+    "PROD-LIFE-07",
+    "PROD-LIFE-08",
+    "PROD-LIFE-09",
+    "PROD-LIFE-10",
+    "PROD-LIFE-12",
+    "PROD-MAN-07"
+   ],
+   "status": "passed_unverifiable",
+   "commit": "8e20b1f45a1b856bad5727a5e1884dae20d660a5",
+   "run": "scripts/k8s/managed-substrate-acceptance.sh (kind-calico, registry and kaniko v1.23.2 pinned by digest)",
+   "note": "the case passed, but wave6-gates refuses the whole report because other cases in the file failed"
+  },
+  {
+   "id": "wave6-5291ed9f4fa7d69c",
+   "lane": "postgres",
+   "file": "tests/runners/update-control-postgres.test.ts",
+   "test": "real PostgreSQL serializes conflicting update/hold intents after migration 54",
+   "requirements": [
+    "PROD-MACH-02",
+    "PROD-MACH-03",
+    "PROD-MACH-04",
+    "PROD-MACH-06"
+   ],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (postgres)"
+  },
+  {
+   "id": "wave6-cb49465af63f68a7",
+   "lane": "native-tools",
+   "file": "tests/tofu/typed-inputs.test.ts",
+   "test": "delivers a non-secret input by default and a secret through the input channel only, and captures outputs",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-171989b7d88a2b43",
+   "lane": "native-tools",
+   "file": "tests/tofu/typed-inputs.test.ts",
+   "test": "returns no sensitive values unless asked for",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-8f4d6632cdd867d2",
+   "lane": "native-tools",
+   "file": "tests/tofu/typed-inputs.test.ts",
+   "test": "refuses to plan a consumer whose secret input was not supplied (nothing is guessed or defaulted)",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-35d20a72a2c234a9",
+   "lane": "native-tools",
+   "file": "tests/tofu/typed-inputs.test.ts",
+   "test": "refuses an input channel entry outside the zenith_in_ variable namespace",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-bc2f075651482e3d",
+   "lane": "native-tools",
+   "file": "tests/tofu/typed-substitution.test.ts",
+   "test": "renders the AWS function URL and the Azure host into env values, a URL, a connection string and an allowlist",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-011304559a78ec3d",
+   "lane": "native-tools",
+   "file": "tests/tofu/typed-substitution.test.ts",
+   "test": "a changed producer value changes the configuration digest, so the reviewed plan no longer applies",
+   "requirements": [],
+   "status": "passed",
+   "commit": "8776af2f6345deaaf8bab4ec9f877a3c60114abc",
+   "run": "per-case lane argv (native-tools)"
+  },
+  {
+   "id": "wave6-5615dc34e8887f07",
+   "lane": "browser",
+   "file": "tests/auth/life10-migration-approval-browser.test.ts",
+   "test": "denies requester and records one exact-bound approval from a distinct real admin",
+   "requirements": [
+    "PROD-LIFE-10"
+   ],
+   "status": "not_run",
+   "reason": "not run: needs a two-admin password-login MFA fixture on a J1 stack and a Chromium trust path for the private CA (not built)"
+  },
+  {
+   "id": "wave6-03be46338cbeb148",
+   "lane": "browser",
+   "file": "tests/e2e/default/ux-receipt-gated.test.ts",
+   "test": "validates the source-bound actual-browser receipt against the completed J2 receipt",
+   "requirements": [
+    "PROD-UX-01"
+   ],
+   "status": "not_run",
+   "reason": "not run: browser fixture on an operated J1/J2 stack not prepared in this run"
+  },
+  {
+   "id": "wave6-0e2f61ae68595277",
+   "lane": "browser",
+   "file": "tests/e2e/default/journey-receipt-gated.test.ts",
+   "test": "requires the completed owned machine-health provenance check for OBS-02",
+   "requirements": [
+    "PROD-MACH-04",
+    "PROD-OBS-02"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "per-case lane argv (browser)"
+  },
+  {
+   "id": "wave6-80bfa8cded622b84",
+   "lane": "browser",
+   "file": "tests/e2e/default/journey-receipt-gated.test.ts",
+   "test": "requires the completed native fresh-token rejoin check for MACH-04",
+   "requirements": [
+    "PROD-MACH-04",
+    "PROD-OBS-02"
+   ],
+   "status": "passed",
+   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "run": "per-case lane argv (browser)"
+  }
+ ]
+}

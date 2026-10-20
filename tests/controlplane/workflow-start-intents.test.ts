@@ -129,6 +129,15 @@ describe.each(kinds)("workflow start intents [%s]",kind=>{
     await store.prepare(h.db!,request);expect((await store.claim(h.db!,request)).dispatch).toBe(true);
     expect((await operations.get(h.db!,h.ids.wsA,p.id))?.status).toBe("approved");
   });
+  it.each([["system.metrics",true],["logs.read",false]] as const)("day-two admission of read-only %s is %s (machine health reads only)",async(cap,admitted)=>{
+    const h=await makeHarness({kind,engine:scriptedEngine("read-only",()=>allowDecision())});await h.db!.exec(migration0012WorkflowStartIntents.sql);
+    const p=await proposeOk(h,requestFor(h,cap,"prod"),user("bob"));
+    await h.broker.beginExecution({workspaceId:h.ids.wsA,operationId:p.id,holder:`workflow:${p.id}`,audience:"worker",leaseMs:60_000});
+    const store=intents.createIsolatedStartIntentStoreForTests(h.broker);
+    const prepared=store.prepare(h.db!,{kind:"dayTwo",arguments:{workspaceId:h.ids.wsA,operationId:p.id,environmentId:h.ids.envAProd,capability:cap},
+      namespace:"default",endpointDigest:digest("frontend"),taskQueue:"health-read"});
+    if(admitted) expect((await prepared).phase).toBe("prepared"); else await expect(prepared).rejects.toThrow();
+  });
   it("an approved but unclaimed mutation operation cannot use workflow admission to consume or bypass its execution claim",async()=>{
     const h=await makeHarness({kind,engine:scriptedEngine("allow-proposal",()=>allowDecision())});await h.db!.exec(migration0012WorkflowStartIntents.sql);
     const p=await proposeOk(h,requestFor(h,"service.restart","prod"),user("bob"));

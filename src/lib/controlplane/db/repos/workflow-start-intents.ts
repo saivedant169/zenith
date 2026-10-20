@@ -4,6 +4,8 @@ import { createBroker, isMemoryStoreEnabled, type Broker } from "@/lib/capabilit
 import { PlatformBrokerStore } from "@/lib/capabilities/platform-store";
 import type { BrokerDeps } from "@/lib/capabilities/ports";
 import { capability, isCapability } from "@/lib/capabilities/catalog";
+import { MACHINE_HEALTH_OPERATIONS } from "@/lib/machines/telemetry";
+import type { MachineOperation } from "@/lib/machines/types";
 import { digest } from "@/lib/controlplane/digest";
 import type { Sql, Principal } from "@/lib/controlplane/types";
 import type { DispatchApprovalSnapshot } from "@/lib/execution/ports";
@@ -138,7 +140,9 @@ function bind(request: StartRequest, op: Operation): StartBinding {
   else if (request.kind === "teardownReview") {
     if (op.capability !== "infrastructure.plan" || input?.teardownReview !== true || input.environmentId !== op.environment_id) return refuse();
   } else {
-    if (!isCapability(op.capability) || !capability(op.capability).mutates
+    // Day-two runs mutations, plus the approved read-only machine health reads the worker serves through readMachineHealth (PROD-OBS-02).
+    const healthRead = request.kind === "dayTwo" && MACHINE_HEALTH_OPERATIONS.has(op.capability as MachineOperation);
+    if (!isCapability(op.capability) || (!capability(op.capability).mutates && !healthRead)
       || ["deployment.deploy","deployment.rollback","infrastructure.apply","infrastructure.destroy"].includes(op.capability)) return refuse();
     if (request.kind === "dayTwo" && args.capability !== op.capability) return refuse();
     if (request.kind === "remediation" && args.incidentId !== input?.incidentId) return refuse();

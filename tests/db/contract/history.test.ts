@@ -490,6 +490,29 @@ describe.skipIf(!postgresContractEnabled())("history contract — Postgres only"
     expect(((data ?? [])[0] as { status: string }).status).toBe("verifying");
   });
 
+  it("refuses a second instance's insert of the same new row with 409 and keeps the first", async () => {
+    const { loadSnapshot, pgClient } = await import("@/lib/db/postgres-store");
+    const { runWithSnapshot } = await import("@/lib/db/request-snapshot");
+    const store = pgStore();
+    const first = await loadSnapshot(pgClient(), user);
+    const second = await loadSnapshot(pgClient(), user);
+    const id = `${CONTRACT_PREFIX}-dep-race`;
+    await runWithSnapshot(first, async () => {
+      first.data.deployments.push({ ...deployment(id, PROJ2, ENV2, REV2), status: "planning" });
+      store.save(PROJ2);
+      await settle(store);
+    });
+    await expect(
+      runWithSnapshot(second, async () => {
+        second.data.deployments.push({ ...deployment(id, PROJ2, ENV2, REV2), status: "failed" });
+        store.save(PROJ2);
+        await settle(store);
+      })
+    ).rejects.toMatchObject({ status: 409 });
+    const { data } = await pgClient().from("deployments").select("status").eq("id", id);
+    expect((data ?? []).map((r) => (r as { status: string }).status)).toEqual(["planning"]);
+  });
+
   it("bumps the change feed for the workspace a deployment belongs to", async () => {
     const { pgClient } = await import("@/lib/db/postgres-store");
     const { data } = await pgClient()

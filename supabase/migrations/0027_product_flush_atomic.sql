@@ -15,7 +15,8 @@
 --     when no row matches (somebody else moved or removed it);
 --   * any error rolls back every write of the call.
 -- Tables are an explicit allowlist of the store's row collections. Identifiers
--- are quoted with %I and key values with %L. `security definer`, so EXECUTE
+-- are quoted with %I and key values with %L (an untyped literal takes the key
+-- column's type, so the primary-key index serves the match). `security definer`, so EXECUTE
 -- is the whole access decision: PUBLIC gets none, service_role gets it.
 -- Re-runnable: `create or replace` and idempotent grants.
 
@@ -48,7 +49,7 @@ begin
       raise exception 'zenith_product_flush: malformed write' using errcode = '22023';
     end if;
     select string_agg(format('%I', k), ', ' order by k) into cols from jsonb_object_keys(change->'row') k;
-    select string_agg(format('t.%I::text = %L', k, change->'key'->>k), ' and ' order by k) into cond
+    select string_agg(format('t.%I = %L', k, change->'key'->>k), ' and ' order by k) into cond
       from jsonb_object_keys(change->'key') k;
     if cols is null or cond is null then
       raise exception 'zenith_product_flush: empty write' using errcode = '22023';
@@ -73,7 +74,7 @@ begin
        or jsonb_typeof(change->'baseline') is distinct from 'number' then
       raise exception 'zenith_product_flush: malformed delete' using errcode = '22023';
     end if;
-    select string_agg(format('t.%I::text = %L', k, change->'key'->>k), ' and ' order by k) into cond
+    select string_agg(format('t.%I = %L', k, change->'key'->>k), ' and ' order by k) into cond
       from jsonb_object_keys(change->'key') k;
     if cond is null then
       raise exception 'zenith_product_flush: empty delete' using errcode = '22023';

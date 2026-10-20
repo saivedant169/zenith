@@ -610,6 +610,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       await uxA.goto(stack.apiUrl + '/platform/operations/' + operationId);
       await uxA.getByRole('heading', { name: 'Operation details', exact: true }).first().waitFor();
       ensure(await uxA.getByRole('heading', { name: 'Operation details', exact: true }).count() === 1, 'ux01-operation-heading');
+      await uxA.getByRole('region', { name: 'Progress', exact: true }).first().waitFor();
       ensure(await uxA.getByRole('region', { name: 'Progress', exact: true }).count() === 1, 'ux01-progress-region');
       ensure((await uxA.getByTestId('journey-live').innerText()).length > 0, 'ux01-progress-status');
       ensure(await uxA.getByRole('button', { name: 'Cancel operation', exact: true }).isEnabled(), 'ux01-cancel-enabled');
@@ -705,6 +706,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       const runApprover = UX_ENABLED ? uxB : b;
       await runApprover.goto(stack.apiUrl + '/platform/runbooks/runs/' + run.id);
       if (UX_ENABLED) await uxCase('ux01-runbook-approval-progress-a11y', async () => {
+        await runApprover.getByRole('region', { name: 'Run progress', exact: true }).first().waitFor();
         ensure(await runApprover.getByRole('region', { name: 'Run progress', exact: true }).count() === 1, 'ux01-runbook-progress');
         await runApprover.getByRole('heading', { name: 'Exact effect', exact: true }).first().waitFor();
       ensure(await runApprover.getByRole('heading', { name: 'Exact effect', exact: true }).count() === 1, 'ux01-runbook-effect');
@@ -758,6 +760,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
     });
     if (UX_ENABLED) await uxCase('ux01-readiness-a11y', async () => {
       await uxA.goto(stack.apiUrl + '/platform/readiness');
+      await uxA.getByRole('heading', { name: /readiness/i }).first().waitFor();
       ensure(await uxA.getByRole('heading', { name: /readiness/i }).count() === 1, 'ux01-readiness-heading');
       await auditUx(uxA, 'platform-readiness', axeSource, uxCases.find(row => row.id === 'ux01-readiness-a11y').scans);
     });

@@ -4520,6 +4520,22 @@
           "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 (pinned image) with Supabase stand-in roles, removed after; owned Temporal CLI dev server (start-recovery spawns its own, default port refused); real OpenTofu 1.12.5 and pg_dump/pg_restore 16 for the plan handoff.",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-b5c61f4d-dur-combined.json",
           "result": "Real engines: 141 passed / 0 failed / 0 skipped across 5 clause files on clean b5c61f4d (39 real PostgreSQL cases). Raw report kept."
+        },
+        {
+          "level": "contract",
+          "commit": "0ae437bc031e9c7ae12a7437bfb15b59a10f9c5c",
+          "command": "combined DUR batch (scratchpad run-dur-all.sh)",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 with Supabase-accurate roles; owned Temporal CLI; real OpenTofu 1.12.5 with pg_dump/pg_restore 16.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-0ae437bc-dur-combined.json",
+          "result": "216 passed / 0 failed / 0 skipped across 5 clause files on clean 0ae437bc (79 real PostgreSQL cases). Added: fd86bd04/0ae437bc: per-component dispatch refusal on memory and postgres lanes, exact refusing gate asserted, no write; destroy-semantics postgres lane."
+        },
+        {
+          "level": "local_engine",
+          "commit": "0ae437bc031e9c7ae12a7437bfb15b59a10f9c5c",
+          "command": "combined DUR batch (scratchpad run-dur-all.sh)",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 with Supabase-accurate roles; owned Temporal CLI; real OpenTofu 1.12.5 with pg_dump/pg_restore 16.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-0ae437bc-dur-combined.json",
+          "result": "216 passed / 0 failed / 0 skipped across 5 clause files on clean 0ae437bc (79 real PostgreSQL cases). Added: fd86bd04/0ae437bc: per-component dispatch refusal on memory and postgres lanes, exact refusing gate asserted, no write; destroy-semantics postgres lane."
         }
       ],
       "requiredEvidence": [
@@ -4609,6 +4625,22 @@
           "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 (pinned image) with Supabase stand-in roles, removed after; owned Temporal CLI dev server (start-recovery spawns its own, default port refused); real OpenTofu 1.12.5 and pg_dump/pg_restore 16 for the plan handoff.",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-b5c61f4d-dur-combined.json",
           "result": "Real engines: 558 passed / 0 failed / 0 skipped across 9 clause files on clean b5c61f4d (163 real PostgreSQL cases). Raw report kept."
+        },
+        {
+          "level": "contract",
+          "commit": "0ae437bc031e9c7ae12a7437bfb15b59a10f9c5c",
+          "command": "combined DUR batch (scratchpad run-dur-all.sh)",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 with Supabase-accurate roles; owned Temporal CLI; real OpenTofu 1.12.5 with pg_dump/pg_restore 16.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-0ae437bc-dur-combined.json",
+          "result": "637 passed / 0 failed / 3 skipped across 9 clause files on clean 0ae437bc (201 real PostgreSQL cases). Added: 1b97fbda (05199c58): forced reviewed destroy approval, database delete/restore and stateful delete behind approval at autonomy 5; Rego suite 219/219 under OPA 1.19.1."
+        },
+        {
+          "level": "local_engine",
+          "commit": "0ae437bc031e9c7ae12a7437bfb15b59a10f9c5c",
+          "command": "combined DUR batch (scratchpad run-dur-all.sh)",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 with Supabase-accurate roles; owned Temporal CLI; real OpenTofu 1.12.5 with pg_dump/pg_restore 16.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-0ae437bc-dur-combined.json",
+          "result": "637 passed / 0 failed / 3 skipped across 9 clause files on clean 0ae437bc (201 real PostgreSQL cases). Added: 1b97fbda (05199c58): forced reviewed destroy approval, database delete/restore and stateful delete behind approval at autonomy 5; Rego suite 219/219 under OPA 1.19.1."
         }
       ],
       "requiredEvidence": [
@@ -4677,6 +4709,22 @@
           "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 (pinned image) with Supabase stand-in roles, removed after; owned Temporal CLI dev server (start-recovery spawns its own, default port refused); real OpenTofu 1.12.5 and pg_dump/pg_restore 16 for the plan handoff.",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-b5c61f4d-dur-combined.json",
           "result": "Real engines: 107 passed / 0 failed / 0 skipped across 7 clause files on clean b5c61f4d (73 real PostgreSQL cases; real OpenTofu cross-worker plan handoff). Raw report kept."
+        },
+        {
+          "level": "contract",
+          "commit": "0ae437bc031e9c7ae12a7437bfb15b59a10f9c5c",
+          "command": "combined DUR batch (scratchpad run-dur-all.sh)",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 with Supabase-accurate roles; owned Temporal CLI; real OpenTofu 1.12.5 with pg_dump/pg_restore 16.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-0ae437bc-dur-combined.json",
+          "result": "115 passed / 0 failed / 0 skipped across 7 clause files on clean 0ae437bc (77 real PostgreSQL cases). Added: 59b0455c: stored PlanView separation on real PostgreSQL."
+        },
+        {
+          "level": "local_engine",
+          "commit": "0ae437bc031e9c7ae12a7437bfb15b59a10f9c5c",
+          "command": "combined DUR batch (scratchpad run-dur-all.sh)",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 with Supabase-accurate roles; owned Temporal CLI; real OpenTofu 1.12.5 with pg_dump/pg_restore 16.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-0ae437bc-dur-combined.json",
+          "result": "115 passed / 0 failed / 0 skipped across 7 clause files on clean 0ae437bc (77 real PostgreSQL cases). Added: 59b0455c: stored PlanView separation on real PostgreSQL."
         }
       ],
       "requiredEvidence": [
@@ -4823,6 +4871,22 @@
           "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 (pinned image) with Supabase stand-in roles, removed after; owned Temporal CLI dev server (start-recovery spawns its own, default port refused); real OpenTofu 1.12.5 and pg_dump/pg_restore 16 for the plan handoff.",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-b5c61f4d-dur-combined.json",
           "result": "Real engines: 185 passed / 0 failed / 0 skipped across 6 clause files on clean b5c61f4d (69 real PostgreSQL cases). Raw report kept."
+        },
+        {
+          "level": "contract",
+          "commit": "0ae437bc031e9c7ae12a7437bfb15b59a10f9c5c",
+          "command": "combined DUR batch (scratchpad run-dur-all.sh)",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 with Supabase-accurate roles; owned Temporal CLI; real OpenTofu 1.12.5 with pg_dump/pg_restore 16.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-0ae437bc-dur-combined.json",
+          "result": "185 passed / 0 failed / 0 skipped across 6 clause files on clean 0ae437bc (69 real PostgreSQL cases). Added: a568ac0d: proxy repeat answered from the durable receipt is marked replayedFromReceipt (decision recorded in PROD-DUR-07-08.md)."
+        },
+        {
+          "level": "local_engine",
+          "commit": "0ae437bc031e9c7ae12a7437bfb15b59a10f9c5c",
+          "command": "combined DUR batch (scratchpad run-dur-all.sh)",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 with Supabase-accurate roles; owned Temporal CLI; real OpenTofu 1.12.5 with pg_dump/pg_restore 16.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-0ae437bc-dur-combined.json",
+          "result": "185 passed / 0 failed / 0 skipped across 6 clause files on clean 0ae437bc (69 real PostgreSQL cases). Added: a568ac0d: proxy repeat answered from the durable receipt is marked replayedFromReceipt (decision recorded in PROD-DUR-07-08.md)."
         }
       ],
       "requiredEvidence": [

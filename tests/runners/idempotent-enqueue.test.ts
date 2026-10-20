@@ -112,6 +112,20 @@ describe.each(LANES)("idempotent runner enqueue [$name]", (lane) => {
     expect(await f.jobs(f.operations[1])).toHaveLength(1);
   });
 
+  it("a job the reaper timed out after hand-over is attached, never queued again", async () => {
+    const f = await fixture();
+    const op = f.operations[0];
+    const handed = await enqueueRunnerJob(await f.input(op, { idempotencyKey: "tofu.apply:digest" }), f.plane.rt);
+    // the agent takes the job; the lease is the store minimum (1s), then the agent goes silent
+    expect((await store.jobs.claimNext({ workspaceId: f.workspaceId, agentId: f.agent.id, max: 5, leaseMs: 1000 })).map((j) => j.id)).toContain(handed);
+    await new Promise((r) => setTimeout(r, 1100));
+    // the product reaper (system-scoped expireStale) moves the lapsed hand-over to timed_out: outcome unknown, nothing re-queued
+    expect((await store.jobs.expireStale()).map((j) => j.id)).toContain(handed);
+    expect((await store.jobs.get(f.workspaceId, handed))?.status).toBe("timed_out");
+    expect(await enqueueRunnerJob(await f.input(op, { idempotencyKey: "tofu.apply:digest" }), f.plane.rt)).toBe(handed);
+    expect(await f.jobs(op)).toHaveLength(1);
+  });
+
   it("two workers racing on one identity queue exactly one job", async () => {
     const f = await fixture();
     const rt2 = { ...f.plane.rt, store: store2 };

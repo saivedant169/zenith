@@ -310,4 +310,34 @@ describe.each(LANES)("durable intents and operation authority [$name]", (lane) =
       expect(await getIntent(db(), ws, "workflow_signal", "cancel:w9")).toMatchObject({ state: "dead", outcome: "refused" });
     });
   });
+
+  describe("cancel requested, dies before the signal (W13)", () => {
+    it("the cancel intent is committed first; a crash before any relay pass leaves one pending row, a repeat request adds none, a later pass settles it once", async () => {
+      const { ws, op } = await seeded();
+      const key = `cancel:${op}`;
+      // same commit the bridge makes before any transport (deps.ts cancelOperation -> signalDurably -> enqueueIntent); no relay pass runs: the crash
+      const intent = await enqueueIntent(db(), { workspaceId: ws, operationId: op, kind: "workflow_signal", idempotencyKey: key, payload: { signal: "cancel" } });
+      const cancelRows = () => db().query(
+        "select id, state, outcome from platform.durable_intents where workspace_id = $1 and operation_id = $2 and kind = 'workflow_signal' and idempotency_key like 'cancel:%'", [ws, op]);
+      expect(await cancelRows()).toEqual([{ id: intent.id, state: "pending", outcome: null }]);
+      // the read model reports the request while the authority is still untouched
+      expect(await projectOperation(db(), ws, op)).toMatchObject({
+        cancelRequested: true, unconfirmed: false, phase: "ready_to_start", authorityVersion: 1,
+        intents: [{ id: intent.id, kind: "workflow_signal", idempotencyKey: key, state: "pending" }],
+      });
+      // a second cancel request for the same operation, from the other connection, attaches to the same intent
+      const again = await enqueueIntent(ctx.db2, { workspaceId: ws, operationId: op, kind: "workflow_signal", idempotencyKey: key, payload: { signal: "cancel" } });
+      expect(again.id).toBe(intent.id);
+      expect(await cancelRows()).toHaveLength(1);
+      // a later relay pass (the runner-reaper relay) delivers it once through the fake transport
+      const seen: string[] = [];
+      const only = { workspaceId: ws, id: intent.id };
+      expect(await relayOnce(db(), handlers((i) => { seen.push(i.id); return { status: "delivered" }; }), { holder: "relay", only })).toMatchObject({ claimed: 1, delivered: 1 });
+      expect(seen).toEqual([intent.id]);
+      expect(await getIntent(db(), ws, "workflow_signal", key)).toMatchObject({ state: "delivered", outcome: "delivered" });
+      expect((await relayOnce(db(), handlers((i) => { seen.push(i.id); return { status: "delivered" }; }), { holder: "again", only })).claimed).toBe(0);
+      expect(seen).toEqual([intent.id]);
+      expect(await projectOperation(db(), ws, op)).toMatchObject({ cancelRequested: true, intents: [{ state: "delivered" }] });
+    });
+  });
 });

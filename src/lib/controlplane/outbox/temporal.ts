@@ -36,17 +36,43 @@ export interface TemporalHandlerDeps {
 }
 
 /** Best effort: the product projection is re-derivable, so its failure never un-delivers the start. */
-async function projectStart(sql: Sql, intent: DurableIntent): Promise<void> {
+async function projectStart(sql: Sql, intent: Pick<DurableIntent, "workspaceId" | "operationId">): Promise<boolean> {
   const retained = await startIntents.get(sql, intent.workspaceId, intent.operationId);
   const deploymentId = retained?.binding.arguments.deploymentId;
-  if (!retained?.observed_start_at || typeof deploymentId !== "string") return;
+  if (!retained?.observed_start_at || typeof deploymentId !== "string") return false;
   const { ensureBoot } = await import("@/lib/server/boot");
   await ensureBoot();
   const { projectAcknowledgedStart } = await import("@/lib/bridge/projection");
   const observedAt = new Date(retained.observed_start_at).toISOString();
   const cron = await import("@/lib/server/cron");
   // Same snapshot scope and write-back as the other legacy-product passes.
-  await cron.inCronScope(async () => projectAcknowledgedStart(deploymentId, observedAt));
+  return await cron.inCronScope(async () => projectAcknowledgedStart(deploymentId, observedAt));
+}
+
+/**
+ * System sweep: re-derive the product's `workflowStartedAt` for acknowledged starts
+ * whose operation is still live. The relay projects only when it delivers a start,
+ * so a lost product save after an in-process acknowledged start (no relay row), or a
+ * failed projection after delivery, would otherwise never converge. Idempotent:
+ * `projectAcknowledgedStart` never rewrites an existing fact or a finished deployment.
+ * Returns how many product records were repaired.
+ */
+export async function projectAcknowledgedStarts(sql: Sql, limit = 50): Promise<number> {
+  const rows = await sql.query<{ workspace_id: string; operation_id: string }>(
+    `select i.workspace_id, i.operation_id
+       from platform.workflow_start_intents i
+       join platform.operations po on po.workspace_id = i.workspace_id and po.id = i.operation_id
+      where i.phase = 'acknowledged' and i.observed_start_at is not null
+        and po.recovery_epoch = platform.current_recovery_epoch()
+        and po.status in ('awaiting_approval','approved','queued','running','uncertain')
+      order by i.observed_start_at desc
+      limit $1::bigint`,
+    [limit]);
+  let repaired = 0;
+  for (const row of rows) {
+    if (await projectStart(sql, { workspaceId: row.workspace_id, operationId: row.operation_id }).catch(() => false)) repaired++;
+  }
+  return repaired;
 }
 
 export function createTemporalIntentHandlers(deps: TemporalHandlerDeps): IntentHandlers {
@@ -81,9 +107,11 @@ export function createTemporalIntentHandlers(deps: TemporalHandlerDeps): IntentH
   });
 }
 
-/** One production relay pass: adopt abandoned start intents, then deliver every due intent. */
-export async function runIntentRelay(options: Partial<RelayOptions> & { sql?: Sql } = {}): Promise<RelayResult> {
+/** One production relay pass: adopt abandoned start intents, deliver every due intent, then repair lost start projections. */
+export async function runIntentRelay(options: Partial<RelayOptions> & { sql?: Sql } = {}): Promise<RelayResult & { projected: number }> {
   const { sql: given, ...relayOptions } = options;
   const sql = given ?? await platformDb();
-  return relayOnce(sql, createTemporalIntentHandlers({ sql }), { holder: `relay:${randomUUID()}`, ...relayOptions });
+  const result = await relayOnce(sql, createTemporalIntentHandlers({ sql }), { holder: `relay:${randomUUID()}`, ...relayOptions });
+  const sweep = relayOptions.adopt !== false && !relayOptions.only;
+  return { ...result, projected: sweep ? await projectAcknowledgedStarts(sql).catch(() => 0) : 0 };
 }

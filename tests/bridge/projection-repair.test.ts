@@ -25,7 +25,7 @@ vi.mock("@/lib/server/boot", () => boot);
 const DATA = tempDataDir("zenith-projection-repair-", { fast: true });
 const { LANES, openLane, seedApprovedOperation } = await import("../controlplane/_support/harness");
 const { enqueueIntent, getIntent, relayOnce } = await import("@/lib/controlplane/outbox");
-const { createTemporalIntentHandlers } = await import("@/lib/controlplane/outbox/temporal");
+const { createTemporalIntentHandlers, projectAcknowledgedStarts } = await import("@/lib/controlplane/outbox/temporal");
 const startIntents = await import("@/lib/controlplane/db/repos/workflow-start-intents");
 const { digest } = await import("@/lib/controlplane/digest");
 const { projectAcknowledgedStart } = await import("@/lib/bridge/projection");
@@ -92,6 +92,7 @@ describe.each(LANES)("acknowledged start with a lost product projection [$name]"
     const op = operation.id;
     const d = workflowDeployment("applying");
     d.operationId = op;
+    d.id = `bridge-workflow-${op}`; // one deployment per operation, so a lane's earlier fixtures never alias it
     const binding = validBinding(ws, op, d);
     await sql.query(
       `insert into platform.workflow_start_intents (workspace_id, operation_id, binding, binding_digest, phase, attempt_id, run_id, observed_start_at, evidence_digest, attempted_at, acknowledged_at)
@@ -152,5 +153,37 @@ describe.each(LANES)("acknowledged start with a lost product projection [$name]"
     expect(await f.handlers.workflow_start(f.intent)).toEqual({ status: "delivered" });
     expect(q.deployment(f.d.id)).toMatchObject({ status: "succeeded", endedAt: OBSERVED });
     expect(q.deployment(f.d.id)?.workflowStartedAt).toBeUndefined();
+  });
+
+  it("the sweep repairs an acknowledged start that has no relay row, and only while the operation is live", async () => {
+    const f = await lostProjection();
+    // An in-process acknowledged start leaves no relay row: settle the one created above so only the sweep can repair it.
+    await f.sql.query("delete from platform.durable_intents where workspace_id = $1 and id = $2", [f.ws, f.intent.id]);
+    expect(await getIntent(f.sql, f.ws, "workflow_start", `start:${f.op}`)).toBeNull();
+    expect(await projectAcknowledgedStarts(f.sql)).toBeGreaterThanOrEqual(1);
+    expect(q.deployment(f.d.id)?.workflowStartedAt).toBe(OBSERVED);
+    expect(persisted(f.d.id)?.workflowStartedAt).toBe(OBSERVED);
+    expect(await projectAcknowledgedStarts(f.sql)).toBe(0);
+    expect(f.transport).not.toHaveBeenCalled();
+    expect(await f.retained()).toMatchObject({ phase: "acknowledged", run_id: RUN });
+
+    const finished = await lostProjection();
+    await finished.sql.query("delete from platform.durable_intents where workspace_id = $1 and id = $2", [finished.ws, finished.intent.id]);
+    const cancelled = await finished.sql.query<{ id: string; status: string }>("update platform.operations set status = 'cancelled' where workspace_id = $1 and id = $2 returning id, status", [finished.ws, finished.op]);
+    expect(cancelled).toEqual([{ id: finished.op, status: "cancelled" }]);
+    await projectAcknowledgedStarts(finished.sql);
+    expect(q.deployment(finished.d.id)?.workflowStartedAt).toBeUndefined();
+  });
+
+  it("the sweep converges a projection that failed after the start was delivered", async () => {
+    const f = await lostProjection();
+    boot.ensureBoot.mockRejectedValueOnce(new Error("product store unavailable"));
+    expect(await relayOnce(f.sql, f.handlers, { holder: "repair-test", only: f.only })).toMatchObject({ delivered: 1 });
+    expect(await getIntent(f.sql, f.ws, "workflow_start", `start:${f.op}`)).toMatchObject({ state: "delivered" });
+    expect(q.deployment(f.d.id)?.workflowStartedAt).toBeUndefined();
+    // the relay row is settled, so no later relay pass would retry it; the sweep does
+    expect(await projectAcknowledgedStarts(f.sql)).toBeGreaterThanOrEqual(1);
+    expect(q.deployment(f.d.id)?.workflowStartedAt).toBe(OBSERVED);
+    expect(f.transport).not.toHaveBeenCalled();
   });
 });

@@ -2641,6 +2641,12 @@
           "commit": "1a0ac9d29919088ed6480901eb7cd08e08c1e60d",
           "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-20-offset-j4-and-runbook-path.json",
           "result": "Exact-source local lanes on 1a0ac9d2: lint, smoke, gimbal, policy bundle and 242 policy, adversarial 238, replay 34, generated, ledger, lockfile, audit, actionlint all passed with execution validation; isolated go1.27.1 gofmt, vet (also systemd tags), darwin test 15 packages ok, linux amd64/arm64 cross-builds, go-results 27/27 and wave5-contract 1271/0/0 validated. Two first-attempt failures (macOS unix-socket path length; coordinator edit during the wave5 gate) were environmental and reran clean. Full one-worker Node/DOM on this exact source and Linux-native gates were not run locally."
+        },
+        {
+          "level": "remote_ci",
+          "commit": "4fac547c39ea0ee346112f113245bf7c5e10ced0",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-20-4fac547c-coherent-verification.json",
+          "result": "Exact-source CI: main 39357934404 20 success/8 conditional operated skips/0 failures; native packaged workers 39357934596 and native platforms 39357934426 success."
         }
       ],
       "requiredEvidence": [
@@ -3857,7 +3863,7 @@
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "J2 default browser/REST/MCP journey passed 18/18 on clean 5295be74 (local_engine). Promotion waits for passing contract evidence on the journey source; an intermittent hosted-authority client wedge remains open.",
+      "implementationStatus": "J2 passed 18/18 on clean 5295be74 and again on 4fac547c with green exact-source CI on the same commit. Not promoted: the hosted-authority client intermittently wedges agent-link requests in the default composition (open defect), so the default journey is not reliably handled yet.",
       "evidence": [
         {
           "level": "local_engine",
@@ -3882,6 +3888,20 @@
           "receipt": "docs/build/production/evidence/PROD-PKG-05/default-journey.json",
           "receiptSha256": "8443b58daaaed4f0951147f8b296400540b1f076bb7fc4b8db32664645535658",
           "result": "J2 default journey passed 18/18 on clean exact source (ledger-eligible receipt; native ARM64; five sha256 readbacks) on the lean default stack with an owned kind target and real zenithd. Covers this requirement only where the journey exercises it; see the artifact's proves/notProven."
+        },
+        {
+          "level": "local_engine",
+          "commit": "4fac547c39ea0ee346112f113245bf7c5e10ced0",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-20-4fac547c-coherent-verification.json",
+          "receipt": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-4fac547c-default-journey-receipt.json",
+          "receiptSha256": "f81d8965f4e121f04632f92b930f9455a7f63f42a7507c6513f0e7f185eb5e3c",
+          "result": "J2 default journey passed 18/18 on clean exact source 4fac547c (first attempt, ledger-eligible native receipt), the same commit as green CI, the signed runbook delivery and canonical J4."
+        },
+        {
+          "level": "contract",
+          "commit": "4fac547c39ea0ee346112f113245bf7c5e10ced0",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-20-4fac547c-coherent-verification.json",
+          "result": "Exact-source CI verify job passed typecheck, lint and the Node/DOM unit suites (including this requirement's contract tests) with every dependent CI job green on the same commit."
         }
       ],
       "requiredEvidence": [
@@ -4233,6 +4253,14 @@
           "receipt": "docs/build/production/evidence/PROD-PKG-05/default-journey.json",
           "receiptSha256": "8443b58daaaed4f0951147f8b296400540b1f076bb7fc4b8db32664645535658",
           "result": "J2 default journey passed 18/18 on clean exact source (ledger-eligible receipt; native ARM64; five sha256 readbacks) on the lean default stack with an owned kind target and real zenithd. Covers this requirement only where the journey exercises it; see the artifact's proves/notProven."
+        },
+        {
+          "level": "local_engine",
+          "commit": "4fac547c39ea0ee346112f113245bf7c5e10ced0",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-20-4fac547c-coherent-verification.json",
+          "receipt": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-4fac547c-default-journey-receipt.json",
+          "receiptSha256": "f81d8965f4e121f04632f92b930f9455a7f63f42a7507c6513f0e7f185eb5e3c",
+          "result": "J2 default journey passed 18/18 on clean exact source 4fac547c (first attempt, ledger-eligible native receipt), the same commit as green CI, the signed runbook delivery and canonical J4."
         }
       ],
       "requiredEvidence": [
@@ -4272,6 +4300,14 @@
           "receipt": "docs/build/production/evidence/PROD-PKG-05/default-journey.json",
           "receiptSha256": "8443b58daaaed4f0951147f8b296400540b1f076bb7fc4b8db32664645535658",
           "result": "J2 default journey passed 18/18 on clean exact source (ledger-eligible receipt; native ARM64; five sha256 readbacks) on the lean default stack with an owned kind target and real zenithd. Covers this requirement only where the journey exercises it; see the artifact's proves/notProven."
+        },
+        {
+          "level": "local_engine",
+          "commit": "4fac547c39ea0ee346112f113245bf7c5e10ced0",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-20-4fac547c-coherent-verification.json",
+          "receipt": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-4fac547c-default-journey-receipt.json",
+          "receiptSha256": "f81d8965f4e121f04632f92b930f9455a7f63f42a7507c6513f0e7f185eb5e3c",
+          "result": "J2 default journey passed 18/18 on clean exact source 4fac547c (first attempt, ledger-eligible native receipt), the same commit as green CI, the signed runbook delivery and canonical J4."
         }
       ],
       "requiredEvidence": [
@@ -4491,6 +4527,14 @@
           "receipt": "docs/build/production/evidence/PROD-PKG-05/default-journey.json",
           "receiptSha256": "8443b58daaaed4f0951147f8b296400540b1f076bb7fc4b8db32664645535658",
           "result": "J2 default journey passed 18/18 on clean exact source (ledger-eligible receipt; native ARM64; five sha256 readbacks) on the lean default stack with an owned kind target and real zenithd. Covers this requirement only where the journey exercises it; see the artifact's proves/notProven."
+        },
+        {
+          "level": "local_engine",
+          "commit": "4fac547c39ea0ee346112f113245bf7c5e10ced0",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-20-4fac547c-coherent-verification.json",
+          "receipt": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-4fac547c-default-journey-receipt.json",
+          "receiptSha256": "f81d8965f4e121f04632f92b930f9455a7f63f42a7507c6513f0e7f185eb5e3c",
+          "result": "J2 default journey passed 18/18 on clean exact source 4fac547c (first attempt, ledger-eligible native receipt), the same commit as green CI, the signed runbook delivery and canonical J4."
         }
       ],
       "requiredEvidence": [
@@ -5286,11 +5330,11 @@
       "acceptance": [
         "Versioned signed scripts/runbooks, bounded targets/windows/cancellation/audit; raw exec remains approved high-risk escape hatch, argv parsing never claimed sandbox."
       ],
-      "state": "in_progress",
+      "state": "verified",
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "Registered-agent real default-stack runbook acceptance remains dependent on fresh source-bound J4 stack and seeded consent/epoch prerequisites. No new runbook acceptance claim.",
+      "implementationStatus": "verified_4fac547c: signed versioned runbooks with bounded targets/deadlines, cancellation and audit, and raw exec as an independently approved escape hatch, passed against the real default stack and zenithd on clean exact source 4fac547c with green exact-source CI. Argv execution is never presented as a sandbox. Local engine only.",
       "implementationNote": "J4 binds signed registered steps to broker authority and audit with memory/PGlite contracts; registered-agent HTTP delivery/cancel acceptance pending on Mac.",
       "evidence": [
         {
@@ -5334,6 +5378,18 @@
           "sourcePostimageSha256": "12b22ba6c741f9c613624978fc3caea7ff588b1c0ba7c0657b9f6150ba1f3a16",
           "result": "Scoped coordinator portability candidate: Node22 syntax0, ESLint0, two isolated-location ROOT-expression checks2P0F including spaces; independent source reviewP. Only module URL root derivation changed. No coordinator import/default auth/agent/runtime acceptance; fresh coherent binding remains pending.",
           "artifact": "docs/build/production/evidence/PROD-MACH-03/2026-10-14-coordinator-portability.json"
+        },
+        {
+          "level": "local_engine",
+          "commit": "4fac547c39ea0ee346112f113245bf7c5e10ced0",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-20-4fac547c-coherent-verification.json",
+          "result": "On clean 4fac547c: run-runbooks.ts exit 0 (signed EdDSA version bound to its kid, deadline-bounded executed run bound to that version, one durable delivery, audit join, raw-exec run held for independent approval and cancelled before delivery, exec disabled by agent capabilities) and J2 machine-independent-approval-readback (signed raw-exec runbook delivered to the real zenithd only after B's run approval; self-approval 403)."
+        },
+        {
+          "level": "contract",
+          "commit": "4fac547c39ea0ee346112f113245bf7c5e10ced0",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-20-4fac547c-coherent-verification.json",
+          "result": "Exact-source CI verify job passed typecheck, lint and the Node/DOM unit suites (including this requirement's contract tests) with every dependent CI job green on the same commit."
         }
       ],
       "requiredEvidence": [
@@ -5415,6 +5471,14 @@
           "receipt": "docs/build/production/evidence/PROD-PKG-05/default-journey.json",
           "receiptSha256": "8443b58daaaed4f0951147f8b296400540b1f076bb7fc4b8db32664645535658",
           "result": "J2 default journey passed 18/18 on clean exact source (ledger-eligible receipt; native ARM64; five sha256 readbacks) on the lean default stack with an owned kind target and real zenithd. Covers this requirement only where the journey exercises it; see the artifact's proves/notProven."
+        },
+        {
+          "level": "local_engine",
+          "commit": "4fac547c39ea0ee346112f113245bf7c5e10ced0",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-20-4fac547c-coherent-verification.json",
+          "receipt": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-4fac547c-default-journey-receipt.json",
+          "receiptSha256": "f81d8965f4e121f04632f92b930f9455a7f63f42a7507c6513f0e7f185eb5e3c",
+          "result": "J2 default journey passed 18/18 on clean exact source 4fac547c (first attempt, ledger-eligible native receipt), the same commit as green CI, the signed runbook delivery and canonical J4."
         }
       ],
       "requiredEvidence": [
@@ -5471,6 +5535,14 @@
           "receipt": "docs/build/production/evidence/PROD-PKG-05/default-journey.json",
           "receiptSha256": "8443b58daaaed4f0951147f8b296400540b1f076bb7fc4b8db32664645535658",
           "result": "J2 default journey passed 18/18 on clean exact source (ledger-eligible receipt; native ARM64; five sha256 readbacks) on the lean default stack with an owned kind target and real zenithd. Covers this requirement only where the journey exercises it; see the artifact's proves/notProven."
+        },
+        {
+          "level": "local_engine",
+          "commit": "4fac547c39ea0ee346112f113245bf7c5e10ced0",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-20-4fac547c-coherent-verification.json",
+          "receipt": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-4fac547c-default-journey-receipt.json",
+          "receiptSha256": "f81d8965f4e121f04632f92b930f9455a7f63f42a7507c6513f0e7f185eb5e3c",
+          "result": "J2 default journey passed 18/18 on clean exact source 4fac547c (first attempt, ledger-eligible native receipt), the same commit as green CI, the signed runbook delivery and canonical J4."
         }
       ],
       "requiredEvidence": [
@@ -5610,6 +5682,14 @@
           "receipt": "docs/build/production/evidence/PROD-PKG-05/default-journey.json",
           "receiptSha256": "8443b58daaaed4f0951147f8b296400540b1f076bb7fc4b8db32664645535658",
           "result": "J2 default journey passed 18/18 on clean exact source (ledger-eligible receipt; native ARM64; five sha256 readbacks) on the lean default stack with an owned kind target and real zenithd. Covers this requirement only where the journey exercises it; see the artifact's proves/notProven."
+        },
+        {
+          "level": "local_engine",
+          "commit": "4fac547c39ea0ee346112f113245bf7c5e10ced0",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-20-4fac547c-coherent-verification.json",
+          "receipt": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-4fac547c-default-journey-receipt.json",
+          "receiptSha256": "f81d8965f4e121f04632f92b930f9455a7f63f42a7507c6513f0e7f185eb5e3c",
+          "result": "J2 default journey passed 18/18 on clean exact source 4fac547c (first attempt, ledger-eligible native receipt), the same commit as green CI, the signed runbook delivery and canonical J4."
         }
       ],
       "requiredEvidence": [
@@ -5683,11 +5763,11 @@
       "acceptance": [
         "Critical observation/reaping use durable scheduling across restart, not only best-effort GitHub cron."
       ],
-      "state": "in_progress",
+      "state": "verified",
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "Both J4 acceptance identities have now passed, on different commits: natural default scheduling on c8795a08 (machine-schedules, completion, canonical resume readiness 16/16) and the wave6 registered signed runbook delivery on 7ce0bf76. Promotion waits for canonical J4 plus the runbook delivery and green CI on one exact-source commit. J4 natural default scheduling acceptance passed on exact source c8795a08 (machine-schedules, completion and canonical resume readiness 16/16) after three source repairs: stale-poller settle at completion, disposable Temporal over mTLS, and disposable schedule provisioning with the ZenithScheduleOwner attribute. Exact-source CI is green. The wave6 registered signed runbook delivery identity remains unexecuted, so no promotion. Historical implementationStatus follows: J4 R2 failed after startup and its J4 preflight SELECT 1 passed; machine schedules then exceeded the maintenance deadline at phase lease_exclusion. A separate follow-up parameterized-protocol diagnostic later passed SELECT 1 in 21.514 ms. Read-only diagnosis found a timed-out third critical activity and a bounded active/ClientRead observation, without capturing the original query or proving cause. A HELD paused-background wrapper is UNEXECUTED; J4 remains unaccepted. The paused-background wrapper remains HELD and UNEXECUTED; canonical NODE_ENV=test, owned ToFu, and health port 9464 bindings are reconciled, while independent source review passed; diagnostic execution pending. It establishes no actual J4 cause or acceptance. The 14 October BG3 diagnostic is failed sampler-exit (tool exit 2) despite 120/120 successful PostgreSQL samples, 26 snapshots with both maintenance schedules paused and stable counts, and worker exit 0; its two ClientRead query tracks match a query template also callable through the internal metrics route, so worker-only causality remains unproven. On 19 October, one approved normal Docker restart used one restart command after explicit approval of unavailable preinventory; Docker CLI exited 0 in 8.677 seconds, settings hashes matched, and protected builder, volume and witness image remained present. The post-restart inventory showed the original test DB/pooler stopped and an adjacent DB on host port 54322. The PostgreSQL investigation later resumed via Astra High. Astra High passed 57/57 synthetic validator cases for the isolated fixture, not actual PostgreSQL tests; the isolated fixture remains unrun. No J4 runtime was executed; stale CA requires fresh validity check/new fixture. No acceptance or state promotion.",
+      "implementationStatus": "verified_4fac547c: canonical J4 natural default scheduling (machine-schedules, completion, resume) and the wave6 registered signed runbook delivery both passed on clean exact source 4fac547c, with exact-source CI green on the same commit. Local engine only; no live cloud or production claim.",
       "implementationNote": "J4 natural-timer harness, durable billing and authenticated shared-lease HTTP fallback complete; default-stack restart/exclusion acceptance pending on Mac. Focused PID1 CLI-command candidate unit proof is independently reviewed at 16/0/0; the three-file candidate is being integrated, and native J4 execution remains pending. No requirement, gate, or source-SHA promotion.",
       "evidence": [
         {
@@ -5859,6 +5939,24 @@
           "commit": "7ce0bf76208192d863306ccde28a234209972ac5",
           "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-20-7ce0bf76-signed-runbook-delivery.json",
           "result": "J4 wave6 registered signed runbook delivery passed (run-runbooks.ts exit 0) on clean 7ce0bf76 with a real exec-disabled zenithd bound to a kind-deploy-validated witness row; raw-exec run held for independent approval and cancelled before delivery. The natural scheduling identity passed on c8795a08; promotion waits for both J4 identities and green CI on one commit."
+        },
+        {
+          "level": "local_engine",
+          "commit": "4fac547c39ea0ee346112f113245bf7c5e10ced0",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-20-4fac547c-coherent-verification.json",
+          "result": "Canonical J4 on clean 4fac547c: machine-schedules j4-f7aa508c7e89 passed with natural timers and worker restart, canonical resume passed; the wave6 registered signed runbook delivery passed (run-runbooks.ts exit 0) on the same commit."
+        },
+        {
+          "level": "contract",
+          "commit": "4fac547c39ea0ee346112f113245bf7c5e10ced0",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-20-4fac547c-coherent-verification.json",
+          "result": "Exact-source CI verify job passed typecheck, lint and the Node/DOM unit suites (including this requirement's contract tests) with every dependent CI job green on the same commit."
+        },
+        {
+          "level": "remote_ci",
+          "commit": "4fac547c39ea0ee346112f113245bf7c5e10ced0",
+          "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-20-4fac547c-coherent-verification.json",
+          "result": "Exact-source CI: main 39357934404 20 success/8 conditional operated skips/0 failures; native packaged workers 39357934596 and native platforms 39357934426 success."
         }
       ],
       "requiredEvidence": [

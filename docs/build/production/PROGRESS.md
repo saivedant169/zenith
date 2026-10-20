@@ -1,3 +1,17 @@
+## Coherent exact-source verification — 20 October 2026
+
+On clean exact source `4fac547c39ea0ee346112f113245bf7c5e10ced0`, the following all passed:
+- J2 default journey, 18/18 on the first attempt.
+- The wave6 registered signed runbook delivery (`run-runbooks.ts` exit 0).
+- Canonical J4 (machine-schedules `j4-f7aa508c7e89` with natural timers and worker restart, then resume).
+- Exact-source CI on the same commit: main 39357934404 had 20 successes, 8 configured conditional operated skips and 0 failures, and both native workflows succeeded.
+
+Evidence: `evidence/PROD-OBS-04/2026-10-20-4fac547c-coherent-verification.json` and `evidence/PROD-PKG-05/2026-10-20-4fac547c-default-journey-receipt.json`.
+
+**PROD-OBS-04** (durable critical schedules) and **PROD-MACH-03** (signed automation and scheduling) are promoted to verified at the local-engine level. The ledger is now 13 verified, 63 in progress and 2 planned.
+
+PKG-05 is not promoted. Its journey passed twice, but the hosted-authority client still intermittently wedges agent-link requests in the default composition. No live-cloud, rehearsal or production claim is made.
+
 ## J2 default journey passed — 20 October 2026
 
 The J2 default browser, REST, MCP and customer-machine journey passed 18/18 on clean exact source `5295be74af06b4e37a02b6c6141d5813846538f6`. The receipt is ledger-eligible, native ARM64, with all five readbacks (kind, machine, rotated kind, OBS-02, machine rejoin). It ran on the lean default stack at port offset 1000 beside the operator's running Supabase/Kong/API, none of which were stopped, with an owned kind target and the real zenithd.

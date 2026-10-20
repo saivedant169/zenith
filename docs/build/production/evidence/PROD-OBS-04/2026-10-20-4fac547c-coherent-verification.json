@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-20",
+  "kind": "coherent-exact-source-verification",
+  "productionReady": false,
+  "commit": "4fac547c39ea0ee346112f113245bf7c5e10ced0",
+  "dirty": false,
+  "environment": "macOS ARM64, native ARM64 Docker, Node 22.23.3, lean disposable default stack at port offset 1000 beside the operator's running local Supabase/Kong/API (none stopped); owned kind for J2 and the runbook fixture; disposable Temporal over mTLS for J4",
+  "remoteCi": {
+    "repository": "saivedant169/zenith",
+    "main": {
+      "runId": 39357934404,
+      "conclusion": "success",
+      "jobs": "20 success / 8 configured conditional operated skips / 0 failures"
+    },
+    "nativePackagedWorkers": {
+      "runId": 39357934596,
+      "conclusion": "success"
+    },
+    "nativeSkippedPlatforms": {
+      "runId": 39357934426,
+      "conclusion": "success"
+    }
+  },
+  "j2": {
+    "receipt": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-4fac547c-default-journey-receipt.json",
+    "sha256": "f81d8965f4e121f04632f92b930f9455a7f63f42a7507c6513f0e7f185eb5e3c",
+    "status": "passed",
+    "counts": {
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0,
+      "not_run": 0
+    },
+    "attempts": 1
+  },
+  "signedRunbookDelivery": {
+    "exit": 0,
+    "source": {
+      "head": "4fac547c39ea0ee346112f113245bf7c5e10ced0",
+      "contentSha256": "e41728de8d5407c6045feb2e4d9f74ac577ed5c1960c4107019c2af2712ab953",
+      "dirty": false
+    },
+    "acceptance": {
+      "schema": 2,
+      "level": "local_engine",
+      "registeredSignedDelivery": true,
+      "signedReceipt": {
+        "runbookId": "j4-afee0aa6-d2fe-4299-b2e2-c9831cd48273",
+        "version": 1,
+        "definitionDigest": "a5e172c22fcdc37a04762dee1d9a3790c7311f3f4c145008951a4d740b0d061e",
+        "signingKid": "control-4e1b381ccfe660980e3c66ce",
+        "signatureSha256": "7d4a9a5cddf261a2ef4fc046e87a8a93ed47b6cc2d59198e1ce87485d636285b"
+      },
+      "executedRunBinding": {
+        "runId": "rbr_a38b9d54-f73e-4c2d-9957-2bc937de5eb2",
+        "runbookId": "j4-afee0aa6-d2fe-4299-b2e2-c9831cd48273",
+        "version": 1,
+        "definitionDigest": "a5e172c22fcdc37a04762dee1d9a3790c7311f3f4c145008951a4d740b0d061e"
+      },
+      "deadlineBounded": true,
+      "replayRefusal": "not_observed_by_this_public_acceptance_interface",
+      "machineExecDisabledByFreshAgentCapabilities": true,
+      "machineExecGuardRefusal": "not_observed; approval/cancellation intentionally prevents delivery",
+      "brokerSemanticsBound": true,
+      "oneDelivery": true,
+      "durableEvidence": true,
+      "auditJoin": true,
+      "pendingCancellation": true,
+      "rawExecApprovalRequired": true,
+      "epochPreserved": true
+    }
+  },
+  "j4": {
+    "runId": "j4-f7aa508c7e89",
+    "namespace": "j4-29e744e26cea",
+    "machineSchedules": "passed",
+    "resume": "passed",
+    "privateReceiptSha256": {
+      "j4-machine-schedules.json": "c9a26595efcf6d0a509a9ce761b8d4742d9c71ccd4a1201a4ab993d277b25e98",
+      "j4-completion.receipt.json": "241cd136b0ce58f77bbfed728c815dd6fb792d35782b4a627956556b5f93e1be",
+      "j4-prestart.receipt.json": "efdeacb8a2e3a7bee00775e3265bacfba0d68ce5d02a434835199006614abac3",
+      "readiness.receipt.json": "5638b474467ad211bd2f063778e912e5c12c654086892e28eb62a7c4ce5ae4f4"
+    }
+  },
+  "openDefects": [
+    "intermittent hosted-authority postgres.js client wedge (agent-link requests hang until API restart); did not occur in this J2 run"
+  ],
+  "notProven": [
+    "live cloud",
+    "production signoff",
+    "UX01 accessibility receipt"
+  ]
+}

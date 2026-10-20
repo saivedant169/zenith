@@ -34,7 +34,7 @@ export default async function ReadinessPage({ searchParams }: { searchParams: Pr
             <td className="py-2 text-ink-mute">{c.fix}</td></tr>)}</tbody>
         </table></div>
       </section>
-      <p className="text-[13px] text-ink-mute">Cloud connections are managed on the <Link className="text-signal hover:underline" href="/platform/connections">connections</Link> pages; the guided AWS setup is at <Link className="text-signal hover:underline" href="/platform/connections/aws">Connect AWS</Link>.</p>
+      <p className="text-[13px] text-ink-mute">Cloud connections are managed on the <Link className="text-signal underline" href="/platform/connections">connections</Link> pages; the guided AWS setup is at <Link className="text-signal hover:underline" href="/platform/connections/aws">Connect AWS</Link>.</p>
     </>}
   </div>;
 }

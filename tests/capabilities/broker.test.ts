@@ -238,10 +238,12 @@ describe.each(STORE_KINDS)("authoritative facts [%s]", (kind) => {
       }
     }
     // autonomy 5 is still below the level (6) these capabilities ever run unattended at
-    await h.store.putEnvironmentAutonomy({ workspaceId: h.ids.wsA, environmentId: h.ids.envASbx, autonomyLevel: 5, updatedBy: "alice" });
-    for (const capability of ["database.delete", "database.restore"] as const) {
-      const r = await h.broker.check(requestFor(h, capability, "sbx"), user("alice"));
-      expect(r.decision.outcome, `${capability} at autonomy 5`).toBe("require_approval");
+    for (const [where, environmentId] of [["sbx", h.ids.envASbx], ["stg", h.ids.envAStg]] as const) {
+      await h.store.putEnvironmentAutonomy({ workspaceId: h.ids.wsA, environmentId, autonomyLevel: 5, updatedBy: "alice" });
+      for (const capability of ["database.delete", "database.restore"] as const) {
+        const r = await h.broker.check(requestFor(h, capability, where), user("alice"));
+        expect(r.decision.outcome, `${capability} at autonomy 5 in ${where}`).toBe("require_approval");
+      }
     }
   });
 

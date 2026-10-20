@@ -492,6 +492,29 @@ describe("composed activities against local stores (no Temporal fallback)", () =
       expect(cloud.elb.commandCalls((await import("@aws-sdk/client-elastic-load-balancing-v2")).DescribeTargetHealthCommand).length).toBeGreaterThan(0);
     } finally { await activities.releaseLease({ lease }); }
   }, 60_000);
+  it("refuses rollout dispatch when policy is tightened to deny after approval, through the real broker and policy", async () => {
+    activities = composed(false);
+    const operationId = await approvedOperation();
+    await activities.validateDesiredState({ operationId });
+    let lease = await activities.acquireLease({ operationId, scope: `env:${ENV}`, ttlMs: 180_000 });
+    try {
+      const plan = await activities.planInfrastructure({ operationId, lease });
+      await activities.evaluatePolicy({ operationId, planDigest: plan.planDigest });
+      lease = await planRound(operationId, lease);
+      await activities.finalPlan({ operationId, approvedPlanDigest: plan.planDigest, lease });
+      await activities.applyInfrastructure({ operationId, planDigest: plan.planDigest, lease });
+      const built = await activities.buildArtifacts({ operationId, lease });
+      // the human approval is still genuine; only the current policy changes
+      const tightened = await loadPolicyEngine();
+      broker.deps.policy = async () => ({
+        version: "tightened-after-approval",
+        evaluate: async (input) => ({ ...(await tightened.evaluate(input)), decision: { outcome: "deny", reasons: [{ code: "tightened_after_approval", message: "Policy was tightened after approval.", rule: "test" }] } }),
+      });
+      const ecsCalls = cloud.ecs.calls().length;
+      await expect(activities.deployWorkloads({ operationId, lease, images: built.images })).rejects.toThrow(/Current policy or human approval changed before rollout dispatch/);
+      expect(cloud.ecs.calls()).toHaveLength(ecsCalls);
+    } finally { await activities.releaseLease({ lease }); }
+  }, 60_000);
   it("evaluates a public database plan as deny without any apply call", async () => {
     activities = composed(false);
     const operationId = await approvedOperation();

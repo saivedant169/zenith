@@ -66,6 +66,8 @@ export function run(args = process.argv.slice(2)) {
         ZENITH_JOURNEY_SOURCE: sourceFile, ZENITH_JOURNEY_SCRATCH: scratch },
       stdio: ['ignore', 'pipe', 'pipe'],
     });
+    // Kept only in the owner-private scratch, never printed: Playwright output can contain cookies, mail links or tokens.
+    fs.writeFileSync(path.join(scratch, 'playwright.private.log'), `${child.stdout ?? ''}\n${child.stderr ?? ''}`, { mode: 0o600 });
     if (child.error || child.signal || child.status === null) fail('child-settlement-unconfirmed');
     if (!fs.existsSync(output)) fail('no-receipt');
     let result = JSON.parse(fs.readFileSync(output, 'utf8'));
@@ -79,7 +81,9 @@ export function run(args = process.argv.slice(2)) {
     }
     const candidateCheckFailed = result.checks.some(check =>
       ['two-operator-workspace', 'cleanup'].includes(check.id) && check.status === 'failed');
-    scratchRemovalAuthorized = !candidateCheckFailed;
+    // A journey that did not pass keeps its private scratch (and diagnostics) for the operator.
+    scratchRemovalAuthorized = !candidateCheckFailed && result.status === 'passed';
+    if (!scratchRemovalAuthorized) process.stdout.write(`journey:private-diagnostics ${scratch}\n`);
     process.stdout.write(JSON.stringify({ status: result.status, counts: result.counts, ledgerEligible: result.ledgerEligible }) + '\n');
     return child.status === 0 && result.status === 'passed' ? 0 : 1;
   } catch {

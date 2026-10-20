@@ -504,6 +504,8 @@ async function writeRow(client: SupabaseClient, change: Change): Promise<void> {
       version: 1,
       updated_at: now,
     });
+    // another instance created the same row first: a conflict to reload, not a store failure
+    if (error?.code === "23505") await conflict();
     if (error) throw storeError(spec.table, "insert into", error.message);
     return;
   }
@@ -523,13 +525,15 @@ async function writeRow(client: SupabaseClient, change: Change): Promise<void> {
 
 async function deleteRow(client: SupabaseClient, change: Change): Promise<void> {
   const spec = adapterFor(change.collection);
-  let query = client.from(spec.table).delete();
+  // Guarded like an update: a delete from a stale snapshot must not erase a newer write.
+  let query = client.from(spec.table).delete().eq("version", change.baseline!.version);
   for (const [column, value] of Object.entries(
     spec.key({ id: change.row.id, workspaceId: change.workspaceId })
   ))
     query = query.eq(column, value);
-  const { error } = await query;
+  const { data: deleted, error } = await query.select("id");
   if (error) throw storeError(spec.table, "delete from", error.message);
+  if (!deleted || deleted.length === 0) await conflict();
 }
 
 /**

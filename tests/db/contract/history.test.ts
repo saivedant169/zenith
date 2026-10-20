@@ -399,6 +399,32 @@ describe.skipIf(!postgresContractEnabled())("history contract — Postgres only"
     expect(((data ?? [])[0] as { status: string }).status).toBe("verifying");
   });
 
+  it("refuses a delete against a row another instance already moved", async () => {
+    const { loadSnapshot, pgClient } = await import("@/lib/db/postgres-store");
+    const { runWithSnapshot } = await import("@/lib/db/request-snapshot");
+    const store = pgStore();
+    const a = await loadSnapshot(pgClient(), user);
+    const b = await loadSnapshot(pgClient(), user);
+
+    await runWithSnapshot(a, async () => {
+      a.data.deployments.find((x) => x.id === DEP2)!.status = "succeeded";
+      store.save(PROJ2);
+      await settle(store);
+    });
+
+    // b still holds the older version; its delete must not erase a's update
+    await expect(
+      runWithSnapshot(b, async () => {
+        b.data.deployments = b.data.deployments.filter((x) => x.id !== DEP2);
+        store.save(PROJ2);
+        await settle(store);
+      })
+    ).rejects.toMatchObject({ status: 409 });
+
+    const { data } = await pgClient().from("deployments").select("status").eq("id", DEP2);
+    expect(((data ?? [])[0] as { status: string }).status).toBe("succeeded");
+  });
+
   it("bumps the change feed for the workspace a deployment belongs to", async () => {
     const { pgClient } = await import("@/lib/db/postgres-store");
     const { data } = await pgClient()

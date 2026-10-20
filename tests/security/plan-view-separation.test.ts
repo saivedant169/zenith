@@ -1,10 +1,12 @@
 /** PROD-DUR-05: sanitized PlanView and raw custody material stay separate at every model-visible surface. Fixtures built at run time. */
 import { createHash, randomBytes } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { assertPlanViewOnly, containsRawPlanMaterial, isRawPlanRecord, isRawPlanString, RawPlanMaterialError } from "@/lib/security/raw-plan-material";
 import { detectCredentialShapes, sanitizeForModel } from "@/lib/security/result-sanitizer";
 import { buildEnvelope } from "@/lib/agent-access/v3/envelope";
-import { projectPlanReview } from "@/lib/controlplane/db/repos/operation-review";
+import { projectPlanReview, withPlanReview } from "@/lib/controlplane/db/repos/operation-review";
+import * as evidence from "@/lib/controlplane/db/repos/evidence";
+import { LANES, openLane, seedApprovedOperation } from "../controlplane/_support/harness";
 
 const hash = (label: string): string => createHash("sha256").update(label).digest("hex");
 const DIGEST_A = hash("a"), DIGEST_B = hash("b"), DIGEST_C = hash("c");
@@ -86,5 +88,45 @@ describe("stored PlanView projection", () => {
   it("the projection never carries members the PlanView schema does not name", () => {
     const projected = projectPlanReview(summary({ view: { ...view(digest), rawSha256: "a".repeat(64), planBytes: "x" } }), digest);
     expect(projected).toBeUndefined();
+  });
+});
+
+describe.each(LANES)("stored PlanView separated from raw data on the real database [$name]", (lane) => {
+  let lanes: Awaited<ReturnType<typeof openLane>>;
+  beforeAll(async () => { lanes = await openLane(lane); }, 60_000);
+  afterAll(async () => { await lanes.close(); });
+
+  /** An approved operation with its original plan evidence stored, carrying `extra` beside the PlanView. */
+  async function storedPlan(extra: Record<string, unknown>) {
+    const sql = lanes.db;
+    const { workspaceId, operation } = await seedApprovedOperation(sql);
+    await sql.query("update platform.operations set plan_digest = $3 where workspace_id = $1 and id = $2", [workspaceId, operation.id, DIGEST_C]);
+    await evidence.insert(sql, { workspaceId, operationId: operation.id, kind: "tofu_plan", digest: DIGEST_C,
+      summary: { stage: "plan", planDigest: DIGEST_C, view: view(DIGEST_C), facts, cost: {}, ...extra }, simulated: false });
+    return { sql, op: { ...operation, approvalRound: 0, planDigest: DIGEST_C } };
+  }
+
+  it("returns the PlanView for a clean stored summary", async () => {
+    const { sql, op } = await storedPlan({});
+    const result = await withPlanReview(sql, op);
+    expect(result.planReview?.view.planDigest).toBe(DIGEST_C);
+  });
+
+  it.each([
+    ["a sealed custody record", { artifact: sealed() }],
+    ["a plan file reference", { custody: { planFile: "plan.tfplan" } }],
+  ])("withholds the review when the stored summary carries %s", async (_label, extra) => {
+    const { sql, op } = await storedPlan(extra);
+    const result = await withPlanReview(sql, op);
+    expect(result.planReview).toBeUndefined();
+    expect("planReview" in result).toBe(false);
+  });
+
+  it("never returns raw custody strings, even when the stored summary carries them", async () => {
+    const record = sealed();
+    const { sql, op } = await storedPlan({ artifact: record, custody: { planFile: "plan.tfplan" } });
+    const text = JSON.stringify(await withPlanReview(sql, op));
+    expect(text).not.toContain(record.ciphertext);
+    expect(text).not.toContain("planFile");
   });
 });

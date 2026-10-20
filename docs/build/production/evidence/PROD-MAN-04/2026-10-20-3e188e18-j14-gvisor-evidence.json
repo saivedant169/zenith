@@ -1,0 +1,34 @@
+{
+  "requirement": "PROD-MAN-04",
+  "startedAt": "2026-10-20T08:32:42.808Z",
+  "checks": {
+    "runtime": [
+      {
+        "namespace": "zt-ws-j14-a-cd361b77-env-j14-a-cd361b77-21ec2ffe7a",
+        "node": "zenith-life07-j14-control-plane",
+        "runtime": "io.containerd.runsc.v1",
+        "nodeKernel": "7.0.14-linuxkit"
+      },
+      {
+        "namespace": "zt-ws-j14-b-cd361b77-env-j14-b-cd361b77-1f307762e3",
+        "node": "zenith-life07-j14-control-plane",
+        "runtime": "io.containerd.runsc.v1",
+        "nodeKernel": "7.0.14-linuxkit"
+      }
+    ],
+    "cni": {
+      "gateway": "reached both",
+      "crossTenant": "blocked both"
+    },
+    "podSecurity": "privileged refused",
+    "memory": {
+      "reason": "OOMKilled",
+      "otherTenantRestarts": 0
+    }
+  },
+  "context": "kind-zenith-life07-j14",
+  "cleanup": {
+    "code": 0
+  },
+  "finishedAt": "2026-10-20T08:33:16.820Z"
+}

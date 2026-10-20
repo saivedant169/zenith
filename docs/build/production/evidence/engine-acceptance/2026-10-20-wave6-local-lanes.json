@@ -7,9 +7,9 @@
  "note": "Each case is verified with scripts/ci/wave6-gates.mjs --case against its own Vitest JSON report on the clean exact-source commit named per case. Live-lane cases are excluded. Failures and skips are preserved; totals are not promotion evidence.",
  "totals": {
   "cases": 286,
-  "passed": 248,
+  "passed": 258,
   "failed": 5,
-  "not_run": 29
+  "not_run": 19
  },
  "byRequirement": {
   "PROD-REL-04": {
@@ -123,19 +123,19 @@
    "not_run": 1
   },
   "PROD-MAN-04": {
-   "passed": 3,
+   "passed": 11,
    "failed": 0,
-   "not_run": 8
+   "not_run": 0
   },
   "PROD-MAN-07": {
-   "passed": 32,
+   "passed": 42,
    "failed": 3,
-   "not_run": 14
+   "not_run": 4
   },
   "PROD-MAN-05": {
-   "passed": 24,
+   "passed": 26,
    "failed": 0,
-   "not_run": 2
+   "not_run": 0
   },
   "PROD-MAN-03": {
    "passed": 2,
@@ -2850,8 +2850,9 @@
     "PROD-MAN-04",
     "PROD-MAN-07"
    ],
-   "status": "not_run",
-   "reason": "not run: needs Cilium Gateway; helm is not installed and scripts/isolation/cilium.env chart pins are empty"
+   "status": "passed",
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-eb1b303e8b6d24db",
@@ -2862,8 +2863,9 @@
     "PROD-MAN-04",
     "PROD-MAN-07"
    ],
-   "status": "not_run",
-   "reason": "not run: needs Cilium Gateway; helm is not installed and scripts/isolation/cilium.env chart pins are empty"
+   "status": "passed",
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-766d337f66ae01ef",
@@ -2874,8 +2876,9 @@
     "PROD-MAN-04",
     "PROD-MAN-07"
    ],
-   "status": "not_run",
-   "reason": "not run: needs Cilium Gateway; helm is not installed and scripts/isolation/cilium.env chart pins are empty"
+   "status": "passed",
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-4ec7a4dd6504ae54",
@@ -2886,8 +2889,9 @@
     "PROD-MAN-04",
     "PROD-MAN-07"
    ],
-   "status": "not_run",
-   "reason": "not run: needs gVisor runsc installed in the kind nodes (toolchain download not authorized in this run)"
+   "status": "passed",
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-43d7f3de21941fa3",
@@ -2898,8 +2902,9 @@
     "PROD-MAN-04",
     "PROD-MAN-07"
    ],
-   "status": "not_run",
-   "reason": "not run: needs gVisor runsc installed in the kind nodes (toolchain download not authorized in this run)"
+   "status": "passed",
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-ad49950ddfb0aaab",
@@ -2910,8 +2915,9 @@
     "PROD-MAN-04",
     "PROD-MAN-07"
    ],
-   "status": "not_run",
-   "reason": "not run: needs gVisor runsc installed in the kind nodes (toolchain download not authorized in this run)"
+   "status": "passed",
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-dc20b5b07fe54d7c",
@@ -2922,8 +2928,9 @@
     "PROD-MAN-04",
     "PROD-MAN-07"
    ],
-   "status": "not_run",
-   "reason": "not run: needs gVisor runsc installed in the kind nodes (toolchain download not authorized in this run)"
+   "status": "passed",
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-9189a46a8273063a",
@@ -2934,8 +2941,9 @@
     "PROD-MAN-04",
     "PROD-MAN-07"
    ],
-   "status": "not_run",
-   "reason": "not run: needs gVisor runsc installed in the kind nodes (toolchain download not authorized in this run)"
+   "status": "passed",
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-7b3244de69d83ec6",
@@ -2986,8 +2994,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-666b0ce4b0f1b8f8",
@@ -2999,8 +3007,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-69b718d22b64fa8f",
@@ -3012,8 +3020,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-a9a3d94f64a9c65b",
@@ -3025,8 +3033,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-b134f0c72b5c2764",
@@ -3038,8 +3046,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-baca1188ff22b75b",
@@ -3051,8 +3059,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-6e39db441c989872",
@@ -3064,8 +3072,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-75d7f39b3c8458a0",
@@ -3077,8 +3085,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-0b4449bed035144d",
@@ -3090,8 +3098,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-b5fbfa35acaf08cd",
@@ -3103,8 +3111,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-89ea273fc627a605",
@@ -3116,8 +3124,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-cde8e506420e6199",
@@ -3129,8 +3137,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-308429f9772444e0",
@@ -3142,8 +3150,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-4adc945248655d71",
@@ -3155,8 +3163,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-a3693b27e6f60f3b",
@@ -3167,8 +3175,9 @@
     "PROD-MAN-05",
     "PROD-MAN-07"
    ],
-   "status": "not_run",
-   "reason": "skipped by the suite on kind-calico: hostname egress needs Cilium; RuntimeClass needs a gVisor node"
+   "status": "passed",
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-db7b3803162d63d4",
@@ -3180,8 +3189,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-f6bbddf3e8ba217f",
@@ -3193,8 +3202,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-037d2f9c28e2320c",
@@ -3206,8 +3215,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-90f896733453dfe2",
@@ -3219,8 +3228,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-d51e91dea2e0b959",
@@ -3232,8 +3241,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-1da052852773cbc2",
@@ -3245,8 +3254,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-1b602effba3f5fb3",
@@ -3257,8 +3266,9 @@
     "PROD-MAN-05",
     "PROD-MAN-07"
    ],
-   "status": "not_run",
-   "reason": "skipped by the suite on kind-calico: hostname egress needs Cilium; RuntimeClass needs a gVisor node"
+   "status": "passed",
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-38677a11bfbfa79c",
@@ -3270,8 +3280,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-7fff0d0ad27600f5",
@@ -3283,8 +3293,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-f66256798febedac",
@@ -3296,8 +3306,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-calico (fresh cluster)"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-71e0aeabf0676b91",
@@ -3309,8 +3319,8 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
-   "run": "tenant-isolation-acceptance.sh kind-existing with ZENITH_TEST_ISOLATION_CONTROL=1"
+   "commit": "3e188e18",
+   "run": "J14 kind + Cilium 1.20.2 + gVisor 20260928.0 + Gateway API v1.6.3, two consecutive fresh clusters, both passed"
   },
   {
    "id": "wave6-585983632e0b1951",
@@ -3358,7 +3368,7 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "commit": "1650e6c43182720f3b2a390927b2f42f1bfcfa99",
    "run": "per-case lane argv (docker)"
   },
   {
@@ -3371,7 +3381,7 @@
     "PROD-MAN-07"
    ],
    "status": "failed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "commit": "1650e6c43182720f3b2a390927b2f42f1bfcfa99",
    "run": "per-case lane argv (docker)",
    "failure": "\"Vitest run did not succeed\"",
    "reason": "failed on moto 5.2.3: SigV4 SignatureDoesNotMatch for any query value containing '/', reproduced with the admin key and without the TLS proxy (emulator defect); prefix-scoped Put/Get were enforced"
@@ -3386,7 +3396,7 @@
     "PROD-MAN-07"
    ],
    "status": "passed",
-   "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
+   "commit": "1650e6c43182720f3b2a390927b2f42f1bfcfa99",
    "run": "per-case lane argv (docker)"
   },
   {

@@ -1,3 +1,20 @@
+## J14 Cilium, gVisor and Gateway lanes — 20 October 2026
+
+With the owner-approved toolchain (helm, the pinned Cilium 1.20.2 chart, gVisor 20260928.0, Gateway API v1.6.3 CRDs, Chrome), J14 passed 34/34 on two consecutive fresh kind clusters at exact source `3e188e18`:
+- tenant isolation 26/26, including hostname egress and the gVisor RuntimeClass;
+- gVisor runtime 4/4;
+- native onboarding 1/1;
+- Cilium Gateway 3/3.
+
+MAN-04 (11/11) and MAN-05 (26/26) now pass all their non-live wave6 cases. Both still need live-sandbox and operational-rehearsal evidence, so neither is promoted.
+
+The runs found five fixture defects, all fixed:
+- containerd 2.3's config version 4 was rejected by the gVisor installer;
+- the Cilium hostname-egress listeners sat on node loopback, so Cilium saw them as `reserved:host` and `toFQDNs` could not select them;
+- the wildcard name shared an address with the allowed name;
+- Cilium shortens the Gateway Service name to 63 characters;
+- two intermittent cases: the disk hog was OOM-killed before eviction, and Envoy answered 403 while a new backend's policy converged.
+
 ## PROD-PKG-05 verified: hosted-authority wedge fixed — 20 October 2026
 
 The open PKG-05 defect, in which the hosted-authority client stopped answering agent-link requests, is root-caused and fixed:

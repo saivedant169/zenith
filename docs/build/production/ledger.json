@@ -6245,6 +6245,15 @@
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
           "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
           "result": "Wave6 local lanes 2026-10-20: 3 passed / 0 failed / 8 not run of the requirement's 11 non-live wave6 cases. Managed onboarding readiness 3/3 on real kind (d23fc0b4); gVisor and Cilium Gateway cases not run (toolchain not installed). Not promoted: local-engine slice only; acceptance judged separately."
+        },
+        {
+          "level": "local_engine",
+          "commit": "3e188e18",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "6a9c253eab6743c6089b9e0b12f1f093a968e5d78318e545a75caa89e85e442f",
+          "receipt": "docs/build/production/evidence/PROD-MAN-04/2026-10-20-3e188e18-j14-isolation-evidence.json",
+          "receiptSha256": "54ffcaded0f073dbf18ce071d7ba89a1020e456cbd1ef44f2a78fe553df0798a",
+          "result": "J14 on two consecutive fresh kind clusters at 3e188e18 (Cilium 1.20.2 chart pinned by SHA-256, gVisor 20260928.0 verified against the publisher SHA-512, Gateway API v1.6.3 CRDs matching the release digest): tenant isolation 26/26 including hostname egress (allowlisted and wildcard reached, unlisted blocked, metadata-resolving name blocked by the deny, separate per-tenant allowlists) and the gVisor RuntimeClass; gVisor runtime 4/4; reviewed native onboarding 1/1; Cilium Gateway attachment, cross-tenant listener and backend refusal 3/3. Fixture defects found and fixed on the way: 85fb9f42, d3f60ccd, 3e188e18. All 11 non-live wave6 cases now pass. Not promoted: live sandbox and operational rehearsal evidence are still required."
         }
       ],
       "requiredEvidence": [
@@ -6288,6 +6297,15 @@
           "commit": "d23fc0b4e7e547721d5ae3791e6fd52243fd209a",
           "receipt": "docs/build/production/evidence/PROD-MAN-05/2026-10-20-d23fc0b4-tenant-isolation-kind-calico.json",
           "receiptSha256": "abcf0782cda8e6d671108f3419597c6d009fca653a9e267e293198d6a45a2bf8"
+        },
+        {
+          "level": "local_engine",
+          "commit": "3e188e18",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "6a9c253eab6743c6089b9e0b12f1f093a968e5d78318e545a75caa89e85e442f",
+          "receipt": "docs/build/production/evidence/PROD-MAN-04/2026-10-20-3e188e18-j14-isolation-evidence.json",
+          "receiptSha256": "54ffcaded0f073dbf18ce071d7ba89a1020e456cbd1ef44f2a78fe553df0798a",
+          "result": "J14 on two consecutive fresh kind clusters at 3e188e18 (Cilium 1.20.2 chart pinned by SHA-256, gVisor 20260928.0 verified against the publisher SHA-512, Gateway API v1.6.3 CRDs matching the release digest): tenant isolation 26/26 including hostname egress (allowlisted and wildcard reached, unlisted blocked, metadata-resolving name blocked by the deny, separate per-tenant allowlists) and the gVisor RuntimeClass; gVisor runtime 4/4; reviewed native onboarding 1/1; Cilium Gateway attachment, cross-tenant listener and backend refusal 3/3. Fixture defects found and fixed on the way: 85fb9f42, d3f60ccd, 3e188e18. All 26 non-live wave6 cases now pass. Not promoted: live sandbox and operational rehearsal evidence are still required."
         }
       ],
       "requiredEvidence": [
@@ -6352,6 +6370,15 @@
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
           "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
           "result": "Wave6 local lanes 2026-10-20: 32 passed / 6 failed / 11 not run of the requirement's 49 non-live wave6 cases. Isolation, readiness, serving-kind and storage lanes as recorded for MAN-03/04/05; managed-kind failed 5/6 on 8e20b1f4 (harness predates required tenant operator custody). Not promoted: local-engine slice only; acceptance judged separately."
+        },
+        {
+          "level": "local_engine",
+          "commit": "3e188e18",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
+          "artifactSha256": "6a9c253eab6743c6089b9e0b12f1f093a968e5d78318e545a75caa89e85e442f",
+          "receipt": "docs/build/production/evidence/PROD-MAN-04/2026-10-20-3e188e18-j14-isolation-evidence.json",
+          "receiptSha256": "54ffcaded0f073dbf18ce071d7ba89a1020e456cbd1ef44f2a78fe553df0798a",
+          "result": "J14 on two consecutive fresh kind clusters at 3e188e18 (Cilium 1.20.2 chart pinned by SHA-256, gVisor 20260928.0 verified against the publisher SHA-512, Gateway API v1.6.3 CRDs matching the release digest): tenant isolation 26/26 including hostname egress (allowlisted and wildcard reached, unlisted blocked, metadata-resolving name blocked by the deny, separate per-tenant allowlists) and the gVisor RuntimeClass; gVisor runtime 4/4; reviewed native onboarding 1/1; Cilium Gateway attachment, cross-tenant listener and backend refusal 3/3. Fixture defects found and fixed on the way: 85fb9f42, d3f60ccd, 3e188e18. Managed-kind source builds still need owner-reviewed isolated-build profiles; the MAN-03 listing clause needs live AWS. Not promoted: live sandbox and operational rehearsal evidence are still required."
         }
       ],
       "requiredEvidence": [

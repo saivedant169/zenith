@@ -1,0 +1,66 @@
+{
+  "requirement": "PROD-MAN-04",
+  "startedAt": "2026-10-20T08:26:34.743Z",
+  "checks": {
+    "own-0-attempts": {
+      "attempts": 1
+    },
+    "own-0": {
+      "hostname": "web.prod.j14a.apps.isolation.test",
+      "gateway": "zenith-gateway-zt-ws-j14-a-58a3b4f5-env-j14-a-58a3b4f5-6-b30630",
+      "body": "tenant-0"
+    },
+    "own-1-attempts": {
+      "attempts": 1
+    },
+    "own-1": {
+      "hostname": "web.prod.j14b.apps.isolation.test",
+      "gateway": "zenith-gateway-zt-ws-j14-b-58a3b4f5-env-j14-b-58a3b4f5-a-80fdac",
+      "body": "tenant-1"
+    },
+    "foreignListener": {
+      "parent": {
+        "group": "gateway.networking.k8s.io",
+        "kind": "Gateway",
+        "name": "zenith-gateway-zt-ws-j14-b-58a3b4f5-env-j14-b-58a3b4f5-a-80fdac",
+        "namespace": "zenith-gateway-58a3b4f5",
+        "sectionName": "https"
+      },
+      "condition": {
+        "lastTransitionTime": "2026-10-20T08:26:50Z",
+        "message": "HTTPRoute is not allowed to attach to this Gateway due to namespace restrictions",
+        "observedGeneration": 1,
+        "reason": "NotAllowedByListeners",
+        "status": "False",
+        "type": "Accepted"
+      }
+    },
+    "after-listener-attack-attempts": {
+      "attempts": 2
+    },
+    "foreignBackend": {
+      "parent": {
+        "group": "gateway.networking.k8s.io",
+        "kind": "Gateway",
+        "name": "zenith-gateway-zt-ws-j14-a-58a3b4f5-env-j14-a-58a3b4f5-6-b30630",
+        "namespace": "zenith-gateway-58a3b4f5",
+        "sectionName": "https"
+      },
+      "condition": {
+        "lastTransitionTime": "2026-10-20T08:27:01Z",
+        "message": "Cross namespace references are not allowed",
+        "observedGeneration": 1,
+        "reason": "RefNotPermitted",
+        "status": "False",
+        "type": "ResolvedRefs"
+      }
+    },
+    "after-backend-attack-attempts": {
+      "attempts": 1
+    }
+  },
+  "cleanup": {
+    "code": 0
+  },
+  "finishedAt": "2026-10-20T08:27:09.450Z"
+}

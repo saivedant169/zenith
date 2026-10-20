@@ -1,0 +1,109 @@
+{
+  "requirement": "PROD-MAN-04+PROD-MAN-05",
+  "profile": "kind-cilium",
+  "startedAt": "2026-10-20T08:21:45.314Z",
+  "checks": {
+    "network": {
+      "fixture": "external container on the kind network",
+      "controls": "gateway to A and B reached; B client to B server reached",
+      "crossTenantByIp": "blocked both ways",
+      "crossTenantByName": "A resolves=true and is blocked",
+      "metadata": "blocked",
+      "kubelet": "blocked",
+      "apiServer": "blocked",
+      "publicControl": "blocked (hostname mode)"
+    },
+    "pod_security": {
+      "privileged container": "refused",
+      "hostPath volume": "refused",
+      "host network": "refused",
+      "host PID": "refused",
+      "host IPC": "refused",
+      "root user": "refused",
+      "added NET_ADMIN": "refused",
+      "added SYS_ADMIN": "refused",
+      "privilege escalation allowed": "refused",
+      "no seccomp profile": "refused",
+      "unconfined seccomp": "refused",
+      "host port": "refused",
+      "systemPriority": "refused by quota and by the gate"
+    },
+    "quota": {
+      "containerCeiling": "refused (cpu, memory, ephemeral-storage)",
+      "cpuQuota": "third 500m pod refused on a 1 CPU namespace",
+      "secrets": "20 of 25 created, quota 20",
+      "exposure": "LoadBalancer, NodePort and PVC refused on the free plan"
+    },
+    "hostname_egress": {
+      "allowed": "REACHED",
+      "wildcard": "REACHED",
+      "notAllowlisted": "BLOCKED",
+      "resolvesToMetadata": "BLOCKED"
+    },
+    "secrets": {
+      "workloadToken": "forbidden everywhere"
+    },
+    "operator_separation": {
+      "canIMatrix": "23 refusals and the control grants hold",
+      "realToken": "works in A (create secret, patch own namespace); refused for B, cluster scope, kube-system, escalation and exec"
+    },
+    "storage": {
+      "crossTenantClaim": "pod stays Pending; A has no claim and B's claim is untouched"
+    },
+    "runtime": {
+      "runtimeClass": "zenith-gvisor",
+      "report": "Linux 4.19.0-gvisor | [   0.000000] Starting gVisor... | [   0.599802] Daemonizing children... | [   0.958521] Moving files to filing cabinet..."
+    },
+    "noisy_neighbour": {
+      "baseline": {
+        "n": 200,
+        "failures": 0,
+        "p50": 0,
+        "p95": 10,
+        "p99": 10,
+        "max": 1050
+      },
+      "loaded": {
+        "n": 250,
+        "failures": 0,
+        "p50": 0,
+        "p95": 10,
+        "p99": 10,
+        "max": 1060
+      },
+      "bound": 260,
+      "factor": 5,
+      "absMs": 250,
+      "burnerCpuCores": 0.39901112966054536,
+      "cpuLimitCores": 0.4,
+      "provisional": "latency bound is a provisional target, not a commercial commitment",
+      "pids": {
+        "processesReached": 255,
+        "forkAttempts": 253,
+        "ceiling": 1024
+      },
+      "memory": "OOMKilled",
+      "disk": {
+        "reason": "Evicted",
+        "message": "Pod ephemeral local storage usage exceeds the total limit of containers 64Mi. ",
+        "container": "{\"containerID\":\"containerd://9f4bbfa5c32512ea836af41a83017adcb1e2e01804364a3bab21a8edb9257d3a\",\"exitCode\":137,\"finishedAt\":\"2026-10-20T08:24:50Z\",\"reason\":\"Error\",\"startedAt\":\"2026-10-20T08:24:34Z\"}"
+      },
+      "control": {
+        "n": 250,
+        "failures": 0,
+        "p50": 10,
+        "p95": 20,
+        "p99": 30,
+        "max": 30
+      }
+    }
+  },
+  "cluster": {
+    "gitVersion": "v1.37.0",
+    "platform": "linux/arm64",
+    "context": "kind-zenith-life07-j14",
+    "engine": "cilium",
+    "fqdnMode": true
+  },
+  "finishedAt": "2026-10-20T08:25:42.824Z"
+}

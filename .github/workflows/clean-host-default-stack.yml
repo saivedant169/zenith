@@ -21,6 +21,9 @@ jobs:
       SUPABASE_CLI_VERSION: 2.75.0
       SUPABASE_CLI_SHA256: e5597462f865d5ac72af0453358e37ecb0d85962ad6914a114a53de847303bde
       NEXT_TELEMETRY_DISABLED: "1"
+      # Anonymous public.ecr.aws pulls hit 'toomanyrequests: Data limit exceeded' on shared
+      # runners (runs 39438098987, 39442250507, 39454557463). Same images from Docker Hub.
+      SUPABASE_INTERNAL_IMAGE_REGISTRY: docker.io
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:

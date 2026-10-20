@@ -3829,11 +3829,11 @@
       "acceptance": [
         "Reproducible API, durable product/platform stores, Temporal, workers and customer agents deploy from a clean host without hidden injected ports."
       ],
-      "state": "in_progress",
+      "state": "verified",
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "implementation_complete_verification_pending",
+      "implementationStatus": "verified_082a0272: on a fresh GitHub-hosted Linux runner with no port offset, the default 2 API + 2 worker topology passed the default-stack engine cases (3/3, readiness 19/19) and the J2 customer-agent journey 18/18 (ledger-eligible), with exact-source CI green on 082a0272; the installer's native-Linux private-bind step is proven for Temporal. Third independent review: PROMOTE. Limits: local disposable engines only (no hosted production or live cloud); installer stage-linux-binds is live-proven for Temporal while the API (1001) and worker (10001) mappings are unit-tested and live-proven through the harness that shares private-staging.mjs; the J4 wave6 identities ran on the Mac (lean/deferred, offset 1000) at 0090d271, not on a clean Linux host; staged key copies are not refreshed automatically after TLS rotation (documented re-run).",
       "evidence": [
         {
           "level": "contract",
@@ -3905,6 +3905,15 @@
           "runId": 39477790980,
           "url": "https://github.com/saivedant169/zenith/actions/runs/39477790980",
           "result": "J2 default journey 18/18 passed on a clean Linux host (ledgerEligible, native AMD64, five readbacks): real browser and Supabase Auth, a registered zenithd and an owned kind target. Closes the customer-agents-from-a-clean-host gap; CI green on the same commit."
+        },
+        {
+          "level": "local_engine",
+          "commit": "082a027240ac30d9a74038c1d93a3dcbea2048f6",
+          "command": ".github/workflows/clean-host-default-stack.yml (default-stack and installer-linux-binds jobs)",
+          "environment": "GitHub-hosted ubuntu-24.04 amd64 fresh VM; default 2 API + 2 worker; no port offset",
+          "runId": 39481404021,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39481404021",
+          "result": "Confirming run on the same commit as the clean-host J2 journey and green CI: default stack 3/3 cases, readiness 19/19 (2 APIs, 2 workers), zero owned resources; installer stage-linux-binds: Temporal refused without staging, healthy with it, key 0600."
         }
       ],
       "requiredEvidence": [
@@ -3916,7 +3925,7 @@
       "pausedFrom": "in_progress",
       "pausedAt": "2026-10-02T07:32:03.553814+00:00",
       "resumedAt": "2026-10-02T18:33:14.347788+00:00",
-      "implementationNotes": "J1 single Supabase database authority implemented: exact product/platform runtime URL, same-project migration URL, v2 preparation, shared keyring joins, fail-closed readiness and registered migration version checks. Mac native pooler/MCP/default-stack verification, authenticated journeys and hosted acceptance pending. Final integration: migration chain 1..58, shared human step-up, owned-stack and live-helper joins assembled. Local checks in verify/FINAL-INTEGRATION.md; Mac engine/browser/live verification remains pending. No verification promotion. 2026-10-20 independent review (all 70 wave6 cases passing): DO NOT PROMOTE. Missing: (1) the default 2 API + 2 worker profile has never run on the engine (lean 1+1 only); (2) no clean-host run (Mac beside protected Supabase, ZENITH_DEFAULT_STACK_PORT_OFFSET=1000); (3) contract evidence a9fea896 predates the J1 single-DB rewrite; (4) customer-agent J2/J4 receipts are not cited here. .github/workflows/clean-host-default-stack.yml runs (1) and (2) on a fresh GitHub-hosted runner at offset 0. 2026-10-20 second independent review (9f8e0468): DO NOT PROMOTE. Closed: clean host, default 2+2 profile, no injected ports, current contract run. Open: (1) customer agents have not run on the clean host, default profile or current source (J2 98f03b4f and J4 55aa480b are Mac lean receipts); (2) both J4 wave6 identities need a rerun on a commit with the j4.mjs apiFetch change; (3) the native-Linux per-uid private-file step exists only in the acceptance harness, not in the supported installer (disposable mode). Staging and apiFetch security review: no weakening found; the staged-copy refresh shortcut is noted."
+      "implementationNotes": "J1 single Supabase database authority implemented: exact product/platform runtime URL, same-project migration URL, v2 preparation, shared keyring joins, fail-closed readiness and registered migration version checks. Mac native pooler/MCP/default-stack verification, authenticated journeys and hosted acceptance pending. Final integration: migration chain 1..58, shared human step-up, owned-stack and live-helper joins assembled. Local checks in verify/FINAL-INTEGRATION.md; Mac engine/browser/live verification remains pending. No verification promotion. 2026-10-20 independent review (all 70 wave6 cases passing): DO NOT PROMOTE. Missing: (1) the default 2 API + 2 worker profile has never run on the engine (lean 1+1 only); (2) no clean-host run (Mac beside protected Supabase, ZENITH_DEFAULT_STACK_PORT_OFFSET=1000); (3) contract evidence a9fea896 predates the J1 single-DB rewrite; (4) customer-agent J2/J4 receipts are not cited here. .github/workflows/clean-host-default-stack.yml runs (1) and (2) on a fresh GitHub-hosted runner at offset 0. 2026-10-20 second independent review (9f8e0468): DO NOT PROMOTE. Closed: clean host, default 2+2 profile, no injected ports, current contract run. Open: (1) customer agents have not run on the clean host, default profile or current source (J2 98f03b4f and J4 55aa480b are Mac lean receipts); (2) both J4 wave6 identities need a rerun on a commit with the j4.mjs apiFetch change; (3) the native-Linux per-uid private-file step exists only in the acceptance harness, not in the supported installer (disposable mode). Staging and apiFetch security review: no weakening found; the staged-copy refresh shortcut is noted. 2026-10-20 third independent review (082a0272): PROMOTE. Noted non-blocking: receipt \"native\" is inferred from matching architectures; staged copies persist under staged/ and are not checked by the drift check; receipt.mjs evidence.logs still names the PKG-05 path (PKG-04 wrapper file compensates)."
     },
     {
       "id": "PROD-PKG-05",

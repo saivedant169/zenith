@@ -1,3 +1,22 @@
+## PROD-PKG-04 verified: clean-host installation topology — 20 October 2026
+
+PKG-04 is promoted after a third independent review. On a fresh GitHub-hosted Linux runner (ubuntu-24.04 amd64, no other containers, no port offset), the default 2 API + 2 worker topology passed the default-stack engine cases 3/3 with readiness 19/19. The J2 customer-agent journey passed 18/18 with a ledger-eligible receipt (real browser, Supabase Auth, a registered zenithd and an owned kind target). Exact-source CI is green on `082a0272` (run 39477778904). [Evidence](evidence/PROD-PKG-04/2026-10-20-082a0272-clean-host-journey.json)
+
+The clean-host runs found real Linux defects that Docker Desktop had hidden on the Mac:
+- **Private TLS binds:** containers running as 1000, 1001 and 10001 could not read the operator's 0600 private TLS bind mounts. On Linux the harness now binds 0400 per-uid copies, written by a networkless least-privilege helper; the originals stay 0600.
+- **Installer:** the supported installer has a matching `stage-linux-binds` step, documented in INSTALLATION.md. On a native runner, Temporal is refused without it and healthy with it.
+- **Witness image modes:** the runner's built-in BuildKit left the witness image's 0700 directories at 0755, which the seed's ownership check correctly refused.
+
+Harness fixes, all recorded:
+- Node's `fetch()` dropped the probe's Host header, so the peer API correctly refused the probe as a foreign host.
+- The J2 harness accepted only macOS.
+- Anonymous public.ecr.aws pulls hit rate limits.
+- A test type error.
+
+Fourteen earlier failed runs are retained with these fixes.
+
+Limits: local disposable engines only. Installer staging is live-proven for Temporal; the API and worker mappings are unit-tested and proven through the shared harness path. The J4 identities ran on the Mac. The ledger is now **15 verified / 61 in progress / 2 planned**.
+
 ## COST optimizer consent passed on the owned stack — 20 October 2026
 
 The optimizer consent HTTP case (`wave6-756bde47cd4150de`) passed 1/1 on exact source `3c5dc825`, against the owned J1 default stack. Together with the three PostgreSQL optimizer-settings cases, all four wave6 cases gated on COST-01/02/03 now pass.

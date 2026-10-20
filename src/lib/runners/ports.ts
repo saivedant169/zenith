@@ -250,7 +250,10 @@ export function snapshotOutcome(input: SettleOutcomeInput): Readonly<SettleOutco
     || typeof input.logicalDigest !== "string" || !/^[a-f0-9]{64}$/.test(input.logicalDigest)
     || !["succeeded", "failed", "rejected", "timed_out"].includes(input.status)) fail();
   const box = (value: SealedBox): SealedBox => {
-    if (!value || Object.keys(value).sort().join(",") !== "alg,ct,iv,tag,v" || value.v !== 1 || value.alg !== "A256GCM"
+    // The key-ring sealer names its key (`kid`); the receipt keeps the id-less box, which `open` tries against each key.
+    const keys = Object.keys(value ?? {}).filter(key => key !== "kid").sort().join(",");
+    if (!value || keys !== "alg,ct,iv,tag,v" || (value.kid !== undefined && (typeof value.kid !== "string" || !/^[A-Za-z0-9_.:-]{1,128}$/.test(value.kid)))
+      || value.v !== 1 || value.alg !== "A256GCM"
       || typeof value.iv !== "string" || !/^[A-Za-z0-9_-]{16}$/.test(value.iv)
       || typeof value.tag !== "string" || !/^[A-Za-z0-9_-]{22}$/.test(value.tag)
       || typeof value.ct !== "string" || value.ct.length > Math.ceil(MAX_RESULT_BODY_BYTES * 4 / 3) + 4

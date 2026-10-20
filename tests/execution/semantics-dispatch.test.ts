@@ -13,14 +13,15 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { projectPlanReview } from "@/lib/controlplane/db/repos/operation-review";
 import { createPlatformSemanticsStore } from "@/lib/controlplane/db/repos/executable-semantics";
-import { readExecutableSemantics } from "@/lib/execution/semantics/digest";
+import { readExecutableSemantics, type SemanticComponentName } from "@/lib/execution/semantics/digest";
 import { SemanticsChangedError } from "@/lib/execution/semantics/errors";
+import { TofuPlanChangedError } from "@/lib/tofu/types";
 import { MemorySemanticsStore, type SemanticsStore } from "@/lib/execution/semantics/store";
 import { FAILURE_TYPES } from "@/lib/workflows/types";
 import { StepFailedError } from "@/lib/execution/errors";
 import { ReleaseSafetyService, createMemoryReleaseStore, type ProvenanceVerifier } from "@/lib/release-safety";
 import { LANES, openLane, seedApprovedOperation } from "../controlplane/_support/harness";
-import { ENV, OP, WS, bucketManifest, migratingManifest } from "./fakes/fixtures";
+import { ENV, OP, REVISION, WS, builtManifest, bucketManifest, migratingManifest } from "./fakes/fixtures";
 import { createWorld, type World, type WorldOptions } from "./fakes/world";
 
 type Mutable = { activeOwnershipTransfers?: () => Promise<unknown[]> };
@@ -252,6 +253,139 @@ describe.each(SEMANTICS_LANES)("execution dispatch [%s]", (name) => {
       const lease = await leaseOf(w);
       move(w);
       expect(await w.activities.deployWorkloads({ operationId: op, lease, images: [image] })).toEqual({ services: 1 });
+    });
+  });
+
+  describe("every changed approved component is refused at each dispatch point", () => {
+    const SVC = "container_service/web";
+    const DIGEST = `sha256:${"a".repeat(64)}`;
+    const image = { service: SVC, imageUri: `123456789012.dkr.ecr.us-east-1.amazonaws.com/web@${DIGEST}`, digest: DIGEST };
+    const verifier: ProvenanceVerifier = { name: "test", verify: async () => ({ verified: true, level: "pinned_digest", evidenceRef: "ev:test" }) };
+    const SAVED_PLAN_OTHER = "e".repeat(64);
+    const otherOwnership = { address: SVC, resourceType: "aws_ecs_service", path: "desired_count", from: "iac", to: "autoscaler", approvalId: "apr_1", approvedAt: "2026-09-30T00:00:00.000Z", digest: "7".repeat(64) };
+
+    type Effect = "apply" | "rollout" | "migration";
+    type Base = "releasing" | "built";
+    /**
+     * The gate that refuses a changed component, as the product actually orders them:
+     * - semantics: `assertApprovedSemantics` / `assertOperationSemantics` compares the recorded and current digests (SemanticsChangedError)
+     * - tofuPlan: the engine's fresh re-plan digest differs from the approved plan, before the semantics compare (TofuPlanChangedError)
+     * - custody: the approved-source store refuses a changed recipe before the semantics compare (StepFailedError)
+     * - reviewedPlan: the reviewed-plan custody has no plan for the dispatched digest (StepFailedError)
+     * - noRecord: no executable semantics were recorded for the operation's plan digest (StepFailedError)
+     */
+    type Gate = "semantics" | "tofuPlan" | "custody" | "reviewedPlan" | "noRecord";
+    interface Row {
+      component: SemanticComponentName;
+      label: string;
+      base: Base;
+      effects: readonly Effect[];
+      /** the gate that fires per effect; every other effect is `semantics` */
+      gates?: Partial<Record<Effect, Gate>>;
+      mutate(w: World): void | Promise<void>;
+    }
+
+    /** One representative mutation per component of the executable-semantics list (the full mutation matrix is in semantics.test.ts). */
+    const ROWS: Row[] = [
+      { component: "revision", label: "the revision id", base: "releasing", effects: ["apply", "rollout", "migration"], mutate: (w) => { w.product.revisions.set(REVISION, { ...w.product.revisions.get(REVISION)!, id: "rev-act-1-next" }); } },
+      // Built source: rollout and migration need signed build provenance admission for the built image, which this lane does not model.
+      { component: "recipe", label: "a Dockerfile / source recipe", base: "built", effects: ["apply"], gates: { apply: "custody" }, mutate: (w) => { const m = builtManifest(); m.services[0].source = { type: "git", repo: "github.com/acme/api", ref: "other", dockerfile: "Dockerfile" }; w.product.setManifest(m); } },
+      { component: "scripts", label: "the release script command", base: "releasing", effects: ["apply", "rollout", "migration"], mutate: (w) => { w.product.setManifest(withMigrate({ command: ["node", "migrate.js", "--down"] })); } },
+      { component: "migrations", label: "the declared migration class", base: "releasing", effects: ["apply", "rollout", "migration"], mutate: (w) => { w.product.setManifest(withMigrate({ class: "contract" })); } },
+      // The engine's fresh re-plan digest moves with the rendered workspace, so on apply the plan gate fires before the semantics compare.
+      { component: "targets", label: "the region", base: "releasing", effects: ["apply", "rollout", "migration"], gates: { apply: "tofuPlan" }, mutate: (w) => { w.product.base.environment.region = "eu-west-1"; } },
+      { component: "configuration", label: "the rendered configuration", base: "releasing", effects: ["apply", "rollout", "migration"], gates: { apply: "tofuPlan" }, mutate: (w) => { const m = withMigrate({}); (m.services[0] as unknown as { env: unknown[] }).env = [{ key: "FOO", value: "bar" }]; w.product.setManifest(m); } },
+      { component: "providerLocks", label: "the provider lock file", base: "releasing", effects: ["apply", "rollout", "migration"], gates: { apply: "tofuPlan" }, mutate: (w) => { w.deps.tofuWorkspace = { providerSet: () => ({ name: "aws-changed", providers: ["aws"], lockfile: "# changed\n" }) }; } },
+      { component: "backend", label: "the backend configuration", base: "releasing", effects: ["apply", "rollout", "migration"], gates: { apply: "tofuPlan" }, mutate: (w) => { w.deps.tofuWorkspace = { backend: () => ({ backend: { kind: "local", path: "changed.tfstate" } }) }; } },
+      // The saved plan is the digest argument itself: apply dispatches a different plan (no reviewed custody for it); release steps read a different op.planDigest (no recorded semantics).
+      { component: "savedPlan", label: "the saved plan digest", base: "releasing", effects: ["apply", "rollout", "migration"], gates: { apply: "reviewedPlan", rollout: "noRecord", migration: "noRecord" }, mutate: async (w) => { const rec = (await w.ops.get(op))!; w.ops.seed({ ...rec, planDigest: SAVED_PLAN_OTHER }); } },
+      // Built source: the approved-source store refuses a changed build context (pipeline spec digest) before the semantics compare.
+      { component: "provenance", label: "a build context directory", base: "built", effects: ["apply"], gates: { apply: "custody" }, mutate: (w) => { const m = builtManifest(); (m.services[0] as { source: unknown }).source = { type: "git", repo: "github.com/acme/api", ref: "main", dockerfile: "Dockerfile", contextDir: "services/api" }; w.product.setManifest(m); } },
+      { component: "ownership", label: "an ownership transfer", base: "releasing", effects: ["apply", "rollout", "migration"], mutate: (w) => { (w.resources as unknown as Mutable).activeOwnershipTransfers = async () => [otherOwnership]; } },
+      { component: "runbook", label: "the runbook version (MACH-03)", base: "releasing", effects: ["apply", "rollout", "migration"], mutate: async (w) => { const rec = (await w.ops.get(op))!; w.ops.seed({ ...rec, proposal: { ...rec.proposal, input: { ...(rec.proposal.input as object), runbook: { runbookId: "rb_1", version: 3, definitionDigest: "2".repeat(64) } } } }); } },
+      { component: "decommission", label: "an adoption claim", base: "releasing", effects: ["apply", "rollout", "migration"], mutate: (w) => { w.deps.portability = { adoptionFacts: async () => [{ address: "postgres/db", externalId: "db-1", status: "active", lifecycle: "manage" }] } as unknown as typeof w.deps.portability; } },
+    ];
+
+    function withMigrate(over: { class?: "expand" | "data" | "contract"; command?: string[] }) {
+      const m = migratingManifest();
+      m.release = { migrate: { ...m.release!.migrate!, class: "expand", ...over } };
+      return m;
+    }
+
+    /** A world with the reviewed plan recorded: the manifest of the base, the human approval and (for release steps) the verifier. */
+    async function approvedWorld(row: Row) {
+      const store = semantics();
+      const safety = new ReleaseSafetyService({ store: createMemoryReleaseStore(), verifiers: [verifier], minProvenance: "pinned_digest" });
+      const w = worldFor({ semantics: store, releaseSafety: safety });
+      w.product.setManifest(row.base === "built" ? builtManifest() : withMigrate({}));
+      w.broker.approval = { approved: true, rejected: false, approvalId: "isolated-reviewed-human-fixture" };
+      const { lease, plan } = await planned(w);
+      return { w, lease, plan };
+    }
+
+    /** Assert the exact refusal the gate throws. Every gate is a refusal before any write; the caller asserts the write tracking. */
+    function expectGate(err: unknown, gate: Gate, component: SemanticComponentName, stage: string): void {
+      switch (gate) {
+        case "semantics":
+          expect(err).toBeInstanceOf(SemanticsChangedError);
+          expect((err as SemanticsChangedError).changed).toContain(component);
+          expect((err as SemanticsChangedError).type).toBe(FAILURE_TYPES.planChanged);
+          expect((err as Error).message).toMatch(new RegExp(stage));
+          return;
+        case "tofuPlan":
+          expect(err).toBeInstanceOf(TofuPlanChangedError);
+          expect((err as TofuPlanChangedError).code).toBe("plan_changed");
+          expect((err as Error).message).toMatch(/The infrastructure plan changed since it was approved/);
+          return;
+        case "custody":
+          expect(err).toBeInstanceOf(StepFailedError);
+          expect((err as Error).message).toMatch(/Approved source recipe changed; a new operation and review are required/);
+          return;
+        case "reviewedPlan":
+          expect(err).toBeInstanceOf(StepFailedError);
+          expect((err as Error).message).toMatch(/Isolated reviewed plan missing/);
+          return;
+        case "noRecord":
+          expect(err).toBeInstanceOf(StepFailedError);
+          expect((err as Error).message).toMatch(/No executable semantics were recorded/);
+          return;
+      }
+    }
+
+    const cases = (effect: Effect) => ROWS.filter((r) => r.effects.includes(effect)).map((r) => [r.component, r, r.gates?.[effect] ?? "semantics"] as const);
+
+    describe("apply dispatch", () => {
+      it.each(cases("apply"))("refuses a changed %s before any apply write", async (component, row, gate) => {
+        const { w, lease, plan } = await approvedWorld(row);
+        await row.mutate(w);
+        // The saved plan is the digest argument: the dispatch names the other plan.
+        const dispatched = component === "savedPlan" ? SAVED_PLAN_OTHER : plan.planDigest;
+        const err = await w.activities.applyInfrastructure({ operationId: op, planDigest: dispatched, lease }).catch((e: unknown) => e);
+        expectGate(err, gate, component, "apply dispatch");
+        expect(w.evidence.ofKind("tofu_apply")).toHaveLength(0);
+        expect(w.events.ofType("resource.applied")).toHaveLength(0);
+      });
+    });
+
+    describe("rollout dispatch", () => {
+      it.each(cases("rollout"))("refuses a changed %s before the first rollout effect", async (component, row, gate) => {
+        const { w, lease } = await approvedWorld(row);
+        await row.mutate(w);
+        const err = await w.activities.deployWorkloads({ operationId: op, lease, images: [image] }).catch((e: unknown) => e);
+        expectGate(err, gate, component, "rollout dispatch");
+        expect(w.workloads.deployed).toHaveLength(0);
+      });
+    });
+
+    describe("migration dispatch", () => {
+      it.each(cases("migration"))("refuses a changed %s before the migration runs", async (component, row, gate) => {
+        const { w, lease } = await approvedWorld(row);
+        await w.activities.deployWorkloads({ operationId: op, lease, images: [image] });
+        await row.mutate(w);
+        const err = await w.activities.runMigrations({ operationId: op, lease }).catch((e: unknown) => e);
+        expectGate(err, gate, component, "migration dispatch");
+        expect(w.migrations.runs).toHaveLength(0);
+      });
     });
   });
 });

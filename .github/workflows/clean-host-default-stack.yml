@@ -108,6 +108,8 @@ jobs:
           # Nonzero exit codes and slow calls first, then the full sequence.
           grep -v ' rc=0 ' "$RUNNER_TEMP/commands.log" || true
           cat "$RUNNER_TEMP/commands.log" || true
+          # Readiness check names and pass/fail only.
+          node -e 'const r=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));console.log("readiness passed",r.passed,"failed",r.failed,"apis",r.apis,"workers",r.workers,"failed checks:",Object.entries(r.checks).filter(([,v])=>!v).map(([k])=>k).join(","))' "$RUNNER_TEMP/zenith/stack/readiness.receipt.json" || true
           grep -E ' (die|oom|kill|health_status: unhealthy) ' "$RUNNER_TEMP/events.log" | awk '{ printf "%s %s\n", strftime("%T", $1/1e9), substr($0, index($0,$2)) }' || true
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

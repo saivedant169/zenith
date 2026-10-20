@@ -20,12 +20,19 @@ async function recovery(state, container, original, prefix) {
   let restored = false;
   try {
     await psql(container, original, `create schema ${schema}; create table ${schema}.marker(value text primary key); insert into ${schema}.marker values('${marker}');`);
-    // Includes actual table ACL/RLS, migration ledgers, Auth and application rows.
-    const dump = await docker(['exec', container, 'pg_dump', '-U', 'postgres', '-d', original, '--format=plain'], { id: 'database-dump' });
+    // The product authority schemas with their actual table ACL/RLS, migration ledgers and rows. Supabase-managed
+    // schemas (auth, storage, vault, graphql) need supabase_admin and their own tooling, so a whole-database plain
+    // restore by postgres is refused; they are outside this rehearsal, and these schemas reference none of them.
+    const dump = await docker(['exec', container, 'pg_dump', '-U', 'postgres', '-d', original, '--format=plain',
+      ...['public', 'platform', 'agent', 'hosted', schema].map(name => `--schema=${name}`)], { id: 'database-dump' });
     const backup = path.join(state.directory, `${prefix}.backup.sql`);
     fs.writeFileSync(backup, dump, { mode: 0o600, flag: 'wx' });
     await psql(container, 'postgres', `create database ${database} template template0;`); restored = true;
-    await psql(container, database, dump);
+    // The dump recreates public with its real grants; supabase_admin's own defaults are set by the image, not by postgres.
+    await psql(container, database, 'drop schema public;');
+    const managed = /^ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public (?:GRANT|REVOKE) [^\n]*;$/gm;
+    const managedDefaultPrivilegesSkipped = (dump.match(managed) ?? []).length;
+    await psql(container, database, dump.replace(managed, ''));
     const readback = await psql(container, database, `select value from ${schema}.marker;`);
     if (readback !== marker) fail('restore-readback');
     const ledger = `select version,name,checksum from platform.schema_migrations order by version;`;
@@ -34,7 +41,7 @@ async function recovery(state, container, original, prefix) {
     // that pg_restore's success implies an authorization-preserving restore.
     const security = "select n.nspname,c.relname,c.relrowsecurity,c.relforcerowsecurity,coalesce(c.relacl::text,'') from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname in ('public','platform','agent','hosted') and c.relkind='r' order by 1,2;";
     if (await psql(container, original, security) !== await psql(container, database, security)) fail('restore-authorization');
-    return { restored: true, markerReadback: true, ledgerPreserved: true, authorizationPreserved: true, backupSha256: hash(dump), cleanHost: false };
+    return { restored: true, markerReadback: true, ledgerPreserved: true, authorizationPreserved: true, backupSha256: hash(dump), managedDefaultPrivilegesSkipped, cleanHost: false };
   } finally {
     if (restored) await psql(container, 'postgres', `drop database ${database} with (force);`);
     await psql(container, original, `drop schema if exists ${schema} cascade;`);

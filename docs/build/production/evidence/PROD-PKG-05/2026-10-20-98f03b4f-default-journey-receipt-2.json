@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "requirementIds": [
+    "PROD-PKG-05",
+    "PROD-DUR-03",
+    "PROD-DUR-04",
+    "PROD-LIFE-01",
+    "PROD-MACH-05",
+    "PROD-OBS-02",
+    "PROD-MACH-04"
+  ],
+  "kind": "local_engine",
+  "status": "passed",
+  "productionReady": false,
+  "ledgerEligible": true,
+  "commit": "98f03b4f9eae7e38f6cdf25c990a1bb129a6411d",
+  "sourceDigest": "2ab07827550281d4d996fc1c89ad7c9296bbbdbe1f0fa97d75ab32e5938c18e9",
+  "dirty": false,
+  "environment": {
+    "host": "macOS ARM64",
+    "architectureEvidence": "native",
+    "node": "22.23.3",
+    "docker": "29.8.2",
+    "profile": "lean",
+    "scope": "disposable local Supabase Auth, Mailpit, PostgreSQL, Temporal, zenithd and kind"
+  },
+  "counts": {
+    "passed": 18,
+    "failed": 0,
+    "skipped": 0,
+    "not_run": 0
+  },
+  "checks": [
+    {
+      "id": "prerequisites",
+      "status": "passed"
+    },
+    {
+      "id": "auth-admin-mailpit",
+      "status": "passed"
+    },
+    {
+      "id": "two-operator-workspace",
+      "status": "passed"
+    },
+    {
+      "id": "browser-proposal",
+      "status": "passed"
+    },
+    {
+      "id": "self-approval-refused",
+      "status": "passed"
+    },
+    {
+      "id": "bearer-approval-refused",
+      "status": "passed"
+    },
+    {
+      "id": "stale-semantics-refused",
+      "status": "passed"
+    },
+    {
+      "id": "browser-kind-execution-readback",
+      "status": "passed"
+    },
+    {
+      "id": "rest-proposal-execution-readback",
+      "status": "passed"
+    },
+    {
+      "id": "mcp-proposal-execution-readback",
+      "status": "passed"
+    },
+    {
+      "id": "machine-browser-consent",
+      "status": "passed"
+    },
+    {
+      "id": "machine-independent-approval-readback",
+      "status": "passed"
+    },
+    {
+      "id": "machine-health-provenance-readback",
+      "status": "passed"
+    },
+    {
+      "id": "machine-fresh-token-native-rejoin",
+      "status": "passed"
+    },
+    {
+      "id": "customer-credential-absence",
+      "status": "passed"
+    },
+    {
+      "id": "connection-rotation-readback",
+      "status": "passed"
+    },
+    {
+      "id": "connection-revocation-no-fallback",
+      "status": "passed"
+    },
+    {
+      "id": "cleanup",
+      "status": "passed"
+    }
+  ],
+  "readbacks": [
+    {
+      "target": "kind",
+      "sha256": "77560b7b703c15dc7a2076834d38ea815fac920e3b2bf05c5ad8b90276543118"
+    },
+    {
+      "target": "machine",
+      "sha256": "9d16c1fed5f3c66ac0f3b1bd08d9f6f2744bab3febcf3054be5a0135434e42ee"
+    },
+    {
+      "target": "rotatedKind",
+      "sha256": "fbc3259750baa4703cb9965e83a3e930cb7644480b1d8d058b7d885e17356a61"
+    },
+    {
+      "target": "obs02",
+      "sha256": "c435f3a37ee39f414ba0eb753cac545a2acc2a4d6a814287c09cf8f8ad785db0"
+    },
+    {
+      "target": "machineRejoin",
+      "sha256": "90700c0a0dbb8049c43f9e04721223b7912b88a5082a8f8364a18dda6e2dcaa6"
+    }
+  ],
+  "evidence": {
+    "level": "local_engine",
+    "commit": "98f03b4f9eae7e38f6cdf25c990a1bb129a6411d",
+    "command": "ZENITH_DEFAULT_JOURNEY=1 node scripts/acceptance/default-journey.mjs --config <private-config> --receipt <evidence-file>",
+    "environment": "macOS ARM64; native ARM64 Docker 29.8.2; Node 22.23.3; lean; disposable local installation",
+    "result": "18 passed /0 failed /0 skipped /0 not run",
+    "logs": "docs/build/production/evidence/PROD-PKG-05/default-journey.json"
+  }
+}

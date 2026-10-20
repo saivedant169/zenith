@@ -1,0 +1,72 @@
+{
+ "schemaVersion": 1,
+ "kind": "local_engine_defect_reproduction",
+ "requirement": "PROD-PKG-05",
+ "defect": "Process-wide hosted-authority postgres.js client (max: 1) parks its only connection and every later request hangs in the default composition.",
+ "engine": "Lean default stack at port offset 1000 on source 588a301cfa9d3b961f75dd1374a099fc158fcd48: the real Supavisor transaction pooler (TLS verify-full) and the real migration image, run with the pooler probe's own sandboxed docker arguments on the installation network.",
+ "driver": "postgres 3.4.7, prepare: false",
+ "rootCause": "postgres.js pipelines a root statement behind a busy one; Supavisor transaction mode never answers what is pipelined (upstream porsager/postgres#970). With max: 1 the client then waits forever.",
+ "driverMatrix": {
+  "rounds": "up to 5 rounds per shape, 8 s per round; the first non-ok ends the shape",
+  "max1": [
+   {
+    "shape": "120 concurrent parameterless unsafe()",
+    "default": "HANG round 1",
+    "max_pipeline_0": "ok x5",
+    "max_pipeline_1": "HANG round 1"
+   },
+   {
+    "shape": "30 concurrent mixed parameterized and unsafe",
+    "default": "HANG round 3",
+    "max_pipeline_0": "ok x5",
+    "max_pipeline_1": "HANG round 1"
+   },
+   {
+    "shape": "sql.begin, sequential queries",
+    "default": "ok x5",
+    "max_pipeline_0": "error: begin never reserves its connection (porsager/postgres#1211)",
+    "max_pipeline_1": "ok x5"
+   },
+   {
+    "shape": "sql.begin, concurrent queries",
+    "default": "ok x5",
+    "max_pipeline_0": "error, same cause",
+    "max_pipeline_1": "ok x5"
+   }
+  ],
+  "reserveTransactionsWithMaxPipeline0": "sequential, concurrent-in-transaction, savepoint, 40 roots mixed with 4 transactions, and rollback on error: ok x5 at max 1 and at max 5"
+ },
+ "productBeforeAfter": {
+  "harness": "createPgAuthorityClient and transactPg imported from /app/src inside the migration image; AFTER bind-mounts the changed client.ts and tx.ts read-only over the image's copies",
+  "before": {
+   "source": "588a301c",
+   "unsafe120": "HANG",
+   "mixed30": "HANG",
+   "transactionsMixedWithRoots": "HANG",
+   "innerSavepointRollback": "HANG",
+   "beginWithIsolationLevel": "HANG"
+  },
+  "after": {
+   "source": "98f03b4f (src/lib/hosted/authority/pg/client.ts; tx.ts as on 588a301c)",
+   "unsafe120": "ok x4",
+   "mixed30": "ok x4",
+   "transactionsMixedWithRoots": "ok x4",
+   "beginWithIsolationLevel": "ok x4",
+   "innerSavepointRollback": "ok x4"
+  }
+ },
+ "fix": "98f03b4f: the hosted client sets max_pipeline: 0 and replaces its own begin() with a reserved-connection transaction keeping Postgres.js's begin contract, so every caller (transactPg, the agent journal, apply-schema) is covered. The intermediate 3eee297a changed only transactPg and failed CI (other begin callers). The control-plane executor already avoids root pipelining (e9a95e35).",
+ "notProven": "Hosted production on Supabase cloud; load beyond these shapes; the open upstream issues themselves.",
+ "journeys": [
+  {
+   "commit": "3eee297a",
+   "runs": 2,
+   "result": "18/18 passed twice"
+  },
+  {
+   "commit": "98f03b4f",
+   "runs": 2,
+   "result": "18/18 passed twice"
+  }
+ ]
+}

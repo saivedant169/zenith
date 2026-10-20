@@ -1,3 +1,21 @@
+## PROD-PKG-05 verified: hosted-authority wedge fixed — 20 October 2026
+
+The open PKG-05 defect, in which the hosted-authority client stopped answering agent-link requests, is root-caused and fixed:
+- **Cause:** postgres.js pipelines a root statement behind a busy one. Supavisor's transaction mode never answers what is pipelined (porsager/postgres#970), so with `max: 1` every later query waits.
+- **Reproduction:** on the default stack's real pooler, from the migration image, 120 concurrent `unsafe()` selects hang in round 1 and 30 mixed selects in round 3.
+- **Why `max_pipeline: 0` alone was not enough:** it removes the hang but breaks every `sql.begin` in postgres.js 3.4 (porsager/postgres#1211).
+- **Fix (`98f03b4f`):** the hosted client sets `max_pipeline: 0` and replaces its own `begin()` with a reserved-connection transaction that keeps postgres.js's begin contract.
+- **Proof:** through the real pooler, the product client hangs on every concurrent shape before the fix. After it, every shape passes 4/4 rounds, including savepoints and an isolation-level begin.
+- An intermediate `3eee297a` changed only `transactPg` and failed CI, because other `begin()` callers remained.
+
+On clean `98f03b4f`, J2 passed 18/18 twice and exact-source CI was green: main 39380837921 had 20 successes and 8 conditional skips, and both native workflows succeeded. PKG-05 is promoted to verified at the local-engine level. The ledger is now 14 verified, 62 in progress and 2 planned.
+
+Also from this window:
+- The MFA browser acceptance passed 2/2 on the owned stack, after fixing a navigation race and adding the J2-style SPKI pin (`9dcece4a`).
+- Managed-kind now onboards through reviewed custody (`ee9e7c63`). It passes 4/6 on `3eee297a`; the source-build cases still need owner-reviewed isolated-build profiles.
+
+New open defect: creating a workspace whose name slugifies to an existing slug fails with an unhandled 500 (`workspaces_slug_key`).
+
 ## Wave6 local engine lanes — 20 October 2026
 
 The docker, kind and browser owner lanes ran for the first time on the Mac, case by case through their manifest argv, each verified with `wave6-gates.mjs --case` on clean exact source. Across the 286 non-live cases (including the earlier native-tools, postgres and temporal runs): 246 passed, 1 passed but cannot be verified (its file failed), 8 failed and 31 were not run. Every case is listed with its commit and reason in `evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json`.

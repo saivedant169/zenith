@@ -3868,11 +3868,11 @@
       "acceptance": [
         "Actual default composition handles browser/API/MCP proposal and human approval; independent application behavior proves outcomes."
       ],
-      "state": "in_progress",
+      "state": "verified",
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "J2 passed 18/18 on clean 5295be74 and again on 4fac547c with green exact-source CI on the same commit. Not promoted: the hosted-authority client intermittently wedges agent-link requests in the default composition (open defect), so the default journey is not reliably handled yet.",
+      "implementationStatus": "verified_98f03b4f: J2 default browser, REST and MCP journey with human approval passed 18/18 twice on clean exact source 98f03b4f with exact-source CI green on the same commit, after the hosted-authority pooler wedge was root-caused and fixed. Local engine only; no hosted production or live-cloud claim.",
       "evidence": [
         {
           "level": "local_engine",
@@ -3911,6 +3911,38 @@
           "commit": "4fac547c39ea0ee346112f113245bf7c5e10ced0",
           "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-20-4fac547c-coherent-verification.json",
           "result": "Exact-source CI verify job passed typecheck, lint and the Node/DOM unit suites (including this requirement's contract tests) with every dependent CI job green on the same commit."
+        },
+        {
+          "level": "local_engine",
+          "commit": "3eee297a66bb5eecef4a2d83ad875dea891f6869",
+          "artifact": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-98f03b4f-pooler-pipelining.json",
+          "artifactSha256": "c2aa62c81992f158315c697340e14c3b30adcc480f0e96b43d7aaf9260812407",
+          "receipt": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-3eee297a-default-journey-receipt-1.json",
+          "receiptSha256": "1f3a0763041ed202b73a0f684981e8cc97f664231e8556d2b9ae00181ad14946",
+          "result": "Hosted-authority wedge root-caused on the real Supavisor pooler (postgres.js pipelining behind a busy root statement, porsager/postgres#970) and fixed in the hosted client; J2 passed 18/18 twice on 3eee297a. That commit failed CI (other begin() callers), superseded by 98f03b4f."
+        },
+        {
+          "level": "local_engine",
+          "commit": "98f03b4f9eae7e38f6cdf25c990a1bb129a6411d",
+          "artifact": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-98f03b4f-pooler-pipelining.json",
+          "artifactSha256": "c2aa62c81992f158315c697340e14c3b30adcc480f0e96b43d7aaf9260812407",
+          "receipt": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-98f03b4f-default-journey-receipt-1.json",
+          "receiptSha256": "9d416b950dde9ebdd2aa936b9902e66baa8d35ad67c675c1d2e603e47b3ca1e1",
+          "result": "J2 default journey passed 18/18 twice on clean exact source 98f03b4f (receipts -1 and -2, both ledger-eligible, native ARM64) with the wedge fix: the product client hangs on every concurrent shape through the real pooler before the fix and passes 4/4 rounds after it.",
+          "secondReceipt": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-98f03b4f-default-journey-receipt-2.json",
+          "secondReceiptSha256": "e7266398f49cf4a03088dc3ac9b5c4146f9df15960f851b3b50e9a609890bb05"
+        },
+        {
+          "level": "contract",
+          "commit": "98f03b4f9eae7e38f6cdf25c990a1bb129a6411d",
+          "artifact": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-98f03b4f-pooler-pipelining.json",
+          "result": "Exact-source CI verify job passed typecheck, lint and the Node/DOM unit suites (including pg-begin and the hosted and agent-journal suites) with every dependent CI job green on the same commit."
+        },
+        {
+          "level": "remote_ci",
+          "commit": "98f03b4f9eae7e38f6cdf25c990a1bb129a6411d",
+          "artifact": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-98f03b4f-pooler-pipelining.json",
+          "result": "Exact-source CI: main 39380837921 20 success/8 conditional operated skips/0 failures; native packaged workers 39380838077 and native platforms 39380837852 success."
         }
       ],
       "requiredEvidence": [

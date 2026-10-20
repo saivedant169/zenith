@@ -3857,7 +3857,7 @@
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "Registry OOM startup repair is integrated in E3CF and passed 43 focused tests; native push and J4/default-stack/browser/API/MCP human-approval acceptance remain pending. Both exact E3CF native packaged-worker CI architectures passed 22/22 checks with cleanup; this does not close actual default composition.",
+      "implementationStatus": "J2 default browser/REST/MCP journey passed 18/18 on clean 5295be74 (local_engine). Promotion waits for passing contract evidence on the journey source; an intermittent hosted-authority client wedge remains open.",
       "evidence": [
         {
           "level": "local_engine",
@@ -3874,6 +3874,14 @@
           "imageId": "sha256:04fe8c2e581ddaccd54c080f9c92a661b5f784a76d8c34567ec8f57bb51d8d79",
           "imageIidSha256": "c0b9c4b0b02b4d858c40b64de01ef35179812ee6886382c86ac0ea2bc4f407ce",
           "acceptanceClaim": false
+        },
+        {
+          "level": "local_engine",
+          "commit": "5295be74af06b4e37a02b6c6141d5813846538f6",
+          "artifact": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-5295be74-default-journey.json",
+          "receipt": "docs/build/production/evidence/PROD-PKG-05/default-journey.json",
+          "receiptSha256": "8443b58daaaed4f0951147f8b296400540b1f076bb7fc4b8db32664645535658",
+          "result": "J2 default journey passed 18/18 on clean exact source (ledger-eligible receipt; native ARM64; five sha256 readbacks) on the lean default stack with an owned kind target and real zenithd. Covers this requirement only where the journey exercises it; see the artifact's proves/notProven."
         }
       ],
       "requiredEvidence": [
@@ -4217,6 +4225,14 @@
           "commit": "c32d116745c75048a21b6e42a09ee313ce8230e6",
           "result": "Canonical actualPG source/MCP-start controls passed on exact c32d116 tree; full original-byte/current-product dispatch correction remains unimported and full operated default approval journey remains open.",
           "artifact": "docs/build/production/verification/2026-10-04-integrated-source.json"
+        },
+        {
+          "level": "local_engine",
+          "commit": "5295be74af06b4e37a02b6c6141d5813846538f6",
+          "artifact": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-5295be74-default-journey.json",
+          "receipt": "docs/build/production/evidence/PROD-PKG-05/default-journey.json",
+          "receiptSha256": "8443b58daaaed4f0951147f8b296400540b1f076bb7fc4b8db32664645535658",
+          "result": "J2 default journey passed 18/18 on clean exact source (ledger-eligible receipt; native ARM64; five sha256 readbacks) on the lean default stack with an owned kind target and real zenithd. Covers this requirement only where the journey exercises it; see the artifact's proves/notProven."
         }
       ],
       "requiredEvidence": [
@@ -4248,6 +4264,14 @@
           "commit": "c32d116745c75048a21b6e42a09ee313ce8230e6",
           "result": "ActualPG current-source/member/grant/native-start admission controls passed; current browser-human/default product apply authority and standing autonomy require remaining acceptance.",
           "artifact": "docs/build/production/verification/2026-10-04-integrated-source.json"
+        },
+        {
+          "level": "local_engine",
+          "commit": "5295be74af06b4e37a02b6c6141d5813846538f6",
+          "artifact": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-5295be74-default-journey.json",
+          "receipt": "docs/build/production/evidence/PROD-PKG-05/default-journey.json",
+          "receiptSha256": "8443b58daaaed4f0951147f8b296400540b1f076bb7fc4b8db32664645535658",
+          "result": "J2 default journey passed 18/18 on clean exact source (ledger-eligible receipt; native ARM64; five sha256 readbacks) on the lean default stack with an owned kind target and real zenithd. Covers this requirement only where the journey exercises it; see the artifact's proves/notProven."
         }
       ],
       "requiredEvidence": [
@@ -4459,6 +4483,14 @@
           "environment": "Node22.23.3 native Darwin ARM64,768MiB heap; owned PostgreSQL16.15 ARM64,384MiB memory,strict verify-full TLS and private CA. Bare-PG SET ROLE stand-ins; no Supabase Auth or pooler proof.",
           "logs": "docs/build/production/evidence/PROD-LIFE-01/2026-10-07-prod-life-01-retry-roles.json",
           "result": "602 passed /0 failed /1 Windows-only skip. Initial600/2/1 failed canonical fixture role prerequisite; exact CI NOLOGIN role bootstrap through verifiedTLS recovered both cases without source/test edits. Default interface create/verify/revoke/rotate acceptance remains open."
+        },
+        {
+          "level": "local_engine",
+          "commit": "5295be74af06b4e37a02b6c6141d5813846538f6",
+          "artifact": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-5295be74-default-journey.json",
+          "receipt": "docs/build/production/evidence/PROD-PKG-05/default-journey.json",
+          "receiptSha256": "8443b58daaaed4f0951147f8b296400540b1f076bb7fc4b8db32664645535658",
+          "result": "J2 default journey passed 18/18 on clean exact source (ledger-eligible receipt; native ARM64; five sha256 readbacks) on the lean default stack with an owned kind target and real zenithd. Covers this requirement only where the journey exercises it; see the artifact's proves/notProven."
         }
       ],
       "requiredEvidence": [
@@ -5375,6 +5407,14 @@
           "result": "Native R14 on frozen source94 with overlay221ddb completed wrapper rc0: one actual native case passed, guest postcondition passed, and109 strict held commands completed with cleanup, source parity, floors and output hashes checked. Scoped single-case evidence only; fullGoGate=false and acceptedRunReceipt=false. Registration/revocation, durability, reconnect/offline recovery, key rotation and update/rollback acceptance remain open.",
           "artifact": "docs/build/production/evidence/PROD-CI-08/e84-post-push-delta-final.json",
           "receiptSha256": "63356b21eda49c6264e3c965d6c930b1adb335576750be42217e5eba09cd8252"
+        },
+        {
+          "level": "local_engine",
+          "commit": "5295be74af06b4e37a02b6c6141d5813846538f6",
+          "artifact": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-5295be74-default-journey.json",
+          "receipt": "docs/build/production/evidence/PROD-PKG-05/default-journey.json",
+          "receiptSha256": "8443b58daaaed4f0951147f8b296400540b1f076bb7fc4b8db32664645535658",
+          "result": "J2 default journey passed 18/18 on clean exact source (ledger-eligible receipt; native ARM64; five sha256 readbacks) on the lean default stack with an owned kind target and real zenithd. Covers this requirement only where the journey exercises it; see the artifact's proves/notProven."
         }
       ],
       "requiredEvidence": [
@@ -5423,6 +5463,14 @@
           "environment": "Node22.23.3 native Darwin ARM64,768MiB heap; owned PostgreSQL16.15 ARM64,384MiB memory,strict verify-full TLS and private CA. Bare-PG SET ROLE stand-ins; no Supabase Auth or pooler proof.",
           "logs": "docs/build/production/evidence/PROD-MACH-05/2026-10-07-prod-mach-05-serial-r2.json",
           "result": "Broad lane1526 passed /0 failed /11 skipped, including250 passed actual native database identities. Eight unsupported memory/PGlite cases have passed PostgreSQL equivalents. Separate security-tool rerun11/0/0 covers three prior opt-in skips; overlapping counts not summed. Genuine customer local-credential/default authenticated execution acceptance remains open."
+        },
+        {
+          "level": "local_engine",
+          "commit": "5295be74af06b4e37a02b6c6141d5813846538f6",
+          "artifact": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-5295be74-default-journey.json",
+          "receipt": "docs/build/production/evidence/PROD-PKG-05/default-journey.json",
+          "receiptSha256": "8443b58daaaed4f0951147f8b296400540b1f076bb7fc4b8db32664645535658",
+          "result": "J2 default journey passed 18/18 on clean exact source (ledger-eligible receipt; native ARM64; five sha256 readbacks) on the lean default stack with an owned kind target and real zenithd. Covers this requirement only where the journey exercises it; see the artifact's proves/notProven."
         }
       ],
       "requiredEvidence": [
@@ -5554,6 +5602,14 @@
           "environment": "This8GiB Mac; Docker configured6144MiB memory4096MiB swap,VirtioFS,ResourceSaveroff; intended native API768MiB/worker1024MiB not started",
           "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-07-reduced-resource-local.json",
           "result": "Resource blocked before service startup:24.68GiB initial free fell to21.77GiB during required image pulls; exit130,zero tests/containers. Owned downloaded images/network removed; baseline resources preserved. No signed-in/default scheduling/runbook/telemetry/installed-agent acceptance. NOT_READY maintenance draft unrun; builder wiring and Linux delegation admission remain explicit."
+        },
+        {
+          "level": "local_engine",
+          "commit": "5295be74af06b4e37a02b6c6141d5813846538f6",
+          "artifact": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-5295be74-default-journey.json",
+          "receipt": "docs/build/production/evidence/PROD-PKG-05/default-journey.json",
+          "receiptSha256": "8443b58daaaed4f0951147f8b296400540b1f076bb7fc4b8db32664645535658",
+          "result": "J2 default journey passed 18/18 on clean exact source (ledger-eligible receipt; native ARM64; five sha256 readbacks) on the lean default stack with an owned kind target and real zenithd. Covers this requirement only where the journey exercises it; see the artifact's proves/notProven."
         }
       ],
       "requiredEvidence": [
@@ -7490,7 +7546,7 @@
       "authorityFixtures": "Reviewed4e07113d/d8ad975d integrated5e5417b9; exactfinal6files92/0/0, combinedcompiler/lint0. Model/provider-fixture proof only.",
       "brokerAndLeases": "ded51029/56446629 integrated; sourceboundc7+2WIP actualnativePG162/0/0 including62mandatorynative. Independent receipt and85 observed groups/cleanup/sourcebinding accepted; freshDB scope only.",
       "historicalFixtures": "Integrated4acebfb9 after actualnative107/0/0/58mandatory and independent128groups cleanup/sourcebinding. Prior105/2 retained. Exact244testedruntimeinputs match integratedea8.",
-      "nativeBuild": "Packagingasset2 integrated19a2ae14; rootactualcomponentmissingasset1→canonicalasset0 and packaging135/0/6. Go5 integrated7b9ae3e3; root671/0/0 strictcontracts, current154/158 requiredcount. GenuineLinux6/newrunnerPID1/image/runtime stillpending; no generic skip exception.",
+      "nativeBuild": "Packagingasset2 integrated19a2ae14; rootactualcomponentmissingasset1\u2192canonicalasset0 and packaging135/0/6. Go5 integrated7b9ae3e3; root671/0/0 strictcontracts, current154/158 requiredcount. GenuineLinux6/newrunnerPID1/image/runtime stillpending; no generic skip exception.",
       "defaultStackPreparation": "Old J4 maintenance failure and forced-stop cleanup refusal retained. F2D0 PID1 exec repair focused/full tests pass; nativeW/J4/default-stack/browser/delivery acceptance pending and resource-gated.",
       "fullNativeUnit": "F2D0 full Node/DOM24720P1943conditionalS0F/26663exactIDs;independent admission published. Computational only; source frozenF2D0.",
       "workflowFixtures": "Integrated ea8 authority82/0/0 and 59fe release5/0/0; actual default agent/hosted journeys remain open.",

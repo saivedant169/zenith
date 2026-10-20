@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-20",
+  "kind": "j2-default-journey-local-engine",
+  "productionReady": false,
+  "commit": "5295be74af06b4e37a02b6c6141d5813846538f6",
+  "dirty": false,
+  "receipt": {
+    "path": "docs/build/production/evidence/PROD-PKG-05/default-journey.json",
+    "sha256": "8443b58daaaed4f0951147f8b296400540b1f076bb7fc4b8db32664645535658",
+    "status": "passed",
+    "counts": {
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0,
+      "not_run": 0
+    },
+    "ledgerEligible": true
+  },
+  "environment": "macOS ARM64, native ARM64 Docker 29.8.2, Node 22.23.3, lean disposable default stack at port offset 1000 beside the operator's running local Supabase/Kong/API (none stopped), owned kind cluster zenith-j2 (kindest/node v1.37.0 pinned), real zenithd and Chromium with SPKI-pinned edge trust",
+  "command": "cycle: default-stack down/up --profile lean (offset 1000); tests/e2e/default/prepare.mjs; ZENITH_DEFAULT_JOURNEY=1 node scripts/acceptance/default-journey.mjs --config <private> --receipt <private>",
+  "proves": [
+    "two operators with independent Auth identities, TOTP and workspace two-person rule",
+    "browser deploy proposal; self and bearer approval refused; stale executable-semantics approval refused (409)",
+    "workflow deploy to kind through a verified kubeconfig connection into an operator-provisioned allowlisted namespace, with observer readback",
+    "REST and MCP scale proposals, independent approval, execution and kind readback",
+    "customer zenithd consent, signed raw-exec runbook delivered only after B's run approval, marker readback, MCP events without credential",
+    "machine health read through the policy-approved day-two path with scoped telemetry provenance",
+    "fresh-token native rejoin, customer credential absence scans, connection rotation and revocation without fallback",
+    "owned cleanup"
+  ],
+  "notProven": [
+    "J4 wave6 signed runbook-delivery acceptance (run-runbooks.ts) not yet run on this stack",
+    "live cloud, production signoff",
+    "UX01 browser accessibility receipt (separate gate, not enabled)"
+  ],
+  "productDefectsFixed": [
+    {
+      "commit": "25d03da3",
+      "defect": "MCP topology guard pinned the local Supabase origin to :54321; port-offset stacks refused all Kubernetes verification"
+    },
+    {
+      "commit": "c345d582",
+      "defect": "JSON kubeconfig credentials parsed as bearer tokens and refused"
+    },
+    {
+      "commit": "34ae5388+0dd0e5f3",
+      "defect": "no Kubernetes deploy could use a pre-provisioned allowlisted namespace (namespaced deployers impossible); provisioned namespaces now used without modification, PSA baseline required, deny policies scoped to the environment; independently reviewed"
+    },
+    {
+      "commit": "687bb0e3",
+      "defect": "ServiceAccount verification marked every account unknown because of unrenderable cloud log-group grants; every Kubernetes deploy ended uncertain"
+    },
+    {
+      "commit": "e00652bb+47df6bb6",
+      "defect": "agent/REST scale proposals named manifest service ids that day-two execution and field ownership could not resolve; deployed services now bind their canonical row; independently reviewed"
+    },
+    {
+      "commit": "bb0a5b53+91d4fdf9",
+      "defect": "approved runbooks could never run steps that policy requires approval for (raw exec); run approval now satisfies the step under ADR-0007 checks; run gate bound to requester (pre-existing cross-requester gap); independently reviewed"
+    },
+    {
+      "commit": "06468795",
+      "defect": "key-ring sealer kid rejected by signed outcome snapshot: every runner/machine result refused on key-ring installs"
+    },
+    {
+      "commit": "4dc79090+c23bdfff",
+      "defect": "approved machine health reads could not be started (MCP list and day-two start authority admitted only mutations)"
+    }
+  ],
+  "harnessDefectsFixed": [
+    "Workspace select locator vs aria-hidden marker (21725877)",
+    "failed journeys relabelled as prerequisites (21725877)",
+    "system map URL, status ambiguity, HTTP-only verify check (25d03da3)",
+    "namespace Pod Security provisioning, workspace two-person and escape-hatch policy (34ae5388, bb0a5b53)",
+    "graph addresses, audit-joined step operation, single bound machine handoff, cleanup without transport (bb0a5b53, 4dc79090, f3ea4327, 5295be74)"
+  ],
+  "openDefects": [
+    {
+      "id": "authority-client-wedge",
+      "severity": "high",
+      "evidence": "intermittent: the process-wide max:1 hosted-authority postgres.js client parks its only connection in the full queue with no query in flight and an open TLS socket; every later agent-link query queues (434 and 1178 observed); API restart clears it; trigger not identified; seen in several official runs at two-operator-workspace"
+    },
+    {
+      "id": "deploy-approve-refusal",
+      "severity": "medium",
+      "evidence": "once observed: deploy.approve action returned non-2xx after B's approval during stale-semantics; not reproduced in later runs"
+    }
+  ]
+}

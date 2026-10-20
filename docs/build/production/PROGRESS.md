@@ -1,3 +1,25 @@
+## J2 default journey passed — 20 October 2026
+
+The J2 default browser, REST, MCP and customer-machine journey passed 18/18 on clean exact source `5295be74af06b4e37a02b6c6141d5813846538f6`. The receipt is ledger-eligible, native ARM64, with all five readbacks (kind, machine, rotated kind, OBS-02, machine rejoin). It ran on the lean default stack at port offset 1000 beside the operator's running Supabase/Kong/API, none of which were stopped, with an owned kind target and the real zenithd.
+
+J2 had never passed before. Getting there exposed eight product defects, each fixed with tests; the security-relevant ones were independently reviewed:
+- The MCP topology guard pinned the local Supabase origin to port 54321.
+- JSON kubeconfigs were refused.
+- No Kubernetes deploy could use a pre-provisioned allowlisted namespace.
+- Unrenderable log-group grants made every Kubernetes deploy end uncertain.
+- Agent and REST scale proposals could not reach their canonical resource.
+- Approved runbooks could never run approval-gated steps such as raw exec. The run gate was also not bound to the requester.
+- Key-ring sealed agent results were refused, so every zenithd result was lost.
+- Approved machine health reads could not start.
+
+Evidence: `evidence/PROD-PKG-05/default-journey.json` (receipt, sha256 `8443b58d…`) and `evidence/PROD-PKG-05/2026-10-20-5295be74-default-journey.json`. The local_engine evidence is recorded on PROD-PKG-05, DUR-03, DUR-04, LIFE-01, MACH-05, OBS-02 and MACH-04. No requirement is promoted. PKG-05 still needs passing contract evidence on the journey source. The other six cover more than J2 exercises; each record lists what is not proven.
+
+Open defects:
+- The process-wide hosted-authority postgres.js client (`max: 1`) intermittently parks its only connection with nothing in flight. Agent-link requests then hang until the API restarts. This caused several official-run failures, and the trigger is not identified.
+- A single `deploy.approve` refusal was observed once and has not recurred.
+
+The J4 wave6 signed runbook-delivery acceptance (`run-runbooks.ts` through `runbook-fixture.mjs`) still has not run. Its blocking product paths (resource binding and run-approval delegation) now pass inside J2.
+
 ## Current verification — 20 October 2026
 
 Canonical J4 passed on clean exact source `c8795a08f0e85efaba78e93668b8570e4e6ad4dd`. The deferred lean stack started with prestart 14/14. Machine-schedules run `j4-361c0f9c630b` exited 0: natural timers drove seven critical jobs plus billing, billing fallback stayed idempotent, the host worker restarted and resumed, job and addenda lease exclusion held, addenda caught up after restart, and the epoch was preserved. Completion recorded a clean Temporal namespace, and the canonical resume reached readiness 16/16 with the execution worker healthy. Original services were stopped by exact ID for the approved window and restored to the pre-run snapshot. [J4 evidence](evidence/PROD-OBS-04/2026-10-20-c8795a08-j4-natural-acceptance.json)

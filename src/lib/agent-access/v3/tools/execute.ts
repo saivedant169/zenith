@@ -29,6 +29,8 @@ export const EXECUTABLE: Readonly<Record<string, Kind>> = {
   "data.import": "day_two",
   "resource.adopt": "day_two",
   "resource.release": "day_two",
+  // A machine health read: policy-approved and read-only, run by the same day-two workflow and machine grant path.
+  "system.metrics": "day_two",
 };
 
 const FINISHED_AFTER_START: ReadonlySet<string> = new Set(["succeeded", "failed", "uncertain"]);

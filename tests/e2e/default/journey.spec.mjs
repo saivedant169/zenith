@@ -715,8 +715,11 @@ test('default operated browser, REST, MCP and customer machine journey', async (
         ensure((await runApprover.getByTestId('journey-live').innerText()).length > 0, 'ux01-runbook-terminal-progress');
       }
       readbacks.machine = await machine.read(witnessNonce);
+      // A run step records its own step key; the broker operation is joined through the run's audit.
+      const stepOperationId = complete.audit?.find(event => event.event === 'run.step.authorized')?.detail?.operationId;
+      ensure(typeof stepOperationId === 'string' && stepOperationId.startsWith('op_'), 'machine-step-operation-join');
       const events = await mcp(stack, linked.token, 'tools/call', { name: 'zenith_get_operation_events',
-        arguments: { workspaceId, operationId: complete.steps[0].operationId } });
+        arguments: { workspaceId, operationId: stepOperationId } });
       ensure(events.data.count > 0 && events.data.events?.length > 0, 'machine-events-readback-empty');
       ensure(!JSON.stringify(events).includes(machine.credential), 'model-visible-credential');
     });
@@ -765,7 +768,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       const envelope = metrics.data?.telemetry;
       ensure(envelope?.signal === 'metric' && envelope.scope?.workspaceId === workspaceId &&
         envelope.scope?.projectId === project.id && envelope.scope?.environmentId === environmentId &&
-        envelope.scope?.addresses?.includes('service/witness') && Date.parse(envelope.observedAt) > 0 &&
+        envelope.scope?.addresses?.includes(witnessAddress) && Date.parse(envelope.observedAt) > 0 &&
         ['fresh', 'stale', 'empty', 'unknown', 'inaccessible'].includes(envelope.state), 'default-metrics-provenance');
       ensure(!JSON.stringify(metrics).includes(linked.token) && !JSON.stringify(metrics).includes(healthToken.token), 'metrics-token-redaction');
 
@@ -777,8 +780,9 @@ test('default operated browser, REST, MCP and customer machine journey', async (
           input: {}, idempotencyKey: nonce() },
       }));
       const operationId = proposed.operation?.id;
-      ensure(proposed.operation?.status === 'awaiting_approval' && operationId, 'health-operation-proposal');
-      await approve(operationId, true);
+      // A read-only health probe is allowed by policy; a human approves it only when policy asks.
+      ensure(['awaiting_approval', 'approved'].includes(proposed.operation?.status) && operationId, 'health-operation-proposal');
+      if (proposed.operation.status === 'awaiting_approval') await approve(operationId, true);
       const reviewed = await getDetail(operationId);
       await mcp(stack, linked.token, 'tools/call', { name: 'zenith_execute_approved_operation', arguments: {
         workspaceId, operationId, expectedDigest: reviewed.operation.proposalDigest,

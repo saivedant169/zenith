@@ -41,6 +41,13 @@ describe("approved execution", () => {
     }
     expect(h.beginExecution).not.toHaveBeenCalled();
   });
+  it("starts a policy-approved machine health read through the day-two workflow", async () => {
+    const h = await makeHarness();
+    const op = await h.broker.propose({ capability: "system.metrics", scope: { ...target, resourceId: ids.service }, input: {} }, h.principal.principal);
+    expect(op.operation.status).toBe("approved");
+    const result = await h.invoke("zenith_execute_approved_operation", argsFor("zenith_execute_approved_operation", op.operation.id, op.operation.proposalDigest));
+    expect(result.ok).toBe(true); expect(h.beginExecution).toHaveBeenCalledTimes(1); expect(h.starts.dayTwo).toHaveLength(1);
+  });
   it("an engine outage leaves approvals unconsumed", async () => {
     const h = await makeHarness(() => requireApproval()); const p = await proposeDeploy(h); await approve(h, p.id, p.digest);
     h.ports.workflows.available = vi.fn(async () => ({ available: false, reason: "Test engine down." }));

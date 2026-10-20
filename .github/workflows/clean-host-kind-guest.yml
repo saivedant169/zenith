@@ -1,0 +1,120 @@
+name: Clean-host kind guest credentials
+
+# PROD-MACH-02 real-engine evidence: the three Kubernetes guest-credential kind
+# suites (tenant-supplied token, default scoped_guest minter -> ServiceAccount/
+# Role/RoleBinding -> TokenRequest, and the scoped connection join) against one
+# disposable kind cluster on a fresh GitHub-hosted Linux runner. Manual only. No
+# secrets: the cluster, its kubeconfig and every credential are created here.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clean-host-kind-guest-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  kind-guest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      KIND_VERSION: v0.33.0
+      KIND_SHA256: aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d
+      KIND_NODE_IMAGE: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+      # Multi-platform BusyBox index (scripts/k8s/images.env ACCEPTANCE_IMAGE). The tests need a
+      # digest-pinned non-root image with /bin/sh that is already on the node (imagePullPolicy Never).
+      KIND_RELEASE_IMAGE: docker.io/library/busybox@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e
+      KIND_CLUSTER: zenith-mach02
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.23.3'
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+
+      - name: Install the pinned kind
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -fsSL -o "$RUNNER_TEMP/bin/kind" "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64"
+          echo "${KIND_SHA256}  $RUNNER_TEMP/bin/kind" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/bin/kind"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Record the clean host
+        run: |
+          set -euo pipefail
+          uname -a
+          docker version --format '{{.Server.Version}}'
+          kind version; kubectl version --client
+          test "$(docker ps -aq | wc -l)" -eq 0
+          test -z "$(kind get clusters 2>/dev/null)"
+
+      - name: Create the owned kind cluster and load the fixture image
+        # One private single-context kubeconfig (0600, absolute, loopback HTTPS) is what the
+        # suites require. The node pulls the pinned index itself so the exact digest resolves
+        # under imagePullPolicy Never (kind load would drop the other platforms of the index).
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -m 700 "$RUNNER_TEMP/kind-guest"
+          kind create cluster --name "$KIND_CLUSTER" --image "$KIND_NODE_IMAGE" --kubeconfig "$RUNNER_TEMP/kind-guest/kubeconfig" --wait 180s
+          chmod 600 "$RUNNER_TEMP/kind-guest/kubeconfig"
+          docker exec "${KIND_CLUSTER}-control-plane" crictl pull "$KIND_RELEASE_IMAGE"
+          docker exec "${KIND_CLUSTER}-control-plane" crictl images --digests | grep busybox
+          kubectl --kubeconfig "$RUNNER_TEMP/kind-guest/kubeconfig" --context "kind-${KIND_CLUSTER}" get nodes -o wide
+
+      - name: Kubernetes guest-credential kind suites
+        # The gates are set only here. Files run one after another on the one cluster; a skipped
+        # suite is reported below and fails the run, never counted as a pass.
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/vitest-tmp" .data-ci-lane
+          TMPDIR="$RUNNER_TEMP/vitest-tmp" \
+            ZENITH_TEST_KIND=1 \
+            KUBECONFIG="$RUNNER_TEMP/kind-guest/kubeconfig" \
+            ZENITH_TEST_KIND_GUEST_CLUSTER="$KIND_CLUSTER" \
+            ZENITH_TEST_KIND_RELEASE_IMAGE="$KIND_RELEASE_IMAGE" \
+            npx vitest run --no-file-parallelism --reporter=default --reporter=json --outputFile.json=.data-ci-lane/clean-host-kind-guest-vitest.json \
+              tests/machines/kubernetes-kind.test.ts \
+              tests/machines/kubernetes-guest-scoped-kind.test.ts \
+              tests/machines/kubernetes-connection-join-kind.test.ts
+
+      - name: Per-file counts
+        if: always()
+        run: |
+          node -e '
+            const fs = require("fs"), file = ".data-ci-lane/clean-host-kind-guest-vitest.json";
+            if (!fs.existsSync(file)) { console.log("no vitest report"); process.exit(1); }
+            const r = JSON.parse(fs.readFileSync(file, "utf8")); let bad = r.testResults.length !== 3;
+            for (const f of r.testResults) {
+              const n = s => f.assertionResults.filter(t => t.status === s).length;
+              const [p, x, k] = [n("passed"), n("failed"), n("skipped") + n("pending") + n("todo")];
+              console.log(f.name.replace(process.cwd() + "/", ""), "passed", p, "failed", x, "skipped", k, "suite", f.status);
+              if (f.status !== "passed" || x || k || !p) bad = true;
+            }
+            console.log("total passed", r.numPassedTests, "failed", r.numFailedTests, "skipped", r.numPendingTests + r.numTodoTests);
+            process.exit(bad ? 1 : 0);
+          '
+
+      - name: Remove owned kind cluster
+        if: always()
+        run: |
+          for cluster in $(kind get clusters 2>/dev/null); do kind delete cluster --name "$cluster"; done
+          docker ps -a --format '{{.Names}} {{.Status}}'
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: clean-host-kind-guest
+          path: .data-ci-lane/clean-host-kind-guest-vitest.json
+          if-no-files-found: warn
+          retention-days: 30

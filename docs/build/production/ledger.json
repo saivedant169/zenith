@@ -4227,7 +4227,15 @@
         "PROD-CI-09"
       ],
       "implementationStatus": "implementation_complete_verification_pending",
-      "evidence": [],
+      "evidence": [
+        {
+          "level": "local_engine",
+          "commit": "1650e6c4",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-1650e6c4-postgres-halves.json",
+          "artifactSha256": "b0a81178930178ee289668ad7c457b76415ce448dda04981c8f85fa1a206100e",
+          "result": "Real-PostgreSQL lanes of durable-intent-authority (22), k8s-guest-bindings (7), state-backend-recovery (13), cleanup-writer-barriers (100) and late-effect-receipts (40) passed 182/182 on clean 1650e6c4; these are ungated, recorded as additional evidence. Still missing: a Temporal-lane start-recovery case for idempotent start/signal, and platform/runner authority crash-window cases. Not promoted (independent review, 2026-10-20)."
+        }
+      ],
       "requiredEvidence": [
         "contract",
         "local_engine"
@@ -4259,6 +4267,13 @@
           "commit": "7d75b21d884da6f3beae2889740b0a52d9118eee",
           "result": "Root fresh disposablekind provider6P0F0S and release1P0F0S; dedicated kubeconfig only, pinned release image loaded. Cluster and owned containers absent; kubeconfig removed. Actual tested provenance2c9d6fa plus exact UNCdiff16aa6c92; source committed unchanged7d75b21. No managed CNI/stateful/live-cloud proof.",
           "artifact": "docs/build/production/evidence/local-kind/start-uncertainty.json"
+        },
+        {
+          "level": "local_engine",
+          "commit": "1650e6c4",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-1650e6c4-postgres-halves.json",
+          "artifactSha256": "b0a81178930178ee289668ad7c457b76415ce448dda04981c8f85fa1a206100e",
+          "result": "Real-PostgreSQL lanes of durable-intent-authority (22), k8s-guest-bindings (7), state-backend-recovery (13), cleanup-writer-barriers (100) and late-effect-receipts (40) passed 182/182 on clean 1650e6c4; these are ungated, recorded as additional evidence. Still missing: real-PostgreSQL product projection persistence and an independent-workers case. Not promoted (independent review, 2026-10-20)."
         }
       ],
       "requiredEvidence": [
@@ -4392,6 +4407,13 @@
           "commit": "07728546bcc3489bdf8a382c646d57218b87e147",
           "result": "Original-byte authenticated encrypted plan custody/migration7 integrated; real PostgreSQL70groups and cross-worker OpenTofu handoff/cleanup-race contracts passed. Broader backend restore/recovery epochs/live lifecycle remain open.",
           "artifact": "docs/build/production/verification/2026-10-03-g1-integration.json"
+        },
+        {
+          "level": "local_engine",
+          "commit": "1650e6c4",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-1650e6c4-postgres-halves.json",
+          "artifactSha256": "b0a81178930178ee289668ad7c457b76415ce448dda04981c8f85fa1a206100e",
+          "result": "Real-PostgreSQL lanes of durable-intent-authority (22), k8s-guest-bindings (7), state-backend-recovery (13), cleanup-writer-barriers (100) and late-effect-receipts (40) passed 182/182 on clean 1650e6c4; these are ungated, recorded as additional evidence. Still missing: engine cases for plan-artifact encryption, tenant access, integrity, expiry, PlanView/raw split and independent workers. Not promoted (independent review, 2026-10-20)."
         }
       ],
       "requiredEvidence": [
@@ -4428,6 +4450,13 @@
           "commit": "07728546bcc3489bdf8a382c646d57218b87e147",
           "result": "Original-byte authenticated encrypted plan custody/migration7 integrated; real PostgreSQL70groups and cross-worker OpenTofu handoff/cleanup-race contracts passed. Broader backend restore/recovery epochs/live lifecycle remain open.",
           "artifact": "docs/build/production/verification/2026-10-03-g1-integration.json"
+        },
+        {
+          "level": "local_engine",
+          "commit": "1650e6c4",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-1650e6c4-postgres-halves.json",
+          "artifactSha256": "b0a81178930178ee289668ad7c457b76415ce448dda04981c8f85fa1a206100e",
+          "result": "Real-PostgreSQL lanes of durable-intent-authority (22), k8s-guest-bindings (7), state-backend-recovery (13), cleanup-writer-barriers (100) and late-effect-receipts (40) passed 182/182 on clean 1650e6c4; these are ungated, recorded as additional evidence. Real-PostgreSQL janitor writer/unlink race now covered (cleanup-writer-barriers 100/100). Still missing: locking, encryption, versioning and restore on a real storage backend (state-backend-recovery covers these on PostgreSQL, not real S3). Not promoted (independent review, 2026-10-20)."
         }
       ],
       "requiredEvidence": [
@@ -4492,6 +4521,13 @@
           "artifact": "docs/build/production/evidence/PROD-CI-09/2026-10-12-cfb715bf-terminal-ci-r1.json",
           "jobId": 114593354575,
           "indexSha256": "d8025767a755e342911c49ccf7d66efafdec0a900f09f0f326d8525c11fbfa16"
+        },
+        {
+          "level": "local_engine",
+          "commit": "1650e6c4",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-1650e6c4-postgres-halves.json",
+          "artifactSha256": "b0a81178930178ee289668ad7c457b76415ce448dda04981c8f85fa1a206100e",
+          "result": "Real-PostgreSQL lanes of durable-intent-authority (22), k8s-guest-bindings (7), state-backend-recovery (13), cleanup-writer-barriers (100) and late-effect-receipts (40) passed 182/182 on clean 1650e6c4; these are ungated, recorded as additional evidence. Still missing: partition/delayed-call, renewal/revocation tombstone, provider receipt/readback and operator-resolution engine cases. Not promoted (independent review, 2026-10-20)."
         }
       ],
       "requiredEvidence": [
@@ -4526,6 +4562,13 @@
           "commit": "e64d00fc3a6f4ae305925059e441628f57a37ddc",
           "result": "Clean isolated candidate actualPostgreSQL1678P0F0S/141requiredgroups and Temporal1035P0F0S/53requiredgroups with strict revalidation passed. Not integrated; later broker/current-policy/source/late-agent candidates require new checks. No private GitHub/App or AWS live journey claim.",
           "artifact": "docs/build/production/ci-37124764251.json"
+        },
+        {
+          "level": "local_engine",
+          "commit": "1650e6c4",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-1650e6c4-postgres-halves.json",
+          "artifactSha256": "b0a81178930178ee289668ad7c457b76415ce448dda04981c8f85fa1a206100e",
+          "result": "Real-PostgreSQL lanes of durable-intent-authority (22), k8s-guest-bindings (7), state-backend-recovery (13), cleanup-writer-barriers (100) and late-effect-receipts (40) passed 182/182 on clean 1650e6c4; these are ungated, recorded as additional evidence. Still missing: build-launch and broker-binding engine cases on a clean commit. Not promoted (independent review, 2026-10-20)."
         }
       ],
       "requiredEvidence": [
@@ -5396,6 +5439,13 @@
           "commit": "8590c7199b03b04d8fda01a8fa0cae4025cf67f5",
           "result": "Historical owning local kind8590c71 provider6/release1/guest48 passed with8 actual API/RBAC and40 parser/model controls, scoped verification, negative controls and owned cleanup. Shared changed candidate/default operated acceptance remains open.",
           "artifact": "docs/build/production/verification/2026-10-04-integrated-source.json"
+        },
+        {
+          "level": "local_engine",
+          "commit": "1650e6c4",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-1650e6c4-postgres-halves.json",
+          "artifactSha256": "b0a81178930178ee289668ad7c457b76415ce448dda04981c8f85fa1a206100e",
+          "result": "Real-PostgreSQL lanes of durable-intent-authority (22), k8s-guest-bindings (7), state-backend-recovery (13), cleanup-writer-barriers (100) and late-effect-receipts (40) passed 182/182 on clean 1650e6c4; these are ungated, recorded as additional evidence. late-effect-receipts real-PG lane 40/40. Still missing: gated kind guest-scoped and k8s-guest-binding cluster evidence on a clean commit (never falls back to higher privilege, revocation on ServiceAccount deletion). Not promoted (independent review, 2026-10-20)."
         }
       ],
       "requiredEvidence": [
@@ -5657,7 +5707,15 @@
         "PROD-CI-09"
       ],
       "implementationStatus": "implementation_complete_verification_pending",
-      "evidence": [],
+      "evidence": [
+        {
+          "level": "local_engine",
+          "commit": "1650e6c4",
+          "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-1650e6c4-postgres-halves.json",
+          "artifactSha256": "b0a81178930178ee289668ad7c457b76415ce448dda04981c8f85fa1a206100e",
+          "result": "Real-PostgreSQL lanes of durable-intent-authority (22), k8s-guest-bindings (7), state-backend-recovery (13), cleanup-writer-barriers (100) and late-effect-receipts (40) passed 182/182 on clean 1650e6c4; these are ungated, recorded as additional evidence. late-effect-receipts real-PG lane 40/40. Still missing: coding-agent store on PostgreSQL, coding-agent workflow on Temporal, a real deploy journey from analysis and a live eval. Not promoted (independent review, 2026-10-20)."
+        }
+      ],
       "requiredEvidence": [
         "contract",
         "local_engine"

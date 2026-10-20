@@ -1,0 +1,50 @@
+{
+ "schemaVersion": 1,
+ "kind": "local_engine",
+ "date": "2026-10-20",
+ "commit": "1650e6c4",
+ "engine": "Disposable postgres:16.15-alpine (pinned digest) on 127.0.0.1, ZENITH_TEST_PLATFORM_PG_URL lane of each file, Node 22.23.3, OpenTofu from the verifier toolchain",
+ "note": "These real-PostgreSQL halves are not wave6 gated cases. An independent review found them ungated; they are recorded here as additional local-engine evidence, not as a gate pass. cleanup-writer-barriers ran without pre-created Supabase stand-in roles because the canonical agent-lane applier creates and verifies its own.",
+ "files": [
+  {
+   "file": "tests/controlplane/durable-intent-authority.test.ts",
+   "postgresCases": 22,
+   "passed": 22,
+   "failed": 0,
+   "skipped": 0
+  },
+  {
+   "file": "tests/controlplane/k8s-guest-bindings.test.ts",
+   "postgresCases": 7,
+   "passed": 7,
+   "failed": 0,
+   "skipped": 0
+  },
+  {
+   "file": "tests/controlplane/state-backend-recovery.test.ts",
+   "postgresCases": 13,
+   "passed": 13,
+   "failed": 0,
+   "skipped": 0
+  },
+  {
+   "file": "tests/runners/late-effect-receipts.test.ts",
+   "postgresCases": 40,
+   "passed": 40,
+   "failed": 0,
+   "skipped": 0
+  },
+  {
+   "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
+   "postgresCases": 100,
+   "passed": 100,
+   "failed": 0,
+   "skipped": 0
+  }
+ ],
+ "totals": {
+  "postgresCases": 182,
+  "passed": 182,
+  "failed": 0
+ }
+}

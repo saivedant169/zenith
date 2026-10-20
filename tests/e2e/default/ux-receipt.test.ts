@@ -51,7 +51,7 @@ const uncertaintyEvidence = (): UxUncertaintyEvidence => {
     audit: { sha256: '1'.repeat(64), authorizationCount: 1, operationId, stepOperationId: `rbs_${createHash('sha256').update(`${runId}\0${0}\0hold`).digest('hex').slice(0, 48)}` },
     broker: { operationId, statusBefore: 'running', statusAfter: 'uncertain', workspaceId: 'workspace_test', projectId: 'project_test',
       environmentId: 'environment_test', resourceId: 'resource_test', runbookStep: { runId, stepId: 'hold', targetIndex: 0,
-        target: { workspaceId: 'workspace_test', transport: 'zenithd', targetId: machineId, environmentId: 'environment_test', resourceId: 'resource_test', address: 'service/witness' }, bindingDigest } },
+        target: { workspaceId: 'workspace_test', transport: 'zenithd', targetId: machineId, environmentId: 'environment_test', resourceId: 'resource_test', address: 'container_service/witness' }, bindingDigest } },
     request: { id: 'request_test', machineId, workspaceId: 'workspace_test', operationId, operation: 'machine.exec', capability: 'machine.exec',
       statusBefore: 'running', startedAt: '2026-10-11T00:00:00.000Z', settledAt: null },
     marker: { sha256: '3'.repeat(64), nonceMatch: true },

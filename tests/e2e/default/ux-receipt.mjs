@@ -129,7 +129,7 @@ function validateUncertainty(value, receiptSource) {
       broker.runbookStep.targetIndex !== 0 || broker.runbookStep.bindingDigest !== run.bindingDigest ||
       broker.runbookStep.target.workspaceId !== run.workspaceId || broker.runbookStep.target.transport !== 'zenithd' ||
       !identifier(broker.runbookStep.target.targetId) || broker.runbookStep.target.environmentId !== run.environmentId ||
-      broker.runbookStep.target.resourceId !== run.resourceId || broker.runbookStep.target.address !== 'service/witness' ||
+      broker.runbookStep.target.resourceId !== run.resourceId || broker.runbookStep.target.address !== 'container_service/witness' ||
       !identifier(request.id) || request.machineId !== broker.runbookStep.target.targetId || request.workspaceId !== run.workspaceId ||
       request.operation !== 'machine.exec' || request.capability !== 'machine.exec' || request.statusBefore !== 'running' ||
       !isoTimestamp(request.startedAt) || request.settledAt !== null ||

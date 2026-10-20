@@ -71,6 +71,9 @@ k8s_check_skew
 echo "applying the platform baseline (namespaces, operator RBAC, build namespace)"
 kubectl apply -f "$repo/deploy/zenith-managed/00-namespaces.yaml"
 kubectl apply -f "$repo/deploy/zenith-managed/40-operator-rbac.yaml"
+# Onboarding creates each tenant's operator RBAC through the bootstrap identity (placeholder, applied only to this
+# disposable cluster); tenant sessions then use only the per-tenant operator identity it seals into the vault.
+kubectl apply -f "$repo/deploy/zenith-managed/optional/41-tenant-bootstrap-rbac.yaml"
 kubectl apply -f "$repo/deploy/zenith-managed/50-build-namespace.yaml"
 
 echo "starting the registry"
@@ -130,12 +133,12 @@ spec:
       ports: [{ protocol: TCP, port: 5000 }]
 YAML
 
-echo "minting the operator credential and sealing it into the platform vault scope"
+echo "minting the bootstrap credential and sealing it into the platform vault scope"
 secrets_dir="$ZENITH_K8S_WORKDIR/platform"
 mkdir -p "$secrets_dir"
 chmod 700 "$secrets_dir"
 umask 077
-kubectl -n zenith-system create token zenith-operator --duration=2h >"$secrets_dir/operator-token"
+kubectl -n zenith-system create token zenith-bootstrap --duration=2h >"$secrets_dir/operator-token"
 export ZENITH_DATA="$secrets_dir/data"
 export ZENITH_STORE=file
 export ZENITH_SECRET_KEY="${ZENITH_SECRET_KEY:-$(node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('hex'))")}"
@@ -151,6 +154,7 @@ export ZENITH_TEST_MANAGED_KIND=1
 export ZENITH_MANAGED_CLUSTER_SERVER="$server"
 export ZENITH_MANAGED_CLUSTER_CA_DATA="$ca_data"
 export ZENITH_MANAGED_KUBECONFIG_REF=vault:zenith-managed/kubeconfig
+export ZENITH_MANAGED_OPERATOR_CREDENTIAL_PREFIX=vault:zenith-managed/operators
 export ZENITH_MANAGED_APP_DOMAIN=apps.zenith.test
 export ZENITH_MANAGED_GATEWAY_MODE=ingress
 export ZENITH_MANAGED_INGRESS_CLASS=nginx

@@ -60,10 +60,11 @@ describe("the gated managed-kind test", () => {
     expect(test).toContain("describe.skipIf(!enabled)");
     expect(test).toContain("managed-kind acceptance skipped:");
   });
-  it("builds the substrate through the default composition, injecting nothing but the control-plane lookup", () => {
-    expect(test).toContain("createDefaultManagedSubstrate({ env: { ...process.env }, product })");
+  it("builds the substrate through the default composition, injecting nothing but the control-plane lookup and platform database", () => {
+    expect(test).toContain("createDefaultManagedSubstrate({ env: { ...process.env }, product, db: lane.db })");
     expect(test).not.toContain("createKubernetesSession");
     expect(test).not.toContain("readPlatformSecret");
+    expect(test).not.toContain("operatorCredentialBackend");
   });
 });
 

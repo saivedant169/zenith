@@ -12,6 +12,7 @@
  *   ZENITH_DATA, ZENITH_STORE=file, ZENITH_SECRET_KEY   the vault the operator credential was sealed into
  *   ZENITH_TEST_MANAGED_WORKLOAD_IMAGE                  a digest-pinned image (busybox)
  *   KUBECONFIG                                          the cluster's ADMIN kubeconfig, used only by the probe pods
+ *   ZENITH_MANAGED_OPERATOR_CREDENTIAL_PREFIX           where reviewed onboarding seals each tenant's operator token
  *
  * What this proves that the contract fakes cannot, and what it does not:
  *   - the DEFAULT composition (`createDefaultManagedSubstrate`) builds a working port from the environment and the
@@ -44,11 +45,19 @@ import { createK8sClient, readObject } from "@/lib/providers/kubernetes/client";
 import { applyZenithEnvironment } from "@/lib/providers/zenith/apply";
 import type { ManagedSubstratePort } from "@/lib/providers/zenith/managed-port";
 import { tenantNamespace } from "@/lib/providers/zenith/tenancy";
+import { createPlatformPorts } from "@/lib/execution/platform";
+import { prepareIsolation } from "@/lib/execution/tenant-isolation";
+import { createPlatformSemanticsStore } from "@/lib/controlplane/db/repos/executable-semantics";
+import { createEffectLedger } from "@/lib/effects/ledger";
+import { createIsolationCustody } from "@/lib/platform/zenith-isolation-custody";
+import { vaultCipherFromEnv } from "@/lib/secrets";
+import { LANES, openLane, seedApprovedOperation } from "../../controlplane/_support/harness";
 import { NET, mkNode } from "./support";
 
 const REQUIRED = [
   "ZENITH_MANAGED_CLUSTER_SERVER", "ZENITH_MANAGED_CLUSTER_CA_DATA", "ZENITH_MANAGED_KUBECONFIG_REF", "ZENITH_MANAGED_APP_DOMAIN",
   "ZENITH_MANAGED_REGISTRY", "ZENITH_MANAGED_BUILDER_IMAGE", "ZENITH_DATA", "ZENITH_SECRET_KEY", "ZENITH_TEST_MANAGED_WORKLOAD_IMAGE", "KUBECONFIG",
+  "ZENITH_MANAGED_OPERATOR_CREDENTIAL_PREFIX",
 ] as const;
 const missing = REQUIRED.filter((name) => !process.env[name]);
 const enabled = process.env.ZENITH_TEST_MANAGED_KIND === "1" && missing.length === 0 && process.env.ZENITH_MANAGED_GATEWAY_MODE === "ingress";
@@ -93,6 +102,7 @@ describe.skipIf(!enabled)("Zenith-managed substrate on a real kind cluster", () 
 
   let managed: ManagedSubstratePort;
   let admin: CoreV1Api;
+  let lane: Awaited<ReturnType<typeof openLane>>;
 
   /** The control plane's side of a tenant lookup. The product store is not part of a kind run; this has the same shape. */
   const product: Pick<ProductPort, "loadContext"> = {
@@ -113,13 +123,33 @@ describe.skipIf(!enabled)("Zenith-managed substrate on a real kind cluster", () 
     signal: AbortSignal.timeout(900_000), log: () => undefined, tags: {}, now: () => new Date(),
   });
 
-  beforeAll(() => {
-    // THE DEFAULT COMPOSITION: environment + platform vault only. Nothing is injected except the control-plane lookup double above.
-    managed = createDefaultManagedSubstrate({ env: { ...process.env }, product });
+  beforeAll(async () => {
+    // THE DEFAULT COMPOSITION: environment, platform vault and an in-process platform database. Nothing is injected except
+    // the control-plane lookup double above and, in onboarding below, a contract-level human approval.
+    lane = await openLane(LANES[0]);
+    managed = createDefaultManagedSubstrate({ env: { ...process.env }, product, db: lane.db });
     const kc = new KubeConfig();
     kc.loadFromDefault();
     admin = kc.makeApiClient(CoreV1Api);
-  });
+    // Sessions use only the tenant operator identity that reviewed onboarding issued and sealed into the platform vault.
+    const ports = createPlatformPorts(lane.db);
+    for (const environmentId of [ENV_A, ENV_B]) {
+      const seeded = await seedApprovedOperation(lane.db, WS, { proposal: { scope: { workspaceId: WS, projectId: "proj-man01", environmentId } } });
+      const tenant = await managed.tenants.resolve(ref(environmentId));
+      const lease = await ports.leases.acquire({ workspaceId: WS, scope: `env:${environmentId}`, holder: `man01:${environmentId}`, ttlMs: 300_000 });
+      if (!lease) throw new Error("onboarding lease missing");
+      const request = managed.onboarding!.request(tenant, seeded.operation.id, lease, false);
+      let reviewed = "";
+      const provisioner = managed.onboarding!.provisioner({ d: { ...ports, semantics: createPlatformSemanticsStore(lane.db), effects: createEffectLedger(lane.db),
+        isolationCustody: createIsolationCustody({ db: lane.db, ops: ports.ops, leases: ports.leases, cipher: vaultCipherFromEnv({ ZENITH_PLAN_ARTIFACT_KEY: randomBytes(32).toString("hex") }, { purpose: "enc:plan-artifacts" }) }),
+        broker: { approvalStatus: async () => ({ approved: true, rejected: false, approvalId: "human-contract", dispatchApproval: { planDigest: reviewed, proposalDigest: seeded.operation.proposalDigest, approvalIds: ["human-contract"], approvalRound: 1, requiredApprovalCount: 1 } }) } } as any,
+        emit: async () => {}, evidence: async () => undefined, log: () => {}, now: () => new Date() });
+      const plan = await provisioner.plan(request); reviewed = plan.planDigest;
+      expect((await provisioner.apply(request, reviewed)).verified).toBe(prepareIsolation(request).objects.length);
+      await ports.leases.release(lease);
+    }
+    record("onboarding", { tenants: 2, operatorIdentity: "reviewed isolation custody", approval: "contract-level" });
+  }, 600_000);
 
   afterAll(async () => {
     evidence.finishedAt = new Date().toISOString();
@@ -129,6 +159,7 @@ describe.skipIf(!enabled)("Zenith-managed substrate on a real kind cluster", () 
       writeFileSync(out, `${JSON.stringify(evidence, null, 2)}\n`);
     }
     for (const env of [ENV_A, ENV_B]) await admin.deleteNamespace({ name: tenantNamespace(WS, env) }).catch(() => undefined);
+    await lane?.close();
   });
 
   it("is configured from the environment alone and says what it can do", () => {

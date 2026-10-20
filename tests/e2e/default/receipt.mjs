@@ -27,10 +27,13 @@ export function receipt(input = {}) {
   const counts = Object.fromEntries([...STATUSES].map(status => [status, checks.filter(check => check.status === status).length]));
   const complete = counts.passed === CHECKS.length && ['kind', 'machine', 'rotatedKind', 'obs02', 'machineRejoin'].every(target => hash(input.readbacks?.[target], 64));
   const bound = hash(input.commit, 40) && hash(input.sourceDigest, 64) && typeof input.dirty === 'boolean';
+  // macOS ARM64, or Linux on its own architecture; the Docker engine must report the same architecture.
+  const host = input.platform === 'darwin' && input.arch === 'arm64' ? 'macOS ARM64'
+    : input.platform === 'linux' && input.arch === 'x64' ? 'Linux AMD64' : input.platform === 'linux' && input.arch === 'arm64' ? 'Linux ARM64' : 'unsupported';
+  const engineArch = { arm64: 'aarch64', x64: 'x86_64' }[input.arch];
   const environment = {
-    host: input.platform === 'darwin' && input.arch === 'arm64' ? 'macOS ARM64' : 'unsupported',
-    architectureEvidence: input.platform === 'darwin' && input.arch === 'arm64' && input.dockerArch === 'aarch64' ? 'native' : 'unconfirmed',
-    node: version(input.node), docker: version(input.docker), profile: 'lean',
+    host, architectureEvidence: host !== 'unsupported' && input.dockerArch === engineArch ? 'native' : 'unconfirmed',
+    node: version(input.node), docker: version(input.docker), profile: input.profile === 'default' ? 'default' : 'lean',
     scope: 'disposable local Supabase Auth, Mailpit, PostgreSQL, Temporal, zenithd and kind',
   };
   const status = complete && bound && environment.architectureEvidence === 'native' ? 'passed'
@@ -49,7 +52,7 @@ export function receipt(input = {}) {
     evidence: ledgerEligible ? {
       level: 'local_engine', commit: input.commit,
       command: 'ZENITH_DEFAULT_JOURNEY=1 node scripts/acceptance/default-journey.mjs --config <private-config> --receipt <evidence-file>',
-      environment: `${environment.host}; native ARM64 Docker ${environment.docker}; Node ${environment.node}; lean; disposable local installation`,
+      environment: `${environment.host}; native ${input.arch === 'x64' ? 'AMD64' : 'ARM64'} Docker ${environment.docker}; Node ${environment.node}; ${environment.profile}; disposable local installation`,
       result: `${counts.passed} passed /${counts.failed} failed /${counts.skipped} skipped /${counts.not_run} not run`,
       logs: 'docs/build/production/evidence/PROD-PKG-05/default-journey.json',
     } : null,

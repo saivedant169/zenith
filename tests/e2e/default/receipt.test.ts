@@ -32,6 +32,17 @@ describe('default journey evidence projection (contract only)', () => {
     expect(result.evidence?.level).toBe('local_engine');
     expect(result.productionReady).toBe(false);
   });
+  it('labels a native Linux AMD64 default-profile run honestly and refuses a mismatched engine', () => {
+    const linux = receipt({ ...input(), platform: 'linux', arch: 'x64', dockerArch: 'x86_64', profile: 'default' });
+    expect(linux.status).toBe('passed');
+    expect(linux.environment).toMatchObject({ host: 'Linux AMD64', architectureEvidence: 'native', profile: 'default' });
+    expect(linux.evidence?.environment).toContain('Linux AMD64; native AMD64 Docker');
+    const emulated = receipt({ ...input(), platform: 'linux', arch: 'x64', dockerArch: 'aarch64' });
+    expect(emulated.environment.architectureEvidence).toBe('unconfirmed');
+    expect(emulated.status).not.toBe('passed');
+    expect(receipt({ ...input(), platform: 'win32', arch: 'x64', dockerArch: 'x86_64' }).environment.host).toBe('unsupported');
+    expect(receipt(input()).environment).toMatchObject({ host: 'macOS ARM64', architectureEvidence: 'native', profile: 'lean' });
+  });
   it('does not retain nested secrets, paths, arbitrary keys or hostile diagnostics', () => {
     const canary = randomBytes(24).toString('base64url');
     const result = receipt({ ...input(), password: canary, token: canary,

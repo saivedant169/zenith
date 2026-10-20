@@ -393,7 +393,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       }
       config = Config.parse(JSON.parse(privateFile(process.env.ZENITH_JOURNEY_CONFIG)));
       stack = await prerequisites(config, source);
-      Object.assign(source, { docker: stack.docker, dockerArch: stack.dockerArch });
+      Object.assign(source, { docker: stack.docker, dockerArch: stack.dockerArch, profile: stack.profile });
       kubeconfig(config.kind.kubeconfigFile, config);
       const rotation = kubeconfig(config.kind.rotationKubeconfigFile, config);
       ensure(rotation.text !== privateFile(config.kind.kubeconfigFile), 'rotation-distinct-credential');

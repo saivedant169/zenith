@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { command, docker, ensure, localUrl, privateFile } from './support.mjs';
+import { NATIVE, command, docker, ensure, localUrl, nativeHost, privateFile } from './support.mjs';
 import { load as yamlLoad } from 'js-yaml';
 
 export function isolatedKindConfig(raw) {
@@ -18,7 +18,7 @@ export function isolatedKindConfig(raw) {
 
 export async function prepare(args) {
   if (process.env.ZENITH_DEFAULT_JOURNEY !== '1') return { status: 'skipped' };
-  ensure(process.platform === 'darwin' && process.arch === 'arm64', 'native-mac-required');
+  ensure(nativeHost(), 'native-host-required');
   const values = {};
   while (args.length) {
     const key = args.shift(), value = args.shift();
@@ -52,7 +52,7 @@ export async function prepare(args) {
   fs.writeFileSync(path.join(directory, 'targets.json'), JSON.stringify({ schemaVersion: 1, kind: 'zenith-j2',
     createdBy: 'J2-DEFAULT-JOURNEY', status: 'created', containerId: node.Id }), { mode: 0o600 });
   const [kindImage] = JSON.parse(await docker(['image', 'inspect', node.Image]));
-  ensure(kindImage.Architecture === 'arm64', 'kind-native-arm64');
+  ensure(kindImage.Architecture === NATIVE.image, 'kind-native-architecture');
   // Measured: at 640 MiB / 1 CPU a Kubernetes 1.37 control plane thrashed at 100% CPU and never
   // finished `kind load image-archive`. The optional build worker keeps its 640 MiB cap.
   await docker(['update', '--memory', '1280m', '--memory-swap', '2g', '--cpus', '2', node.Id]);
@@ -60,7 +60,7 @@ export async function prepare(args) {
     const [worker] = JSON.parse(await docker(['inspect','zenith-j2-worker']));
     ensure(worker.Config.Labels?.['io.x-k8s.kind.cluster'] === 'zenith-j2', 'build-worker-owner');
     const [image] = JSON.parse(await docker(['image','inspect',worker.Image]));
-    ensure(image.Architecture === 'arm64', 'build-worker-native');
+    ensure(image.Architecture === NATIVE.image, 'build-worker-native');
     fs.writeFileSync(path.join(directory,'targets.json'), JSON.stringify({schemaVersion:1,kind:'zenith-j2',createdBy:'J2-DEFAULT-JOURNEY',status:'created',containerId:node.Id,buildContainerId:worker.Id}), {mode:0o600});
     await docker(['update','--memory','640m','--memory-swap','1g','--cpus','1',worker.Id]);
   }
@@ -70,7 +70,7 @@ export async function prepare(args) {
   ensure(network, 'j1-network');
   await docker(['network', 'connect', '--alias', 'zenith-j2-control-plane', network, node.Id]);
   const image = JSON.parse(await docker(['image', 'inspect', values['--witness-image']]))[0];
-  ensure(image.Architecture === 'arm64', 'witness-native-arm64');
+  ensure(image.Architecture === NATIVE.image, 'witness-native-architecture');
   const tag = image.RepoTags?.find(value => /^localhost:5000\/zenith-j2-witness:[a-z0-9._-]+$/.test(value));
   ensure(tag, 'witness-local-tag');
   const archive = path.join(directory, 'witness.tar');

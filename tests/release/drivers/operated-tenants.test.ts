@@ -167,6 +167,7 @@ describe("DRV-4 tenant bootstrap sequencing", () => {
       adminKey: "",
       dockerArch: "aarch64",
       docker: "fixture",
+      profile: "lean",
     } satisfies OperatedContext["stack"];
     const input = {
       scenarioId: "two-tenants" as const,

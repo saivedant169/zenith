@@ -110,12 +110,15 @@ export function kubeconfig(file, config) {
     !cluster['insecure-skip-tls-verify'], 'kubeconfig-local-binding');
   return { text, caData: cluster['certificate-authority-data'] };
 }
+/** Supported native hosts: macOS ARM64 and Linux on its own architecture. Images and the engine must match it. */
+export const NATIVE = Object.freeze({ arm64: { image: 'arm64', engine: 'aarch64' }, x64: { image: 'amd64', engine: 'x86_64' } }[process.arch]);
+export const nativeHost = () => Boolean(NATIVE) && (process.platform === 'linux' || (process.platform === 'darwin' && process.arch === 'arm64'));
 export async function prerequisites(config, source) {
-  ensure(process.platform === 'darwin' && process.arch === 'arm64' && process.versions.node.startsWith('22.'), 'native-mac-node22');
+  ensure(nativeHost() && process.versions.node.startsWith('22.'), 'native-host-node22');
   localUrl(config.mailpitUrl);
   const modules = await import(pathToFileURL(path.join(root, 'scripts/acceptance/default-stack/runtime.mjs')).href);
   const state = modules.readState(config.stackDirectory);
-  ensure(state.profile === 'lean' && state.source?.head === source.commit &&
+  ensure(['lean', 'default'].includes(state.profile) && state.source?.head === source.commit &&
     state.source?.contentSha256 === source.sourceDigest && state.source?.dirty === source.dirty, 'j1-source-join');
   // Reuse J1's actual runtime and readiness, rather than interpreting a stale success file.
   const ready = await import(pathToFileURL(path.join(root, 'scripts/acceptance/default-stack/readiness.mjs')).href);
@@ -129,15 +132,15 @@ export async function prerequisites(config, source) {
     docker(['image', 'inspect', config.kind.image]), docker(['inspect', 'zenith-j2-control-plane']),
   ]);
   const engine = JSON.parse(info), machine = JSON.parse(machineImage)[0], app = JSON.parse(appImage)[0], node = JSON.parse(kind)[0];
-  ensure(engine.Architecture === 'aarch64' && machine.Architecture === 'arm64' && app.Architecture === 'arm64' &&
+  ensure(engine.Architecture === NATIVE.engine && machine.Architecture === NATIVE.image && app.Architecture === NATIVE.image &&
     node.Config.Labels?.['io.x-k8s.kind.cluster'] === 'zenith-j2', 'native-owned-targets');
   const [kindImage] = JSON.parse(await docker(['image', 'inspect', node.Image]));
-  ensure(kindImage.Architecture === 'arm64', 'kind-native-arm64');
+  ensure(kindImage.Architecture === NATIVE.image, 'kind-native-architecture');
   const api = await modules.compose(state, ['ps', '-q', 'api']);
   const worker = await modules.compose(state, ['ps', '-q', 'execution-worker']);
   ensure(/^[a-f0-9]{64}$/.test(api.trim()) && /^[a-f0-9]{64}$/.test(worker.trim()), 'j1-containers');
   return { state, modules, api: api.trim(), worker: worker.trim(), apiUrl, supabaseUrl,
-    adminKey: input.environment.SUPABASE_SERVICE_ROLE_KEY, dockerArch: engine.Architecture, docker: engine.ServerVersion };
+    adminKey: input.environment.SUPABASE_SERVICE_ROLE_KEY, dockerArch: engine.Architecture, docker: engine.ServerVersion, profile: state.profile };
 }
 export const adminHeaders = stack => ({ apikey: stack.adminKey, authorization: 'Bearer ' + stack.adminKey });
 export async function operator(stack, mailpitUrl, letter, users) {

@@ -8,6 +8,7 @@
 import { z } from "zod";
 import { db, save } from "@/lib/db/store";
 import { id, type Member } from "@/lib/domain/types";
+import { workspaceSlug } from "@/lib/domain/workspace-slug";
 import {
   ApiError,
   WORKSPACE_COOKIE,
@@ -36,15 +37,11 @@ export const POST = route(async (req) => {
     });
 
   const name = parsed.data.name;
-  const slug =
-    name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "")
-      .slice(0, 30) || "workspace";
+  const workspaceId = id();
+  const slug = workspaceSlug(name, workspaceId, isSupabaseConfigured());
 
   const user = currentRequest()?.user;
-  const workspace = { id: id(), name, slug, ownerId: user?.id, createdAt: new Date().toISOString() };
+  const workspace = { id: workspaceId, name, slug, ownerId: user?.id, createdAt: new Date().toISOString() };
   data.workspaces.push(workspace);
 
   // The creator owns what they created. With no signed-in user (demo mode's

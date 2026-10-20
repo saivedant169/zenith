@@ -96,6 +96,13 @@ describe.skipIf(!enabled)("default scoped Kubernetes guest credentials against t
       containers: [{ name: "marker", image, imagePullPolicy: "Never", command: ["/bin/sh", "-c", "sleep 200"],
         resources: { requests: { cpu: "10m", memory: "8Mi" }, limits: { cpu: "50m", memory: "32Mi" } },
         securityContext: { allowPrivilegeEscalation: false, capabilities: { drop: ["ALL"] }, readOnlyRootFilesystem: true } }] } } }));
+    // exec into a container that has not started yet is answered 500 "container not found"
+    for (let started = Date.now(); ; await wait(500)) {
+      const pod = await api(() => core.readNamespacedPod({ namespace, name: "guest-marker" }));
+      const state = pod.status?.containerStatuses?.[0]?.state;
+      if (state?.running) break;
+      if (state?.terminated || Date.now() - started > 90_000) throw new Error(`The owned guest-marker pod did not start: ${JSON.stringify(state ?? pod.status?.phase)}`);
+    }
   }, 150_000);
 
   afterAll(async () => {
@@ -220,7 +227,7 @@ describe.skipIf(!enabled)("default scoped Kubernetes guest credentials against t
       return api(() => f.driver.execute(f.request, value, controller.signal));
     });
     expect(result.ok).toBe(true);
-    expect(JSON.stringify(result.data)).toContain("scoped-guest-exec-ok");
+    expect(result.output?.stdout).toContain("scoped-guest-exec-ok");
   }, 120_000);
 
   it("a foreign namespace is refused by Zenith before any cluster call", async () => {

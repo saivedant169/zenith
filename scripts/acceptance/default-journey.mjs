@@ -82,7 +82,7 @@ export function run(args = process.argv.slice(2)) {
     const candidateCheckFailed = result.checks.some(check =>
       ['two-operator-workspace', 'cleanup'].includes(check.id) && check.status === 'failed');
     // A journey that did not pass keeps its private scratch (and diagnostics) for the operator.
-    scratchRemovalAuthorized = !candidateCheckFailed && result.status === 'passed';
+    scratchRemovalAuthorized = !candidateCheckFailed && result.status === 'passed' && child.status === 0;
     if (!scratchRemovalAuthorized) process.stdout.write(`journey:private-diagnostics ${scratch}\n`);
     process.stdout.write(JSON.stringify({ status: result.status, counts: result.counts, ledgerEligible: result.ledgerEligible }) + '\n');
     return child.status === 0 && result.status === 'passed' ? 0 : 1;

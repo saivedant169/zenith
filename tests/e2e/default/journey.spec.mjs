@@ -1442,10 +1442,14 @@ test('default operated browser, REST, MCP and customer machine journey', async (
     }
     // Separate UX receipt: the existing 16-id J2 receipt vocabulary is unchanged.
     if (UX_ENABLED) {
-      writeUxReceipt(process.env.ZENITH_UX01_RECEIPT, {
-        source: { commit: source.commit, sourceDigest: source.sourceDigest, dirty: source.dirty },
-        cases: uxCases, uncertainty: uxUncertaintyEvidence ?? null,
-      });
+      const uxInput = { source: { commit: source.commit, sourceDigest: source.sourceDigest, dirty: source.dirty },
+        cases: uxCases, uncertainty: uxUncertaintyEvidence ?? null };
+      try { writeUxReceipt(process.env.ZENITH_UX01_RECEIPT, uxInput); }
+      catch (error) {
+        // A refused receipt keeps its own input beside it (owner-private, never a receipt) so the refusal can be replayed.
+        fs.writeFileSync(process.env.ZENITH_UX01_RECEIPT + '.rejected.json', JSON.stringify(uxInput, null, 2), { mode: 0o600, flag: 'wx' });
+        throw error;
+      }
     }
     ensure(!failed && receipt(result).status === 'passed', 'journey-incomplete');
   }

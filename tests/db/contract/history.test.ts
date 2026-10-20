@@ -425,6 +425,42 @@ describe.skipIf(!postgresContractEnabled())("history contract — Postgres only"
     expect(((data ?? [])[0] as { status: string }).status).toBe("succeeded");
   });
 
+  it("a stale start-projection repair is refused, and a fresh retry converges without undoing the worker's status", async () => {
+    // projectAcknowledgedStart (src/lib/bridge/projection.ts) sets workflowStartedAt and saves through this same snapshot path
+    const { loadSnapshot, pgClient } = await import("@/lib/db/postgres-store");
+    const { runWithSnapshot } = await import("@/lib/db/request-snapshot");
+    const store = pgStore();
+    const repair = await loadSnapshot(pgClient(), user);
+    const worker = await loadSnapshot(pgClient(), user);
+    const startedAt = "2026-10-21T00:00:00.000Z";
+
+    await runWithSnapshot(worker, async () => {
+      worker.data.deployments.find((x) => x.id === DEP2)!.status = "applying";
+      store.save(PROJ2);
+      await settle(store);
+    });
+    await expect(
+      runWithSnapshot(repair, async () => {
+        repair.data.deployments.find((x) => x.id === DEP2)!.workflowStartedAt = startedAt;
+        store.save(PROJ2);
+        await settle(store);
+      })
+    ).rejects.toMatchObject({ status: 409 });
+
+    const retry = await loadSnapshot(pgClient(), user);
+    await runWithSnapshot(retry, async () => {
+      const d = retry.data.deployments.find((x) => x.id === DEP2)!;
+      expect(d.workflowStartedAt).toBeUndefined();
+      d.workflowStartedAt = startedAt;
+      store.save(PROJ2);
+      await settle(store);
+    });
+    const { data } = await pgClient().from("deployments").select("status, data").eq("id", DEP2);
+    const row = (data ?? [])[0] as { status: string; data: { workflowStartedAt?: string } };
+    expect(row.status).toBe("applying");
+    expect(row.data.workflowStartedAt).toBe(startedAt);
+  });
+
   it("bumps the change feed for the workspace a deployment belongs to", async () => {
     const { pgClient } = await import("@/lib/db/postgres-store");
     const { data } = await pgClient()

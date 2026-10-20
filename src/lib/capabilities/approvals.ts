@@ -42,7 +42,7 @@
 import type { ApprovalRequirement, OperationRecord, Principal } from "@/lib/controlplane/types";
 import { approvalRoundOf, operationPlanReview, type ApprovalRoundMetadata } from "@/lib/controlplane/db/repos/operation-review";
 import { BrokerError, isBrokerError, notFound } from "./errors";
-import { requireHumanSession } from "./internal";
+import { requesterOf, requireHumanSession } from "./internal";
 import { ROLE_RANK, type BrokerDeps } from "./ports";
 import { reevaluate, requestFromOperation } from "./reevaluate";
 import { evaluate } from "./evaluate";
@@ -300,4 +300,86 @@ export async function revokeApproval(
     throw new BrokerError("invalid_state", `This operation is ${op.status}; approval can be withdrawn only before execution starts.`, undefined, { status: op.status });
   }
   return { operation: operationView(moved) };
+}
+
+/** The run-level approval a signed runbook step presents in place of a live per-step decision. */
+export interface RunbookStepApproval {
+  id: string;
+  workspaceId: string;
+  bindingDigest: string;
+  requestedBy: string;
+  approverId: string;
+  expiresAt: string;
+}
+
+/**
+ * Record a runbook run's approval on one of its step operations (PROD-MACH-03).
+ *
+ * The run approval was given in a browser session by a human other than the requester, against the binding digest
+ * that fixes this step's exact signed definition, target and bounds; the step operation carries that same binding.
+ * Every other rule of `decide` still applies: current role at the required minimum, separation of duties, a single
+ * required approver, the operation awaiting approval and unexpired, and current policy re-evaluated. Internal only:
+ * the runbook delivery path calls it, never a route.
+ */
+export async function approveRunbookStep(deps: BrokerDeps, input: { workspaceId: string; operationId: string; approval: RunbookStepApproval }): Promise<ApprovalOutcome> {
+  const { workspaceId, operationId, approval } = input;
+  // Runbook records name accountable people as `user:<id>`; only a person's approval can stand for a step.
+  const person = /^user:(.+)$/.exec(approval.approverId)?.[1];
+  const approver: Principal = { kind: "user", id: person ?? approval.approverId, name: person ?? approval.approverId };
+  let op: OperationRecord | null = null;
+  try {
+    op = await deps.store.getOperation(workspaceId, operationId);
+    if (!op) throw notFound();
+    const step = (op.proposal.input as { runbookStep?: { bindingDigest?: unknown } } | null)?.runbookStep;
+    if (!person || approval.workspaceId !== workspaceId || typeof step?.bindingDigest !== "string" || step.bindingDigest !== approval.bindingDigest
+      || approval.requestedBy !== `user:${requesterOf(op.principal)}`) {
+      throw new BrokerError("invalid_state", "The run approval does not bind this runbook step.");
+    }
+    if (Date.parse(approval.expiresAt) <= deps.clock.now().getTime()) throw new BrokerError("operation_expired", "The run approval has expired.", "Approve the run again.");
+    if (op.status !== "awaiting_approval") {
+      throw new BrokerError("invalid_state", `This operation is ${op.status}; only an operation awaiting approval can be approved.`, undefined, { status: op.status });
+    }
+    if (Date.parse(op.expiresAt) <= deps.clock.now().getTime()) {
+      await deps.store.expireOperation({ workspaceId, id: op.id });
+      throw new BrokerError("operation_expired", "The operation expired before it was approved.");
+    }
+    const stored = op.policyDecisionId ? await deps.store.getPolicyDecision(workspaceId, op.policyDecisionId) : null;
+    if (!stored?.approval) throw new BrokerError("invalid_state", "This operation has no recorded approval requirement, so it cannot be approved.");
+    if (stored.approval.count !== 1) throw new BrokerError("reapproval_required", "This step needs more than one approver; a single run approval cannot satisfy it.");
+    const access = await deps.roles.resolve(approver, workspaceId);
+    if (access.role === "none") throw notFound();
+    if (ROLE_RANK[access.role] < ROLE_RANK[stored.approval.minRole]) {
+      throw new BrokerError("approver_role_insufficient", `The run approver is ${access.role}; this step needs ${stored.approval.minRole}.`);
+    }
+    if (stored.approval.separationOfDuties && approver.id === requesterOf(op.principal)) {
+      throw new BrokerError("separation_of_duties", "The run approver requested this run.");
+    }
+    const re = await reevaluate(deps, op);
+    if (re.gone) throw new BrokerError("policy_denied", "The requester no longer has access, or the target no longer exists.");
+    const current = re.evaluation.decision;
+    if (current.outcome === "deny") throw new BrokerError("policy_denied", "Policy no longer allows this step.", undefined, { reasons: current.reasons.map((r) => r.code).slice(0, 20) });
+    if (current.outcome === "require_approval" && current.approval && isStricter(current.approval, stored.approval)) {
+      throw new BrokerError("reapproval_required", "Policy now needs a stricter approval than the run approval satisfies.");
+    }
+    // As in `decide`: the store adapter forwards the additive round precondition, which SQL re-checks under the row lock.
+    const recordInput = {
+      workspaceId, operationId, approver, approverRole: access.role, decision: "approve" as const, proposalDigest: op.proposalDigest,
+      policyVersion: re.evaluation.evaluated.policyVersion, reason: `Runbook run approval ${approval.id}`, expectedApprovalRound: approvalRoundOf(op),
+    };
+    const recorded = await deps.store.recordApproval(recordInput);
+    await deps.store.appendEvent({
+      workspaceId, projectId: op.projectId, environmentId: op.environmentId, resourceId: op.resourceId, operationId,
+      correlationId: op.correlationId, actor: approver, type: "policy.evaluated",
+      data: { kind: "runbook_approval_applied", approvalId: recorded.approval.id, runbookApprovalId: approval.id, bindingDigest: approval.bindingDigest },
+    }).catch(() => 0);
+    return {
+      operation: { ...operationView(recorded.operation), approvalRound: approvalRoundOf(recorded.operation) },
+      approval: { id: recorded.approval.id, decision: "approve", approverId: approver.id, approverRole: recorded.approval.approverRole,
+        policyVersion: recorded.approval.policyVersion, createdAt: recorded.approval.createdAt, expiresAt: recorded.approval.expiresAt },
+      approvals: recorded.approvals,
+      finalized: recorded.operation.status !== "awaiting_approval",
+    };
+  } catch (error) {
+    throw await audited(deps, error, { workspaceId, operationId, actor: approver, attempted: "approve", op: op ?? undefined });
+  }
 }

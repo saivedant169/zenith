@@ -26,7 +26,7 @@
 import { platformDb, platformDbConfigFromEnv, isOpenedPlatformDbHandle, isOpenedPlatformPostgresTarget } from "@/lib/controlplane/db";
 import { loadPolicyEngine } from "@/lib/policy";
 import type { Principal, Sql } from "@/lib/controlplane/types";
-import { approve, reject, revokeApproval } from "./approvals";
+import { approve, approveRunbookStep, reject, revokeApproval } from "./approvals";
 import { getEnvironmentAutonomy, setEnvironmentAutonomy } from "./autonomy";
 import { authorizeRead, check, propose } from "./broker";
 import { BrokerError } from "./errors";
@@ -53,6 +53,8 @@ export interface Broker {
   check(request: unknown, principal: Principal, ctx?: ProposeContext): ReturnType<typeof check>;
   authorizeRead(...args: Args<typeof authorizeRead>): ReturnType<typeof authorizeRead>;
   approve(...args: Args<typeof approve>): ReturnType<typeof approve>;
+  /** Internal: the runbook delivery path presents its run approval for one step operation. */
+  approveRunbookStep(...args: Args<typeof approveRunbookStep>): ReturnType<typeof approveRunbookStep>;
   reject(...args: Args<typeof reject>): ReturnType<typeof reject>;
   revokeApproval(...args: Args<typeof revokeApproval>): ReturnType<typeof revokeApproval>;
   cancelOperation(...args: Args<typeof cancelOperation>): ReturnType<typeof cancelOperation>;
@@ -79,6 +81,7 @@ export function createBroker(deps: BrokerDeps): Broker {
     check: (request, principal, ctx) => check(deps, request, principal, ctx),
     authorizeRead: (...a) => authorizeRead(deps, ...a),
     approve: (...a) => approve(deps, ...a),
+    approveRunbookStep: (...a) => approveRunbookStep(deps, ...a),
     reject: (...a) => reject(deps, ...a),
     revokeApproval: (...a) => revokeApproval(deps, ...a),
     cancelOperation: (...a) => cancelOperation(deps, ...a),

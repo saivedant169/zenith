@@ -183,6 +183,25 @@ test('default operated browser, REST, MCP and customer machine journey', async (
     catch { row.status = 'failed'; if (id === 'ux01-uncertainty-a11y') markUxFailure(); throw new Error('journey:' + id); }
   };
   const runId = nonce(), witnessNonce = nonce(), serviceId = 'witness';
+  // Machines bind the platform resource row of the deployed witness: its graph address and canonical id.
+  const witnessAddress = 'container_service/witness';
+  const witnessResourceId = async () => {
+    // Manifest service IDs identify graph origins, not persisted resource
+    // primary keys. Resolve the active target from this owned J1 database.
+    const database = 'supabase_db_' + stack.state.projectId;
+    const [databaseContainer] = JSON.parse(await docker(['inspect', database]));
+    ensure(databaseContainer.Config.Labels?.['com.supabase.cli.project'] === stack.state.projectId &&
+      databaseContainer.Config.Labels?.['io.zenith.installation'] === stack.state.installationId, 'health-evidence-database-ownership');
+    const psql = (sql, variables) => command('docker', ['exec', '-i', database, 'psql', '-X', '-U', 'postgres', '-d', 'postgres',
+      '-v', 'ON_ERROR_STOP=1', ...Object.entries(variables).flatMap(([name, value]) => ['-v', name + '=' + value]), '-At'], { input: sql });
+    const resourceSql = "select coalesce(json_agg(json_build_object('id',id,'workspaceId',workspace_id,'projectId',project_id,'environmentId',environment_id,'address',address,'ownership',ownership,'status',status)), '[]'::json)::text from platform.resources where workspace_id=:'workspace_id' and project_id=:'project_id' and environment_id=:'environment_id' and address=:'address' and ownership='managed' and status='active'";
+    const resources = JSON.parse(await psql(resourceSql, { workspace_id: workspaceId, project_id: project.id, environment_id: environmentId, address: witnessAddress }));
+    ensure(resources.length === 1 && resources[0].workspaceId === workspaceId && resources[0].projectId === project.id &&
+      resources[0].environmentId === environmentId && resources[0].address === witnessAddress &&
+      resources[0].ownership === 'managed' && resources[0].status === 'active' && typeof resources[0].id === 'string' && resources[0].id.length > 0,
+      'health-target-resource-binding');
+    return resources[0].id;
+  };
   const step = async (id, work) => {
     try { await test.step(id, work); facts.push({ id, status: 'passed' }); }
     catch { facts.push({ id, status: 'failed' }); throw new Error('journey:' + id); }
@@ -387,10 +406,12 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       const accepted = ok(await browserRequest(b, '/api/workspace/invites/' + invite.id + '/accept', {}));
       ok(await browserRequest(b, '/api/bootstrap'));
       ensure(accepted.member?.id === users[1] && accepted.member?.role === 'admin', 'operator-b-membership');
-      // The default policy lets a sole admin approve their own production change. This journey proves the
-      // workspace's two-person rule, so operator A enables it through the real admin browser route.
-      const policy = ok(await browserRequest(a, '/api/platform/v1/workspace/policy', { overrides: { twoPersonProduction: true } }, 'PUT', workspaceId));
-      ensure(policy.workspaceId === workspaceId && policy.effective?.twoPersonProduction === true, 'two-person-production-policy');
+      // The default policy lets a sole admin approve their own production change and refuses raw machine
+      // commands in production. This journey proves the workspace's two-person rule and runs its customer
+      // machine beside the deployed witness, so operator A sets both through the real admin browser route;
+      // every escape hatch still needs B's independent approval.
+      const policy = ok(await browserRequest(a, '/api/platform/v1/workspace/policy', { overrides: { twoPersonProduction: true, allowEscapeHatchInProduction: true } }, 'PUT', workspaceId));
+      ensure(policy.workspaceId === workspaceId && policy.effective?.twoPersonProduction === true && policy.effective?.allowEscapeHatchInProduction === true, 'two-person-production-policy');
       const created = await action(a, 'project.create', { name: 'J2 witness ' + runId, withEnvironment: false });
       project = { id: created.projectId, slug: created.slug, name: 'J2 witness ' + runId };
       const manifest = { version: 2, placement: { provider: 'kubernetes', regions: ['in-cluster'] },
@@ -649,21 +670,21 @@ test('default operated browser, REST, MCP and customer machine journey', async (
     });
     let machineEnv;
     await step('machine-browser-consent', async () => {
-      machineEnv = (await action(a, 'env.create', { projectId: project.id, name: 'machine', class: 'staging',
-        connectionId: project.connectionId, approvalRequired: true })).environmentId;
+      // The customer machine runs beside the deployed witness, so it binds that environment's resource row.
+      machineEnv = environmentId;
       // Enrollment currently has an admin API, not a UI form. Exercise the real
       // same-origin browser consent API and verify the resulting saved binding.
       const token = ok(await browserRequest(a, '/api/platform/v1/runners/tokens', {
-        kind: 'machine', ttlMinutes: 10, binding: { environmentId: machineEnv, address: 'service/witness' },
+        kind: 'machine', ttlMinutes: 10, binding: { environmentId: machineEnv, address: witnessAddress },
       }, 'POST', workspaceId));
       ensure(token.shownOnce && token.workspaceId === workspaceId, 'enrollment-consent');
       machine = new Machine(config, stack, runId);
-      await machine.start(token.token, machineEnv, 'service/witness');
+      await machine.start(token.token, machineEnv, witnessAddress);
       await machine.registered(a, workspaceId);
     });
     await step('machine-independent-approval-readback', async () => {
       const runbookId = 'j2-' + runId, target = { transport: 'zenithd', targetId: machine.id,
-        environmentId: machineEnv, resourceId: serviceId, address: 'service/witness' };
+        environmentId: machineEnv, resourceId: await witnessResourceId(), address: witnessAddress };
       const published = ok(await browserRequest(a, '/api/platform/v1/runbooks', { runbookId,
         definition: { schemaVersion: 1, name: 'J2 witness', steps: [{ id: 'write', title: 'Write owned witness marker',
           operation: 'machine.exec', args: { argv: ['/usr/local/bin/witness', 'write', witnessNonce], timeoutSec: 10 },
@@ -728,11 +749,11 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       // production environment. This reaches the worker's real system.metrics
       // capability and readMachineHealth path; no test transport is injected.
       const healthToken = ok(await browserRequest(a, '/api/platform/v1/runners/tokens', {
-        kind: 'machine', ttlMinutes: 10, binding: { environmentId, address: 'service/witness' },
+        kind: 'machine', ttlMinutes: 10, binding: { environmentId, address: witnessAddress },
       }, 'POST', workspaceId));
       ensure(healthToken.shownOnce && healthToken.workspaceId === workspaceId, 'health-machine-consent');
       healthMachine = new Machine(config, stack, runId + '-obs');
-      await healthMachine.start(healthToken.token, environmentId, 'service/witness');
+      await healthMachine.start(healthToken.token, environmentId, witnessAddress);
       await healthMachine.registered(a, workspaceId);
 
       const metricsRaw = await mcp(stack, linked.token, 'tools/call', { name: 'zenith_query_metrics', arguments: {
@@ -748,21 +769,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
         ['fresh', 'stale', 'empty', 'unknown', 'inaccessible'].includes(envelope.state), 'default-metrics-provenance');
       ensure(!JSON.stringify(metrics).includes(linked.token) && !JSON.stringify(metrics).includes(healthToken.token), 'metrics-token-redaction');
 
-      // Manifest service IDs identify graph origins, not persisted resource
-      // primary keys. Resolve the active target from this owned J1 database.
-      const database = 'supabase_db_' + stack.state.projectId;
-      const [databaseContainer] = JSON.parse(await docker(['inspect', database]));
-      ensure(databaseContainer.Config.Labels?.['com.supabase.cli.project'] === stack.state.projectId &&
-        databaseContainer.Config.Labels?.['io.zenith.installation'] === stack.state.installationId, 'health-evidence-database-ownership');
-      const psql = (sql, variables) => command('docker', ['exec', '-i', database, 'psql', '-X', '-U', 'postgres', '-d', 'postgres',
-        '-v', 'ON_ERROR_STOP=1', ...Object.entries(variables).flatMap(([name, value]) => ['-v', name + '=' + value]), '-At'], { input: sql });
-      const resourceSql = "select coalesce(json_agg(json_build_object('id',id,'workspaceId',workspace_id,'projectId',project_id,'environmentId',environment_id,'address',address,'ownership',ownership,'status',status)), '[]'::json)::text from platform.resources where workspace_id=:'workspace_id' and project_id=:'project_id' and environment_id=:'environment_id' and address=:'address' and ownership='managed' and status='active'";
-      const resources = JSON.parse(await psql(resourceSql, { workspace_id: workspaceId, project_id: project.id, environment_id: environmentId, address: 'service/witness' }));
-      ensure(resources.length === 1 && resources[0].workspaceId === workspaceId && resources[0].projectId === project.id &&
-        resources[0].environmentId === environmentId && resources[0].address === 'service/witness' &&
-        resources[0].ownership === 'managed' && resources[0].status === 'active' && typeof resources[0].id === 'string' && resources[0].id.length > 0,
-        'health-target-resource-binding');
-      healthResourceId = resources[0].id;
+      healthResourceId = await witnessResourceId();
 
       const proposed = ok(await jsonRequest(stack.apiUrl + '/api/platform/v1/capabilities/propose', {
         method: 'POST', headers: { authorization: 'Bearer ' + linked.token, 'x-zenith-workspace': workspaceId },
@@ -814,9 +821,9 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       ensure(evidence.workspaceId === workspaceId && evidence.operationId === operationId && evidence.kind === 'observation' && evidence.simulated === false &&
         evidence.operationStatus === 'succeeded' && evidence.projectId === project.id && evidence.environmentId === environmentId &&
         evidence.resourceId === healthResourceId && evidence.capability === 'system.metrics' &&
-        evidence.summary.address === 'service/witness' && telemetry?.signal === 'health' &&
+        evidence.summary.address === witnessAddress && telemetry?.signal === 'health' &&
         telemetry.scope?.workspaceId === workspaceId && telemetry.scope?.environmentId === environmentId &&
-        telemetry.scope?.addresses?.length === 1 && telemetry.scope.addresses[0] === 'service/witness' &&
+        telemetry.scope?.addresses?.length === 1 && telemetry.scope.addresses[0] === witnessAddress &&
         Date.parse(telemetry.observedAt) > 0 && telemetry.provenance?.length === 1 &&
         telemetry.provenance[0].source === 'machines.zenithd' && telemetry.provenance[0].provider === 'zenithd' &&
         ['fresh', 'stale'].includes(telemetry.state) && !JSON.stringify(evidence).includes(healthMachine.credential), 'health-evidence-provenance');
@@ -831,7 +838,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
     });
     if (UX_ENABLED) await uxCase('ux01-uncertainty-a11y', async () => {
       ensure(healthMachine?.id && healthResourceId && healthMachine.environmentId === environmentId &&
-        healthMachine.address === 'service/witness' && /^[a-f0-9]{24}$/.test(runId), 'ux01-uncertainty-health-binding');
+        healthMachine.address === witnessAddress && /^[a-f0-9]{24}$/.test(runId), 'ux01-uncertainty-health-binding');
       const fixtureStarted = performance.now(), elapsed = () => Math.floor(performance.now() - fixtureStarted);
       uxStage = 'preflight';
       const window = readUxExclusiveWindow({ stack, source, config });
@@ -848,7 +855,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
         timeoutSec: 60, maxOutputBytes: 4096, onFailure: 'abort' }] };
       const published = ok(await browserRequest(a, '/api/platform/v1/runbooks', { runbookId, definition }, 'POST', workspaceId));
       ensure(published.version?.definitionDigest && Number.isSafeInteger(published.version.version) && published.version.version > 0, 'ux01-uncertainty-signed-version');
-      const target = { transport: 'zenithd', targetId: healthMachine.id, environmentId, resourceId: healthResourceId, address: 'service/witness' };
+      const target = { transport: 'zenithd', targetId: healthMachine.id, environmentId, resourceId: healthResourceId, address: witnessAddress };
       uxStage = 'request';
       // An ambiguous create response may still mean the run was committed; latch before the request.
       healthMachine.uncertaintyCustody = true;
@@ -1117,7 +1124,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       const machineRoster = ok(await browserRequest(a, '/api/platform/v1/machines', undefined, 'GET', workspaceId));
       const revokedReadback = machineRoster.machines?.find(value => value.id === healthMachine.id);
       ensure(revokedReadback?.status === 'revoked' && revokedReadback.environmentId === environmentId &&
-        revokedReadback.address === 'service/witness', 'ux01-uncertainty-machine-revoke-readback');
+        revokedReadback.address === witnessAddress, 'ux01-uncertainty-machine-revoke-readback');
       healthMachine.revocationConfirmed = true;
       const preStopWindow = readUxExclusiveWindow({ stack, source, config });
       const preStopInventory = await runbookInventory(request.id);
@@ -1262,7 +1269,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       // Set uncertainty before the POST: a lost response cannot prove no token was issued.
       machine.freshTokenState = 'unconfirmed';
       const issued = ok(await browserRequest(a, '/api/platform/v1/runners/tokens', {
-        kind: 'machine', ttlMinutes: 1, binding: { environmentId: machineEnv, address: 'service/witness' },
+        kind: 'machine', ttlMinutes: 1, binding: { environmentId: machineEnv, address: witnessAddress },
       }, 'POST', workspaceId));
       ensure(issued.kind === 'machine' && issued.shownOnce && issued.workspaceId === workspaceId && Date.parse(issued.expiresAt) > Date.now(),
         'machine-fresh-token-consent');
@@ -1273,7 +1280,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       const rows = ok(await browserRequest(a, '/api/platform/v1/machines', undefined, 'GET', workspaceId)).machines;
       const oldRow = rows.find(value => value.id === oldId), newRow = rows.find(value => value.id === machine.rejoinedId);
       ensure(oldRow?.status === 'revoked' && oldRow.revokedAt && newRow?.status === 'active' && newRow.environmentId === machineEnv &&
-        newRow.address === 'service/witness' && newRow.lastHeartbeatAt && Date.parse(newRow.lastHeartbeatAt) >= Date.parse(newRow.registeredAt),
+        newRow.address === witnessAddress && newRow.lastHeartbeatAt && Date.parse(newRow.lastHeartbeatAt) >= Date.parse(newRow.registeredAt),
         'machine-old-revoked-new-bound-active');
       // Only this same-bound control-plane row readback proves native token consumption.
       machine.freshTokenState = 'consumed-confirmed';

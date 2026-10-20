@@ -56,8 +56,14 @@ export function createRunbookStepGrant(deps: {
     const input = { ...runbookProposalInput(req.args, version), runbookStep: { runId: run.id, stepId: step.id, targetIndex: ctx.targetIndex, target: req.target, bindingDigest: run.bindingDigest } };
     const proposed = await deps.broker.propose({ capability: req.operation, scope: { workspaceId: ws, ...(req.target.environmentId ? { environmentId: req.target.environmentId } : {}), resourceId: req.target.resourceId }, input,
       constraints: { maxTimeoutSec: req.timeoutSec, maxOutputBytes: req.maxOutputBytes }, reason: `runbook ${run.runbookId} v${run.version}, run ${run.id}`.slice(0, 500), idempotencyKey: req.operationId }, run.requester, { via: "workflow" });
-    if (proposed.decision.outcome !== "allow") throw new RunbookError("approval_required", "The capability broker did not allow this step.");
     const operationId = proposed.operation.id;
+    if (proposed.decision.outcome === "require_approval") {
+      // The independent run approval, bound to this exact signed step and target, is the step's human decision.
+      const approval = await deps.store.findValidApproval(ws, run.bindingDigest, now());
+      if (!approval) throw new RunbookError("approval_required", "The run approval is no longer valid.");
+      const applied = await deps.broker.approveRunbookStep({ workspaceId: ws, operationId, approval });
+      if (applied.operation.status !== "approved") throw new RunbookError("approval_required", "The capability broker did not accept the run approval for this step.");
+    } else if (proposed.decision.outcome !== "allow") throw new RunbookError("approval_required", "The capability broker did not allow this step.");
     const operation = await deps.broker.deps.store.getOperation(ws, operationId);
     if (!operation || digest(operation.proposal.input) !== digest(input)) throw new RunbookError("invalid_binding", "The broker proposal does not bind the exact signed step.");
     await current();

@@ -47,14 +47,14 @@ describe("gVisor installation contract (no Docker)", () => {
     expect(() => assertRuntimeArchitecture("aarch64", amd)).toThrow(/emulation/);
     expect(() => assertRuntimeArchitecture("x86_64", arm)).toThrow(/emulation/);
   });
-  it.each(["2", "3"])("preserves default runc and uses the correct containerd v%s CRI plugin", (version) => {
+  it.each(["2", "3", "4"])("preserves default runc and uses the correct containerd v%s CRI plugin", (version) => {
     const config = `version = ${version}\n# retain this default\ndefault_runtime_name = "runc"\n`;
     const out = runtimeConfig(config, `/opt/zenith-gvisor/${"a".repeat(64)}`);
     expect(out.startsWith(config)).toBe(true);
     expect(out).toContain(version === "2" ? "io.containerd.grpc.v1.cri" : "io.containerd.cri.v1.runtime");
     expect(out).toContain('runtime_type = "io.containerd.runsc.v1"');
   });
-  it.each(['version = 1', 'version = 3\n[plugins."io.containerd.cri.v1.runtime".containerd.runtimes.runsc]'])("refuses unsupported or previously configured runtime: %s", (config) => {
+  it.each(['version = 1', 'version = 3\n[plugins."io.containerd.cri.v1.runtime".containerd.runtimes.runsc]', "version = 4\n[plugins.'io.containerd.cri.v1.runtime'.containerd.runtimes.runsc]"])("refuses unsupported or previously configured runtime: %s", (config) => {
     expect(() => runtimeConfig(config, `/opt/zenith-gvisor/${"a".repeat(64)}`)).toThrow();
   });
   it.each(["../runsc", "/runsc", "gvisor-bin/../../etc/passwd", "gvisor-bin/../evil"])("refuses unsafe member %s", (bad) => {

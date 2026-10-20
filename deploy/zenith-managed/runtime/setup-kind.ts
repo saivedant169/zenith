@@ -10,10 +10,11 @@ const HEX = /^[a-f0-9]{64}$/;
 export type Run = (command: string, args: readonly string[], input?: string) => string;
 
 export function runtimeConfig(config: string, binaryDir: string): string {
-  const version = /^\s*version\s*=\s*([23])\s*$/m.exec(config)?.[1];
+  // containerd 2.x dumps version 3 or 4; both keep the CRI runtime under io.containerd.cri.v1.runtime.
+  const version = /^\s*version\s*=\s*([234])\s*$/m.exec(config)?.[1];
   if (!version || !/^\/opt\/zenith-gvisor\/[a-f0-9]{64}$/.test(binaryDir)) throw new Error("Unsupported containerd configuration or installation path.");
   if (/runtimes[.\"]+runsc\b/.test(config)) throw new Error("An existing runsc handler must not be replaced.");
-  const plugin = version === "3" ? "io.containerd.cri.v1.runtime" : "io.containerd.grpc.v1.cri";
+  const plugin = version === "2" ? "io.containerd.grpc.v1.cri" : "io.containerd.cri.v1.runtime";
   const prefix = `plugins."${plugin}".containerd.runtimes.runsc`;
   return `${config.trimEnd()}\n\n[${prefix}]\n  runtime_type = "io.containerd.runsc.v1"\n  runtime_path = "${binaryDir}/containerd-shim-runsc-v1"\n[${prefix}.options]\n  TypeUrl = "io.containerd.runsc.v1.options"\n  ConfigPath = "${binaryDir}/runsc.toml"\n`;
 }

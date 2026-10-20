@@ -41,6 +41,7 @@
  */
 import type { ApprovalRequirement, OperationRecord, Principal } from "@/lib/controlplane/types";
 import { approvalRoundOf, operationPlanReview, type ApprovalRoundMetadata } from "@/lib/controlplane/db/repos/operation-review";
+import { digest } from "@/lib/controlplane/digest";
 import { BrokerError, isBrokerError, notFound } from "./errors";
 import { requesterOf, requireHumanSession } from "./internal";
 import { ROLE_RANK, type BrokerDeps } from "./ports";
@@ -321,7 +322,7 @@ export interface RunbookStepApproval {
  * required approver, the operation awaiting approval and unexpired, and current policy re-evaluated. Internal only:
  * the runbook delivery path calls it, never a route.
  */
-export async function approveRunbookStep(deps: BrokerDeps, input: { workspaceId: string; operationId: string; approval: RunbookStepApproval }): Promise<ApprovalOutcome> {
+export async function approveRunbookStep(deps: BrokerDeps, input: { workspaceId: string; operationId: string; approval: RunbookStepApproval; expectedInputDigest: string }): Promise<ApprovalOutcome> {
   const { workspaceId, operationId, approval } = input;
   // Runbook records name accountable people as `user:<id>`; only a person's approval can stand for a step.
   const person = /^user:(.+)$/.exec(approval.approverId)?.[1];
@@ -331,6 +332,10 @@ export async function approveRunbookStep(deps: BrokerDeps, input: { workspaceId:
     op = await deps.store.getOperation(workspaceId, operationId);
     if (!op) throw notFound();
     const step = (op.proposal.input as { runbookStep?: { bindingDigest?: unknown } } | null)?.runbookStep;
+    // The caller's own signed step input, not whatever an operation's opaque input claims.
+    if (digest(op.proposal.input) !== input.expectedInputDigest || (op.proposal as import("./types").BrokerProposal).broker?.via !== "workflow") {
+      throw new BrokerError("invalid_state", "This operation is not the delivered runbook step.");
+    }
     if (!person || approval.workspaceId !== workspaceId || typeof step?.bindingDigest !== "string" || step.bindingDigest !== approval.bindingDigest
       || approval.requestedBy !== `user:${requesterOf(op.principal)}`) {
       throw new BrokerError("invalid_state", "The run approval does not bind this runbook step.");
@@ -367,11 +372,12 @@ export async function approveRunbookStep(deps: BrokerDeps, input: { workspaceId:
       policyVersion: re.evaluation.evaluated.policyVersion, reason: `Runbook run approval ${approval.id}`, expectedApprovalRound: approvalRoundOf(op),
     };
     const recorded = await deps.store.recordApproval(recordInput);
+    // Not best-effort: a delegated approval with no audit row fails the step, and nothing is dispatched.
     await deps.store.appendEvent({
       workspaceId, projectId: op.projectId, environmentId: op.environmentId, resourceId: op.resourceId, operationId,
       correlationId: op.correlationId, actor: approver, type: "policy.evaluated",
       data: { kind: "runbook_approval_applied", approvalId: recorded.approval.id, runbookApprovalId: approval.id, bindingDigest: approval.bindingDigest },
-    }).catch(() => 0);
+    });
     return {
       operation: { ...operationView(recorded.operation), approvalRound: approvalRoundOf(recorded.operation) },
       approval: { id: recorded.approval.id, decision: "approve", approverId: approver.id, approverRole: recorded.approval.approverRole,

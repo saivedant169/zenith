@@ -79,5 +79,7 @@ export function evaluateRunbookGate(args: {
   if (!a) return { outcome: "require_approval", reason: "approval_missing", highRisk };
   if (Date.parse(a.expiresAt) <= args.now.getTime()) return { outcome: "require_approval", reason: "approval_expired_or_unbound", highRisk };
   if (a.approverId === args.requestedBy) return { outcome: "require_approval", reason: "self_approval", highRisk };
+  // The binding digest does not name the requester: another person's identical run is not this one.
+  if (a.requestedBy !== args.requestedBy) return { outcome: "require_approval", reason: "approval_expired_or_unbound", highRisk };
   return { outcome: "allow", reason: "approved", highRisk };
 }

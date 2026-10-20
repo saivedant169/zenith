@@ -183,7 +183,9 @@ test('default operated browser, REST, MCP and customer machine journey', async (
     catch (error) {
       // Only a fixed journey code (or the error class) reaches the private Playwright log; never page text or URLs.
       const message = String(error?.message ?? '');
-      console.error('ux01-case-failure', id, /^journey:[A-Za-z0-9_.-]+$/.test(message) ? message : (error?.name ?? 'Error'));
+      // Other errors keep only their class and first line, without query strings or long opaque tokens.
+      const firstLine = message.split('\n')[0].replace(/\?[^\s]*/g, '?…').replace(/[A-Za-z0-9_-]{32,}/g, '…').slice(0, 160);
+      console.error('ux01-case-failure', id, /^journey:[A-Za-z0-9_.-]+$/.test(message) ? message : `${error?.name ?? 'Error'}: ${firstLine}`);
       row.status = 'failed'; if (id === 'ux01-uncertainty-a11y') markUxFailure(); throw new Error('journey:' + id);
     }
   };

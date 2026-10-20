@@ -854,7 +854,7 @@ describe("mandatory native custody, retention and Kubernetes target execution", 
     const declaration = script.match(/^MIGRATIONS=\(\r?\n([\s\S]*?)^\)/m)?.[1];
     expect(declaration).toBeDefined();
     expect([...(declaration ?? "").matchAll(/"([^"\n]+\.sql)"/g)].map(match => match[1])).toEqual(committed);
-    expect(committed.slice(-11)).toEqual(["0016_platform_core.sql", "0017_platform_core.sql", "0018_platform_core.sql", "0019_platform_core.sql", "0020_platform_core.sql", "0021_platform_core.sql", "0022_platform_core.sql", "0023_platform_core.sql", "0024_platform_core.sql", "0025_platform_core.sql", "0026_platform_core.sql"]);
+    expect(committed.slice(-12)).toEqual(["0016_platform_core.sql", "0017_platform_core.sql", "0018_platform_core.sql", "0019_platform_core.sql", "0020_platform_core.sql", "0021_platform_core.sql", "0022_platform_core.sql", "0023_platform_core.sql", "0024_platform_core.sql", "0025_platform_core.sql", "0026_platform_core.sql", "0027_product_flush_atomic.sql"]);
     expect(fs.readFileSync(path.join(root, "scripts/ci/apply-platform-migrations.sh"), "utf8")).toContain("scripts/platform/migrate.ts");
     expect(script).toContain('"$TSX" "$PLATFORM_VERIFIER"');
   });

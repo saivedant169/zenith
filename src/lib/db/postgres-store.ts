@@ -488,52 +488,41 @@ async function conflict(): Promise<never> {
   });
 }
 
-async function writeRow(client: SupabaseClient, change: Change): Promise<void> {
+/** One flush entry for `zenith_product_flush` (supabase/migrations/0027): the same row the old per-row calls wrote. */
+function flushWrite(change: Change, now: string): Record<string, unknown> {
   const spec = adapterFor(change.collection);
-  const row = change.row as never;
-  const promoted = spec.promote(row);
+  const promoted = spec.promote(change.row as never);
   const data = stripPromoted(change.row, change.collection);
-  const now = new Date().toISOString();
-
-  if (!change.baseline) {
-    const { error } = await client.from(spec.table).insert({
-      id: change.row.id,
-      workspace_id: change.workspaceId,
-      ...promoted,
-      data,
-      version: 1,
-      updated_at: now,
-    });
-    // another instance created the same row first: a conflict to reload, not a store failure
-    if (error?.code === "23505") await conflict();
-    if (error) throw storeError(spec.table, "insert into", error.message);
-    return;
-  }
-
-  let query = client
-    .from(spec.table)
-    .update({ ...promoted, data, version: change.baseline.version + 1, updated_at: now })
-    .eq("version", change.baseline.version);
-  for (const [column, value] of Object.entries(
-    spec.key({ id: change.row.id, workspaceId: change.workspaceId })
-  ))
-    query = query.eq(column, value);
-  const { data: updated, error } = await query.select("id");
-  if (error) throw storeError(spec.table, "update", error.message);
-  if (!updated || updated.length === 0) await conflict();
+  const key = spec.key({ id: change.row.id, workspaceId: change.workspaceId });
+  if (!change.baseline)
+    return { table: spec.table, key, baseline: null,
+      row: { id: change.row.id, workspace_id: change.workspaceId, ...promoted, data, version: 1, updated_at: now } };
+  return { table: spec.table, key, baseline: change.baseline.version,
+    row: { ...promoted, data, version: change.baseline.version + 1, updated_at: now } };
 }
 
-async function deleteRow(client: SupabaseClient, change: Change): Promise<void> {
+function flushDelete(change: Change): Record<string, unknown> {
   const spec = adapterFor(change.collection);
-  // Guarded like an update: a delete from a stale snapshot must not erase a newer write.
-  let query = client.from(spec.table).delete().eq("version", change.baseline!.version);
-  for (const [column, value] of Object.entries(
-    spec.key({ id: change.row.id, workspaceId: change.workspaceId })
-  ))
-    query = query.eq(column, value);
-  const { data: deleted, error } = await query.select("id");
-  if (error) throw storeError(spec.table, "delete from", error.message);
-  if (!deleted || deleted.length === 0) await conflict();
+  return { table: spec.table, key: spec.key({ id: change.row.id, workspaceId: change.workspaceId }), baseline: change.baseline!.version };
+}
+
+/**
+ * Every changed row of one pass in ONE transaction. Each row keeps its own
+ * guard (an update or delete matches the loaded version, an insert must be
+ * new), and a refusal anywhere rolls back the whole pass, so rows that decide
+ * a fence together (an environment's writer lease and its deployment) never
+ * land half-written.
+ */
+async function writeRows(client: SupabaseClient, writes: Change[], deletes: Change[]): Promise<void> {
+  if (writes.length === 0 && deletes.length === 0) return;
+  const now = new Date().toISOString();
+  const { error } = await client.rpc("zenith_product_flush", {
+    p_writes: writes.map((change) => flushWrite(change, now)),
+    p_deletes: deletes.map(flushDelete),
+  });
+  // moved, removed or created by another instance first: a conflict to reload, not a store failure
+  if (error?.code === "PZ409" || error?.code === "23505") await conflict();
+  if (error) throw storeError("product rows", "flush", error.message);
 }
 
 /**
@@ -569,7 +558,7 @@ function stripPromoted(row: { id: string }, collection: PgCollection): Record<st
 }
 
 /**
- * The install-global settings row, guarded exactly like `writeRow` guards every
+ * The install-global settings row, guarded exactly like `zenith_product_flush` guards every
  * other collection: a row that existed at load is updated only `where version =
  * <the version loaded>`, and matching nothing is the same 409. This used to be
  * an unguarded upsert, so two requests that read the same version each
@@ -640,17 +629,11 @@ async function flushSnapshot(snap: Snapshot): Promise<void> {
   // FK order: a workspace before its members, a project before its
   // environments — which is registration order, by the registry's contract.
   const ORDER = rowAdapters().map((a) => a.collection);
-  for (const collection of ORDER)
-    for (const change of writes.filter((c) => c.collection === collection)) {
-      await writeRow(client, change);
-      touchedWorkspaces.add(change.workspaceId);
-    }
+  const orderedWrites = ORDER.flatMap((collection) => writes.filter((c) => c.collection === collection));
   // Deletes run in reverse, for the same reason.
-  for (const collection of [...ORDER].reverse())
-    for (const change of deletes.filter((c) => c.collection === collection)) {
-      await deleteRow(client, change);
-      touchedWorkspaces.add(change.workspaceId);
-    }
+  const orderedDeletes = [...ORDER].reverse().flatMap((collection) => deletes.filter((c) => c.collection === collection));
+  await writeRows(client, orderedWrites, orderedDeletes);
+  for (const change of [...orderedWrites, ...orderedDeletes]) touchedWorkspaces.add(change.workspaceId);
 
   await writeSettings(client, snap);
   await bumpFeed(client, snap, touchedWorkspaces);

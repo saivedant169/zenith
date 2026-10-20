@@ -17,6 +17,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { tempDataDir } from "../_support/data-dir";
+import { productFlushRpc } from "../_support/product-flush-rpc";
 
 tempDataDir("zenith-pg-boundary-", { fast: true });
 process.env.ZENITH_STORE = "postgres";
@@ -88,6 +89,7 @@ function builder(table: string, op: string) {
 
 vi.mock("@supabase/supabase-js", () => ({
   createClient: () => ({
+    rpc: productFlushRpc((call) => calls.push(call), (_table, op) => op === "update" && stale),
     from(table: string) {
       return {
         select: (...args: unknown[]) => {

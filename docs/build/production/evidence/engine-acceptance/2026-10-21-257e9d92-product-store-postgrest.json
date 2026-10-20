@@ -1,0 +1,54 @@
+{
+ "schemaVersion": 1,
+ "kind": "local_engine",
+ "requirement": [
+  "PROD-DUR-02",
+  "PROD-DUR-01"
+ ],
+ "date": "2026-10-21",
+ "commit": "257e9d920bd5832969dcaa755e59503775b215c0",
+ "workflow": ".github/workflows/product-store-postgrest.yml",
+ "runId": 39510840660,
+ "url": "https://github.com/saivedant169/zenith/actions/runs/39510840660",
+ "environment": "GitHub-hosted ubuntu-latest fresh VM; pinned Supabase CLI 2.75.0 stack (Postgres 17, Auth, PostgREST behind Kong) with supabase/migrations applied by psql",
+ "totals": {
+  "passed": 111,
+  "failed": 0,
+  "skipped": 0
+ },
+ "rawReport": "docs/build/production/evidence/engine-acceptance/2026-10-21-257e9d92-product-store-postgrest-vitest.json",
+ "rawReportSha256": "2a06f5edcd4d47294ec085e9314639138f8304dce3d32790ae28c4963f1f6e76",
+ "files": {
+  "zenith/tests/db/contract/alerts.test.ts": {
+   "passed": 7,
+   "failed": 0,
+   "skipped": 0
+  },
+  "zenith/tests/db/contract/audit.test.ts": {
+   "passed": 15,
+   "failed": 0,
+   "skipped": 0
+  },
+  "zenith/tests/db/contract/history.test.ts": {
+   "passed": 23,
+   "failed": 0,
+   "skipped": 0
+  },
+  "zenith/tests/db/contract/secrets.test.ts": {
+   "passed": 18,
+   "failed": 0,
+   "skipped": 0
+  },
+  "zenith/tests/db/contract/store-contract.test.ts": {
+   "passed": 26,
+   "failed": 0,
+   "skipped": 0
+  },
+  "zenith/tests/db/contract/workspace-sharing.test.ts": {
+   "passed": 22,
+   "failed": 0,
+   "skipped": 0
+  }
+ },
+ "note": "First run of the PostgresStore (PostgREST) contract suites on a real PostgREST; CI's postgres job reports them BLOCKED. Covers version-guarded update and delete races, the start-projection repair write path, two-instance dense event sequence, change feed, scoped reset, workspace sharing, secrets and audit."
+}

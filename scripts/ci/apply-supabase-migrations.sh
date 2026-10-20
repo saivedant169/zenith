@@ -108,6 +108,7 @@ MIGRATIONS=(
   "0024_platform_core.sql"
   "0025_platform_core.sql"
   "0026_platform_core.sql"
+  "0027_product_flush_atomic.sql"
 )
 
 if [ -z "${SUPABASE_DB_URL:-}" ]; then

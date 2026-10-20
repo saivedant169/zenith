@@ -461,6 +461,35 @@ describe.skipIf(!postgresContractEnabled())("history contract — Postgres only"
     expect(row.data.workflowStartedAt).toBe(startedAt);
   });
 
+  it("never lands an environment lease change without its deployment row: a flush is one transaction", async () => {
+    const { loadSnapshot, pgClient } = await import("@/lib/db/postgres-store");
+    const { runWithSnapshot } = await import("@/lib/db/request-snapshot");
+    const store = pgStore();
+    const stale = await loadSnapshot(pgClient(), user);
+    const worker = await loadSnapshot(pgClient(), user);
+    const before = (await pgClient().from("environments").select("active_deployment_id, version").eq("id", ENV2)).data?.[0] as { active_deployment_id: string | null; version: number };
+
+    await runWithSnapshot(worker, async () => {
+      worker.data.deployments.find((x) => x.id === DEP2)!.status = "verifying";
+      store.save(PROJ2);
+      await settle(store);
+    });
+    // environments are written before deployments; the deployment row is the stale one
+    await expect(
+      runWithSnapshot(stale, async () => {
+        stale.data.environments.find((x) => x.id === ENV2)!.activeDeploymentId = DEP2;
+        stale.data.deployments.find((x) => x.id === DEP2)!.status = "succeeded";
+        store.save(PROJ2);
+        await settle(store);
+      })
+    ).rejects.toMatchObject({ status: 409 });
+
+    const after = (await pgClient().from("environments").select("active_deployment_id, version").eq("id", ENV2)).data?.[0];
+    expect(after).toEqual(before);
+    const { data } = await pgClient().from("deployments").select("status").eq("id", DEP2);
+    expect(((data ?? [])[0] as { status: string }).status).toBe("verifying");
+  });
+
   it("bumps the change feed for the workspace a deployment belongs to", async () => {
     const { pgClient } = await import("@/lib/db/postgres-store");
     const { data } = await pgClient()

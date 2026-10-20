@@ -23,6 +23,7 @@
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { tempDataDir } from "../_support/data-dir";
+import { productFlushRpc } from "../_support/product-flush-rpc";
 
 tempDataDir("zenith-snapshot-isolation-", { fast: true });
 process.env.ZENITH_STORE = "postgres";
@@ -61,7 +62,16 @@ function builder(table: string) {
 
 vi.mock("@supabase/supabase-js", () => ({
   createClient: () => ({
-    rpc: async () => ({ data: onSharingRpc?.() ?? {}, error: null }),
+    rpc: async (fn: string, args?: Record<string, unknown>) => {
+      if (fn !== "zenith_product_flush") return { data: onSharingRpc?.() ?? {}, error: null };
+      // the one-transaction flush, recorded as the per-row statements it carries
+      return productFlushRpc(() => undefined, () => false, (writes, deletes) => {
+        for (const w of writes) sent.push({ op: w.baseline === null ? "insert" : "update", table: w.table, payload: w.row });
+        for (const d of deletes) sent.push({ op: "delete", table: d.table, payload: d.key });
+        const hook = onWrite;
+        if (hook && (writes.length || deletes.length)) { onWrite = undefined; hook(); }
+      })(fn, args as never);
+    },
     from(table: string) {
       const record =
         (op: string) =>

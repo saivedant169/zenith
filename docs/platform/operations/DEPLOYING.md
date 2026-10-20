@@ -1093,6 +1093,8 @@ writes while building: no zero-downtime or live migration claim follows local te
 
 The current cumulative snapshot is `0026_platform_core.sql`, schema 58. Published schemas 1â€“43 and aggregates 0016â€“0025 remain byte-identical. The canonical inventory/checksums above include schemas 44 mixed outputs, 45 SLO measurements, 46 recovery epochs, 47 retention, 48 audit exports, 49 managed source CHECK widening, 50 managed serving, 51 isolation effect-family widening and 52 billing. `scripts/ci/apply-supabase-migrations.sh` applies 0026 last. Emit with `npx tsx scripts/platform/emit-sql.ts`; verify with `--check`.
 
+`0027_product_flush_atomic.sql` adds `public.zenith_product_flush(jsonb, jsonb)`, the one-transaction product-store flush (`PostgresStore` writes every changed row of a pass through it, with per-row version guards; EXECUTE is granted only to `service_role`). Apply it with the other product migrations before deploying an API or worker image that contains this change, or every product write fails.
+
 When upgrading schema 43, first drain writers, then explicitly name `ZENITH_ALLOW_CONTRACT_MIGRATIONS=49,51`. An older installation still needing the published regex repair also needs 42 in that list. Exact reviewed SQL hashes and approval references live in `CONTRACT_MIGRATION_APPROVALS`; changing SQL voids admission. This flag never authorizes real execution or bootstrap. Cumulative Supabase snapshots are a separate explicitly operated schema application path; drain writers there too.
 
 | Variable / path | Default and purpose |

@@ -20,6 +20,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { tempDataDir } from "../_support/data-dir";
+import { productFlushRpc } from "../_support/product-flush-rpc";
 
 tempDataDir("zenith-idem-commit-", { fast: true });
 process.env.ZENITH_STORE = "postgres";
@@ -89,6 +90,11 @@ function builder(table: string, op: string) {
 
 vi.mock("@supabase/supabase-js", () => ({
   createClient: () => ({
+    // the one-transaction flush: held by the same gate as a row update, refused the same way when stale
+    rpc: async (fn: string, args?: { p_writes?: { baseline: number | null }[] }) => {
+      if (flushGate && (args?.p_writes ?? []).some((w) => w.baseline !== null)) await flushGate;
+      return productFlushRpc(() => undefined, (_table, op) => op === "update" && stale)(fn, args as never);
+    },
     from(table: string) {
       return {
         select: (...args: unknown[]) =>

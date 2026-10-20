@@ -24,6 +24,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Deployment } from "@/lib/domain/types";
 import { tempDataDir } from "../_support/data-dir";
+import { productFlushRpc } from "../_support/product-flush-rpc";
 
 const DATA = tempDataDir("zenith-rsc-scope-", { fast: true });
 process.env.ZENITH_STORE = "postgres";
@@ -61,6 +62,7 @@ function builder(table: string, op: string) {
 
 vi.mock("@supabase/supabase-js", () => ({
   createClient: () => ({
+    rpc: productFlushRpc((call) => calls.push(call)),
     from(table: string) {
       const record = (op: string) => (..._args: unknown[]) => {
         void _args;

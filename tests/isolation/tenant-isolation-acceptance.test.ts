@@ -74,7 +74,8 @@ const META_IP = "169.254.169.254";
 const PUBLIC_A = "203.0.113.10"; // TEST-NET-3: public address space as far as the policy is concerned
 const PUBLIC_B = "203.0.113.11";
 
-describe.skipIf(!enabled)(`PROD-MAN-04/05 two untrusted tenants on a real cluster (${profile || "no profile"})`, () => {
+// A static title: the wave6 gate manifest matches it exactly; the profile is recorded in the evidence file.
+describe.skipIf(!enabled)("PROD-MAN-04/05 two untrusted tenants on a real cluster", () => {
   const run = randomSuffix(3);
   const kube = new Kube(process.env.KUBECONFIG as string);
   const tenantA: ZenithTenant = { workspaceId: `ws-iso-a-${run}`, environmentId: `env-iso-a-${run}`, workspaceSlug: "isoa", environmentSlug: "prod", planTier: "free" };
@@ -238,7 +239,8 @@ wait`,
   describe("pod security: an adversary cannot ask for more than the restricted profile", () => {
     const base = (name: string, mutate: (p: any) => void) => restrictedPod({ name, namespace: nsA, image, script: "sleep 5", mutate });
     const cases: [string, (p: any) => void][] = [
-      ["privileged container", (p) => (p.spec.containers[0].securityContext.privileged = true)],
+      // The API itself rejects privileged with allowPrivilegeEscalation=false, so unset it: PodSecurity must be the refuser.
+      ["privileged container", (p) => { p.spec.containers[0].securityContext.privileged = true; delete p.spec.containers[0].securityContext.allowPrivilegeEscalation; }],
       ["hostPath volume", (p) => {
         p.spec.volumes = [{ name: "h", hostPath: { path: "/" } }];
         p.spec.containers[0].volumeMounts = [{ name: "h", mountPath: "/host" }];
@@ -483,7 +485,8 @@ wait`,
       expect(kube.canI(as, "create", "deployments.apps", nsA), "operator A must be able to deploy in A").toBe(true);
       expect(kube.canI(as, "get", "secrets", nsA), "operator A must be able to read A's secrets").toBe(true);
       expect(kube.canI(as, "patch", `namespaces/${nsA}`), "operator A may patch its own namespace by name").toBe(true);
-      const no: [string, string, string?][] = [
+      expect(kube.canI(as, "get", "pods", nsA, "log"), "the subresource check is real: operator A reads pod logs in A").toBe(true);
+      const no: [string, string, string?, string?][] = [
         ["get", "secrets", nsB],
         ["list", "secrets", nsB],
         ["create", "deployments.apps", nsB],
@@ -501,15 +504,16 @@ wait`,
         ["escalate", "roles.rbac.authorization.k8s.io", nsA],
         ["bind", "clusterroles.rbac.authorization.k8s.io"],
         ["impersonate", "serviceaccounts"],
-        ["create", "serviceaccounts/token", nsA],
-        ["create", "pods/exec", nsA],
-        ["create", "pods/attach", nsA],
-        ["create", "pods/portforward", nsA],
+        // subresources need --subresource: "kubectl auth can-i create pods/exec" asks about a pod NAMED exec
+        ["create", "serviceaccounts", nsA, "token"],
+        ["create", "pods", nsA, "exec"],
+        ["create", "pods", nsA, "attach"],
+        ["create", "pods", nsA, "portforward"],
         ["patch", `namespaces/${nsB}`],
         ["delete", `namespaces/${nsA}`],
       ];
-      const failures = no.filter(([verb, resource, ns]) => kube.canI(as, verb, resource, ns));
-      expect(failures, "operator A holds authority it must not").toEqual([]);
+      const failures = no.filter(([verb, resource, ns, sub]) => kube.canI(as, verb, resource, ns, sub));
+      expect(failures.map((f) => f.filter(Boolean).join(" ")), "operator A holds authority it must not").toEqual([]);
       // and B's operator is the mirror image
       expect(kube.canI(opSa(nsB), "get", "secrets", nsA)).toBe(false);
       expect(kube.canI(opSa(nsB), "get", "secrets", nsB)).toBe(true);
@@ -611,8 +615,9 @@ wait`,
     }, LONG);
 
     it("A runs CPU, memory, disk and PID exhaustion at once; B's p95 stays within the bound and nothing of B's restarts", async () => {
-      // only shell builtins after the fork bomb: at the limit nothing can fork, so counting is done with a glob and echo
-      const spawnPids = 'i=0; while [ $i -lt 3000 ]; do sleep 3600 & i=$((i + 1)); done 2>/dev/null; n=0; for d in /proc/[0-9]*; do n=$((n + 1)); done; echo "PIDS procs=$n attempts=$i"; exec sleep 3600';
+      // only shell builtins after the fork bomb: at the limit nothing can fork, so counting is done with a glob and echo.
+      // busybox sh exits on a failed fork, so the bomb runs in a subshell whose EXIT trap reports before it dies.
+      const spawnPids = `(trap 'n=0; for d in /proc/[0-9]*; do n=$((n + 1)); done; echo "PIDS procs=$n attempts=$i"' EXIT; i=0; while [ $i -lt 3000 ]; do sleep 3600 & i=$((i + 1)); done) 2>/dev/null; exec sleep 3600`;
       const hogs = [
         hog("burn", "i=0; while [ $i -lt 4 ]; do (while :; do :; done) & i=$((i + 1)); done; wait", res("400m", "64Mi")),
         hog("memhog", `awk 'BEGIN { while (1) { a[n++] = sprintf("%1048576s", "x") } }'`, res("150m", "256Mi")),

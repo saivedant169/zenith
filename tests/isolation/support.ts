@@ -81,8 +81,8 @@ export class Kube {
     return this.run(["create", "-f", "-"], { input: JSON.stringify(object) });
   }
 
-  canI(as: string | undefined, verb: string, resource: string, namespace?: string): boolean {
-    const r = this.run(["auth", "can-i", verb, resource, ...(namespace ? ["-n", namespace] : []), ...(as ? [`--as=${as}`] : [])]);
+  canI(as: string | undefined, verb: string, resource: string, namespace?: string, subresource?: string): boolean {
+    const r = this.run(["auth", "can-i", verb, resource, ...(subresource ? [`--subresource=${subresource}`] : []), ...(namespace ? ["-n", namespace] : []), ...(as ? [`--as=${as}`] : [])]);
     return r.stdout.trim() === "yes";
   }
 

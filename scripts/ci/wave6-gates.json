@@ -3415,7 +3415,7 @@
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "pod security: an adversary cannot ask for more than the restricted profile",
       "test": "refuses each adversarial pod at admission and creates nothing",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) pod security: an adversary cannot ask for more than the restricted profile refuses each adversarial pod at admission and creates nothing",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster pod security: an adversary cannot ask for more than the restricted profile refuses each adversarial pod at admission and creates nothing",
       "id": "wave6-fa9b64b46891c8a4",
       "lane": "kind",
       "gates": [
@@ -3431,13 +3431,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "pod security: an adversary cannot ask for more than the restricted profile",
       "test": "the control: the same pod without the violation is admitted",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) pod security: an adversary cannot ask for more than the restricted profile the control: the same pod without the violation is admitted",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster pod security: an adversary cannot ask for more than the restricted profile the control: the same pod without the violation is admitted",
       "id": "wave6-666b0ce4b0f1b8f8",
       "lane": "kind",
       "gates": [
@@ -3453,13 +3453,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "pod security: an adversary cannot ask for more than the restricted profile",
       "test": "a system-priority pod is refused by the priority quota, and the isolation gate agrees on a rendered workload",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) pod security: an adversary cannot ask for more than the restricted profile a system-priority pod is refused by the priority quota, and the isolation gate agrees on a rendered workload",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster pod security: an adversary cannot ask for more than the restricted profile a system-priority pod is refused by the priority quota, and the isolation gate agrees on a rendered workload",
       "id": "wave6-69b718d22b64fa8f",
       "lane": "kind",
       "gates": [
@@ -3475,13 +3475,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "pod security: an adversary cannot ask for more than the restricted profile",
       "test": "a pod that names a RuntimeClass the platform does not serve never runs",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) pod security: an adversary cannot ask for more than the restricted profile a pod that names a RuntimeClass the platform does not serve never runs",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster pod security: an adversary cannot ask for more than the restricted profile a pod that names a RuntimeClass the platform does not serve never runs",
       "id": "wave6-a9a3d94f64a9c65b",
       "lane": "kind",
       "gates": [
@@ -3497,13 +3497,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "quota and limits bound what an adversary can create",
       "test": "refuses a container above the plan's per-container ceiling",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) quota and limits bound what an adversary can create refuses a container above the plan's per-container ceiling",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster quota and limits bound what an adversary can create refuses a container above the plan's per-container ceiling",
       "id": "wave6-b134f0c72b5c2764",
       "lane": "kind",
       "gates": [
@@ -3519,13 +3519,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "quota and limits bound what an adversary can create",
       "test": "refuses the pod that would exceed the namespace CPU quota",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) quota and limits bound what an adversary can create refuses the pod that would exceed the namespace CPU quota",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster quota and limits bound what an adversary can create refuses the pod that would exceed the namespace CPU quota",
       "id": "wave6-baca1188ff22b75b",
       "lane": "kind",
       "gates": [
@@ -3541,13 +3541,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "quota and limits bound what an adversary can create",
       "test": "refuses secrets past the object-count quota",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) quota and limits bound what an adversary can create refuses secrets past the object-count quota",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster quota and limits bound what an adversary can create refuses secrets past the object-count quota",
       "id": "wave6-6e39db441c989872",
       "lane": "kind",
       "gates": [
@@ -3563,13 +3563,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "quota and limits bound what an adversary can create",
       "test": "refuses LoadBalancer and NodePort services and a PVC on a plan with no storage",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) quota and limits bound what an adversary can create refuses LoadBalancer and NodePort services and a PVC on a plan with no storage",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster quota and limits bound what an adversary can create refuses LoadBalancer and NodePort services and a PVC on a plan with no storage",
       "id": "wave6-75d7f39b3c8458a0",
       "lane": "kind",
       "gates": [
@@ -3585,13 +3585,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "network: policy is enforced by real traffic, with controls",
       "test": "starts a server in each tenant, the intra-namespace allow in B, and measures nothing yet",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) network: policy is enforced by real traffic, with controls starts a server in each tenant, the intra-namespace allow in B, and measures nothing yet",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster network: policy is enforced by real traffic, with controls starts a server in each tenant, the intra-namespace allow in B, and measures nothing yet",
       "id": "wave6-0b4449bed035144d",
       "lane": "kind",
       "gates": [
@@ -3607,13 +3607,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "network: policy is enforced by real traffic, with controls",
       "test": "controls: the gateway namespace reaches both tenants, and B's labelled client reaches B's server",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) network: policy is enforced by real traffic, with controls controls: the gateway namespace reaches both tenants, and B's labelled client reaches B's server",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster network: policy is enforced by real traffic, with controls controls: the gateway namespace reaches both tenants, and B's labelled client reaches B's server",
       "id": "wave6-b5fbfa35acaf08cd",
       "lane": "kind",
       "gates": [
@@ -3629,13 +3629,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "network: policy is enforced by real traffic, with controls",
       "test": "A cannot reach B by pod IP, and B cannot reach A",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) network: policy is enforced by real traffic, with controls A cannot reach B by pod IP, and B cannot reach A",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster network: policy is enforced by real traffic, with controls A cannot reach B by pod IP, and B cannot reach A",
       "id": "wave6-89ea273fc627a605",
       "lane": "kind",
       "gates": [
@@ -3651,13 +3651,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "network: policy is enforced by real traffic, with controls",
       "test": "A cannot reach B by service name: DNS resolves, the packet is dropped",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) network: policy is enforced by real traffic, with controls A cannot reach B by service name: DNS resolves, the packet is dropped",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster network: policy is enforced by real traffic, with controls A cannot reach B by service name: DNS resolves, the packet is dropped",
       "id": "wave6-cde8e506420e6199",
       "lane": "kind",
       "gates": [
@@ -3673,13 +3673,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "network: policy is enforced by real traffic, with controls",
       "test": "an unlabelled pod in the SAME namespace cannot reach its neighbour (default deny applies inside a namespace)",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) network: policy is enforced by real traffic, with controls an unlabelled pod in the SAME namespace cannot reach its neighbour (default deny applies inside a namespace)",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster network: policy is enforced by real traffic, with controls an unlabelled pod in the SAME namespace cannot reach its neighbour (default deny applies inside a namespace)",
       "id": "wave6-308429f9772444e0",
       "lane": "kind",
       "gates": [
@@ -3695,13 +3695,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "network: policy is enforced by real traffic, with controls",
       "test": "A cannot reach the kubelet, the API server or the metadata address; the public control IS reachable (block is specific)",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) network: policy is enforced by real traffic, with controls A cannot reach the kubelet, the API server or the metadata address; the public control IS reachable (block is specific)",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster network: policy is enforced by real traffic, with controls A cannot reach the kubelet, the API server or the metadata address; the public control IS reachable (block is specific)",
       "id": "wave6-4adc945248655d71",
       "lane": "kind",
       "gates": [
@@ -3717,13 +3717,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "hostname egress (Cilium)",
       "test": "an allowlisted name is reachable, an unlisted one is not, and a name resolving to metadata is blocked by the deny",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) network: policy is enforced by real traffic, with controls hostname egress (Cilium) an allowlisted name is reachable, an unlisted one is not, and a name resolving to metadata is blocked by the deny",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster network: policy is enforced by real traffic, with controls hostname egress (Cilium) an allowlisted name is reachable, an unlisted one is not, and a name resolving to metadata is blocked by the deny",
       "id": "wave6-a3693b27e6f60f3b",
       "lane": "kind",
       "gates": [
@@ -3739,13 +3739,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "secrets, storage and operator separation",
       "test": "static analysis of the rendered operator access finds no cross-tenant grant",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) secrets, storage and operator separation static analysis of the rendered operator access finds no cross-tenant grant",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster secrets, storage and operator separation static analysis of the rendered operator access finds no cross-tenant grant",
       "id": "wave6-db7b3803162d63d4",
       "lane": "kind",
       "gates": [
@@ -3761,13 +3761,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "secrets, storage and operator separation",
       "test": "a tenant workload ServiceAccount token reads nothing, in B or in its own namespace",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) secrets, storage and operator separation a tenant workload ServiceAccount token reads nothing, in B or in its own namespace",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster secrets, storage and operator separation a tenant workload ServiceAccount token reads nothing, in B or in its own namespace",
       "id": "wave6-f6bbddf3e8ba217f",
       "lane": "kind",
       "gates": [
@@ -3783,13 +3783,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "secrets, storage and operator separation",
       "test": "a tenant pod has no Kubernetes credential mounted",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) secrets, storage and operator separation a tenant pod has no Kubernetes credential mounted",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster secrets, storage and operator separation a tenant pod has no Kubernetes credential mounted",
       "id": "wave6-037d2f9c28e2320c",
       "lane": "kind",
       "gates": [
@@ -3805,13 +3805,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "secrets, storage and operator separation",
       "test": "A's operator identity: can-i matrix (control: it can work in A; nothing in B, the cluster or escalation)",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) secrets, storage and operator separation A's operator identity: can-i matrix (control: it can work in A; nothing in B, the cluster or escalation)",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster secrets, storage and operator separation A's operator identity: can-i matrix (control: it can work in A; nothing in B, the cluster or escalation)",
       "id": "wave6-90f896733453dfe2",
       "lane": "kind",
       "gates": [
@@ -3827,13 +3827,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "secrets, storage and operator separation",
       "test": "A's operator, with its own real token, works in A and is refused in B",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) secrets, storage and operator separation A's operator, with its own real token, works in A and is refused in B",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster secrets, storage and operator separation A's operator, with its own real token, works in A and is refused in B",
       "id": "wave6-d51e91dea2e0b959",
       "lane": "kind",
       "gates": [
@@ -3849,13 +3849,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "secrets, storage and operator separation",
       "test": "a pod in A that names B's claim never gets B's volume",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) secrets, storage and operator separation a pod in A that names B's claim never gets B's volume",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster secrets, storage and operator separation a pod in A that names B's claim never gets B's volume",
       "id": "wave6-1da052852773cbc2",
       "lane": "kind",
       "gates": [
@@ -3871,13 +3871,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "sandbox runtime",
       "test": "a pod under the mandated RuntimeClass runs, and reports a different kernel surface from the node",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) sandbox runtime a pod under the mandated RuntimeClass runs, and reports a different kernel surface from the node",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster sandbox runtime a pod under the mandated RuntimeClass runs, and reports a different kernel surface from the node",
       "id": "wave6-1b602effba3f5fb3",
       "lane": "kind",
       "gates": [
@@ -3893,13 +3893,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "noisy neighbour: exhaustion by A is bounded and B's latency stays within the bound",
       "test": "makes room on the free plan for the hogs",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) noisy neighbour: exhaustion by A is bounded and B's latency stays within the bound makes room on the free plan for the hogs",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster noisy neighbour: exhaustion by A is bounded and B's latency stays within the bound makes room on the free plan for the hogs",
       "id": "wave6-38677a11bfbfa79c",
       "lane": "kind",
       "gates": [
@@ -3915,13 +3915,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "noisy neighbour: exhaustion by A is bounded and B's latency stays within the bound",
       "test": "measures B's baseline latency through the gateway path",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) noisy neighbour: exhaustion by A is bounded and B's latency stays within the bound measures B's baseline latency through the gateway path",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster noisy neighbour: exhaustion by A is bounded and B's latency stays within the bound measures B's baseline latency through the gateway path",
       "id": "wave6-7fff0d0ad27600f5",
       "lane": "kind",
       "gates": [
@@ -3937,13 +3937,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "noisy neighbour: exhaustion by A is bounded and B's latency stays within the bound",
       "test": "A runs CPU, memory, disk and PID exhaustion at once; B's p95 stays within the bound and nothing of B's restarts",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) noisy neighbour: exhaustion by A is bounded and B's latency stays within the bound A runs CPU, memory, disk and PID exhaustion at once; B's p95 stays within the bound and nothing of B's restarts",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster noisy neighbour: exhaustion by A is bounded and B's latency stays within the bound A runs CPU, memory, disk and PID exhaustion at once; B's p95 stays within the bound and nothing of B's restarts",
       "id": "wave6-f66256798febedac",
       "lane": "kind",
       "gates": [
@@ -3959,13 +3959,13 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/isolation/tenant-isolation-acceptance.test.ts",
       "suite": "noisy neighbour: exhaustion by A is bounded and B's latency stays within the bound",
       "test": "the unbounded control: the same load with no quota or limits (recorded, not asserted; shows namespaces alone are not isolation)",
-      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile) noisy neighbour: exhaustion by A is bounded and B's latency stays within the bound the unbounded control: the same load with no quota or limits (recorded, not asserted; shows namespaces alone are not isolation)",
+      "fullName": "PROD-MAN-04/05 two untrusted tenants on a real cluster noisy neighbour: exhaustion by A is bounded and B's latency stays within the bound the unbounded control: the same load with no quota or limits (recorded, not asserted; shows namespaces alone are not isolation)",
       "id": "wave6-71e0aeabf0676b91",
       "lane": "kind",
       "gates": [
@@ -3981,7 +3981,7 @@
         "ZENITH_TEST_ISOLATION_EVIDENCE_OUT",
         "ZENITH_TEST_ISOLATION_PIDS_MAX"
       ],
-      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster (no profile)"
+      "ancestorSuite": "PROD-MAN-04/05 two untrusted tenants on a real cluster"
     },
     {
       "file": "tests/live/mixed-cloud.live.test.ts",

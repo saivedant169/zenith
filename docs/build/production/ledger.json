@@ -4234,6 +4234,12 @@
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-1650e6c4-postgres-halves.json",
           "artifactSha256": "b0a81178930178ee289668ad7c457b76415ce448dda04981c8f85fa1a206100e",
           "result": "Real-PostgreSQL lanes of durable-intent-authority (22), k8s-guest-bindings (7), state-backend-recovery (13), cleanup-writer-barriers (100) and late-effect-receipts (40) passed 182/182 on clean 1650e6c4; these are ungated, recorded as additional evidence. Still missing: a Temporal-lane start-recovery case for idempotent start/signal, and platform/runner authority crash-window cases. Not promoted (independent review, 2026-10-20)."
+        },
+        {
+          "level": "local_engine",
+          "commit": "98f03b4f9eae7e38f6cdf25c990a1bb129a6411d",
+          "artifact": "docs/build/production/evidence/PROD-PKG-05/2026-10-20-98f03b4f-pooler-pipelining.json",
+          "result": "Exact-source CI workflows lane (run 39380837921, job 118489343741, GitHub-hosted, owned real Temporal CLI and real PostgreSQL): tests/workflows/start-recovery.test.ts 8/8 passed with faults at the attempt-CAS/Start-RPC, accepted-Start/readback and prepared-commit boundaries; lane 113 required groups, 1559 passed, 0 failed, 0 skipped. Covers idempotent workflow start recovery. Still missing: platform and runner authority crash-window cases. Not promoted."
         }
       ],
       "requiredEvidence": [

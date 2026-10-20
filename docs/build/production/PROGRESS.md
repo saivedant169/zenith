@@ -18,7 +18,7 @@ Open defects:
 - The process-wide hosted-authority postgres.js client (`max: 1`) intermittently parks its only connection with nothing in flight. Agent-link requests then hang until the API restarts. This caused several official-run failures, and the trigger is not identified.
 - A single `deploy.approve` refusal was observed once and has not recurred.
 
-The J4 wave6 signed runbook-delivery acceptance (`run-runbooks.ts` through `runbook-fixture.mjs`) still has not run. Its blocking product paths (resource binding and run-approval delegation) now pass inside J2.
+J4's remaining identity, the wave6 registered signed runbook delivery, then passed on clean `7ce0bf76`: `run-runbooks.ts` exited 0 through `runbook-fixture.mjs`, with an exec-disabled zenithd bound to a kind-deploy-validated witness row (`evidence/PROD-OBS-04/2026-10-20-7ce0bf76-signed-runbook-delivery.json`). Both J4 identities have now passed, but on different commits (natural scheduling on `c8795a08`). PROD-OBS-04 is promoted only after both run with green CI on one exact-source commit.
 
 ## Current verification — 20 October 2026
 

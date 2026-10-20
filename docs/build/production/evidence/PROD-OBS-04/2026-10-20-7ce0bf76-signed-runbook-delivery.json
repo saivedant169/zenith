@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-20",
+  "kind": "j4-signed-runbook-delivery",
+  "productionReady": false,
+  "source": {
+    "head": "7ce0bf76208192d863306ccde28a234209972ac5",
+    "contentSha256": "acca0de588fe14b6681209b755541db53b739b9fbf2a7cb51aa3d6cd60ce839d",
+    "dirty": false
+  },
+  "fixtureReceipt": {
+    "schemaVersion": 1,
+    "kind": "j4-runbook-fixture",
+    "runId": "e19d69bd27409e1bc7b74080",
+    "source": {
+      "head": "7ce0bf76208192d863306ccde28a234209972ac5",
+      "contentSha256": "acca0de588fe14b6681209b755541db53b739b9fbf2a7cb51aa3d6cd60ce839d",
+      "dirty": false
+    },
+    "image": "localhost:5000/zenith-j2-witness@sha256:d3838e1b3a265fe7500f9bd07a1c645c2564c93048a996fc442064792fbea885",
+    "acceptanceClaim": false,
+    "steps": [
+      "real-auth-login",
+      "real-totp-mfa",
+      "workspace-project-environment",
+      "deploy-validation-resource-row",
+      "browser-machine-consent",
+      "signed-agent-registered"
+    ],
+    "registeredMachine": {
+      "id": "mac_159d4fd9-cb10-4e7f-805e-e6643722d372",
+      "status": "active",
+      "environmentId": "mvg1udvyiri0yp",
+      "address": "container_service/witness",
+      "capabilities": [
+        "machine.inspect",
+        "process.list",
+        "service.status",
+        "network.portCheck",
+        "network.dnsCheck",
+        "system.metrics",
+        "system.logs"
+      ]
+    },
+    "acceptanceExit": 0,
+    "acceptance": {
+      "schema": 2,
+      "level": "local_engine",
+      "registeredSignedDelivery": true,
+      "signedReceipt": {
+        "runbookId": "j4-8efdc225-a66e-435d-b552-bef3b6e4e711",
+        "version": 1,
+        "definitionDigest": "a5e172c22fcdc37a04762dee1d9a3790c7311f3f4c145008951a4d740b0d061e",
+        "signingKid": "control-36724ae9ee03e3980fe18e7a",
+        "signatureSha256": "bca5f048c15fdcd5741c870ed4ddaeee07a68e240c67c34e42c00fe7a65bced7"
+      },
+      "executedRunBinding": {
+        "runId": "rbr_4bd0cbb5-75a1-46fa-8a3c-5265eb2ab6dd",
+        "runbookId": "j4-8efdc225-a66e-435d-b552-bef3b6e4e711",
+        "version": 1,
+        "definitionDigest": "a5e172c22fcdc37a04762dee1d9a3790c7311f3f4c145008951a4d740b0d061e"
+      },
+      "deadlineBounded": true,
+      "replayRefusal": "not_observed_by_this_public_acceptance_interface",
+      "machineExecDisabledByFreshAgentCapabilities": true,
+      "machineExecGuardRefusal": "not_observed; approval/cancellation intentionally prevents delivery",
+      "brokerSemanticsBound": true,
+      "oneDelivery": true,
+      "durableEvidence": true,
+      "auditJoin": true,
+      "pendingCancellation": true,
+      "rawExecApprovalRequired": true,
+      "epochPreserved": true
+    },
+    "machineCleanup": "removed"
+  },
+  "environment": "macOS ARM64, native ARM64 Docker, Node 22.23.3, lean disposable default stack at port offset 1000 beside the operator's running local Supabase/Kong/API (none stopped), owned kind cluster from J2 prepare, real zenithd with exec disabled",
+  "command": "ZENITH_ACCEPTANCE_DEFAULT_STACK=1 NODE_EXTRA_CA_CERTS=<stack>/tls/ca.crt node scripts/acceptance/maintenance/runbook-fixture.mjs <stack> <new private fixture dir> <J2 journey.json>  (runs scripts/acceptance/maintenance/run-runbooks.ts unchanged)",
+  "result": "registeredRunbookAcceptance exit 0: signed published version (EdDSA compact JWS bound to kid), executed run bound to that version and digest within its deadline, one durable signed machine delivery with non-simulated evidence, broker operation audit join and settled operation, raw-exec run held pending independent approval then cancelled before delivery, exec disabled by the fresh agent's capabilities, cleanup epoch preserved; owned machine removed.",
+  "notObserved": [
+    "replay refusal through the public interface",
+    "machine.exec guard refusal (cancellation intentionally prevents delivery)"
+  ],
+  "relatedCommits": {
+    "resourceBinding": "7ce0bf76 (fixture binds a validated kind deploy row)",
+    "sameProductPathsInJ2": "5295be74"
+  }
+}

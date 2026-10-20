@@ -1,0 +1,282 @@
+{
+  "schemaVersion": 1,
+  "kind": "local_engine",
+  "date": "2026-10-21",
+  "commit": "1b97fbda1692bcf69a84267b8752be7038b3d19c",
+  "clean": true,
+  "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 with Supabase-accurate roles (anon/authenticated nologin noinherit, service_role nologin noinherit bypassrls); owned Temporal CLI; real OpenTofu 1.12.5 with pg_dump/pg_restore 16.",
+  "combined": {
+    "files": 34,
+    "passed": 1184,
+    "failed": 0,
+    "skipped": 3,
+    "rawReport": "docs/build/production/evidence/engine-acceptance/2026-10-21-1b97fbda-dur-combined-vitest.json",
+    "rawReportSha256": "576693c7c2e42ee120a7947477a6243471436f36ed733754a9fca040a1718af7",
+    "perFile": {
+      "tests/adversarial/approvals-forgery.test.ts": {
+        "passed": 48,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 15
+      },
+      "tests/bridge/projection-repair.test.ts": {
+        "passed": 15,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 6
+      },
+      "tests/capabilities/broker.test.ts": {
+        "passed": 109,
+        "failed": 0,
+        "skipped": 3,
+        "postgresCases": 36
+      },
+      "tests/capabilities/destroy-review-mcp.test.ts": {
+        "passed": 6,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 0
+      },
+      "tests/capabilities/execution.test.ts": {
+        "passed": 96,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 32
+      },
+      "tests/capabilities/standing-grants.test.ts": {
+        "passed": 123,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 41
+      },
+      "tests/controlplane/build-launch-broker-binding.test.ts": {
+        "passed": 65,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 61
+      },
+      "tests/controlplane/build-launches.test.ts": {
+        "passed": 13,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 13
+      },
+      "tests/controlplane/durable-intent-authority.test.ts": {
+        "passed": 44,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 22
+      },
+      "tests/controlplane/executable-semantics.test.ts": {
+        "passed": 35,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 17
+      },
+      "tests/controlplane/plan-artifact-access.test.ts": {
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 0
+      },
+      "tests/controlplane/plan-artifact-retention.test.ts": {
+        "passed": 27,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 27
+      },
+      "tests/controlplane/plan-artifacts.test.ts": {
+        "passed": 26,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 15
+      },
+      "tests/controlplane/plan-custody.test.ts": {
+        "passed": 24,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 12
+      },
+      "tests/controlplane/recovery-epoch.test.ts": {
+        "passed": 30,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 15
+      },
+      "tests/effects/build-launch.test.ts": {
+        "passed": 26,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 13
+      },
+      "tests/effects/cleanup.test.ts": {
+        "passed": 22,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 11
+      },
+      "tests/effects/ledger.test.ts": {
+        "passed": 70,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 35
+      },
+      "tests/effects/provider-resolvers.test.ts": {
+        "passed": 14,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 3
+      },
+      "tests/effects/proxy.test.ts": {
+        "passed": 33,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 11
+      },
+      "tests/effects/resolvers.test.ts": {
+        "passed": 24,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 5
+      },
+      "tests/effects/routes.test.ts": {
+        "passed": 14,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 0
+      },
+      "tests/execution/destroy-semantics.test.ts": {
+        "passed": 5,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 0
+      },
+      "tests/execution/semantics-dispatch.test.ts": {
+        "passed": 32,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 16
+      },
+      "tests/execution/semantics.test.ts": {
+        "passed": 57,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 0
+      },
+      "tests/middleware/platform-bearer.test.ts": {
+        "passed": 109,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 0
+      },
+      "tests/platform/codebuild-launch-authority.test.ts": {
+        "passed": 34,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 34
+      },
+      "tests/platform/current-dispatch-requirement.test.ts": {
+        "passed": 9,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 9
+      },
+      "tests/platform/semantics-approval.test.ts": {
+        "passed": 12,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 6
+      },
+      "tests/runners/idempotent-enqueue.test.ts": {
+        "passed": 15,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 5
+      },
+      "tests/security/plan-artifact-secrecy.test.ts": {
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 1
+      },
+      "tests/security/plan-view-separation.test.ts": {
+        "passed": 17,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 4
+      },
+      "tests/tofu/plan-artifact-handoff.test.ts": {
+        "passed": 18,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 18
+      },
+      "tests/workflows/start-recovery.test.ts": {
+        "passed": 9,
+        "failed": 0,
+        "skipped": 0,
+        "postgresCases": 0
+      }
+    },
+    "skippedNote": "3 skipped are broker.test.ts memory-lane cases that need plan evidence the memory store does not hold (05199c58)."
+  },
+  "wave6": {
+    "cases": 39,
+    "verified": 39,
+    "files": [
+      "tests/controlplane/migrations.test.ts",
+      "tests/controlplane/ownership-serialization.test.ts",
+      "tests/controlplane/ownership-transfers.test.ts",
+      "tests/controlplane/tenancy.test.ts"
+    ],
+    "vitest": {
+      "passed": 98,
+      "failed": 0
+    },
+    "method": "Order-dependent cases run as whole files, then each of the 39 DUR case ids verified with scripts/ci/wave6-gates.mjs --case against that report.",
+    "rawReport": "docs/build/production/evidence/engine-acceptance/2026-10-21-1b97fbda-dur-wave6-vitest.json",
+    "rawReportSha256": "2922a8912cc2064a1269a547cb0b0277f8bbaed9d545f74c1bb427f618b56112",
+    "caseIds": [
+      "wave6-f5b07a4bdee75e45",
+      "wave6-fc7742b1152a7bcb",
+      "wave6-3317310625862606",
+      "wave6-460c9f9f49c2e326",
+      "wave6-96e0a505ad4f60f7",
+      "wave6-8f8c99084a830553",
+      "wave6-7b6172d51e68745f",
+      "wave6-7811f6c1566337ed",
+      "wave6-a5f176daa31b1596",
+      "wave6-fc4a5692d6710993",
+      "wave6-6b559ab5b73e7690",
+      "wave6-35f8dae4e9a172a6",
+      "wave6-49fcde3acc371d45",
+      "wave6-61244396f4d23e54",
+      "wave6-26083973e1c66731",
+      "wave6-8969efaf671ae381",
+      "wave6-f08ea9f23cb1138c",
+      "wave6-82a7dfb238822f3b",
+      "wave6-ba99c72062c5311c",
+      "wave6-ee7dbd39a81039f3",
+      "wave6-a6a981db1d5be367",
+      "wave6-f05d036bd64b16a9",
+      "wave6-b35e91f76c287bf6",
+      "wave6-dde334da4574cc83",
+      "wave6-736111144ae6ecdd",
+      "wave6-139580033efaa967",
+      "wave6-27490083836ea527",
+      "wave6-5e945b4534e6043d",
+      "wave6-0886b9ea0d20fa80",
+      "wave6-683a6a3ff8b581c2",
+      "wave6-f0a05d82f97b9132",
+      "wave6-3c7a77c7d1e51104",
+      "wave6-a7811442ed100bbc",
+      "wave6-31f87982e7f16fc0",
+      "wave6-d510dab8099d2c4f",
+      "wave6-64f21532bc7f56ec",
+      "wave6-e93ff16729b612ea",
+      "wave6-1be1e0d1f78036f0",
+      "wave6-860b97102b74ee50"
+    ],
+    "retainedFailures": "A per-case run at e36c3a43 passed 8/39 (order-dependent cases run alone); a full-file run at 59b0455c failed 41 cases because the stand-in service_role lacked BYPASSRLS. Both were harness setup, fixed here."
+  }
+}

@@ -4621,7 +4621,7 @@
         "tests/e2e/default/receipt.test.ts"
       ],
       "implementationNote": "J2 adds two Auth identities, self/bearer refusal, B UI approval and post-revocation dispatch; standing-grant and current-policy lanes remain separate.",
-      "implementationNotes": "Final integration: migration chain 1..58, shared human step-up, owned-stack and live-helper joins assembled. Local checks in verify/FINAL-INTEGRATION.md; Mac engine/browser/live verification remains pending. No verification promotion."
+      "implementationNotes": "Final integration: migration chain 1..58, shared human step-up, owned-stack and live-helper joins assembled. Local checks in verify/FINAL-INTEGRATION.md; Mac engine/browser/live verification remains pending. No verification promotion. 2026-10-21 finding (05199c58 probe): policy production_destroys_data denies the production infrastructure.plan that destroy review proposes, so a reviewed production destroy cannot be recorded although the policy comments describe that path. Stricter than DUR-04 requires; open product/policy decision."
     },
     {
       "id": "PROD-DUR-05",
@@ -4846,11 +4846,11 @@
       "acceptance": [
         "Build launches and external cleanup effects use durable receipts, independent readback and deduplicated retry rather than blind replay."
       ],
-      "state": "in_progress",
+      "state": "verified",
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "implementation_complete_verification_pending",
+      "implementationStatus": "verified_1b97fbda: build launches and external cleanup effects use durable receipts, independent readback and deduplicated retry, never blind replay; every clause has a named passing case on real PostgreSQL at 1b97fbda (combined DUR batch, raw report kept) and all 39 wave6 DUR cases verify on the same commit. Independent review: PROMOTE (condition: wave6 re-run, satisfied). Limits: provider launch and readback use modeled providers and session doubles, not real CodeBuild/Cloud Build/ACR; non-AWS launch paths go through startBuildOnce with port fakes.",
       "evidence": [
         {
           "level": "local_engine",
@@ -4896,6 +4896,22 @@
           "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 (pinned image) with Supabase stand-in roles, removed after; owned Temporal CLI dev server (start-recovery spawns its own, default port refused); real OpenTofu 1.12.5 and pg_dump/pg_restore 16 for the plan handoff.",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-b5c61f4d-dur-combined.json",
           "result": "Real engines: 231 passed / 0 failed / 0 skipped across 8 clause files on clean b5c61f4d (151 real PostgreSQL cases). Raw report kept."
+        },
+        {
+          "level": "contract",
+          "commit": "1b97fbda1692bcf69a84267b8752be7038b3d19c",
+          "command": "combined DUR batch (scratchpad run-dur-all.sh) + wave6 full-file case verification",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 with Supabase-accurate roles (anon/authenticated nologin noinherit, service_role nologin noinherit bypassrls); owned Temporal CLI; real OpenTofu 1.12.5 with pg_dump/pg_restore 16.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-1b97fbda-dur-rerun.json",
+          "result": "231 passed / 0 failed / 0 skipped across 8 DUR-08 clause files on clean 1b97fbda (151 real PostgreSQL cases); all 39 wave6 DUR cases verified on the same commit."
+        },
+        {
+          "level": "local_engine",
+          "commit": "1b97fbda1692bcf69a84267b8752be7038b3d19c",
+          "command": "combined DUR batch (scratchpad run-dur-all.sh) + wave6 full-file case verification",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 with Supabase-accurate roles (anon/authenticated nologin noinherit, service_role nologin noinherit bypassrls); owned Temporal CLI; real OpenTofu 1.12.5 with pg_dump/pg_restore 16.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-1b97fbda-dur-rerun.json",
+          "result": "231 passed / 0 failed / 0 skipped across 8 DUR-08 clause files on clean 1b97fbda (151 real PostgreSQL cases); all 39 wave6 DUR cases verified on the same commit."
         }
       ],
       "requiredEvidence": [
@@ -4904,7 +4920,7 @@
       ],
       "owner": null,
       "testPaths": [],
-      "implementationNotes": "Final integration: migration chain 1..58, shared human step-up, owned-stack and live-helper joins assembled. Local checks in verify/FINAL-INTEGRATION.md; Mac engine/browser/live verification remains pending. No verification promotion."
+      "implementationNotes": "Final integration: migration chain 1..58, shared human step-up, owned-stack and live-helper joins assembled. Local checks in verify/FINAL-INTEGRATION.md; Mac engine/browser/live verification remains pending. No verification promotion. 2026-10-21 independent review (b5c61f4d): PROMOTE for DUR-08 once the wave6 cases are re-run on current source; re-run at 1b97fbda verified 39/39."
     },
     {
       "id": "PROD-LIFE-01",

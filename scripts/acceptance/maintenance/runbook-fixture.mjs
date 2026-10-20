@@ -9,7 +9,8 @@
  * Kubernetes connection on the J2 kind target, and a deploy proposal's own
  * validation persists the real container_service/witness resource row the delivery binds;
  * the proposal is never approved, so nothing reaches the cluster. It then runs
- * the unchanged run-runbooks.ts acceptance and removes only resources it labelled.
+ * the unchanged wave6 case through its manifest argv, verifies its report with
+ * wave6-gates.mjs, and removes only resources it labelled.
  *
  * Chromium trusts the stack's own edge certificate through an exact SPKI pin
  * in an isolated profile; no OS trust store or TLS verification is changed.
@@ -86,6 +87,9 @@ async function confirmedOperator(stack) {
   ensure(typeof user.id === 'string', 'auth-user');
   return { id: user.id, email, password };
 }
+
+const CASE_ID = 'wave6-55718f085353604a';
+const TEST_NAME = 'joins real signed registered delivery, broker semantics, evidence and cancellation audit';
 
 function privateWrite(file, text) { fs.writeFileSync(file, text, { mode: 0o600, flag: 'wx' }); }
 
@@ -190,16 +194,22 @@ async function main() {
     const cookieFile = path.join(fixture, 'operator.cookie'), targetFile = path.join(fixture, 'target.json');
     privateWrite(cookieFile, (await context.cookies(stack.apiUrl)).map(cookie => `${cookie.name}=${cookie.value}`).join('; ') + '\n');
     privateWrite(targetFile, JSON.stringify({ workspaceId, targetId: registered.id, environmentId, resourceId: rows[0].id }) + '\n');
-    child = await runChild(['node_modules/tsx/dist/cli.mjs', 'scripts/acceptance/maintenance/run-runbooks.ts'], {
-      ...process.env, ...host, ZENITH_TEST_RUNBOOK_DELIVERY: '1', ZENITH_J4_BROWSER_COOKIE_FILE: cookieFile, ZENITH_J4_TARGET_FILE: targetFile });
+    const report = path.join(fixture, `${CASE_ID}.json`);
+    child = await runChild(['node_modules/vitest/vitest.mjs', 'run', 'tests/acceptance/maintenance-default.test.ts', `--testNamePattern=${TEST_NAME}`,
+      '--no-file-parallelism', '--maxWorkers=2', '--reporter=json', `--outputFile=${report}`], {
+      ...process.env, ...host, ZENITH_TEST_MAINTENANCE: '0', ZENITH_TEST_RUNBOOK_DELIVERY: '1', ZENITH_J4_BROWSER_COOKIE_FILE: cookieFile, ZENITH_J4_TARGET_FILE: targetFile });
     receipt.acceptanceExit = child.code;
-    if (child.code === 0) receipt.acceptance = JSON.parse(child.stdout.trim().split('\n').at(-1));
-    else receipt.acceptanceStderr = child.stderr.slice(-2000);
+    if (child.code === 0) {
+      child = await runChild(['scripts/ci/wave6-gates.mjs', '--case', CASE_ID, '--report', report], process.env);
+      receipt.verifierExit = child.code;
+      receipt.acceptance = { caseId: CASE_ID, report, reportSha256: createHash('sha256').update(fs.readFileSync(report)).digest('hex') };
+    }
+    if (child.code !== 0) receipt.acceptanceStderr = (child.stderr || child.stdout).slice(-2000);
   } finally {
     await context.close().catch(() => undefined);
     try { await machine.cleanup(); receipt.machineCleanup = 'removed'; } catch (error) { receipt.machineCleanup = `retained:${error.message}`; }
     privateWrite(path.join(fixture, 'receipt.json'), JSON.stringify(receipt, null, 2) + '\n');
-    process.stdout.write(JSON.stringify({ acceptanceExit: receipt.acceptanceExit ?? null, steps: receipt.steps, machineCleanup: receipt.machineCleanup, receipt: path.join(fixture, 'receipt.json') }) + '\n');
+    process.stdout.write(JSON.stringify({ acceptanceExit: receipt.acceptanceExit ?? null, verifierExit: receipt.verifierExit ?? null, steps: receipt.steps, machineCleanup: receipt.machineCleanup, receipt: path.join(fixture, 'receipt.json') }) + '\n');
   }
   if (child?.code !== 0) process.exitCode = 1;
 }

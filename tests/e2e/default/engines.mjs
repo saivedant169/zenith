@@ -126,7 +126,8 @@ export class Machine {
     ensure(this.agentIds.length > 0, 'machine-cleanup-no-identity');
     const current = await list();
     const owned = current.filter(machine => this.agentNames.includes(machine.name) || this.agentIds.includes(machine.id));
-    ensure(owned.every(machine => this.agentNames.includes(machine.name) && machine.transport === 'zenithd' &&
+    // The machine list (agentView) carries no transport; ownership is name, environment and address.
+    ensure(owned.every(machine => this.agentNames.includes(machine.name) &&
       machine.environmentId === this.environmentId && machine.address === this.address), 'machine-cleanup-binding');
     ensure(new Set(owned.map(machine => machine.id)).size === owned.length && this.agentIds.every(id => owned.some(machine => machine.id === id)),
       'machine-cleanup-identity-join');
@@ -137,7 +138,7 @@ export class Machine {
     const after = await list();
     const remaining = after.filter(machine => this.agentNames.includes(machine.name) || this.agentIds.includes(machine.id));
     ensure(remaining.length === owned.length && remaining.every(machine => machine.status === 'revoked' && machine.revokedAt &&
-      machine.transport === 'zenithd' && machine.environmentId === this.environmentId && machine.address === this.address),
+      machine.environmentId === this.environmentId && machine.address === this.address),
       'machine-cleanup-revocation-readback');
   }
   async readUncertaintyMarker(expectedNonce) {

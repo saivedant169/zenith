@@ -621,7 +621,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       ensure(await uxA.getByRole('heading', { name: 'Operation details', exact: true }).count() === 1, 'ux01-operation-heading');
       await uxA.getByRole('region', { name: 'Progress', exact: true }).first().waitFor();
       ensure(await uxA.getByRole('region', { name: 'Progress', exact: true }).count() === 1, 'ux01-progress-region');
-      ensure((await uxA.getByTestId('journey-live').innerText()).length > 0, 'ux01-progress-status');
+      ensure((await uxA.locator('[data-testid="journey-live"]:visible').innerText()).length > 0, 'ux01-progress-status');
       ensure(await uxA.getByRole('button', { name: 'Cancel operation', exact: true }).isEnabled(), 'ux01-cancel-enabled');
       ensure(await uxA.getByRole('button', { name: /^Approve / }).first().isDisabled(), 'ux01-requester-approval-disabled');
       await auditUx(uxA, 'operation-requester-review', axeSource, uxCases.find(row => row.id === 'ux01-operation-review-a11y').scans);
@@ -658,7 +658,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
     if (UX_ENABLED) await uxCase('ux01-replan-reapproval-a11y', async () => {
       const notice = uxB.getByRole('alert').filter({ hasText: 'Plan changed: approval is required again' });
       await notice.waitFor({ timeout: 10_000 });
-      ensure((await uxB.getByTestId('journey-live').innerText()).length > 0, 'ux01-reapproval-status');
+      ensure((await uxB.locator('[data-testid="journey-live"]:visible').innerText()).length > 0, 'ux01-reapproval-status');
       await auditUx(uxB, 'operation-reapproval-required', axeSource, uxCases.find(row => row.id === 'ux01-replan-reapproval-a11y').scans);
     });
     await step('browser-kind-execution-readback', async () => {
@@ -670,11 +670,11 @@ test('default operated browser, REST, MCP and customer machine journey', async (
     if (UX_ENABLED) await uxCase('ux01-legacy-projection-a11y', async () => {
       uxStage = 'ui';
       await uxA.goto(stack.apiUrl + '/platform/operations/' + operationId);
-      const stage = (await uxA.getByTestId('journey-live').innerText()).split('. ')[0];
+      const stage = (await uxA.locator('[data-testid="journey-live"]:visible').innerText()).split('. ')[0];
       await uxA.goto(stack.apiUrl + '/platform/deployments/' + deploymentId);
       await uxA.getByRole('heading', { name: 'Deployment', exact: true }).first().waitFor();
       ensure(await uxA.getByRole('heading', { name: 'Deployment', exact: true }).count() === 1, 'ux01-deployment-heading');
-      ensure((await uxA.getByTestId('journey-live').innerText()).split('. ')[0] === stage, 'ux01-legacy-projection');
+      ensure((await uxA.locator('[data-testid="journey-live"]:visible').innerText()).split('. ')[0] === stage, 'ux01-legacy-projection');
       await auditUx(uxA, 'linked-workflow-deployment', axeSource, uxCases.find(row => row.id === 'ux01-legacy-projection-a11y').scans);
     });
     await step('rest-proposal-execution-readback', async () => {
@@ -729,7 +729,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       ensure(complete.run.status === 'succeeded' && complete.steps.length === 1 && complete.steps[0].status === 'succeeded', 'machine-run-success');
       if (UX_ENABLED) {
         await runApprover.reload();
-        ensure((await runApprover.getByTestId('journey-live').innerText()).length > 0, 'ux01-runbook-terminal-progress');
+        ensure((await runApprover.locator('[data-testid="journey-live"]:visible').innerText()).length > 0, 'ux01-runbook-terminal-progress');
       }
       readbacks.machine = await machine.read(witnessNonce);
       // A run step records its own step key; the broker operation is joined through the run's audit.
@@ -754,7 +754,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       ensure(pending.data.status === 'awaiting_approval' && pending.data.executed === false, 'ux01-cancel-pending');
       const cancelId = pending.data.operationId;
       await uxA.goto(stack.apiUrl + '/platform/operations/' + cancelId);
-      ensure((await uxA.getByTestId('journey-live').innerText()).includes('Awaiting approval'), 'ux01-cancel-state');
+      ensure((await uxA.locator('[data-testid="journey-live"]:visible').innerText()).includes('Awaiting approval'), 'ux01-cancel-state');
       ensure(await uxA.getByRole('button', { name: 'Cancel operation', exact: true }).isEnabled(), 'ux01-cancel-control');
       const scans = uxCases.find(row => row.id === 'ux01-cancel-operation-a11y').scans;
       await auditUx(uxA, 'operation-pending-cancel', axeSource, scans);
@@ -764,7 +764,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       const terminal = await until(() => getDetail(cancelId), value => value.operation.status === 'cancelled');
       ensure(terminal.operation.status === 'cancelled', 'ux01-cancel-readback');
       await uxA.reload();
-      ensure((await uxA.getByTestId('journey-live').innerText()).includes('Cancelled'), 'ux01-cancel-terminal-ui');
+      ensure((await uxA.locator('[data-testid="journey-live"]:visible').innerText()).includes('Cancelled'), 'ux01-cancel-terminal-ui');
       await auditUx(uxA, 'operation-cancelled', axeSource, scans);
     });
     if (UX_ENABLED) await uxCase('ux01-readiness-a11y', async () => {
@@ -1085,7 +1085,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       ensure(new URL(uxA.url()).origin === stack.apiUrl && new URL(uxA.url()).pathname === '/platform/operations/' + operationId &&
         await uxA.getByRole('heading', { name: 'Operation details', exact: true }).count() === 1,
         'ux01-uncertainty-route-identity');
-      const live = uxA.getByTestId('journey-live');
+      const live = uxA.locator('[data-testid="journey-live"]:visible');
       await live.waitFor();
       ensure(await uxA.getByRole('region', { name: 'Progress', exact: true }).count() === 1 &&
         await live.getAttribute('role') === 'status' && await live.getAttribute('aria-live') === 'polite' &&

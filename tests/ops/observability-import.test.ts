@@ -35,6 +35,9 @@ describe("observability import contract (offline; no engine evidence)", () => {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), "zenith-unresolved-obs-"));
     try { fs.mkdirSync(path.join(directory, "deploy/observability"), { recursive: true }); fs.writeFileSync(path.join(directory, "deploy/observability/images.env"), "ZENITH_PROMETHEUS_IMAGE=prom/prometheus:latest\n"); expect(() => importImages(directory)).toThrow("unresolved"); } finally { fs.rmSync(directory, { recursive: true, force: true }); }
   });
+  it("reads only the three observability pins from the shared images.env", () => {
+    expect(Object.keys(importImages())).toEqual(["ZENITH_PROMETHEUS_IMAGE", "ZENITH_GRAFANA_IMAGE", "ZENITH_OTEL_IMAGE"]);
+  });
   it("uses loopback ports, bounded memory, read-only configs and only private ephemeral storage", () => {
     const image = `example/test@sha256:${createHash("sha256").update("offline image fixture").digest("hex")}`;
     const profile = composeProfile("/tmp/owned-j11", { ZENITH_PROMETHEUS_IMAGE: image, ZENITH_GRAFANA_IMAGE: image, ZENITH_OTEL_IMAGE: image });

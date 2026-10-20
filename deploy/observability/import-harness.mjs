@@ -62,10 +62,11 @@ export function localCollector(collector) {
 }
 
 export function importImages(root = process.cwd()) {
-  const images = envValues(fs.readFileSync(path.join(root, "deploy/observability/images.env"), "utf8"));
+  const pins = envValues(fs.readFileSync(path.join(root, "deploy/observability/images.env"), "utf8"));
   const keys = ["ZENITH_PROMETHEUS_IMAGE", "ZENITH_GRAFANA_IMAGE", "ZENITH_OTEL_IMAGE"];
-  if (Object.keys(images).length !== keys.length || keys.some(key => !isPinned(images[key] ?? ""))) fail("Observability images are unresolved; run pin-digests.mjs --resolve --scope bases on the Mac");
-  return images;
+  // images.env also pins the local-stack images (Mailpit, Stripe mock, Postgres); the import uses only these three.
+  if (keys.some(key => !isPinned(pins[key] ?? ""))) fail("Observability images are unresolved; run pin-digests.mjs --resolve --scope bases on the Mac");
+  return Object.fromEntries(keys.map(key => [key, pins[key]]));
 }
 
 export function composeProfile(directory, images) {

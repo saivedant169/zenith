@@ -98,6 +98,20 @@ describe.each(LANES)("idempotent runner enqueue [$name]", (lane) => {
     expect(await f.jobs(op)).toHaveLength(2);
   });
 
+  it("a job cancelled after the agent claimed it is attached, never queued again; one cancelled before any claim is not", async () => {
+    const f = await fixture(2);
+    // cancelled while still queued: the agent never received it, so a new generation is a definite retry
+    const unclaimed = await enqueueRunnerJob(await f.input(f.operations[0], { idempotencyKey: "tofu.apply:digest" }), f.plane.rt);
+    expect(await store.jobs.cancel(f.workspaceId, unclaimed, "the job was not claimed before its expiry")).not.toBeNull();
+    expect(await enqueueRunnerJob(await f.input(f.operations[0], { idempotencyKey: "tofu.apply:digest" }), f.plane.rt)).not.toBe(unclaimed);
+    // cancelled after hand-over (a waiter gave up on a lapsed lease): the agent may still be applying
+    const handed = await enqueueRunnerJob(await f.input(f.operations[1], { idempotencyKey: "tofu.apply:digest" }), f.plane.rt);
+    expect((await store.jobs.claimNext({ workspaceId: f.workspaceId, agentId: f.agent.id, max: 5, leaseMs: 30_000 })).map((j) => j.id)).toContain(handed);
+    expect(await store.jobs.cancel(f.workspaceId, handed, "the agent did not report before the job's lease ended")).not.toBeNull();
+    expect(await enqueueRunnerJob(await f.input(f.operations[1], { idempotencyKey: "tofu.apply:digest" }), f.plane.rt)).toBe(handed);
+    expect(await f.jobs(f.operations[1])).toHaveLength(1);
+  });
+
   it("two workers racing on one identity queue exactly one job", async () => {
     const f = await fixture();
     const rt2 = { ...f.plane.rt, store: store2 };

@@ -214,8 +214,8 @@ async function enqueueCommon(
  * Job identity. Without a key every job is new. With a key the id is deterministic per
  * (workspace, agent, operation, job kind, key, generation). Generation 0 is tried first: a job that is
  * queued, claimed, running, succeeded or timed out (outcome unknown) is ATTACHED to, never duplicated.
- * Only a job that definitively did not take effect (failed, rejected, expired, cancelled) lets the next
- * generation be queued, which preserves ordinary activity retry after a definite failure.
+ * Only a job that definitively did not take effect (failed, rejected, expired, or cancelled before any agent
+ * claimed it) lets the next generation be queued, which preserves ordinary activity retry after a definite failure.
  */
 const RETRYABLE_STATUSES: ReadonlySet<string> = new Set(["failed", "rejected", "expired", "cancelled"]);
 const MAX_GENERATIONS = 8;
@@ -231,7 +231,9 @@ async function resolveIdentity(
     if (!job) return { jti };
     if (job.agentId !== args.agentId || job.operationId !== args.operationId || job.kind !== args.jobKind || job.capability !== args.capability)
       throw new DispatchError("invalid_input", "The idempotency key already identifies a different job.");
-    if (!RETRYABLE_STATUSES.has(job.status)) return { jti, attached: { jti, envelope: job.envelope, ttlSec: 0 } };
+    // A job cancelled after an agent claimed it may still be taking effect: attach, never queue a second effect.
+    const handedOver = job.status === "cancelled" && (job.claimedAt !== undefined || job.startedAt !== undefined);
+    if (handedOver || !RETRYABLE_STATUSES.has(job.status)) return { jti, attached: { jti, envelope: job.envelope, ttlSec: 0 } };
   }
   throw new DispatchError("invalid_input", "The idempotency key has exhausted its definite-failure retry budget; inspect the operation.");
 }
@@ -422,7 +424,7 @@ function outcomeOf<R>(rt: RunnerRuntime, job: AgentJob, stoppedWaiting = false):
     }
   }
   // timed_out (runner-reported or reaped) and a cancel after hand-over leave the outcome unknown
-  const uncertain = status === "timed_out" || (status === "cancelled" && job.startedAt !== undefined) || openFailed;
+  const uncertain = status === "timed_out" || (status === "cancelled" && (job.claimedAt !== undefined || job.startedAt !== undefined)) || openFailed;
   return {
     jobId: job.id,
     status: openFailed && status === "succeeded" ? "failed" : status,

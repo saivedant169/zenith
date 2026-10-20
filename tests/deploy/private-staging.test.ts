@@ -22,11 +22,11 @@ describe("private bind staging", () => {
   it("stages one 0400 copy per private file and consuming uid on native Linux", () => {
     const { document: staged, copies } = stagedComposition(document, { privateRoot, stageRoot, platform: "linux" });
     const ca1001 = stagedPath(stageRoot, 1001, "/stack/tls/ca.crt");
-    expect(staged.services.api.volumes[0]).toBe(`${ca1001}:/run/zenith-ca.crt:ro`);
-    expect(staged.services["api-peer"].volumes[0]).toBe(`${ca1001}:/run/zenith-ca.crt:ro`);
-    expect(staged.services.worker.volumes[0]).toBe(`${stagedPath(stageRoot, 10001, "/stack/tls/ca.crt")}:/run/zenith-ca.crt:ro`);
+    expect(staged.services.api.volumes![0]).toBe(`${ca1001}:/run/zenith-ca.crt:ro`);
+    expect(staged.services["api-peer"]!.volumes![0]).toBe(`${ca1001}:/run/zenith-ca.crt:ro`);
+    expect(staged.services.worker.volumes![0]).toBe(`${stagedPath(stageRoot, 10001, "/stack/tls/ca.crt")}:/run/zenith-ca.crt:ro`);
     // Named volumes, repository files and root services keep their binds.
-    expect(staged.services.temporal.volumes.slice(0, 2)).toEqual(document.services.temporal.volumes.slice(0, 2));
+    expect(staged.services.temporal.volumes!.slice(0, 2)).toEqual(document.services.temporal.volumes!.slice(0, 2));
     expect(staged.services.rootService).toEqual(document.services.rootService);
     expect(copies.map(copy => `${copy.uid}:${copy.gid} ${copy.source}`).sort()).toEqual([
       "10001:10001 /stack/tls/ca.crt",

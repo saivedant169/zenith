@@ -309,7 +309,8 @@ export async function createStandingGrant(deps: BrokerDeps, input: CreateStandin
     createdByName: input.actor.name || input.actor.id,
     ...(resolved.scope.projectId ? { projectId: resolved.scope.projectId } : {}),
     environmentId: input.scope.environmentId,
-    ...(input.scope.resourceId ? { resourceId: input.scope.resourceId } : {}),
+    // Uses compare the operation's canonical target, so the grant stores the resolved one too.
+    ...(input.scope.resourceId ? { resourceId: resolved.scope.resourceId ?? input.scope.resourceId } : {}),
     capabilities: caps.sort(),
     maxRisk: input.maxRisk,
     allowedPrincipals: principals.sort(),

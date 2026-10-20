@@ -354,7 +354,8 @@ export async function propose(deps: BrokerDeps, rawRequest: unknown, principalIn
     : undefined;
   const requestHash = digest({
     capability: parsed.def.name,
-    scope: parsed.request.scope,
+    // The resolved scope: a replay must name the same canonical target the stored operation binds.
+    scope,
     input: parsed.input,
     constraints: parsed.constraints ?? null,
     requestedDurationSec: parsed.request.requestedDurationSec ?? null,

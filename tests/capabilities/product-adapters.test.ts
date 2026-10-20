@@ -200,12 +200,16 @@ describe("ScopeResolver deployed manifest services", () => {
   });
 
   it("keeps the manifest id when no row or several rows claim the service, and never canonicalizes a non-service id", async () => {
-    for (const rows of [[], [workload(), workload({ id: "res_web2" })]]) {
+    for (const rows of [[], [workload(), workload({ id: "res_web2" })], [workload({ status: "planned" })], [workload({ status: "failed" })]]) {
       expect((await productScopeResolver(async () => null, async () => rows).resolve(scope))?.scope.resourceId).toBe("svc-web");
     }
     const list = vi.fn(async () => [workload({ origin: ["res-db"] })]);
     expect((await productScopeResolver(async () => null, list).resolve({ ...scope, resourceId: "res-db" }))?.scope.resourceId).toBe("res-db");
     expect(list).not.toHaveBeenCalled();
+  });
+
+  it("fails rather than skipping ownership review when the canonical store cannot be read", async () => {
+    await expect(productScopeResolver(async () => null, async () => { throw new Error("store down"); }).resolve(scope)).rejects.toThrow("store down");
   });
 });
 

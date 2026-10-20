@@ -92,8 +92,9 @@ export function productScopeResolver(readResource: (workspaceId: string, id: str
           // bind its one canonical workload row, which day-two execution and field ownership require.
           const named = (env.deployedRevisionId ? await revisionManifestAsync(env.deployedRevisionId) : undefined) ?? d.projects.find((p) => p.id === projectId)?.workingManifest;
           const service = named ? v1View(named).services.some((svc) => svc.id === scope.resourceId) : false;
-          // No platform store (or it is unavailable) keeps the manifest id, exactly as before; it never widens access.
-          const rows = service ? (await listResources(scope.workspaceId, env.id).catch(() => [] as PlatformResource[])).filter((row) => WORKLOAD_KINDS.has(row.kind) && row.origin.includes(scope.resourceId!)) : [];
+          // Only a provisioned workload binds; a planned, failed or unknown row keeps the manifest id as before.
+          const rows = service ? (await listResources(scope.workspaceId, env.id)).filter((row) => WORKLOAD_KINDS.has(row.kind)
+            && (row.status === "active" || row.status === "updating") && row.origin.includes(scope.resourceId!)) : [];
           if (rows.length === 1) canonical = rows[0].id;
         }
         if (canonical) {

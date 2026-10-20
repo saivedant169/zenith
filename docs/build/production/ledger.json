@@ -4440,6 +4440,22 @@
           "runId": 39477790980,
           "url": "https://github.com/saivedant169/zenith/actions/runs/39477790980",
           "result": "J2 default journey 18/18 passed on a clean Linux host (ledgerEligible, native AMD64, five readbacks): real browser and Supabase Auth, a registered zenithd and an owned kind target. Covers this requirement only where the journey exercises it."
+        },
+        {
+          "level": "contract",
+          "commit": "ac8e6c87",
+          "command": "ZENITH_TEST_PLATFORM_PG_URL=<owned> ZENITH_CONTRACT_POSTGRES=1 SUPABASE_DB_URL=<owned> ZENITH_FAST=1 vitest run <21 files> --no-file-parallelism --maxWorkers=1",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable PostgreSQL 16 (pinned ZENITH_LOCAL_POSTGRES_IMAGE) on 127.0.0.1:55433 with Supabase stand-in roles; removed after the run.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-ac8e6c87-dur-life06-postgres.json",
+          "result": "Exact-source clause tests: 114 passed / 0 failed / 0 skipped across 4 clause files on clean ac8e6c87."
+        },
+        {
+          "level": "local_engine",
+          "commit": "ac8e6c87",
+          "command": "ZENITH_TEST_PLATFORM_PG_URL=<owned> ZENITH_CONTRACT_POSTGRES=1 SUPABASE_DB_URL=<owned> ZENITH_FAST=1 vitest run <21 files> --no-file-parallelism --maxWorkers=1",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable PostgreSQL 16 (pinned ZENITH_LOCAL_POSTGRES_IMAGE) on 127.0.0.1:55433 with Supabase stand-in roles; removed after the run.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-ac8e6c87-dur-life06-postgres.json",
+          "result": "Real PostgreSQL halves: 17 PostgreSQL cases passed within 114 passed / 0 failed / 0 skipped across 4 clause files on clean ac8e6c87. Not yet wave6-gated."
         }
       ],
       "requiredEvidence": [
@@ -4497,6 +4513,22 @@
           "runId": 39477790980,
           "url": "https://github.com/saivedant169/zenith/actions/runs/39477790980",
           "result": "J2 default journey 18/18 passed on a clean Linux host (ledgerEligible, native AMD64, five readbacks): real browser and Supabase Auth, a registered zenithd and an owned kind target. Covers this requirement only where the journey exercises it."
+        },
+        {
+          "level": "contract",
+          "commit": "ac8e6c87",
+          "command": "ZENITH_TEST_PLATFORM_PG_URL=<owned> ZENITH_CONTRACT_POSTGRES=1 SUPABASE_DB_URL=<owned> ZENITH_FAST=1 vitest run <21 files> --no-file-parallelism --maxWorkers=1",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable PostgreSQL 16 (pinned ZENITH_LOCAL_POSTGRES_IMAGE) on 127.0.0.1:55433 with Supabase stand-in roles; removed after the run.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-ac8e6c87-dur-life06-postgres.json",
+          "result": "Exact-source clause tests: 311 passed / 0 failed / 0 skipped across 5 clause files on clean ac8e6c87."
+        },
+        {
+          "level": "local_engine",
+          "commit": "ac8e6c87",
+          "command": "ZENITH_TEST_PLATFORM_PG_URL=<owned> ZENITH_CONTRACT_POSTGRES=1 SUPABASE_DB_URL=<owned> ZENITH_FAST=1 vitest run <21 files> --no-file-parallelism --maxWorkers=1",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable PostgreSQL 16 (pinned ZENITH_LOCAL_POSTGRES_IMAGE) on 127.0.0.1:55433 with Supabase stand-in roles; removed after the run.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-ac8e6c87-dur-life06-postgres.json",
+          "result": "Real PostgreSQL halves: 114 PostgreSQL cases passed within 311 passed / 0 failed / 0 skipped across 5 clause files on clean ac8e6c87. Not yet wave6-gated."
         }
       ],
       "requiredEvidence": [
@@ -4655,6 +4687,22 @@
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-1650e6c4-postgres-halves.json",
           "artifactSha256": "b0a81178930178ee289668ad7c457b76415ce448dda04981c8f85fa1a206100e",
           "result": "Real-PostgreSQL lanes of durable-intent-authority (22), k8s-guest-bindings (7), state-backend-recovery (13), cleanup-writer-barriers (100) and late-effect-receipts (40) passed 182/182 on clean 1650e6c4; these are ungated, recorded as additional evidence. Still missing: partition/delayed-call, renewal/revocation tombstone, provider receipt/readback and operator-resolution engine cases. Not promoted (independent review, 2026-10-20)."
+        },
+        {
+          "level": "contract",
+          "commit": "ac8e6c87",
+          "command": "ZENITH_TEST_PLATFORM_PG_URL=<owned> ZENITH_CONTRACT_POSTGRES=1 SUPABASE_DB_URL=<owned> ZENITH_FAST=1 vitest run <21 files> --no-file-parallelism --maxWorkers=1",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable PostgreSQL 16 (pinned ZENITH_LOCAL_POSTGRES_IMAGE) on 127.0.0.1:55433 with Supabase stand-in roles; removed after the run.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-ac8e6c87-dur-life06-postgres.json",
+          "result": "Exact-source clause tests: 152 passed / 0 failed / 0 skipped across 5 clause files on clean ac8e6c87."
+        },
+        {
+          "level": "local_engine",
+          "commit": "ac8e6c87",
+          "command": "ZENITH_TEST_PLATFORM_PG_URL=<owned> ZENITH_CONTRACT_POSTGRES=1 SUPABASE_DB_URL=<owned> ZENITH_FAST=1 vitest run <21 files> --no-file-parallelism --maxWorkers=1",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable PostgreSQL 16 (pinned ZENITH_LOCAL_POSTGRES_IMAGE) on 127.0.0.1:55433 with Supabase stand-in roles; removed after the run.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-ac8e6c87-dur-life06-postgres.json",
+          "result": "Real PostgreSQL halves: 58 PostgreSQL cases passed within 152 passed / 0 failed / 0 skipped across 5 clause files on clean ac8e6c87. Not yet wave6-gated."
         }
       ],
       "requiredEvidence": [
@@ -4696,6 +4744,22 @@
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-1650e6c4-postgres-halves.json",
           "artifactSha256": "b0a81178930178ee289668ad7c457b76415ce448dda04981c8f85fa1a206100e",
           "result": "Real-PostgreSQL lanes of durable-intent-authority (22), k8s-guest-bindings (7), state-backend-recovery (13), cleanup-writer-barriers (100) and late-effect-receipts (40) passed 182/182 on clean 1650e6c4; these are ungated, recorded as additional evidence. Still missing: build-launch and broker-binding engine cases on a clean commit. Not promoted (independent review, 2026-10-20)."
+        },
+        {
+          "level": "contract",
+          "commit": "ac8e6c87",
+          "command": "ZENITH_TEST_PLATFORM_PG_URL=<owned> ZENITH_CONTRACT_POSTGRES=1 SUPABASE_DB_URL=<owned> ZENITH_FAST=1 vitest run <21 files> --no-file-parallelism --maxWorkers=1",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable PostgreSQL 16 (pinned ZENITH_LOCAL_POSTGRES_IMAGE) on 127.0.0.1:55433 with Supabase stand-in roles; removed after the run.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-ac8e6c87-dur-life06-postgres.json",
+          "result": "Exact-source clause tests: 194 passed / 0 failed / 0 skipped across 7 clause files on clean ac8e6c87."
+        },
+        {
+          "level": "local_engine",
+          "commit": "ac8e6c87",
+          "command": "ZENITH_TEST_PLATFORM_PG_URL=<owned> ZENITH_CONTRACT_POSTGRES=1 SUPABASE_DB_URL=<owned> ZENITH_FAST=1 vitest run <21 files> --no-file-parallelism --maxWorkers=1",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable PostgreSQL 16 (pinned ZENITH_LOCAL_POSTGRES_IMAGE) on 127.0.0.1:55433 with Supabase stand-in roles; removed after the run.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-ac8e6c87-dur-life06-postgres.json",
+          "result": "Real PostgreSQL halves: 136 PostgreSQL cases passed within 194 passed / 0 failed / 0 skipped across 7 clause files on clean ac8e6c87. Not yet wave6-gated."
         }
       ],
       "requiredEvidence": [
@@ -4956,6 +5020,14 @@
           "commit": "94d60798a376c49beaa5c1bc60f14d2e6aa5e430",
           "result": "Offline DNS teardown/readback contracts passed within the59/0/0 offline suite, including tagged child-inventory/endpoint binding and incomplete-inventory refusal controls. No provider calls, real DNS reads/deletes, or live acceptance are established.",
           "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-11-94-bounded-local-gates.json"
+        },
+        {
+          "level": "contract",
+          "commit": "ac8e6c87",
+          "command": "ZENITH_TEST_PLATFORM_PG_URL=<owned> ZENITH_CONTRACT_POSTGRES=1 SUPABASE_DB_URL=<owned> ZENITH_FAST=1 vitest run <21 files> --no-file-parallelism --maxWorkers=1",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable PostgreSQL 16 (pinned ZENITH_LOCAL_POSTGRES_IMAGE) on 127.0.0.1:55433 with Supabase stand-in roles; removed after the run.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-ac8e6c87-dur-life06-postgres.json",
+          "result": "Exact-source clause tests: 126 passed / 0 failed / 0 skipped across 3 clause files on clean ac8e6c87."
         }
       ],
       "requiredEvidence": [

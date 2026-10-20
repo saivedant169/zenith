@@ -68,10 +68,12 @@ jobs:
             real=$(command -v "$tool")
             cat > "$RUNNER_TEMP/shim/$tool" <<EOF
           #!/bin/bash
-          start=\$(date +%s); "$real" "\$@"; rc=\$?
+          start=\$(date +%s); err=\$(mktemp); "$real" "\$@" 2>"\$err"; rc=\$?; cat "\$err" >&2
           words=\$(printf '%s\n' "\$@" | grep -E '^[a-z][a-z-]{1,30}$' | head -6 | tr '\n' ' ')
           echo "\$(date -u +%T) rc=\$rc \$(( \$(date +%s) - start ))s $tool \$words" >> "$RUNNER_TEMP/commands.log"
-          exit \$rc
+          # Failed calls only: up to 20 error lines, dropping any line that names a credential.
+          [ \$rc -eq 0 ] || grep -iE 'error|unhealthy|failed|timed out' "\$err" | grep -viE 'key|token|password|secret|jwt|eyJ' | head -20 | sed 's/^/    /' >> "$RUNNER_TEMP/commands.log"
+          rm -f "\$err"; exit \$rc
           EOF
             chmod +x "$RUNNER_TEMP/shim/$tool"
           done

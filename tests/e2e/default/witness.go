@@ -18,7 +18,15 @@ type result struct {
 	Nonce string `json:"nonce"`
 }
 
-func die() { fmt.Fprintln(os.Stderr, "witness:failed"); os.Exit(1) }
+// die prints a fixed step code only, never a value or path.
+func die(code ...string) {
+	if len(code) == 1 {
+		fmt.Fprintln(os.Stderr, "witness:failed:"+code[0])
+	} else {
+		fmt.Fprintln(os.Stderr, "witness:failed")
+	}
+	os.Exit(1)
+}
 
 const uncertaintyMarker = "uncertainty-ready.json"
 
@@ -127,10 +135,10 @@ func holdRead(nonce string) {
 
 func write(name string, value []byte) {
 	if err := os.WriteFile(name, value, 0600); err != nil {
-		die()
+		die("write-file")
 	}
 	if err := os.Chown(name, 65532, 65532); err != nil {
-		die()
+		die("write-chown")
 	}
 }
 func main() {
@@ -216,33 +224,33 @@ func main() {
 			Credential string          `json:"credential"`
 		}
 		if err := json.NewDecoder(io.LimitReader(os.Stdin, 65536)).Decode(&input); err != nil {
-			die()
+			die("seed-input")
 		}
 		info, err := os.Lstat("/witness")
 		if err != nil || info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
-			die()
+			die("seed-lstat")
 		}
 		stat, ok := info.Sys().(*syscall.Stat_t)
 		if !ok || stat.Uid != 65532 || stat.Gid != 65532 || info.Mode().Perm() != 0700 {
-			die()
+			die("seed-owner")
 		}
 		// The fresh volume inherits the image's 65532-owned private directory.
 		// CHOWN is the sole added capability; take ownership before changing it.
 		if err := os.Chown("/witness", 0, 0); err != nil {
-			die()
+			die("seed-chown-root")
 		}
 		if err := os.Chmod("/witness", 0700); err != nil {
-			die()
+			die("seed-chmod")
 		}
 		entries, err := os.ReadDir("/witness")
 		if err != nil || len(entries) != 0 {
-			die()
+			die("seed-nonempty")
 		}
 		write("/witness/config.json", input.Config)
 		write("/witness/registration-token", []byte(input.Token))
 		write("/witness/local-credential", []byte(input.Credential))
 		if err := os.Chown("/witness", 65532, 65532); err != nil {
-			die()
+			die("seed-chown")
 		}
 	case "write":
 		if len(os.Args) != 3 || len(os.Args[2]) != 24 {

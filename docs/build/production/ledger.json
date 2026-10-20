@@ -4536,6 +4536,22 @@
           "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 with Supabase-accurate roles; owned Temporal CLI; real OpenTofu 1.12.5 with pg_dump/pg_restore 16.",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-0ae437bc-dur-combined.json",
           "result": "216 passed / 0 failed / 0 skipped across 5 clause files on clean 0ae437bc (79 real PostgreSQL cases). Added: fd86bd04/0ae437bc: per-component dispatch refusal on memory and postgres lanes, exact refusing gate asserted, no write; destroy-semantics postgres lane."
+        },
+        {
+          "level": "contract",
+          "commit": "6a82de213bd63f5890366a0e25457a1368467bbb",
+          "command": "combined DUR batch (scratchpad run-dur-all.sh)",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 with Supabase-accurate roles, migrated by scripts/platform/migrate.ts; owned Temporal CLI; real OpenTofu 1.12.5 with pg_dump/pg_restore 16.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-6a82de21-dur-combined.json",
+          "result": "238 passed / 0 failed / 0 skipped across 5 clause files on clean 6a82de21 (90 real PostgreSQL cases). Added: 6a82de21: teardown dispatch refuses 10 changed components (semantics, tofu-plan and reviewed-plan gates) with no tofu_apply on both lanes. Recipe and provenance at rollout/migration are reachable through built images (admitBuiltArtifacts, assertOperationSemantics) but the fakes do not model signed provenance, so those rows are not tested."
+        },
+        {
+          "level": "local_engine",
+          "commit": "6a82de213bd63f5890366a0e25457a1368467bbb",
+          "command": "combined DUR batch (scratchpad run-dur-all.sh)",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 with Supabase-accurate roles, migrated by scripts/platform/migrate.ts; owned Temporal CLI; real OpenTofu 1.12.5 with pg_dump/pg_restore 16.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-6a82de21-dur-combined.json",
+          "result": "238 passed / 0 failed / 0 skipped across 5 clause files on clean 6a82de21 (90 real PostgreSQL cases). Added: 6a82de21: teardown dispatch refuses 10 changed components (semantics, tofu-plan and reviewed-plan gates) with no tofu_apply on both lanes. Recipe and provenance at rollout/migration are reachable through built images (admitBuiltArtifacts, assertOperationSemantics) but the fakes do not model signed provenance, so those rows are not tested."
         }
       ],
       "requiredEvidence": [
@@ -4641,6 +4657,30 @@
           "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 with Supabase-accurate roles; owned Temporal CLI; real OpenTofu 1.12.5 with pg_dump/pg_restore 16.",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-0ae437bc-dur-combined.json",
           "result": "637 passed / 0 failed / 3 skipped across 9 clause files on clean 0ae437bc (201 real PostgreSQL cases). Added: 1b97fbda (05199c58): forced reviewed destroy approval, database delete/restore and stateful delete behind approval at autonomy 5; Rego suite 219/219 under OPA 1.19.1."
+        },
+        {
+          "level": "contract",
+          "commit": "6a82de213bd63f5890366a0e25457a1368467bbb",
+          "command": "combined DUR batch (scratchpad run-dur-all.sh)",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 with Supabase-accurate roles, migrated by scripts/platform/migrate.ts; owned Temporal CLI; real OpenTofu 1.12.5 with pg_dump/pg_restore 16.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-6a82de21-dur-combined.json",
+          "result": "659 passed / 0 failed / 3 skipped across 10 clause files on clean 6a82de21 (201 real PostgreSQL cases). Added: 1a7e97b3: autonomy 5 requires approval for database delete/restore in sbx and stg; deploy-e2e real broker and policy refuse rollout dispatch after a post-approval tightening to deny. Migration-dispatch variant not covered (fixture has no migration)."
+        },
+        {
+          "level": "local_engine",
+          "commit": "6a82de213bd63f5890366a0e25457a1368467bbb",
+          "command": "combined DUR batch (scratchpad run-dur-all.sh)",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 with Supabase-accurate roles, migrated by scripts/platform/migrate.ts; owned Temporal CLI; real OpenTofu 1.12.5 with pg_dump/pg_restore 16.",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-6a82de21-dur-combined.json",
+          "result": "659 passed / 0 failed / 3 skipped across 10 clause files on clean 6a82de21 (201 real PostgreSQL cases). Added: 1a7e97b3: autonomy 5 requires approval for database delete/restore in sbx and stg; deploy-e2e real broker and policy refuse rollout dispatch after a post-approval tightening to deny. Migration-dispatch variant not covered (fixture has no migration)."
+        },
+        {
+          "level": "contract",
+          "commit": "23a873a0",
+          "command": "node policy/build.mjs --check (opa 1.19.1)",
+          "environment": "Native Darwin ARM64; opa 1.19.1",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-6a82de21-dur-combined.json",
+          "result": "Rego policy suite PASS 219/219; policy/dist matches a fresh build (sha256 708b2e07eff3762498bbbf8f99c2574717dcf7a8346acf788e3d40e3bce539e1)."
         }
       ],
       "requiredEvidence": [

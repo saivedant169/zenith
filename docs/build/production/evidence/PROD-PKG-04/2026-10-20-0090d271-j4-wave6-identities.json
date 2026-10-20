@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06",
+    "PROD-OBS-04"
+  ],
+  "level": "local_engine",
+  "date": "2026-10-20",
+  "commit": "0090d271",
+  "reason": "Second PKG-04 review: both J4 identities predated the j4.mjs/readiness apiFetch change. Rerun on a commit that includes it.",
+  "environment": "Native Darwin ARM64, Node 22.23.3, Docker Desktop; owned disposable stacks at port offset 1000; protected Supabase/Kong services stayed running (11 before and after).",
+  "cases": [
+    {
+      "id": "wave6-55718f085353604a",
+      "stack": "fresh lean J1 j2-d3550b9d + owned kind target",
+      "command": "scripts/acceptance/maintenance/runbook-fixture.mjs then the manifest vitest argv and wave6-gates.mjs --case",
+      "vitest": {
+        "passed": 1,
+        "failed": 0,
+        "skipped": 1
+      },
+      "verifier": "passed (re-run independently)",
+      "reportSha256": "98451c9912f3edfb7d2329a0561c45de27b5680bedd27c469642be3b96b9a2b3"
+    },
+    {
+      "id": "wave6-72ab835f34c19371",
+      "stack": "fresh deferred J4 j4-9099c3c6",
+      "command": "verifyJ4Prestart + maintenanceEnvironment (owned OpenTofu), then the manifest vitest argv and wave6-gates.mjs --case",
+      "vitest": {
+        "passed": 1,
+        "failed": 0,
+        "skipped": 1
+      },
+      "verifier": "passed (re-run independently)",
+      "reportSha256": "c08889d2b73ce14b82441b1d93d44544160efdfd47d21635a10d50a3280f3f97"
+    }
+  ],
+  "execution": "Run by a delegated agent from prepared scripts; reports, hashes and verifiers checked independently afterwards.",
+  "limits": "Mac lean/deferred stacks with port offset 1000; not the clean-host or default 2+2 topology."
+}

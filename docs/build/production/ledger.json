@@ -3887,6 +3887,14 @@
           "runId": 39458288274,
           "url": "https://github.com/saivedant169/zenith/actions/runs/39458288274",
           "result": "Clean-host default 2 API + 2 worker engine run on the same commit as the green CI: 3/3 cases and verifiers, readiness 19/19, zero owned resources. Customer-agent receipts cited in the evidence file."
+        },
+        {
+          "level": "local_engine",
+          "commit": "0090d271",
+          "command": "wave6 manifest argv for wave6-55718f085353604a and wave6-72ab835f34c19371 with wave6-gates.mjs --case",
+          "environment": "Native Darwin ARM64, Node 22.23.3, Docker Desktop; owned disposable stacks at port offset 1000; protected Supabase/Kong services stayed running (11 before and after).",
+          "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-0090d271-j4-wave6-identities.json",
+          "result": "Both J4 wave6 identities passed again on 0090d271, which includes the apiFetch probe change: signed registered runbook delivery 1/0 and natural-timer maintenance 1/0, verifiers passed."
         }
       ],
       "requiredEvidence": [
@@ -4043,6 +4051,14 @@
           "url": "https://github.com/saivedant169/zenith/actions/runs/39455451832",
           "runId": 39455451832,
           "result": "Clean-host database verification passed on a fresh Linux host (real local Supabase migrations, authorization, concurrent transactions, restore readback). Local engines only: hostedProductionAcceptance=false, so PKG-06 hosted acceptance remains open."
+        },
+        {
+          "level": "local_engine",
+          "commit": "0090d271",
+          "command": "wave6 manifest argv for wave6-55718f085353604a and wave6-72ab835f34c19371 with wave6-gates.mjs --case",
+          "environment": "Native Darwin ARM64, Node 22.23.3, Docker Desktop; owned disposable stacks at port offset 1000; protected Supabase/Kong services stayed running (11 before and after).",
+          "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-0090d271-j4-wave6-identities.json",
+          "result": "Both J4 wave6 identities passed again on 0090d271, which includes the apiFetch probe change: signed registered runbook delivery 1/0 and natural-timer maintenance 1/0, verifiers passed."
         }
       ],
       "requiredEvidence": [
@@ -6180,6 +6196,14 @@
           "environment": "Native Darwin ARM64, Node 22.23.3, Docker Desktop. Owned disposable stacks at port offset 1000 beside the protected Supabase/Kong services, which stayed running (11 before and after). Temporal Server 1.32.0 with frontend and internode mTLS for J4.",
           "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-55aa480b-j4-wave6-identities.json",
           "result": "Both J4 wave6 identities passed on one clean commit: signed registered runbook delivery 1/0 and natural-timer maintenance 1/0 (409 s), verifier exit 0 each. OBS-04 is already verified; this adds the wave6 identity runs."
+        },
+        {
+          "level": "local_engine",
+          "commit": "0090d271",
+          "command": "wave6 manifest argv for wave6-55718f085353604a and wave6-72ab835f34c19371 with wave6-gates.mjs --case",
+          "environment": "Native Darwin ARM64, Node 22.23.3, Docker Desktop; owned disposable stacks at port offset 1000; protected Supabase/Kong services stayed running (11 before and after).",
+          "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-0090d271-j4-wave6-identities.json",
+          "result": "Both J4 wave6 identities passed again on 0090d271, which includes the apiFetch probe change: signed registered runbook delivery 1/0 and natural-timer maintenance 1/0, verifiers passed."
         }
       ],
       "requiredEvidence": [

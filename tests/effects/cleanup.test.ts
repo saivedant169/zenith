@@ -116,15 +116,17 @@ describe.each(LANES)("destroy apply is recorded, deduplicated and never replayed
   let ws: string;
   let op: string;
   let env: string;
+  let fence: number;
   beforeEach(async () => {
     db = await lane.open();
     ws = uid("ws");
     op = uid("op");
     env = uid("env");
-    // the platform operation the effect belongs to, and the live environment lease (fence 1, like the world's first acquire)
+    // the platform operation the effect belongs to, and the live environment lease; the world's fake lease store
+    // starts at the same fence, because a real fence follows the recovery epoch floor rather than starting at 1
     await operations.create(db, { id: op, workspaceId: ws, principal: { kind: "user", id: uid("user"), name: "Alice" }, status: "approved",
       proposal: { capability: "infrastructure.destroy", scope: { workspaceId: ws, projectId: PROJECT, environmentId: env }, input: {}, summary: "Destroy", details: [], risk: "high" } });
-    await leases.acquire(db, { scope: `env:${env}`, holder: "test-holder", ttlMs: 600_000, workspaceId: ws });
+    fence = (await leases.acquire(db, { scope: `env:${env}`, holder: "test-holder", ttlMs: 600_000, workspaceId: ws }))!.fenceToken;
   });
   afterEach(async () => { worlds.splice(0).forEach((w) => w.dispose()); vi.restoreAllMocks(); await db.close(); });
 
@@ -132,6 +134,7 @@ describe.each(LANES)("destroy apply is recorded, deduplicated and never replayed
     const w = createWorld({ op: { id: op, workspaceId: ws, environmentId: env, capability: "infrastructure.destroy", status: "running",
       proposal: { capability: "infrastructure.destroy", scope: { workspaceId: ws, projectId: PROJECT, environmentId: env }, input: {}, summary: "Destroy", details: [], risk: "high" } } });
     worlds.push(w);
+    w.leases.startFenceAt(`env:${env}`, fence);
     w.product.base.workspace.id = ws;
     w.product.base.environment.id = env;
     w.product.base.environment.provider = "zenith";

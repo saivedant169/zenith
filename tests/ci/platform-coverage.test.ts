@@ -1,4 +1,4 @@
-import { integrationWorkflowIds, integrationPlatformIds, incomingWorkflowIds, wave5PlatformIds, wave5WorkflowIds, withoutIncomingPlatform as withoutIncomingPlatformCohort } from "./incoming-cohort-fixture";
+import { destroyApplyLaneIds, integrationWorkflowIds, integrationPlatformIds, incomingWorkflowIds, wave5PlatformIds, wave5WorkflowIds, withoutIncomingPlatform as withoutIncomingPlatformCohort } from "./incoming-cohort-fixture";
 /**
  * Parsed workflow gates cover the platform that exists. Suite discovery catches
  * narrower filters; mandatory evidence reports catch skipped real-engine tests.
@@ -140,7 +140,7 @@ const ownershipSnapshotCasIds = new Set([
   "platform-postgres:tests/controlplane/ownership-transfers.test.ts:10a59cc38f80"
 ]);
 function priorOwnershipSnapshotRequirements(requirements: ReturnType<typeof requirementsFor>) {
-  return requirements.filter(item => !ownershipSnapshotCasIds.has(item.id));
+  return requirements.filter(item => !ownershipSnapshotCasIds.has(item.id) && !destroyApplyLaneIds.has(item.id));
 }
 function withoutIncomingPlatform(requirements: ReturnType<typeof requirementsFor>) {
   return withoutIncomingPlatformCohort(priorOwnershipSnapshotRequirements(requirements));
@@ -866,14 +866,14 @@ describe("saved builtin settlement mandatory CI admission", () => {
     const manifest = manifestFor("platform-postgres", root);
     const added = currentSuccessorPlatformCohort.map(item => ({ ...item, id: requirementId("platform-postgres", item) }));
     expect(manifest.requirements.filter(item => added.some(value => value.id === item.id)).sort((a, b) => a.id.localeCompare(b.id))).toEqual(added.sort((a, b) => a.id.localeCompare(b.id)));
-    expect(manifest.requirements).toHaveLength(1160);
-    expect(new Set(manifest.requirements.map(item => item.id)).size).toBe(1160);
+    expect(manifest.requirements).toHaveLength(1161);
+    expect(new Set(manifest.requirements.map(item => item.id)).size).toBe(1161);
     const mixedStore = manifest.requirements.filter(item => item.file === "tests/execution/mixed-run-store.test.ts");
     expect(mixedStore).toHaveLength(5);
     expect(mixedStore.every(item => item.postgres && item.suite === "mixed run store validation [postgres]" && item.test)).toBe(true);
     const beforeMixedStore = manifest.requirements.filter(item => !mixedStore.some(addition => addition.id === item.id));
-    expect(beforeMixedStore).toHaveLength(1155);
-    expect(beforeMixedStore.filter(item => !wave5PlatformIds.has(item.id))).toHaveLength(1152);
+    expect(beforeMixedStore).toHaveLength(1156);
+    expect(beforeMixedStore.filter(item => !wave5PlatformIds.has(item.id))).toHaveLength(1153);
     const prior = priorOwnershipSnapshotRequirements(manifest.requirements);
     expect(prior).toHaveLength(1150);
     expect(createHash("sha256").update(JSON.stringify(prior.map(item => item.id).sort())).digest("hex"))

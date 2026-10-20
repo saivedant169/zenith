@@ -85,6 +85,9 @@ export class FakeLeases implements LeasesPort {
   acquireCalls: { scope: string; holder: string; workspaceId?: string; ttlMs: number }[] = [];
   readonly assertCalls: { scope: string; fenceToken: number }[] = [];
 
+  /** Make the next acquire of `scope` return fence `next`, to match a real platform lease (its floor follows the recovery epoch). */
+  startFenceAt(scope: string, next: number): void { this.counters.set(scope, next - 1); }
+
   async acquire(input: { scope: string; holder: string; ttlMs: number; workspaceId?: string }): Promise<Lease | null> {
     this.acquireCalls.push(input);
     const live = this.state.get(input.scope);

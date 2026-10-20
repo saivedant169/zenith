@@ -98,10 +98,12 @@ describe("DRV-1 offline boundary and receipts", () => {
 });
 describe("DRV-1 immutable source and release readback", () => {
   it("requires a bounded native source executable and a dedicated worker without host injection", () => {
-    const bytes = Buffer.alloc(64); Buffer.from([127,69,76,70,2,1]).copy(bytes); bytes.writeUInt16LE(183,18);
+    // The host's own ELF machine is accepted and the other one refused: arm64 is 183, x86_64 is 62.
+    const native = process.arch === "x64" ? 62 : 183, foreign = native === 62 ? 183 : 62;
+    const bytes = Buffer.alloc(64); Buffer.from([127,69,76,70,2,1]).copy(bytes); bytes.writeUInt16LE(native,18);
     expect(sourceBinary(bytes)).toBe(bytes.toString("base64"));
     for (const invalid of [Buffer.alloc(64), Buffer.alloc(600 * 1024 + 1), Buffer.from(bytes)]) {
-      if (invalid.equals(bytes)) invalid.writeUInt16LE(62,18);
+      if (invalid.equals(bytes)) invalid.writeUInt16LE(foreign,18);
       expect(() => sourceBinary(invalid)).toThrow();
     }
     const config = { kind: "Cluster", apiVersion: "kind.x-k8s.io/v1alpha4", networking: { apiServerAddress: "127.0.0.1", disableDefaultCNI: true, podSubnet: "10.244.0.0/16" }, nodes: [{role:"control-plane"},{role:"worker"}] };

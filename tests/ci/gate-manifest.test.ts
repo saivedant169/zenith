@@ -1,4 +1,4 @@
-import { integrationWorkflowIds, integrationPlatformIds, historyCodecWorkflowId, mixedRunStorePlatformIds, wave5PlatformIds, wave5WorkflowIds, incomingPlatformIds, incomingWorkflowFiles, incomingWorkflowIds, withoutIncomingPlatform as withoutIncomingPlatformCohort } from "./incoming-cohort-fixture";
+import { destroyApplyLaneIds, integrationWorkflowIds, integrationPlatformIds, historyCodecWorkflowId, mixedRunStorePlatformIds, wave5PlatformIds, wave5WorkflowIds, incomingPlatformIds, incomingWorkflowFiles, incomingWorkflowIds, withoutIncomingPlatform as withoutIncomingPlatformCohort } from "./incoming-cohort-fixture";
 /** Shared gate commands preserve required local engines and precisely scoped external acceptance. */
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -340,7 +340,7 @@ const ownershipSnapshotCasIds = new Set([
   "platform-postgres:tests/controlplane/ownership-transfers.test.ts:10a59cc38f80"
 ]);
 function priorOwnershipSnapshotRequirements(requirements: Requirement[]): Requirement[] {
-  return requirements.filter(item => !ownershipSnapshotCasIds.has(item.id));
+  return requirements.filter(item => !ownershipSnapshotCasIds.has(item.id) && !destroyApplyLaneIds.has(item.id));
 }
 function withoutIncomingPlatform(requirements: Requirement[]): Requirement[] {
   return withoutIncomingPlatformCohort(priorOwnershipSnapshotRequirements(requirements));
@@ -2616,9 +2616,9 @@ describe("current platform discovery successors [report models]", () => {
       try {
         const after = requirementsFor("platform-postgres", sourceRoot);
         expect(after.some(value => value.id === id)).toBe(false);
-        expect(after).toHaveLength(1159);
-        expect(after.filter(value => !mixedRunStorePlatformIds.has(value.id))).toHaveLength(1154);
-        expect(after.filter(value => !mixedRunStorePlatformIds.has(value.id) && !wave5PlatformIds.has(value.id))).toHaveLength(1151);
+        expect(after).toHaveLength(1160);
+        expect(after.filter(value => !mixedRunStorePlatformIds.has(value.id))).toHaveLength(1155);
+        expect(after.filter(value => !mixedRunStorePlatformIds.has(value.id) && !wave5PlatformIds.has(value.id))).toHaveLength(1152);
         expect(priorCurrentSuccessorPlatformRequirements(sourceRoot)).toEqual(priorCurrentSuccessorPlatformRequirements());
       } finally {
         // Each deletion still begins with the complete tree; restore its exact
@@ -2643,7 +2643,7 @@ describe("registered incident and ownership hardening [report models]", () => {
     const current = requirementsFor("platform-postgres", root), previous = priorHardeningPlatformRequirements();
     const added = INCIDENT_OWNERSHIP_HARDENING_POSTGRES_REQUIREMENTS.map(item => ({ ...item, id: requirementId("platform-postgres", item) }));
     expect(previous).toHaveLength(1119); expect(new Set(previous.map(item => item.id)).size).toBe(1119);
-    expect(current).toHaveLength(1160); expect(new Set(current.map(item => item.id)).size).toBe(1160);
+    expect(current).toHaveLength(1161); expect(new Set(current.map(item => item.id)).size).toBe(1161);
     expect(current.filter(item => hardeningPlatformIds.includes(item.id))).toEqual(added);
     expect(withoutIncomingPlatform(current).map(item => item.id).sort()).toEqual([...previous, ...added].map(item => item.id).sort());
     expect(priorCurrentSuccessorPlatformRequirements()).toHaveLength(1113);
@@ -2953,7 +2953,7 @@ describe("mandatory owned critical scheduling [source/report models]", () => {
     expect(manifest.excludeFiles).not.toContain(file);
     expect(manifest.command).not.toContain("--passWithNoTests");
     expect(reportFailures(named(), contractReport(named()), root)).toEqual([]);
-    expect(requirementsFor("platform-postgres", root)).toHaveLength(1160);
+    expect(requirementsFor("platform-postgres", root)).toHaveLength(1161);
     expect(CLEANUP_WRITER_BARRIER_POSTGRES_REQUIREMENTS).toHaveLength(46);
     expect(SAVED_PLAN_SETTLEMENT_POSTGRES_REQUIREMENTS).toHaveLength(54);
     expect(requirementsFor("postgres", root)).toHaveLength(93);
@@ -3138,7 +3138,7 @@ describe("mandatory live agent journal PostgreSQL cases [report models]", () => 
 describe("incoming platform and workflow obligations", () => {
   it("requires every fixed additive native identity without losing historical obligations", () => {
     const current = requirementsFor("platform-postgres", root);
-    expect(current).toHaveLength(1160);
+    expect(current).toHaveLength(1161);
     const added = current.filter(item => incomingPlatformIds.has(item.id));
     expect(added).toHaveLength(23);
     expect(new Set(added.map(item => item.id))).toEqual(incomingPlatformIds);
@@ -3237,7 +3237,7 @@ describe("mixed run store application-boundary gate", () => {
     expect(new Set(required.map(item => item.id))).toEqual(mixedRunStorePlatformIds);
     const prior = priorOwnershipSnapshotRequirements(current).filter(item => !mixedRunStorePlatformIds.has(item.id) && !integrationPlatformIds.has(item.id));
     const verifierPrior = prior.filter(item => !wave5PlatformIds.has(item.id));
-    expect(current).toHaveLength(1160); expect(prior).toHaveLength(1144);
+    expect(current).toHaveLength(1161); expect(prior).toHaveLength(1144);
     expect(createHash("sha256").update(JSON.stringify(prior.map(item => item.id).sort())).digest("hex"))
       .toBe("9853b95bb67ad11ca77d19ead6db0f484fe718abf7c09b9cb144766806be2873");
     expect(verifierPrior).toHaveLength(1141);
@@ -3417,8 +3417,8 @@ describe("ownership snapshot final-statement PostgreSQL requirements", () => {
   it("adds ten exact native cases and preserves the complete 1146 predecessor", () => {
     const current = requirementsFor("platform-postgres", root);
     const required = current.filter(item => ownershipSnapshotCasIds.has(item.id));
-    expect(current).toHaveLength(1160);
-    expect(new Set(current.map(item => item.id)).size).toBe(1160);
+    expect(current).toHaveLength(1161);
+    expect(new Set(current.map(item => item.id)).size).toBe(1161);
     expect(required).toEqual(OWNERSHIP_SNAPSHOT_CAS_POSTGRES_REQUIREMENTS.map(item => ({ ...item, id: requirementId("platform-postgres", item) })));
     expect(required).toHaveLength(10);
     expect(required.every(item => item.postgres === true && item.suite === "ownership transfer immutable service-role custody [postgres]")).toBe(true);

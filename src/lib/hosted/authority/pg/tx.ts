@@ -4,7 +4,7 @@
  *
  * **Same shape, same rules.**
  *
- *  - The outermost frame is `BEGIN … COMMIT` on a reserved connection, and
+ *  - The outermost frame is `BEGIN … COMMIT` (postgres.js `sql.begin`), and
  *    `transactPg()` resolves only after the commit succeeded.
  *  - A nested call opens a `SAVEPOINT` and rolls back to it alone on failure,
  *    so an inner helper's failure does not discard its caller's work.
@@ -20,13 +20,13 @@
  * would read `true` and open a savepoint inside a transaction it does not own —
  * losing it the moment the owner committed. The async context answers for *this
  * flow*, which is the question that matters. A flow that is not inside our
- * transaction reserves a fresh connection, and the driver's own pool is what
+ * transaction takes a fresh `sql.begin`, and the driver's own pool is what
  * makes it wait.
  *
  * **No mutex, unlike SQLite.** The SQLite authority serialises every
  * transaction because `DatabaseSync` is one connection and two interleaved
- * `BEGIN`s would produce a commit belonging to neither. Each transaction here
- * reserves its connection for its duration, so two overlapping
+ * `BEGIN`s would produce a commit belonging to neither. postgres.js hands each
+ * `sql.begin` a connection reserved for its duration, so two overlapping
  * transactions are two transactions and Postgres arbitrates between them — with
  * `40001` or `40P01` when they genuinely conflict, which is what the retry
  * above is for.
@@ -101,8 +101,12 @@ export async function transactPg<T>(
   let last: unknown;
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
-      // Resolves after COMMIT, which is the whole contract.
-      return await reservedTransaction(client, (tx) => inTransaction.run({ sql: tx, depth: 0 }, () => fn(tx)));
+      // `sql.begin` resolves after COMMIT, which is the whole contract. The
+      // cast is the driver's: `begin` unwraps an array return value, and this
+      // helper promises the callback's own type back unchanged.
+      return (await client.begin((tx) =>
+        inTransaction.run({ sql: tx as TransactionSql, depth: 0 }, () => fn(tx as TransactionSql))
+      )) as T;
     } catch (err) {
       if (!isRetryable(err)) throw err;
       last = err;
@@ -115,7 +119,7 @@ export async function transactPg<T>(
 /**
  * `SAVEPOINT` … `RELEASE` around `fn`, with `ROLLBACK TO` on a throw.
  *
- * All three run on the transaction's own connection; the depth counter makes
+ * postgres.js issues all three; what this adds is the depth counter, so
  * sibling savepoints at the same level reuse a name and nested ones do not.
  * The depth is restored in `finally` whichever way the frame left, or the next
  * sibling would nest inside a savepoint that is already gone.
@@ -127,42 +131,10 @@ async function withSavepoint<T>(
   const level = open.depth + 1;
   const name = savepointName(level);
   try {
-    await open.sql.unsafe(`savepoint ${name}`);
-    try {
-      const value = await inTransaction.run({ sql: open.sql, depth: level }, () => fn(open.sql));
-      await open.sql.unsafe(`release savepoint ${name}`);
-      return value;
-    } catch (err) {
-      await open.sql.unsafe(`rollback to savepoint ${name}`);
-      throw err;
-    }
+    return (await open.sql.savepoint(name, (sp) =>
+      inTransaction.run({ sql: sp as TransactionSql, depth: level }, () => fn(sp as TransactionSql))
+    )) as T;
   } finally {
     open.depth = level - 1;
-  }
-}
-
-/**
- * `BEGIN` … `COMMIT` on a connection reserved for the whole transaction, `ROLLBACK` on a throw.
- *
- * Supavisor's transaction mode loses replies queued behind a pipelined root statement, so the client runs with
- * `max_pipeline: 0`; Postgres.js 3.4 `sql.begin` then never reserves its connection (porsager/postgres#1211).
- * A reserved connection carries the transaction instead, and the callback's value comes back unchanged.
- */
-async function reservedTransaction<T>(client: Sql, fn: (tx: TransactionSql) => Promise<T>): Promise<T> {
-  const reserved = await client.reserve();
-  const tx = reserved as unknown as TransactionSql;
-  try {
-    await tx.unsafe("begin");
-    let value: T;
-    try {
-      value = await fn(tx);
-    } catch (err) {
-      await tx.unsafe("rollback").catch(() => undefined);
-      throw err;
-    }
-    await tx.unsafe("commit");
-    return value;
-  } finally {
-    reserved.release();
   }
 }

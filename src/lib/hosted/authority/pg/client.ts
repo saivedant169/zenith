@@ -155,7 +155,7 @@ function createClient(url:string,defaultCreated:boolean):Sql {
     // See the header: transaction-mode pooling forbids named prepares.
     prepare: false,
     // Supavisor transaction mode never forwards a root statement pipelined behind a busy one, and with max: 1 every
-    // later query then waits forever (porsager/postgres#970). Transactions use a reserved connection (pg/tx.ts).
+    // later query then waits forever (porsager/postgres#970). begin() is replaced below to keep transactions working.
     // The 3.4 type declarations omit max_pipeline; the driver reads it like max.
     ...({ max_pipeline: 0 } as object),
     // No `search_path` startup parameter: Supavisor is free to refuse a
@@ -174,6 +174,7 @@ function createClient(url:string,defaultCreated:boolean):Sql {
     const end=client.end;let closed=false;
     const wrapped:Sql["end"]=(...args)=>{closed=true;const saved=clientOrigins.get(client);if(saved)saved.closed=true;return end(...args);};
     Object.defineProperty(client,"end",{...Object.getOwnPropertyDescriptor(client,"end"),value:wrapped});
+    Object.defineProperty(client,"begin",{...Object.getOwnPropertyDescriptor(client,"begin"),value:reservedBegin(client)});
     const nested=["connection","transform","host","port"].map(key=>ownObject(options,key)).filter((value):value is object=>!!value);
     const transform=ownObject(options,"transform");
     if(transform)for(const key of ["column","value","row"]){const value=ownObject(transform,key);if(value)nested.push(value);}
@@ -188,6 +189,49 @@ function createClient(url:string,defaultCreated:boolean):Sql {
       serializers:new Map(["16","25","1043","114","3802","23"].map(key=>[key,Object.getOwnPropertyDescriptor(serializers,key)])),closed,defaultCreated});
   }
   return client;
+}
+
+/**
+ * `sql.begin` on a connection reserved for the whole transaction.
+ *
+ * With max_pipeline: 0, Postgres.js 3.4's own begin() never reserves its connection (its onexecute hook is skipped,
+ * porsager/postgres#1211), so every caller would fail. This keeps begin's contract: optional mode, savepoints named
+ * `s<n>_<name>` and rolled back on a throw, an array result awaited, ROLLBACK on a throw. A COMMIT the server answers
+ * with ROLLBACK (an unawaited statement failed) is an error, never a silent success.
+ */
+export function reservedBegin(client: Sql): Sql["begin"] {
+  return (async (...args: unknown[]) => {
+    const fn = args.pop() as (tx: TransactionSql) => unknown;
+    const mode = typeof args[0] === "string" ? args[0].replace(/[^a-z ]/gi, "") : "";
+    const reserved = await client.reserve();
+    const tx = reserved as unknown as TransactionSql;
+    let savepoints = 0;
+    const scope = async (body: (sql: TransactionSql) => unknown, name?: string): Promise<unknown> => {
+      try {
+        const value = body(tx);
+        return await (Array.isArray(value) ? Promise.all(value) : value);
+      } catch (err) {
+        await tx.unsafe(name ? `rollback to ${name}` : "rollback");
+        throw err;
+      }
+    };
+    Object.defineProperty(tx, "savepoint", { value: async (...sp: unknown[]) => {
+      const body = sp.pop() as (sql: TransactionSql) => unknown;
+      const label = typeof sp[0] === "string" ? `_${sp[0].replace(/[^a-z0-9_]/gi, "")}` : "";
+      const name = `s${savepoints++}${label}`;
+      await tx.unsafe(`savepoint ${name}`);
+      return scope(body, name);
+    } });
+    try {
+      await tx.unsafe(`begin ${mode}`);
+      const value = await scope(fn);
+      const done = (await tx.unsafe("commit")) as unknown as { command?: string };
+      if (done.command !== "COMMIT") throw new HostedError("internal", "The transaction was rolled back by the database: a statement in it failed.");
+      return value;
+    } finally {
+      reserved.release();
+    }
+  }) as Sql["begin"];
 }
 
 /** Close the process-wide client and forget it. Tests and scripts; a server exits. */

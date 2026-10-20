@@ -1,8 +1,9 @@
 /**
- * PROD-DUR-06: the S3 state adapter against a REAL S3-compatible server (MinIO) in an owned, disposable container.
- * Gated by ZENITH_TEST_MINIO=1. The store is built through s3StoreFromSession; the session hands it the real AWS SDK
- * client pointed at MinIO (path-style, 127.0.0.1). Nothing is faked here. Where MinIO lacks a feature the adapter
- * needs, that case fails and is reported; it is not simulated. No delete command is ever sent by this suite.
+ * PROD-DUR-06: the S3 state adapter against a REAL S3-compatible server in an owned, disposable container.
+ * Gated by ZENITH_TEST_MINIO=1. Engine chosen by ZENITH_TEST_S3_ENGINE: "minio" (default, needs ZENITH_TEST_MINIO_IMAGE)
+ * or "localstack" (digest-pinned default image, SERVICES=s3). The store is built through s3StoreFromSession; the session
+ * hands it the real AWS SDK client pointed at 127.0.0.1 (path-style). Nothing is faked here. Where a server lacks a
+ * feature the adapter needs, that case fails and is reported; it is not simulated. No delete command is ever sent.
  */
 import { execFileSync } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
@@ -14,9 +15,13 @@ import { s3StoreFromSession, type StateBackendStore } from "@/lib/tofu/state-bac
 // quay.io requires authentication. Set ZENITH_TEST_MINIO_IMAGE to a digest-pinned ref (minio/minio@sha256:...) until
 // a digest is recorded here.
 const DEFAULT_MINIO_IMAGE = "";
+// LocalStack 4.14.0, digest-pinned (Docker Hub localstack/localstack, resolved from the 4.14.0 tag).
+const DEFAULT_LOCALSTACK_IMAGE = "localstack/localstack@sha256:3ebc37595918b8accb852f8048fef2aff047d465167edd655528065b07bc364a";
+const ENGINE = process.env.ZENITH_TEST_S3_ENGINE ?? "minio";
 const DOCKER = process.env.ZENITH_TEST_DOCKER ?? "docker";
 const REGION = "us-east-1";
-const PORT = Number(process.env.ZENITH_TEST_MINIO_PORT ?? 55451);
+const PORT = ENGINE === "localstack" ? Number(process.env.ZENITH_TEST_LOCALSTACK_PORT ?? 55452) : Number(process.env.ZENITH_TEST_MINIO_PORT ?? 55451);
+const CONTAINER_PORT = ENGINE === "localstack" ? 4566 : 9000;
 const BASE = `zenith/ws_1/env_${randomBytes(3).toString("hex")}`;
 const KEY_MAIN = `${BASE}/main/terraform.tfstate`;
 const KEY_RACE = `${BASE}/race/terraform.tfstate`;
@@ -63,13 +68,18 @@ function store(bucket: string, key: string, beforeSend?: (command: Command) => P
   return s3StoreFromSession(session(beforeSend), { kind: "s3", bucket }, REGION, key);
 }
 
+async function healthy(): Promise<boolean> {
+  try {
+    if (ENGINE !== "localstack") return (await fetch(`${endpoint}/minio/health/live`)).ok;
+    const res = await fetch(`${endpoint}/_localstack/health`);
+    return res.ok && ((await res.json()) as { services?: Record<string, string> }).services?.s3 === "available";
+  } catch { return false; /* not listening yet */ }
+}
+
 async function waitHealthy(timeoutMs: number): Promise<void> {
   const deadline = Date.now() + timeoutMs;
-  for (;;) {
-    try {
-      if ((await fetch(`${endpoint}/minio/health/live`)).ok) return;
-    } catch { /* not listening yet */ }
-    if (Date.now() > deadline) throw new Error("MinIO did not become healthy in time");
+  while (!(await healthy())) {
+    if (Date.now() > deadline) throw new Error(`${ENGINE} did not become healthy in time`);
     await new Promise(resolve => setTimeout(resolve, 500));
   }
 }
@@ -84,24 +94,27 @@ async function put(bucket: string, key: string, body: Buffer): Promise<{ Version
   return admin.send(new sdk.PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: "application/json" }));
 }
 
-describe.skipIf(process.env.ZENITH_TEST_MINIO !== "1")("S3 state adapter against MinIO", () => {
+describe.skipIf(process.env.ZENITH_TEST_MINIO !== "1")(`S3 state adapter against ${ENGINE}`, () => {
   let v1 = "";
   let v1Etag = "";
 
   beforeAll(async () => {
-    const image = process.env.ZENITH_TEST_MINIO_IMAGE || DEFAULT_MINIO_IMAGE;
+    if (ENGINE !== "minio" && ENGINE !== "localstack") throw new Error("ZENITH_TEST_S3_ENGINE must be minio or localstack.");
+    const image = ENGINE === "localstack" ? (process.env.ZENITH_TEST_LOCALSTACK_IMAGE || DEFAULT_LOCALSTACK_IMAGE) : (process.env.ZENITH_TEST_MINIO_IMAGE || DEFAULT_MINIO_IMAGE);
     if (!image) throw new Error("ZENITH_TEST_MINIO=1 but no MinIO image is pinned: set ZENITH_TEST_MINIO_IMAGE or DEFAULT_MINIO_IMAGE.");
-    if (!Number.isInteger(PORT) || PORT < 55450 || PORT > 55460) throw new Error("ZENITH_TEST_MINIO_PORT must be within 55450-55460.");
-    const name = `zenith-minio-test-${randomBytes(4).toString("hex")}`;
+    if (!Number.isInteger(PORT) || PORT < 55450 || PORT > 55460) throw new Error("the test port must be within 55450-55460.");
+    const name = `zenith-${ENGINE}-test-${randomBytes(4).toString("hex")}`;
     const root = { user: `zen${randomBytes(6).toString("hex")}`, password: randomBytes(24).toString("hex") };
     // SSE-S3 needs a local KMS key on MinIO. Passed through the environment so it never appears in argv.
     const kmsKey = `zenith-test:${randomBytes(32).toString("base64")}`;
-    docker(["run", "-d", "--name", name, "-p", `127.0.0.1:${PORT}:9000`, "-e", "MINIO_ROOT_USER", "-e", "MINIO_ROOT_PASSWORD", "-e", "MINIO_KMS_SECRET_KEY", image, "server", "/data"],
-      { MINIO_ROOT_USER: root.user, MINIO_ROOT_PASSWORD: root.password, MINIO_KMS_SECRET_KEY: kmsKey });
+    const runArgs = ENGINE === "localstack"
+      ? ["run", "-d", "--name", name, "-p", `127.0.0.1:${PORT}:${CONTAINER_PORT}`, "-e", "SERVICES=s3", image]
+      : ["run", "-d", "--name", name, "-p", `127.0.0.1:${PORT}:${CONTAINER_PORT}`, "-e", "MINIO_ROOT_USER", "-e", "MINIO_ROOT_PASSWORD", "-e", "MINIO_KMS_SECRET_KEY", image, "server", "/data"];
+    docker(runArgs, ENGINE === "localstack" ? {} : { MINIO_ROOT_USER: root.user, MINIO_ROOT_PASSWORD: root.password, MINIO_KMS_SECRET_KEY: kmsKey });
     container = name;
     endpoint = `http://127.0.0.1:${PORT}`;
     credentials = { accessKeyId: root.user, secretAccessKey: root.password };
-    await waitHealthy(60_000);
+    await waitHealthy(120_000);
     admin = session().client(sdk.S3Client as unknown as S3Ctor, { region: REGION });
     versionedBucket = `zenith-state-v-${randomBytes(4).toString("hex")}`;
     unversionedBucket = `zenith-state-u-${randomBytes(4).toString("hex")}`;

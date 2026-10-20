@@ -123,9 +123,9 @@ export async function upLocal(profile: Profile, variant: "lambda" | "container",
 
     const networks = (await command(["docker", "network", "ls", "-q"], env, exec)).trim().split(/\s+/).filter(Boolean);
     if (networks.length) {
-      const configs = JSON.parse(await command(["docker", "network", "inspect", ...networks], env, exec)) as { IPAM: { Config: { Subnet?: string }[] } }[];
+      const configs = JSON.parse(await command(["docker", "network", "inspect", ...networks], env, exec)) as { IPAM: { Config: { Subnet?: string }[] | null } }[];
       const { cidrsOverlap, parseCidr } = await import("@/lib/execution/mixed/connectivity");
-      if (configs.some(n => n.IPAM.Config.some(c => c.Subnet && parseCidr(c.Subnet) && cidrsOverlap(parseCidr(c.Subnet)!, parseCidr("172.30.115.0/24")!)))) throw new Error("ACME subnet overlaps an existing Docker network");
+      if (configs.some(n => (n.IPAM.Config ?? []).some(c => c.Subnet && parseCidr(c.Subnet) && cidrsOverlap(parseCidr(c.Subnet)!, parseCidr("172.30.115.0/24")!)))) throw new Error("ACME subnet overlaps an existing Docker network");
     }
   }
   const state: LocalState = { schema: 1, ...paths, profile, variant, kubeconfig: path.join(paths.root, "kubeconfig"), createdCluster: false, ready: false };

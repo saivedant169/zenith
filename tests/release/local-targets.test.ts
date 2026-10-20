@@ -94,6 +94,12 @@ describe("owned engine setup", () => {
       expect(calls.every(c => c.includes("get") || c.includes("ps") || c.includes("context"))).toBe(true);
     }
   });
+  it("reads host/none networks with null IPAM config and still refuses an ACME subnet overlap", async () => {
+    const root = mkdtempSync(path.join(os.tmpdir(), `zenith-j15-${runId}-`));
+    const networks = [{ IPAM: { Config: null } }, { IPAM: { Config: [{ Subnet: "172.30.115.0/25" }] } }];
+    const exec: Exec = async argv => ({ code: 0, stdout: argv.includes("context") ? "unix:///local.sock" : argv.includes("ls") ? "host\nowned\n" : argv.includes("inspect") ? JSON.stringify(networks) : "", stderr: "" });
+    await expect(upLocal("acme", "lambda", { ZENITH_LOCAL_TARGETS: "1", ZENITH_LOCAL_RUN_ID: runId, ZENITH_LOCAL_ROOT: root }, exec)).rejects.toThrow("ACME subnet overlaps");
+  });
   it("refuses foreign cleanup state before touching Docker or kind", async () => {
     const root = mkdtempSync(path.join(os.tmpdir(), `zenith-j15-${runId}-`));
     writeFileSync(path.join(root, "state.json"), JSON.stringify({ schema: 1, runId, root, cluster: "foreign" }));

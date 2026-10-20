@@ -9,7 +9,7 @@ import { chromium } from "@playwright/test";
 import { load as yamlLoad } from "js-yaml";
 import { readPrepared, sourceBinding, privateLocation, assertPrivate } from "../../deploy/installation.mjs";
 import { readState, compose, docker, cleanup as cleanupStack } from "../../acceptance/default-stack/runtime.mjs";
-import { Config, action, adminHeaders, browserRequest, command, ensure, jsonRequest, kindReadback, kubeconfig, linkedAgent, login, mcp, nonce, ok, operator, prerequisites, privateFile, sha256, until as journeyUntil } from "../../../tests/e2e/default/support.mjs";
+import { Config, action, adminHeaders, browserRequest, command, ensure, jsonRequest, kindReadback, kubeconfig, linkedAgent, login, mcp, nonce, ok, operator, prerequisites, privateFile, sha256, until as journeyUntil, nativeHost } from "../../../tests/e2e/default/support.mjs";
 import { enrollOperator } from "../../../tests/e2e/default/mfa.mjs";
 import { localPaths, assertLocalDocker, waitFor } from "../local-environment";
 import { requiredChecks, validateLocalReceipt, type LocalReceipt, type SourceBoundLocalReceipt, localEnvironment } from "../local-targets";
@@ -227,7 +227,7 @@ export type DriverStep = (id: string, work: () => Promise<void>) => Promise<void
 async function runDriftCrashOperated(input: { scenarioId: DriverScenario; receiptFile: string; env: NodeJS.ProcessEnv }, work: (session: OperatedSession, step: DriverStep) => Promise<void>): Promise<number> {
   if (driverPlan(input.scenarioId, input.env).missing.length) return 2;
   const { runId } = localPaths(input.env);
-  ensure(process.platform === "darwin" && process.arch === "arm64" && process.versions.node.startsWith("22."), "native-mac-node22");
+  ensure(nativeHost() && process.versions.node.startsWith("22."), "native-host-node22");
   const parent = fs.realpathSync(path.dirname(input.receiptFile));
   ensure(path.isAbsolute(input.receiptFile) && !fs.existsSync(input.receiptFile) && parent === path.dirname(input.receiptFile) && !parent.startsWith(path.resolve(process.cwd()) + path.sep) && parent !== process.cwd() && (fs.statSync(parent).mode & 0o077) === 0, "private-fresh-receipt");
   const binding = sourceBinding();
@@ -333,7 +333,7 @@ export class UpgradeRestoreSession {
     writeFileSync(file, JSON.stringify(value), { flag: "wx", mode: 0o600 }); this.privateFiles.push(file); return file;
   }
   async prepare(): Promise<void> {
-    ensure(process.platform === "darwin" && process.arch === "arm64" && process.versions.node.startsWith("22."), "native-mac-node22");
+    ensure(nativeHost() && process.versions.node.startsWith("22."), "native-host-node22");
     await assertLocalDocker(this.input.env);
     const root = this.input.env.ZENITH_LOCAL_ROOT!;
     ensure(lstatSync(root).isDirectory() && !lstatSync(root).isSymbolicLink() && (lstatSync(root).mode & 0o077) === 0, "private-scratch");
@@ -766,7 +766,7 @@ async function runSourceOperated(id: ScenarioId, receiptFile: string, env: NodeJ
   if (!enabled(env)) return 2; // no config/credentials/subprocess/browser access before gates
   const { runId, root } = localPaths(env);
   privateLocation(root); privateLocation(receiptFile);
-  if (process.platform !== "darwin" || process.arch !== "arm64" || !process.versions.node.startsWith("22.")) throw new Error("Needs native Mac arm64 Node 22");
+  if (!nativeHost() || !process.versions.node.startsWith("22.")) throw new Error("Needs native host Node 22");
   if (existsSync(receiptFile) || !path.isAbsolute(receiptFile)) throw new Error("Fresh absolute receipt path required");
   if (!existsSync(root)) mkdirSync(root, { mode: 0o700 });
   ensure(lstatSync(root).isDirectory() && !lstatSync(root).isSymbolicLink() && (lstatSync(root).mode & 0o077) === 0
@@ -885,7 +885,7 @@ async function runTenantExportOperated(input: TenantExportInput, work: (context:
   };
   try {
     await step("preconditions", async () => {
-      ensure(process.platform === "darwin" && process.arch === "arm64", "native-mac-required");
+      ensure(nativeHost(), "native-host-required");
       privateLocation(input.receiptFile);
       assertPrivate(privateLocation(input.env.ZENITH_LOCAL_ROOT!), true);
       await assertLocalDocker(input.env);

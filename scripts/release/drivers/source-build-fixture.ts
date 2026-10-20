@@ -1,16 +1,17 @@
 /** Owned J6 operator bootstrap. Customer builds still run exclusively through the production worker. */
 import { existsSync, readFileSync, writeFileSync, unlinkSync } from "node:fs";
 import path from "node:path";
-import { ensure, command, privateFile, kubeconfig, until } from "../../../tests/e2e/default/support.mjs";
+import { ensure, command, privateFile, kubeconfig, until, NATIVE } from "../../../tests/e2e/default/support.mjs";
 import { renderBaseline, renderProxy, renderBuildCustody, BUILD_NODE_LABEL, BUILD_PROFILE_LABEL, BUILD_TAINT,
   buildTenantKey, type TenantBuildProfile } from "@/lib/providers/kubernetes/build";
 import { BuildDeclaration, declaredProfile } from "./github-fixture";
 import { cleanupAll, type Operated } from "./operated";
 import { privateLocation, assertPrivate } from "../../deploy/installation.mjs";
 
+const ELF_MACHINE: Record<string, number | undefined> = { arm64: 183, x64: 62 };
 export function sourceBinary(bytes: Buffer) {
   ensure(bytes.length >= 64 && bytes.length <= 600 * 1024 && bytes.subarray(0, 4).equals(Buffer.from([127, 69, 76, 70]))
-    && bytes[4] === 2 && bytes[5] === 1 && bytes.readUInt16LE(18) === 183, "native-small-arm64-elf");
+    && bytes[4] === 2 && bytes[5] === 1 && bytes.readUInt16LE(18) === ELF_MACHINE[process.arch], "native-small-elf");
   return bytes.toString("base64");
 }
 export const sourceDockerfile = 'FROM scratch\nCOPY --chmod=0755 app /app\nUSER 65532:65532\nEXPOSE 8080\nENTRYPOINT ["/app"]\n';
@@ -32,7 +33,7 @@ export async function sourceBuildFixture(ctx: Operated): Promise<{ profile: Tena
     && !(node.spec.taints ?? []).some((t: { key: string }) => t.key === BUILD_TAINT), "unallocated-build-node");
   const registryImage = ctx.env.ZENITH_LOCAL_SOURCE_REGISTRY_IMAGE;
   ensure(registryImage && /^[a-z0-9][a-z0-9./:_-]*@sha256:[a-f0-9]{64}$/.test(registryImage), "pinned-local-registry-image");
-  const [image] = JSON.parse(await modules.docker(["image", "inspect", registryImage])); ensure(image.Architecture === "arm64", "native-source-registry");
+  const [image] = JSON.parse(await modules.docker(["image", "inspect", registryImage])); ensure(image.Architecture === NATIVE?.image, "native-source-registry");
   let allocated = false, connected = false;
   const owned: { kind: string; name: string; namespace?: string; uid?: string; apiVersion: string }[] = [];
   const hosts: { id: string; file: string; content: string }[] = [];
@@ -99,7 +100,7 @@ export async function sourceBuildFixture(ctx: Operated): Promise<{ profile: Tena
     { op: "add", path: "/spec/taints", value: [...(node.spec.taints ?? []), ...["NoSchedule", "NoExecute"].map(effect => ({ key: BUILD_TAINT, value: key, effect }))] },
   ])]);
   for (const imageRef of [profile.config.builderImage, profile.config.proxy.image]) {
-    const [image] = JSON.parse(await modules.docker(["image", "inspect", imageRef])); ensure(image.Architecture === "arm64", "native-build-toolchain");
+    const [image] = JSON.parse(await modules.docker(["image", "inspect", imageRef])); ensure(image.Architecture === NATIVE?.image, "native-build-toolchain");
     const tag = image.RepoTags?.[0]; ensure(tag, "toolchain-local-tag");
     const file = path.join(ctx.scratch, "toolchain.tar");
     try { await modules.docker(["image", "save", "--output", file, tag]); await command("kind", ["load", "image-archive", "--name", "zenith-j2", file], { timeout: 120_000 }); }

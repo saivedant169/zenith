@@ -1,7 +1,7 @@
 /** J15 revision update, real failed rollout, and exact browser-reviewed rollback on owned J1/J2/kind. */
 import { writeFileSync, unlinkSync, existsSync } from "node:fs";
 import path from "node:path";
-import { ensure, nonce, until, ok } from "../../../tests/e2e/default/support.mjs";
+import { ensure, nonce, until, ok, NATIVE } from "../../../tests/e2e/default/support.mjs";
 import { runOperated, driverCli, cleanupAll, type Operated } from "./operated";
 
 export function updatePlan(baseImage: string, updateImage: string, initialMarker: string, updatedMarker: string) {
@@ -53,11 +53,11 @@ async function variant(ctx: Operated) {
     ensure(failures.length === 0, "update-image-cleanup-incomplete");
   } });
   // This compatible fixture is a distinct image configuration. It retains J2's inert witness binary.
-  await modules.docker(["build", "--network", "none", "--pull=false", "--platform", "linux/arm64", "--label", "io.zenith.drv1=" + id,
+  await modules.docker(["build", "--network", "none", "--pull=false", "--platform", "linux/" + NATIVE?.image, "--label", "io.zenith.drv1=" + id,
     "--label", "io.zenith.installation=" + ctx.stack!.state.applicationInstallationId, "-t", tag, ctx.scratch]);
   await modules.docker(["push", tag]);
   const [image] = JSON.parse(await modules.docker(["image", "inspect", tag]));
-  ensure(image.Architecture === "arm64" && image.Config.Labels?.["io.zenith.drv1"] === id, "native-update-image");
+  ensure(image.Architecture === NATIVE?.image && image.Config.Labels?.["io.zenith.drv1"] === id, "native-update-image");
   createdImage = image.Id;
   reference = image.RepoDigests.find((ref: string) => ref.startsWith(tag.slice(0, -7) + "@")) ?? "";
   ensure(reference && reference !== ctx.config!.kind.image, "distinct-update-digest");

@@ -4,7 +4,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { z } from "zod";
 import { load as loadYaml } from "js-yaml";
-import { browserRequest, ok, action, nonce, until, command, ensure, sha256, privateFile } from "../../../tests/e2e/default/support.mjs";
+import { browserRequest, ok, action, nonce, until, command, ensure, sha256, privateFile, NATIVE } from "../../../tests/e2e/default/support.mjs";
 import { runOperated, createTenant, runDriverCli, type DriverInput, type OperatedContext, type Tenant } from "./operated";
 import { operatedDataRoundtrips } from "./export-data";
 
@@ -66,7 +66,7 @@ async function localstack(ctx: OperatedContext): Promise<{ id: string; aws(args:
   const image = /^\s+image: (localstack\/localstack:[^\s]+@sha256:[a-f0-9]{64})$/m.exec(compose)?.[1];
   ensure(image, "pinned-localstack-image");
   const inspected = JSON.parse(await command("docker", ["image", "inspect", image]));
-  ensure(inspected.length === 1 && inspected[0].Architecture === "arm64", "native-localstack-image");
+  ensure(inspected.length === 1 && inspected[0].Architecture === NATIVE?.image, "native-localstack-image");
   const api = JSON.parse(await command("docker", ["inspect", ctx.stack.api]));
   const endpoint = api[0].Config.Env.find((entry: string) => entry.startsWith("ZENITH_LOCALSTACK_ENDPOINT="));
   ensure(!endpoint || endpoint === "ZENITH_LOCALSTACK_ENDPOINT=http://localhost:4566", "api-localstack-endpoint");
@@ -155,7 +155,7 @@ export async function runExport(input: DriverInput): Promise<number> {
     });
     const worker = JSON.parse(await command("docker", ["inspect", ctx.stack.worker]));
     const workerImage: string = worker[0].Config.Image;
-    ensure(/@sha256:[a-f0-9]{64}$/.test(workerImage) && JSON.parse(await command("docker", ["image", "inspect", workerImage]))[0].Architecture === "arm64", "native-pinned-tofu-runner");
+    ensure(/@sha256:[a-f0-9]{64}$/.test(workerImage) && JSON.parse(await command("docker", ["image", "inspect", workerImage]))[0].Architecture === NATIVE?.image, "native-pinned-tofu-runner");
     const label = "io.zenith.drv4-tofu=" + nonce(), prefix = "drv4-portable-" + nonce();
     ctx.cleanup.add(async () => {
       const ids = (await command("docker", ["ps", "-aq", "--filter", "label=" + label])).split(/\s+/).filter(Boolean);

@@ -3,7 +3,7 @@ import { Connection, WorkflowClient } from "@temporalio/client";
 import { connectionOptionsFor, temporalConfigFromEnv } from "../../../src/lib/workflows/config";
 import { compose, docker } from "../../acceptance/default-stack/runtime.mjs";
 import { GATE_SUITES, buildPlan, parseArgs } from "../../ops/rolling-upgrade.mjs";
-import { ensure, privateFile, kindReadback } from "../../../tests/e2e/default/support.mjs";
+import { ensure, privateFile, kindReadback, NATIVE } from "../../../tests/e2e/default/support.mjs";
 import { upgradeImages, type Images } from "./contracts";
 import { operatedRun, driverCli, type DriverInput } from "./operated";
 
@@ -22,7 +22,7 @@ export async function runUpgrade(input: DriverInput): Promise<number> {
     const candidate = upgradeImages(JSON.parse(privateFile(file!)), session.state.installationId, previous);
     for (const [role, reference] of Object.entries(candidate)) {
       const [image] = JSON.parse(await docker(["image", "inspect", reference]));
-      ensure(image.Architecture === "arm64" && image.Config.Labels?.["io.zenith.installation"] === session.state.installationId
+      ensure(image.Architecture === NATIVE?.image && image.Config.Labels?.["io.zenith.installation"] === session.state.installationId
         && image.RepoDigests?.includes(reference) && image.Id !== JSON.parse(await docker(["image", "inspect", previous[role as keyof Images]]))[0].Id, "candidate-native-owned-distinct");
     }
     await session.step("compatibility-gates", () => session.gates(GATE_SUITES, { ZENITH_REPLAY_LANE: "1" }));

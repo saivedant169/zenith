@@ -1,6 +1,6 @@
 /** Independent observers; never manufacture provenance or build results. */
 import { createPublicKey } from "node:crypto";
-import { ensure } from "../../../tests/e2e/default/support.mjs";
+import { ensure, NATIVE } from "../../../tests/e2e/default/support.mjs";
 import { verifyBuildProvenance } from "@/lib/execution/build-provenance";
 import type { ApprovedSourceSnapshot } from "@/lib/execution/source-snapshot";
 import type { PublicJwk } from "@/lib/credentials/signing/types";
@@ -83,7 +83,7 @@ export async function builtReadback(ctx: Operated, source: ApprovedSourceSnapsho
   ensure(probePods.items.length === 1 && probePods.items[0].spec.nodeName === "zenith-j2-worker", "probe-on-dedicated-worker");
   verifyProbe(probePods.items[0].status.containerStatuses?.[0]?.state?.terminated?.message);
   await verifyPublishedArtifact(reader, built.digest, builderId);
-  const platform = (index.manifests as {platform?: {os: string; architecture: string}; digest: string}[]).find(m => m.platform?.os === "linux" && m.platform.architecture === "arm64");
+  const platform = (index.manifests as {platform?: {os: string; architecture: string}; digest: string}[]).find(m => m.platform?.os === "linux" && m.platform.architecture === NATIVE?.image);
   ensure(platform && /^sha256:[a-f0-9]{64}$/.test(platform.digest), "verified-native-artifact");
   const deployment = JSON.parse(await ctx.kubectl(["get", "deployment", "witness", "-o", "json"]));
   const selector = Object.entries(deployment.spec.selector.matchLabels).map(([key, value]) => key + "=" + value).join(",");

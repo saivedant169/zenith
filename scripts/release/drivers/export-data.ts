@@ -4,7 +4,7 @@ import { chmodSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import postgres from "postgres";
 import { S3Client, CreateBucketCommand, PutBucketTaggingCommand } from "@aws-sdk/client-s3";
-import { browserRequest, ok, action, nonce, until, command, ensure, privateFile } from "../../../tests/e2e/default/support.mjs";
+import { browserRequest, ok, action, nonce, until, command, ensure, privateFile, NATIVE } from "../../../tests/e2e/default/support.mjs";
 import { readState, save } from "../../acceptance/default-stack/runtime.mjs";
 import { OwnedCleanup } from "./protocol";
 import { approveOperation, connectKind, createTenant, deployKind, detailOf, type OperatedContext, type Tenant } from "./operated";
@@ -56,7 +56,7 @@ async function ownedContainer(ctx: OperatedContext, cleanup: OwnedCleanup, netwo
   const name = assignedName ?? fixtureContainerName(ctx.input.runId, suffix, nonce());
   ensure(/^[a-z0-9-]+$/.test(name) && (name + "-wrong").length <= 63, "container-dns-name");
   const [identity] = JSON.parse(await command("docker", ["image", "inspect", image]));
-  ensure(identity.Architecture === "arm64", "native-data-image");
+  ensure(identity.Architecture === NATIVE?.image, "native-data-image");
   ensure(Object.keys(identity.Config.Volumes ?? {}).every(volume => mounts.some(m => m.includes(`dst=${volume},`) || m.endsWith(`dst=${volume}`))), "no-anonymous-data-volumes");
   const created: { id?: string } = {};
   const close = async () => {

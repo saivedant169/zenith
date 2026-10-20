@@ -8,7 +8,7 @@ type View = BillingView | { mode: "disabled"; managedTier: string; managedTierSo
 
 /** Enterprise is "Talk to sales": plain text, because the app has no sales or contact link in its configuration. */
 function PackageTable({ view }: { view: BillingView }) {
-  return <div className="overflow-x-auto">
+  return <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Zenith packages compared">
     <table className="w-full min-w-[720px] text-left text-[13px]">
       <caption className="sr-only">Zenith packages compared</caption>
       <thead className="text-[12px] text-ink-mute"><tr>

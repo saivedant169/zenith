@@ -104,7 +104,7 @@ function CopyRow({ name, value, note }: { name: string; value?: string; note: st
 
 function ParameterTable({ trust, bootstrapNameSuffix }: { trust?: AwsTrust; bootstrapNameSuffix: string }) {
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="CloudFormation parameters">
       <table className="w-full min-w-[640px] table-fixed border-collapse text-left">
         <caption className="sr-only">CloudFormation parameters and the values to enter</caption>
         <thead>

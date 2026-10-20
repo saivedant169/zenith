@@ -116,7 +116,7 @@ export function PlacementComparison({ result, title = "Placement options", loadi
                 {feasibility && feasibility.remedies.length > 0 && <p className="mt-2">{feasibility.remedies.join(" ")}</p>}
               </Callout>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Placement options compared">
                 <table className="w-full min-w-[520px] border-collapse text-left">
                   <caption className="sr-only">Placement options compared</caption>
                   <thead>

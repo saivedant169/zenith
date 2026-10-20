@@ -19,7 +19,7 @@ export function OwnershipTransferReview({ transfers, warnings = [], proposalDige
           <Callout tone="warn" title="Approving this proposal transfers write ownership">
             Each row below moves one field from one writer to another. The transfer is bound to proposal digest <DigestValue digest={proposalDigest} what="proposal digest" /> and exists only if a person approves exactly that digest. It expires, and it can be revoked.
           </Callout>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Ownership transfers">
             <table className="w-full min-w-[640px] text-left text-[13px]">
               <caption className="sr-only">Ownership transfers requested by this proposal</caption>
               <thead className="text-[12px] text-ink-mute">

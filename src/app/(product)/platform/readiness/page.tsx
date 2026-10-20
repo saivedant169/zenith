@@ -24,7 +24,7 @@ export default async function ReadinessPage({ searchParams }: { searchParams: Pr
         <h2 id="ready-h" className="flex flex-wrap items-center gap-2 text-[15px] font-medium text-ink">{label(data.readiness.provider)} <Chip tone={data.readiness.ready ? "ok" : "warn"}>{data.readiness.ready ? "Prerequisites present" : "Not ready"}</Chip></h2>
         <p className="text-[13px] text-ink-mute">Checked <time dateTime={data.readiness.checkedAt}>{data.readiness.checkedAt}</time>. Prerequisites existing is not proof of a working deploy: nothing here has been exercised against a real account, and a reachable Temporal server does not prove a worker is polling.</p>
         {!data.readiness.ready && <Callout tone="warn" title="Real changes stay in Preview until every check passes">Plans and exports still work. Applying to this provider is not offered until the items below are fixed.</Callout>}
-        <div className="overflow-x-auto"><table className="w-full min-w-[640px] text-left text-[13px]">
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Execution plane prerequisites"><table className="w-full min-w-[640px] text-left text-[13px]">
           <caption className="sr-only">Execution plane prerequisites for {label(data.readiness.provider)}</caption>
           <thead className="text-[12px] text-ink-mute"><tr><th scope="col" className="py-1 pr-3 font-medium">Check</th><th scope="col" className="py-1 pr-3 font-medium">Result</th><th scope="col" className="py-1 pr-3 font-medium">What was observed</th><th scope="col" className="py-1 font-medium">What to do</th></tr></thead>
           <tbody className="divide-y divide-line">{data.readiness.checks.map((c) => <tr key={c.id} className="align-top">

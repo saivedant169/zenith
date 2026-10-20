@@ -41,7 +41,7 @@ export default async function RunbookRunPage({ params }: { params: Promise<{ id:
       {cls && <div className="flex flex-wrap gap-2"><Chip tone={cls.risk === "critical" || cls.risk === "high" ? "err" : cls.risk === "medium" ? "warn" : "ok"}>Risk: {cls.risk}</Chip>{cls.requiresApproval ? <Chip tone="warn">Needs an independent approver</Chip> : <Chip>Read-only</Chip>}</div>}
       {cls && cls.escapeHatchSteps.length > 0 && <Callout tone="err" title="Raw command steps">Steps {cls.escapeHatchSteps.join(", ")} run caller-supplied command lines. Zenith does not inspect them or treat them as safe: they are an approved high-risk escape hatch, never a sandbox.</Callout>}
       <p className="text-[12.5px] text-ink-mute">{data.hasPrevious ? `Compared with version ${run.version - 1}.` : "This is the first version, so every step is new."} Up to {run.maxParallelTargets} target(s) at once. Deadline <time dateTime={run.deadlineAt}>{run.deadlineAt}</time>.</p>
-      <div className="overflow-x-auto"><table className="w-full min-w-[640px] text-left text-[13px]">
+      <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Runbook steps"><table className="w-full min-w-[640px] text-left text-[13px]">
         <caption className="sr-only">Runbook steps and how they differ from the previous version</caption>
         <thead className="text-[12px] text-ink-mute"><tr><th scope="col" className="py-1 pr-3 font-medium">Change</th><th scope="col" className="py-1 pr-3 font-medium">Step</th><th scope="col" className="py-1 pr-3 font-medium">Operation</th><th scope="col" className="py-1 font-medium">Arguments</th></tr></thead>
         <tbody className="divide-y divide-line">{diff.map((r) => <tr key={r.id} className="align-top">

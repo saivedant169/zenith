@@ -65,8 +65,8 @@ describe.each(STORE_KINDS)("registered runbook step authority [%s]", kind => {
     await approve("user:bob");
     const grant = await f.grant({ ...f.req }, f.ctx);
     const events = await f.broker.deps.store.listEvents(f.h.ids.wsA, { operationId: grant.claims.op });
-    expect(events.find((e: any) => e.data?.kind === "runbook_approval_applied")?.data).toMatchObject({ runbookApprovalId: id, bindingDigest: f.ctx.run.bindingDigest });
-    expect(events.find((e: any) => e.type === "operation.approved")).toBeTruthy();
+    expect(events.find(e => (e.data as { kind?: string } | undefined)?.kind === "runbook_approval_applied")?.data).toMatchObject({ runbookApprovalId: id, bindingDigest: f.ctx.run.bindingDigest });
+    expect(events.find(e => e.type === "operation.approved")).toBeTruthy();
   });
 
   it.each([

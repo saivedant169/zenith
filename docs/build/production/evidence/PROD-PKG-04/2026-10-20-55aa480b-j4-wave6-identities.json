@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "requirements": [
+    "PROD-PKG-04",
+    "PROD-PKG-06",
+    "PROD-OBS-04"
+  ],
+  "level": "local_engine",
+  "date": "2026-10-20",
+  "commit": "55aa480be12d37131adaaa5a2d35c7b2f4315ce5",
+  "environment": "Native Darwin ARM64, Node 22.23.3, Docker Desktop. Owned disposable stacks at port offset 1000 beside the protected Supabase/Kong services, which stayed running (11 before and after). Temporal Server 1.32.0 with frontend and internode mTLS for J4.",
+  "cases": [
+    {
+      "id": "wave6-55718f085353604a",
+      "test": "joins real signed registered delivery, broker semantics, evidence and cancellation audit",
+      "stack": "fresh lean J1 (canonical) j2-d2a85689 plus owned kind target via tests/e2e/default/prepare.mjs",
+      "command": "scripts/acceptance/maintenance/runbook-fixture.mjs <stack> <fixture> <journey.json>: real Auth sign-in, TOTP to AAL2, workspace/project/environment, deploy-validated container_service/witness row, browser machine consent, exec-disabled zenithd registered; then the manifest vitest argv for the case and wave6-gates.mjs --case",
+      "vitest": {
+        "passed": 1,
+        "failed": 0,
+        "skipped": 1
+      },
+      "verifierExit": 0,
+      "reportSha256": "65e8f29a449a6893d3dad1aa91bc3c20abb987e4b326b74ffc605d10d7714dd7",
+      "fixtureSteps": [
+        "real-auth-login",
+        "real-totp-mfa",
+        "workspace-project-environment",
+        "deploy-validation-resource-row",
+        "browser-machine-consent",
+        "signed-agent-registered"
+      ],
+      "machineCleanup": "removed"
+    },
+    {
+      "id": "wave6-72ab835f34c19371",
+      "test": "executes seven critical jobs plus billing on natural timers across worker restart without overlap",
+      "stack": "fresh deferred J4 j4-32a7cfee, namespace j4-7db15e5f015e, prestart 14/14",
+      "command": "verifyJ4Prestart, j4HostEnvironment and maintenanceEnvironment from scripts/release/local-joined.ts (owned OpenTofu identity selected), then the manifest vitest argv for the case and wave6-gates.mjs --case",
+      "vitest": {
+        "passed": 1,
+        "failed": 0,
+        "skipped": 1,
+        "durationSeconds": 409
+      },
+      "verifierExit": 0,
+      "reportSha256": "558c9c4473f4e6d946eae2f368594a621f4c8e2a7b102178bfa36005b12fe7aa"
+    }
+  ],
+  "retainedFailures": [
+    "Natural-timer attempts 1-3 failed in the scratch driver before or at worker start: CJS top-level await; owned OpenTofu identity paths not passed, so the worker correctly refused startup (cleanup then reported \"Owned worker exited before the planned stop\"); a pre-test guard refusing missing joined-driver inputs. No product change. Logs retained in the runtime directory."
+  ],
+  "limits": "Per-case lane identities only. The natural-timer run asserts the test's own invariants; it does not record the J4 completion/resume receipts, which passed canonically on c8795a08. No live cloud, production Supabase or operational rehearsal."
+}

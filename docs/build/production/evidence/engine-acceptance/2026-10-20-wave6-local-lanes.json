@@ -7,9 +7,9 @@
  "note": "Each case is verified with scripts/ci/wave6-gates.mjs --case against its own Vitest JSON report on the clean exact-source commit named per case. Live-lane cases are excluded. Failures and skips are preserved; totals are not promotion evidence.",
  "totals": {
   "cases": 286,
-  "passed": 260,
+  "passed": 262,
   "failed": 5,
-  "not_run": 17
+  "not_run": 15
  },
  "byRequirement": {
   "PROD-REL-04": {
@@ -18,24 +18,24 @@
    "not_run": 3
   },
   "PROD-PKG-04": {
-   "passed": 68,
+   "passed": 70,
    "failed": 0,
-   "not_run": 2
+   "not_run": 0
   },
   "PROD-PKG-06": {
-   "passed": 68,
+   "passed": 70,
    "failed": 0,
-   "not_run": 2
+   "not_run": 0
   },
   "PROD-MACH-03": {
-   "passed": 1,
+   "passed": 3,
    "failed": 0,
-   "not_run": 2
+   "not_run": 0
   },
   "PROD-OBS-04": {
-   "passed": 0,
+   "passed": 2,
    "failed": 0,
-   "not_run": 2
+   "not_run": 0
   },
   "PROD-OPS-02": {
    "passed": 19,
@@ -268,8 +268,9 @@
     "PROD-MACH-03",
     "PROD-OBS-04"
    ],
-   "status": "not_run",
-   "reason": "not run through lane argv; the canonical J4 and signed runbook delivery evidence for these requirements is recorded separately"
+   "status": "passed",
+   "commit": "55aa480be12d37131adaaa5a2d35c7b2f4315ce5",
+   "run": "per-case lane argv (temporal)"
   },
   {
    "id": "wave6-55718f085353604a",
@@ -282,8 +283,9 @@
     "PROD-MACH-03",
     "PROD-OBS-04"
    ],
-   "status": "not_run",
-   "reason": "not run through lane argv; the canonical J4 and signed runbook delivery evidence for these requirements is recorded separately"
+   "status": "passed",
+   "commit": "55aa480be12d37131adaaa5a2d35c7b2f4315ce5",
+   "run": "per-case lane argv (temporal)"
   },
   {
    "id": "wave6-6f38c3a44b8d05c6",

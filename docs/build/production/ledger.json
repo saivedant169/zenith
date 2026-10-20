@@ -3849,6 +3849,14 @@
           "commit": "fd5aa0af62e8bf0873ebc825a270a30678826ebd",
           "receipt": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-fd5aa0af-default-stack-database.json",
           "receiptSha256": "744edf6aa0dc5fac6369a06868132d53b698dd81b771d49b05c6ed7dcbde6046"
+        },
+        {
+          "level": "local_engine",
+          "commit": "55aa480be12d37131adaaa5a2d35c7b2f4315ce5",
+          "command": "wave6 manifest argv for wave6-55718f085353604a and wave6-72ab835f34c19371, each verified with wave6-gates.mjs --case",
+          "environment": "Native Darwin ARM64, Node 22.23.3, Docker Desktop. Owned disposable stacks at port offset 1000 beside the protected Supabase/Kong services, which stayed running (11 before and after). Temporal Server 1.32.0 with frontend and internode mTLS for J4.",
+          "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-55aa480b-j4-wave6-identities.json",
+          "result": "Both J4 wave6 identities passed on one clean commit: signed registered runbook delivery 1/0 and natural-timer maintenance 1/0 (409 s), verifier exit 0 each. With these, all 70 non-live wave6 cases for this requirement pass. Promotion is decided separately after independent review."
         }
       ],
       "requiredEvidence": [
@@ -3987,6 +3995,14 @@
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
           "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
           "result": "Wave6 local lanes 2026-10-20: 68 passed / 0 failed / 2 not run of the requirement's 70 non-live wave6 cases. Same default-stack engine run as PKG-04 on fd5aa0af. Not promoted: local-engine slice only; acceptance judged separately."
+        },
+        {
+          "level": "local_engine",
+          "commit": "55aa480be12d37131adaaa5a2d35c7b2f4315ce5",
+          "command": "wave6 manifest argv for wave6-55718f085353604a and wave6-72ab835f34c19371, each verified with wave6-gates.mjs --case",
+          "environment": "Native Darwin ARM64, Node 22.23.3, Docker Desktop. Owned disposable stacks at port offset 1000 beside the protected Supabase/Kong services, which stayed running (11 before and after). Temporal Server 1.32.0 with frontend and internode mTLS for J4.",
+          "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-55aa480b-j4-wave6-identities.json",
+          "result": "Both J4 wave6 identities passed on one clean commit: signed registered runbook delivery 1/0 and natural-timer maintenance 1/0 (409 s), verifier exit 0 each. With these, all 70 non-live wave6 cases for this requirement pass. Promotion is decided separately after independent review."
         }
       ],
       "requiredEvidence": [
@@ -6116,6 +6132,14 @@
           "commit": "4fac547c39ea0ee346112f113245bf7c5e10ced0",
           "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-20-4fac547c-coherent-verification.json",
           "result": "Exact-source CI: main 39357934404 20 success/8 conditional operated skips/0 failures; native packaged workers 39357934596 and native platforms 39357934426 success."
+        },
+        {
+          "level": "local_engine",
+          "commit": "55aa480be12d37131adaaa5a2d35c7b2f4315ce5",
+          "command": "wave6 manifest argv for wave6-55718f085353604a and wave6-72ab835f34c19371, each verified with wave6-gates.mjs --case",
+          "environment": "Native Darwin ARM64, Node 22.23.3, Docker Desktop. Owned disposable stacks at port offset 1000 beside the protected Supabase/Kong services, which stayed running (11 before and after). Temporal Server 1.32.0 with frontend and internode mTLS for J4.",
+          "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-55aa480b-j4-wave6-identities.json",
+          "result": "Both J4 wave6 identities passed on one clean commit: signed registered runbook delivery 1/0 and natural-timer maintenance 1/0 (409 s), verifier exit 0 each. OBS-04 is already verified; this adds the wave6 identity runs."
         }
       ],
       "requiredEvidence": [

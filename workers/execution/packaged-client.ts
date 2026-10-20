@@ -162,7 +162,10 @@ async function assets(): Promise<Record<string, unknown>> {
   if (!logicallyExpired || !ciphertextRetained || !terminalRetained || !activeRetained || !unownedRetained) throw new Error("Packaged logical artifact expiry contract failed.");
   const data = await stat("/var/lib/zenith");
   const plans = await stat(PLAN_DIR);
-  if (process.getuid?.() !== 10001 || data.uid !== 10001 || plans.uid !== 10001 || (plans.mode & 0o077) !== 0) throw new Error("Worker filesystem permissions failed.");
+  const sentinels = await Promise.all(Object.values(PLAN_DIGESTS).map((digest) => stat(path.join(PLAN_DIR, `${digest}.tfplan`))));
+  const modes = (item: { mode: number }) => (item.mode & 0o777).toString(8);
+  if (process.getuid?.() !== 10001 || data.uid !== 10001 || plans.uid !== 10001 || modes(plans) !== "700"
+    || sentinels.some((file) => file.uid !== 10001 || modes(file) !== "600")) throw new Error("Worker filesystem permissions failed.");
   return { uid: process.getuid?.(), arch: process.arch, node: process.version,
     tofu: execFileSync("tofu", ["version"], { encoding: "utf8" }).split("\n").slice(0, 2),
     policySha256: createHash("sha256").update(await readFile("policy/dist/policy.wasm")).digest("hex"),
@@ -172,7 +175,9 @@ async function assets(): Promise<Record<string, unknown>> {
       const metadata = JSON.parse(await readFile(path.join("node_modules", name, "package.json"), "utf8")) as { version: string };
       return [name, metadata.version];
     }))),
-    plans: { logicallyExpired, ciphertextRetained, terminalRetained, activeRetained, unownedRetained, sentinelFiles: true, encryptedLifecycleFixture: true } };
+    plans: { logicallyExpired, ciphertextRetained, terminalRetained, activeRetained, unownedRetained, sentinelFiles: true, encryptedLifecycleFixture: true },
+    // Exact modes and owner are asserted above; retention is asserted above. No expiry-removal claim: the product janitor retains legacy files.
+    planStorage: { dirMode: modes(plans), fileModes: sentinels.map(modes), owner: plans.uid, retainedKept: terminalRetained && activeRetained && unownedRetained } };
 }
 
 async function main(): Promise<void> {

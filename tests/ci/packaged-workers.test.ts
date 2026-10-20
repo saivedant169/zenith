@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { load } from "js-yaml";
 import { describe, expect, it } from "vitest";
 import { PACKAGED_WORKER_CHECKS, packagedWorkerManifest } from "../../scripts/ci/gate-manifest.mjs";
-import { assertArtifactShape, assertAttemptedBuilderCapture, assertBuilderScope, assertLoadedImage, assertNativePrerequisites, assertOwnedContext, assertOriginalContextSnapshot, assertPublishedEvidence, assertReleaseMarker, baselinePreserved, boundBuild, builderDescriptors, executedChecks, parseHarnessOutput, parseNativeArgs, assertOwnedProcessProof, restoreContextOverride, runOwnedProcess, sanitizeChildFailure } from "../../scripts/ci/packaged-worker-native.mjs";
+import { assertArtifactShape, assertAttemptedBuilderCapture, assertBuilderScope, assertLoadedImage, assertNativePrerequisites, assertOwnedContext, assertOriginalContextSnapshot, assertPublishedEvidence, assertReleaseMarker, baselinePreserved, boundBuild, builderDescriptors, executedChecks, parseHarnessOutput, parseNativeArgs, assertOwnedProcessProof, restoreContextOverride, runOwnedProcess, sanitizeChildCleanupEvidence, sanitizeChildFailure, sanitizeSelfDescribingEvidence } from "../../scripts/ci/packaged-worker-native.mjs";
 import { command, PackagedCommandError, classifyPackagedBuildFailure, sanitizePackagedBuildFailure, packagedSourceDigest } from "../../scripts/acceptance/packaged-worker.mjs";
 import { digest } from "../../src/lib/controlplane/digest";
 
@@ -92,15 +92,23 @@ function harness() {
     hostSsmDocuments: { count: 1, sha256: hex },
     assets: { uid: 10001, arch: "x64", node: "v22.23.3", tofu: ["OpenTofu v1.12.5", "on linux_amd64"], policySha256: hex,
       ssmDocuments: { count: 1, sha256: hex }, dependencies,
-      plans: { logicallyExpired: true, ciphertextRetained: true, terminalRetained: true, encryptedLifecycleFixture: true, activeRetained: true, unownedRetained: true, sentinelFiles: true } },
+      plans: { logicallyExpired: true, ciphertextRetained: true, terminalRetained: true, encryptedLifecycleFixture: true, activeRetained: true, unownedRetained: true, sentinelFiles: true },
+      planStorage: { dirMode: "700", fileModes: ["600", "600", "600"], owner: 10001, retainedKept: true } },
     cleanup: { privateFilesRemoved: true, allCreatedResourcesRemoved: true, resources: [{ removed: true }] } };
 }
 const expected = { platform, commit, sourceInputSha256: hex, acceptanceHarnessSha256: hex, wrapperSha256: hex, manifestSha256: hex, workflowSha256: hex };
+/** Wrapper-only cleanup: the child fields are absent, not present-but-undefined. */
+function wrapperCleanup() {
+  return { builderAbsent: true, builderContainerAbsent: true, cacheVolumeAbsent: true, baselinePreserved: true, wrapperPrivateFilesRemoved: true, ownedContextAbsent: true };
+}
 function published() {
   return { schemaVersion: 1, lane: "packaged-worker", kind: "native-packaged-worker", status: "passed", ...expected,
     environment: assertNativePrerequisites(platform, prerequisites(), {}), startedAt: "2026-10-04T08:00:00.000Z", finishedAt: "2026-10-04T08:01:00.000Z",
     childExitCode: 0, minimumObservedFreeGiB: 12, checks: Object.fromEntries(PACKAGED_WORKER_CHECKS.map(key => [key, "passed"])),
-    cleanup: { builderAbsent: true, builderContainerAbsent: true, cacheVolumeAbsent: true, baselinePreserved: true, wrapperPrivateFilesRemoved: true, ownedContextAbsent: true }, limitations: packagedWorkerManifest(platform).limitations };
+    cleanup: { builderAbsent: true, builderContainerAbsent: true, cacheVolumeAbsent: true, baselinePreserved: true, wrapperPrivateFilesRemoved: true, ownedContextAbsent: true,
+      privateFilesRemoved: true, allCreatedResourcesRemoved: true, resourceCount: 1, removedResourceCount: 1 },
+    runtimeFilesystem: { readonlyRootfs: true, capDropAll: true, noNewPrivileges: true, user: 10001, rootWriteRefused: true, tmpWritable: true },
+    ssmDocuments: { count: 1, packagedEqualsSource: true }, limitations: packagedWorkerManifest(platform).limitations };
 }
 
 interface Workflow { on: Record<string, unknown>; permissions: Record<string, unknown>; concurrency: Record<string, unknown>; jobs: Record<string, { "runs-on": string; "timeout-minutes": number; strategy: { "fail-fast": boolean; matrix: { include: { arch: string; runner: string }[] } }; steps: { uses?: string; run?: string; if?: unknown; with?: Record<string, unknown>; "continue-on-error"?: unknown }[]; if?: unknown; "continue-on-error"?: unknown; services?: unknown; environment?: unknown }> }
@@ -241,6 +249,48 @@ describe("native packaged worker fixed evidence models", () => {
     expect(() => assertPublishedEvidence({ ...published(), privateCertificate: "private-canary" }, expected)).toThrow();
     expect(() => assertPublishedEvidence({ ...published(), environment: { ...published().environment, rawLogs: "private-canary" } }, expected)).toThrow();
     for (const key of Object.keys(published().cleanup)) expect(() => assertPublishedEvidence({ ...published(), cleanup: { ...published().cleanup, [key]: false } }, expected)).toThrow();
+  });
+  it("derives boolean and count-only cleanup and self-description evidence from the child result", () => {
+    expect(sanitizeChildCleanupEvidence(harness().cleanup)).toEqual({ privateFilesRemoved: true, allCreatedResourcesRemoved: true, resourceCount: 1, removedResourceCount: 1 });
+    expect(sanitizeSelfDescribingEvidence(harness())).toEqual({ runtimeFilesystem: harness().runtimeFilesystem, ssmDocuments: { count: 1, packagedEqualsSource: true } });
+    expect(sanitizeChildCleanupEvidence({ privateFilesRemoved: true, allCreatedResourcesRemoved: true, resources: [{ removed: true, kind: "container", role: "x", outcome: "removed", attempts: 1 }] }))
+      .toEqual({ privateFilesRemoved: true, allCreatedResourcesRemoved: true, resourceCount: 1, removedResourceCount: 1 });
+  });
+  it.each([
+    ["dirMode", { dirMode: "755" }], ["file mode", { fileModes: ["600", "644", "600"] }], ["owner", { owner: 1000 }], ["retained sentinel", { retainedKept: false }],
+  ] as const)("refuses packaged plan storage fault (%s) in packaged-assets-and-plan-retention", (_name, fault) => {
+    const original = harness();
+    expect(() => executedChecks({ ...original, assets: { ...original.assets, planStorage: { ...original.assets.planStorage, ...fault } } }, platform, 0)).toThrow();
+  });
+  it.each([
+    ["privateFilesRemoved false", { privateFilesRemoved: false }], ["allCreatedResourcesRemoved false", { allCreatedResourcesRemoved: false }],
+    ["no resources", { resources: [] }], ["a resource not removed", { resources: [{ removed: false }] }],
+  ] as const)("refuses child cleanup fault (%s) in private-files-and-owned-services-cleanup", (_name, fault) => {
+    const original = harness();
+    expect(() => executedChecks({ ...original, cleanup: { ...original.cleanup, ...fault } }, platform, 0)).toThrow();
+  });
+  it.each([
+    ["runtime filesystem absent", (a: Record<string, unknown>) => { delete a.runtimeFilesystem; }],
+    ["runtime tmpWritable false", (a: Record<string, unknown>) => { a.runtimeFilesystem = { ...published().runtimeFilesystem, tmpWritable: false }; }],
+    ["runtime user not 10001", (a: Record<string, unknown>) => { a.runtimeFilesystem = { ...published().runtimeFilesystem, user: 0 }; }],
+    ["SSM documents absent", (a: Record<string, unknown>) => { delete a.ssmDocuments; }],
+    ["SSM packaged copy not equal to source", (a: Record<string, unknown>) => { a.ssmDocuments = { count: 1, packagedEqualsSource: false }; }],
+    ["child cleanup fields absent from a passed artifact", (a: Record<string, unknown>) => { a.cleanup = wrapperCleanup(); }],
+    ["child cleanup partially present", (a: Record<string, unknown>) => { a.cleanup = { ...wrapperCleanup(), privateFilesRemoved: true }; }],
+    ["child cleanup removed count short", (a: Record<string, unknown>) => { a.cleanup = { ...published().cleanup, removedResourceCount: 0 }; }],
+    ["child cleanup resource count zero", (a: Record<string, unknown>) => { a.cleanup = { ...published().cleanup, resourceCount: 0, removedResourceCount: 0 }; }],
+    ["child cleanup count not an integer", (a: Record<string, unknown>) => { a.cleanup = { ...published().cleanup, resourceCount: "1" }; }],
+    ["unknown runtime field", (a: Record<string, unknown>) => { a.runtimeFilesystem = { ...published().runtimeFilesystem, rawPath: "/var/secret" }; }],
+  ] as const)("refuses passed artifact with %s", (_name, mutate) => {
+    const artifact: Record<string, unknown> = { ...published() };
+    mutate(artifact);
+    expect(() => assertArtifactShape(artifact, platform)).toThrow();
+  });
+  it("admits failed artifacts without self-description and rejects malformed measured self-description", () => {
+    const failed = { ...published(), status: "failed", failurePhase: "native-prerequisites", childExitCode: null, checks: {} } as Record<string, unknown>;
+    delete failed.runtimeFilesystem; delete failed.ssmDocuments; failed.cleanup = wrapperCleanup();
+    expect(assertArtifactShape(failed, platform)).toBe(true);
+    expect(() => assertArtifactShape({ ...failed, runtimeFilesystem: { ...published().runtimeFilesystem, user: "10001" } }, platform)).toThrow();
   });
 });
 

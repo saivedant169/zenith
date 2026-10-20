@@ -236,6 +236,28 @@ export function assertNativePrerequisites(platform, observation, env = process.e
     temporaryFreeGiB: round(observation.temporaryFreeGiB), dockerFreeGiB: round(observation.dockerFreeGiB) };
 }
 
+const WRAPPER_CLEANUP_KEYS = ["builderAbsent", "builderContainerAbsent", "cacheVolumeAbsent", "baselinePreserved", "wrapperPrivateFilesRemoved", "ownedContextAbsent"];
+const CHILD_CLEANUP_BOOLEANS = ["privateFilesRemoved", "allCreatedResourcesRemoved"], CHILD_CLEANUP_COUNTS = ["resourceCount", "removedResourceCount"];
+const CHILD_CLEANUP_KEYS = [...CHILD_CLEANUP_BOOLEANS, ...CHILD_CLEANUP_COUNTS];
+const RUNTIME_KEYS = ["readonlyRootfs", "capDropAll", "noNewPrivileges", "user", "rootWriteRefused", "tmpWritable"];
+const SSM_KEYS = ["count", "packagedEqualsSource"];
+
+/** Child cleanup as booleans and counts only: the same facts the cleanup check decides on. */
+export function sanitizeChildCleanupEvidence(value) {
+  if (!record(value) || typeof value.privateFilesRemoved !== "boolean" || typeof value.allCreatedResourcesRemoved !== "boolean"
+    || !Array.isArray(value.resources) || value.resources.some(item => !record(item) || typeof item.removed !== "boolean")) fail();
+  return { privateFilesRemoved: value.privateFilesRemoved, allCreatedResourcesRemoved: value.allCreatedResourcesRemoved,
+    resourceCount: value.resources.length, removedResourceCount: value.resources.filter(item => item.removed === true).length };
+}
+
+/** Runtime filesystem and host/packaged SSM equality, reduced to booleans and integers. */
+export function sanitizeSelfDescribingEvidence(value) {
+  const host = value?.hostSsmDocuments, packaged = value?.assets?.ssmDocuments;
+  if (!record(host) || !Number.isSafeInteger(host.count) || !digest(host.sha256) || !record(packaged) || !digest(packaged.sha256)) fail();
+  return { runtimeFilesystem: sanitizeRuntimeFilesystemEvidence(value.runtimeFilesystem),
+    ssmDocuments: { count: host.count, packagedEqualsSource: packaged.count === host.count && packaged.sha256 === host.sha256 } };
+}
+
 /** Reuse the acceptance engine's bounded native result validators; publish no original payloads. */
 export function executedChecks(value, platform, childExitCode) {
   if (childExitCode !== 0 || !record(value) || value.status !== "passed" || value.platform !== platform
@@ -274,6 +296,7 @@ export function executedChecks(value, platform, childExitCode) {
   put("packaged-assets-and-plan-retention", assets.arch === (platform === "linux/amd64" ? "x64" : "arm64") && assets.tofu[1] === `on linux_${platform.split("/")[1]}`
     && Object.entries(assets.dependencies).every(([name, version]) => value.lockedDependencies?.[name] === version)
     && assets.ssmDocuments.count === value.hostSsmDocuments?.count && assets.ssmDocuments.sha256 === value.hostSsmDocuments?.sha256
+    && assets.planStorage.dirMode === "700" && assets.planStorage.fileModes.every(mode => mode === "600") && assets.planStorage.owner === 10001 && assets.planStorage.retainedKept === true
     && runtime.readonlyRootfs === true && runtime.capDropAll === true && runtime.noNewPrivileges === true && runtime.user === 10001
     && runtime.rootWriteRefused === true && runtime.tmpWritable === true);
   sanitizePgWaiterEvidence([c.sqlPrerequisiteOutage?.actualPgWaiter]);
@@ -295,8 +318,9 @@ export function executedChecks(value, platform, childExitCode) {
     && drain.freshWorkerIdentity === `${value.runId}-recovery` && current(drain.freshPass) && drain.authorityReadback?.existingReadRefusalUnchanged === true
     && drain.sqlActivityAttributionProven === false && drain.providerMutationAccepted === false && drain.consumedApprovalPreservationProven === false && drain.receiptRecoveryProven === false);
   put("idle-drain", c.shutdown?.signal === "SIGTERM" && c.shutdown.exitCode === 0 && c.shutdown.drained === true && c.shutdown.inFlightActivity === false);
-  put("private-files-and-owned-services-cleanup", value.cleanup?.privateFilesRemoved === true && value.cleanup.allCreatedResourcesRemoved === true
-    && Array.isArray(value.cleanup.resources) && value.cleanup.resources.length > 0 && value.cleanup.resources.every(item => item.removed === true));
+  const childCleanup = sanitizeChildCleanupEvidence(value.cleanup);
+  put("private-files-and-owned-services-cleanup", childCleanup.privateFilesRemoved === true && childCleanup.allCreatedResourcesRemoved === true
+    && childCleanup.resourceCount > 0 && childCleanup.removedResourceCount === childCleanup.resourceCount);
   return result;
 }
 
@@ -382,10 +406,33 @@ export function sanitizeChildFailure(phase, workerCategory, guardCategory, comma
     ...(command && typeof commandPhase === "string" && CHILD_INFLIGHT_COMMAND_PHASES.includes(commandPhase) ? { commandPhase } : {}) };
 }
 
+/** Passed artifacts must show child cleanup, runtime filesystem and SSM equality as true; failed ones show them only when measured. */
+function assertSelfDescription(value) {
+  const passed = value.status === "passed", cleanup = value.cleanup;
+  const present = CHILD_CLEANUP_KEYS.filter(key => Object.hasOwn(cleanup, key));
+  if (present.length && present.length !== CHILD_CLEANUP_KEYS.length) fail();
+  if (present.length) {
+    if (passed && (cleanup.privateFilesRemoved !== true || cleanup.allCreatedResourcesRemoved !== true || cleanup.resourceCount < 1
+      || cleanup.removedResourceCount !== cleanup.resourceCount)) fail();
+  } else if (passed) fail();
+  const runtime = value.runtimeFilesystem, ssm = value.ssmDocuments;
+  if (runtime !== undefined) {
+    if (!record(runtime) || JSON.stringify(Object.keys(runtime).sort()) !== JSON.stringify([...RUNTIME_KEYS].sort())
+      || RUNTIME_KEYS.filter(key => key !== "user").some(key => typeof runtime[key] !== "boolean") || !Number.isSafeInteger(runtime.user)) fail();
+    if (passed && (runtime.readonlyRootfs !== true || runtime.capDropAll !== true || runtime.noNewPrivileges !== true || runtime.user !== 10001
+      || runtime.rootWriteRefused !== true || runtime.tmpWritable !== true)) fail();
+  } else if (passed) fail();
+  if (ssm !== undefined) {
+    if (!record(ssm) || JSON.stringify(Object.keys(ssm).sort()) !== JSON.stringify([...SSM_KEYS].sort()) || !Number.isSafeInteger(ssm.count) || ssm.count < 1
+      || typeof ssm.packagedEqualsSource !== "boolean") fail();
+    if (passed && ssm.packagedEqualsSource !== true) fail();
+  } else if (passed) fail();
+}
+
 /** Artifact admission is distinct from a passing execution verdict, including failed prerequisites. */
 export function assertArtifactShape(value, platform) {
   const manifest = packagedWorkerManifest(platform);
-  const keys = ["schemaVersion", "lane", "kind", "status", "platform", "commit", "sourceInputSha256", "acceptanceHarnessSha256", "wrapperSha256", "manifestSha256", "workflowSha256", "github", "environment", "startedAt", "finishedAt", "childExitCode", "minimumObservedFreeGiB", "checks", "cleanup", "limitations", "failurePhase", "childFailure"];
+  const keys = ["schemaVersion", "lane", "kind", "status", "platform", "commit", "sourceInputSha256", "acceptanceHarnessSha256", "wrapperSha256", "manifestSha256", "workflowSha256", "github", "environment", "startedAt", "finishedAt", "childExitCode", "minimumObservedFreeGiB", "checks", "cleanup", "runtimeFilesystem", "ssmDocuments", "limitations", "failurePhase", "childFailure"];
   const iso = text => typeof text === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(text) && Number.isFinite(Date.parse(text));
   const phases = ["native-prerequisites", "owned-context-creation", "owned-builder-creation", "actual-packaged-worker", "final-owned-cleanup", "final-source-binding"];
   if (!record(value) || Object.keys(value).some(key => !keys.includes(key)) || value.schemaVersion !== 1 || value.lane !== "packaged-worker"
@@ -397,8 +444,12 @@ export function assertArtifactShape(value, platform) {
     || (value.commit !== undefined && !/^[a-f0-9]{40}$/.test(value.commit))
     || ["sourceInputSha256", "acceptanceHarnessSha256", "wrapperSha256", "manifestSha256", "workflowSha256"].some(key => value[key] !== undefined && !digest(value[key]))
     || !record(value.checks) || Object.entries(value.checks).some(([key, status]) => !manifest.requiredChecks.includes(key) || status !== "passed")
-    || !record(value.cleanup) || JSON.stringify(Object.keys(value.cleanup).sort()) !== JSON.stringify(["builderAbsent", "builderContainerAbsent", "cacheVolumeAbsent", "baselinePreserved", "wrapperPrivateFilesRemoved", "ownedContextAbsent"].sort())
-    || Object.values(value.cleanup).some(flag => typeof flag !== "boolean") || JSON.stringify(value.limitations) !== JSON.stringify(manifest.limitations)) fail();
+    || !record(value.cleanup) || Object.keys(value.cleanup).some(key => ![...WRAPPER_CLEANUP_KEYS, ...CHILD_CLEANUP_KEYS].includes(key))
+    || WRAPPER_CLEANUP_KEYS.some(key => typeof value.cleanup[key] !== "boolean")
+    || CHILD_CLEANUP_BOOLEANS.some(key => key in value.cleanup && typeof value.cleanup[key] !== "boolean")
+    || CHILD_CLEANUP_COUNTS.some(key => key in value.cleanup && (!Number.isSafeInteger(value.cleanup[key]) || value.cleanup[key] < 0))
+    || JSON.stringify(value.limitations) !== JSON.stringify(manifest.limitations)) fail();
+  assertSelfDescription(value);
   if (value.childFailure !== undefined) {
     if (value.status !== "failed" || value.failurePhase !== "actual-packaged-worker" || !Number.isInteger(value.childExitCode) || value.childExitCode < 1
       || !record(value.childFailure)) fail();
@@ -427,12 +478,12 @@ export function assertArtifactShape(value, platform) {
 export function assertPublishedEvidence(value, expected) {
   assertArtifactShape(value, expected.platform);
   const required = packagedWorkerManifest(expected.platform).requiredChecks;
-  const keys = ["schemaVersion", "lane", "kind", "status", "platform", "commit", "sourceInputSha256", "acceptanceHarnessSha256", "wrapperSha256", "manifestSha256", "workflowSha256", "github", "environment", "startedAt", "finishedAt", "childExitCode", "minimumObservedFreeGiB", "checks", "cleanup", "limitations"];
+  const keys = ["schemaVersion", "lane", "kind", "status", "platform", "commit", "sourceInputSha256", "acceptanceHarnessSha256", "wrapperSha256", "manifestSha256", "workflowSha256", "github", "environment", "startedAt", "finishedAt", "childExitCode", "minimumObservedFreeGiB", "checks", "cleanup", "runtimeFilesystem", "ssmDocuments", "limitations"];
   const envKeys = ["os", "processArch", "dockerOS", "dockerArch", "emulated", "node", "totalRamGiB", "availableRamGiB", "dockerRamGiB", "sourceFreeGiB", "temporaryFreeGiB", "dockerFreeGiB"];
   const iso = text => typeof text === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(text) && Number.isFinite(Date.parse(text));
   if (!record(value) || Object.keys(value).some(key => !keys.includes(key)) || !record(value.environment)
     || Object.keys(value.environment).length !== envKeys.length || envKeys.some(key => !Object.hasOwn(value.environment, key))
-    || !record(value.cleanup) || JSON.stringify(Object.keys(value.cleanup).sort()) !== JSON.stringify(["builderAbsent", "builderContainerAbsent", "cacheVolumeAbsent", "baselinePreserved", "wrapperPrivateFilesRemoved", "ownedContextAbsent"].sort())
+    || !record(value.cleanup) || JSON.stringify(Object.keys(value.cleanup).sort()) !== JSON.stringify([...WRAPPER_CLEANUP_KEYS, ...CHILD_CLEANUP_KEYS].sort())
     || !iso(value.startedAt) || !iso(value.finishedAt) || Date.parse(value.finishedAt) < Date.parse(value.startedAt)
     || !Number.isFinite(value.minimumObservedFreeGiB) || value.minimumObservedFreeGiB < 8
     || JSON.stringify(value.limitations) !== JSON.stringify(packagedWorkerManifest(expected.platform).limitations)
@@ -773,7 +824,7 @@ export async function nativeMain(args = process.argv.slice(2)) {
     return 0;
   }
   await publicTarget(parsed.evidence);
-  let phase = "native-prerequisites", scratch, config, docker, before, child, checks = {}, frame, contextCapture, originalContext, builderAttempt, capturedScope, childFailure;
+  let phase = "native-prerequisites", scratch, config, docker, before, child, checks = {}, frame, contextCapture, originalContext, builderAttempt, capturedScope, childFailure, childCleanup, described;
   let processSettlementUnconfirmed = false, interruptedMain = false;
   const cancellation = new AbortController(); mainCancellation = cancellation.signal;
   const stopMain = () => { interruptedMain = true; cancellation.abort(); };
@@ -830,6 +881,8 @@ export async function nativeMain(args = process.argv.slice(2)) {
         raw.failureReason?.category, raw.failureCommand?.category, raw.failureCommand?.phase, raw.buildFailure);
     }
     checks = executedChecks(raw, parsed.platform, child.code);
+    childCleanup = sanitizeChildCleanupEvidence(raw.cleanup);
+    described = sanitizeSelfDescribingEvidence(raw);
     const marker = assertReleaseMarker(await privateJson(config.marker), config);
     if (marker.runId !== raw.runId || marker.imageId !== raw.image.id || !await scopeAbsent(docker, config.scope)) fail();
     checks["owned-builder-cache-cleanup"] = "passed";
@@ -888,7 +941,7 @@ export async function nativeMain(args = process.argv.slice(2)) {
     }
     const evidence = { schemaVersion: 1, lane: "packaged-worker", kind: "native-packaged-worker", status, platform: parsed.platform,
       ...frame, environment, startedAt, finishedAt: new Date().toISOString(), childExitCode: child?.code ?? null,
-      minimumObservedFreeGiB: child?.minimumObservedFreeGiB ?? null, checks, cleanup, limitations: manifest.limitations,
+      minimumObservedFreeGiB: child?.minimumObservedFreeGiB ?? null, checks, cleanup: { ...cleanup, ...childCleanup }, ...described, limitations: manifest.limitations,
       ...(status === "failed" ? { failurePhase: phase, ...(childFailure ? { childFailure } : {}) } : {}) };
     if (status === "passed") {
       try { assertPublishedEvidence(evidence, await sourceFrame(parsed.platform)); } catch { evidence.status = status = "failed"; evidence.failurePhase = "final-source-binding"; }

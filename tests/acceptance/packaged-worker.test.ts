@@ -869,6 +869,19 @@ describe("packaged worker acceptance safety", () => {
       productStore: "isolated-file-fixture", platformStore: "postgres" })).toThrow("trusted schema");
     expect(() => sanitizeClientEvidence("assets", { uid: 10001, arch: "arm64", node: "private-password" })).toThrow("trusted schema");
   });
+  it("admits exact plan storage evidence and refuses any other mode, owner or retention claim", () => {
+    const hexDigest = "e".repeat(64);
+    const assets = { uid: 10001, arch: "x64", node: "v22.23.3", tofu: ["OpenTofu v1.12.5", "on linux_amd64"], policySha256: hexDigest,
+      ssmDocuments: { count: 12, sha256: hexDigest }, dependencies: { "@temporalio/worker": "1.2.3", "@temporalio/client": "1.2.3", postgres: "3.4.5", jose: "5.6.7" },
+      plans: { logicallyExpired: true, ciphertextRetained: true, terminalRetained: true, encryptedLifecycleFixture: true, activeRetained: true, unownedRetained: true, sentinelFiles: true },
+      planStorage: { dirMode: "700", fileModes: ["600", "600", "600"], owner: 10001, retainedKept: true } };
+    expect(sanitizeClientEvidence("assets", assets)?.planStorage).toEqual({ dirMode: "700", fileModes: ["600", "600", "600"], owner: 10001, retainedKept: true });
+    expect(() => sanitizeClientEvidence("assets", { ...assets, planStorage: { ...assets.planStorage, dirMode: "755" } })).toThrow("trusted schema");
+    expect(() => sanitizeClientEvidence("assets", { ...assets, planStorage: { ...assets.planStorage, fileModes: ["600", "644", "600"] } })).toThrow("trusted schema");
+    expect(() => sanitizeClientEvidence("assets", { ...assets, planStorage: { ...assets.planStorage, owner: 0 } })).toThrow("trusted schema");
+    expect(() => sanitizeClientEvidence("assets", { ...assets, planStorage: { ...assets.planStorage, retainedKept: false } })).toThrow("trusted schema");
+    expect(() => sanitizeClientEvidence("assets", { ...assets, planStorage: undefined })).toThrow("trusted schema");
+  });
   it("never promotes cloud-write or successful-operation claims from the scoped read fixture", () => {
     expect(() => sanitizeClientEvidence("operations", { reconcile: { status: "observed", drift: 0, unknown: 0 },
       operation: { workflowStatus: "succeeded" }, cloudWritesProven: true })).toThrow("trusted schema");

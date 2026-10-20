@@ -796,11 +796,14 @@ export function sanitizeClientEvidence(action, value) {
       || !Array.isArray(value.tofu) || !/^OpenTofu v\d+\.\d+\.\d+$/.test(value.tofu[0]) || !/^on linux_(amd64|arm64)$/.test(value.tofu[1])
       || !digest(value.policySha256) || !Number.isSafeInteger(value.ssmDocuments?.count) || value.ssmDocuments.count < 1
       || !digest(value.ssmDocuments.sha256) || dependencies.some((name) => !version(value.dependencies?.[name]))
-      || value.plans?.logicallyExpired !== true || value.plans.ciphertextRetained !== true || value.plans.terminalRetained !== true || value.plans.encryptedLifecycleFixture !== true || value.plans.activeRetained !== true || value.plans.unownedRetained !== true || value.plans.sentinelFiles !== true) fail();
+      || value.plans?.logicallyExpired !== true || value.plans.ciphertextRetained !== true || value.plans.terminalRetained !== true || value.plans.encryptedLifecycleFixture !== true || value.plans.activeRetained !== true || value.plans.unownedRetained !== true || value.plans.sentinelFiles !== true
+      || value.planStorage?.dirMode !== "700" || !Array.isArray(value.planStorage.fileModes) || value.planStorage.fileModes.length !== 3
+      || value.planStorage.fileModes.some((mode) => mode !== "600") || value.planStorage.owner !== 10001 || value.planStorage.retainedKept !== true) fail();
     return { uid: 10001, arch: value.arch, node: value.node, tofu: value.tofu.slice(0, 2), policySha256: value.policySha256,
       ssmDocuments: { count: value.ssmDocuments.count, sha256: value.ssmDocuments.sha256 },
       dependencies: Object.fromEntries(dependencies.map((name) => [name, value.dependencies[name]])),
-      plans: { logicallyExpired: true, ciphertextRetained: true, terminalRetained: true, activeRetained: true, unownedRetained: true, sentinelFiles: true, encryptedLifecycleFixture: true } };
+      plans: { logicallyExpired: true, ciphertextRetained: true, terminalRetained: true, activeRetained: true, unownedRetained: true, sentinelFiles: true, encryptedLifecycleFixture: true },
+      planStorage: { dirMode: "700", fileModes: ["600", "600", "600"], owner: 10001, retainedKept: true } };
   }
   fail();
 }

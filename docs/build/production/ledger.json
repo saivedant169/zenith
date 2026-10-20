@@ -6942,7 +6942,7 @@
         "tests/cost",
         "tests/graph"
       ],
-      "implementationNotes": "Final integration: migration chain 1..58, shared human step-up, owned-stack and live-helper joins assembled. Local checks in verify/FINAL-INTEGRATION.md; Mac engine/browser/live verification remains pending. No verification promotion."
+      "implementationNotes": "Final integration: migration chain 1..58, shared human step-up, owned-stack and live-helper joins assembled. Local checks in verify/FINAL-INTEGRATION.md; Mac engine/browser/live verification remains pending. No verification promotion. 2026-10-20: all 4 wave6 cases gated on this requirement pass (optimizer consent, docs/build/production/evidence/PROD-COST-03/2026-10-20-3c5dc825-optimizer-consent-browser.json), but none tests its acceptance clause; local_engine coverage of the refreshable dated catalog is still missing."
     },
     {
       "id": "PROD-COST-02",
@@ -6972,7 +6972,7 @@
         "tests/cost",
         "tests/graph"
       ],
-      "implementationNotes": "Final integration: migration chain 1..58, shared human step-up, owned-stack and live-helper joins assembled. Local checks in verify/FINAL-INTEGRATION.md; Mac engine/browser/live verification remains pending. No verification promotion."
+      "implementationNotes": "Final integration: migration chain 1..58, shared human step-up, owned-stack and live-helper joins assembled. Local checks in verify/FINAL-INTEGRATION.md; Mac engine/browser/live verification remains pending. No verification promotion. 2026-10-20: all 4 wave6 cases gated on this requirement pass (optimizer consent, docs/build/production/evidence/PROD-COST-03/2026-10-20-3c5dc825-optimizer-consent-browser.json), but none tests its acceptance clause; local_engine coverage of placement completeness and infeasible-budget refusal is still missing."
     },
     {
       "id": "PROD-COST-03",
@@ -7004,6 +7004,14 @@
           "environment": "Node22.23.3 native Darwin ARM64,768MiB heap; owned PostgreSQL16.15 ARM64,384MiB memory,strict verify-full TLS and private CA. Bare-PG SET ROLE stand-ins; no Supabase Auth or pooler proof.",
           "logs": "docs/build/production/evidence/PROD-COST-03/2026-10-07-prod-cost-03-serial-r2.json",
           "result": "449 passed /0 failed /0 skipped; required Temporal flag enabled. Scheduling subset19 includes5 scalar and14 actual owned SQLiteTemporal/nativePG cases. Default measurement/ownership wiring and measurable optimization remain builder-pending; no optimizer/default seven-job acceptance promotion."
+        },
+        {
+          "level": "local_engine",
+          "commit": "3c5dc82563e840a861bd2dd6fb01993b262126ab",
+          "command": "manifest argv from scripts/ci/gate-manifest.mjs wave6-browser for the case, then node scripts/ci/wave6-gates.mjs --case wave6-756bde47cd4150de --report <report>",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned J1 default stack (Supabase Auth, Kong, Supavisor, PostgreSQL) on a private CA with SPKI-pinned edge; Google Chrome 155 for fixture sign-in.",
+          "logs": "docs/build/production/evidence/PROD-COST-03/2026-10-20-3c5dc825-optimizer-consent-browser.json",
+          "result": "Optimizer consent HTTP case passed 1/0 with an AAL2 human session on the owned default stack; all 4 COST-gated wave6 cases pass. Consent path only: measurable nonflapping savings remain unproven, so no promotion."
         }
       ],
       "requiredEvidence": [

@@ -7,9 +7,9 @@
  "note": "Each case is verified with scripts/ci/wave6-gates.mjs --case against its own Vitest JSON report on the clean exact-source commit named per case. Live-lane cases are excluded. Failures and skips are preserved; totals are not promotion evidence.",
  "totals": {
   "cases": 286,
-  "passed": 259,
+  "passed": 260,
   "failed": 5,
-  "not_run": 18
+  "not_run": 17
  },
  "byRequirement": {
   "PROD-REL-04": {
@@ -108,19 +108,19 @@
    "not_run": 0
   },
   "PROD-COST-01": {
-   "passed": 3,
+   "passed": 4,
    "failed": 0,
-   "not_run": 1
+   "not_run": 0
   },
   "PROD-COST-02": {
-   "passed": 3,
+   "passed": 4,
    "failed": 0,
-   "not_run": 1
+   "not_run": 0
   },
   "PROD-COST-03": {
-   "passed": 3,
+   "passed": 4,
    "failed": 0,
-   "not_run": 1
+   "not_run": 0
   },
   "PROD-MAN-04": {
    "passed": 11,
@@ -1912,8 +1912,9 @@
     "PROD-COST-02",
     "PROD-COST-03"
    ],
-   "status": "not_run",
-   "reason": "not run: browser fixture on an operated J1/J2 stack not prepared in this run"
+   "status": "passed",
+   "commit": "3c5dc82563e840a861bd2dd6fb01993b262126ab",
+   "run": "per-case lane argv (browser)"
   },
   {
    "id": "wave6-ac781b050767380f",

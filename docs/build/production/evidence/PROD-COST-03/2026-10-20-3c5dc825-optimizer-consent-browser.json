@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "requirement": "PROD-COST-03",
+  "also": [
+    "PROD-COST-01",
+    "PROD-COST-02"
+  ],
+  "level": "local_engine",
+  "date": "2026-10-20",
+  "commit": "3c5dc82563e840a861bd2dd6fb01993b262126ab",
+  "case": {
+    "id": "wave6-756bde47cd4150de",
+    "lane": "browser",
+    "file": "tests/cost/optimizer-settings.http.local.test.ts",
+    "test": "requires a human session and same-origin consent, enforces tenant scope/CAS and restores opt-out",
+    "runExit": 0,
+    "verifyExit": 0,
+    "passed": 1,
+    "failed": 0
+  },
+  "command": "manifest argv from scripts/ci/gate-manifest.mjs wave6-browser for the case, then node scripts/ci/wave6-gates.mjs --case wave6-756bde47cd4150de --report <report>",
+  "environment": "Native Darwin ARM64, Node 22.23.3; owned J1 default stack (Supabase Auth, Kong, Supavisor, PostgreSQL) on a private CA with SPKI-pinned edge; Google Chrome 155 for fixture sign-in.",
+  "fixture": "Two fresh admins in separate workspaces. Admin A enrolled TOTP through /account/mfa/enrol and verified it, so the captured session is AAL2. Cookie and env files stayed 0600 in the runtime directory and are not recorded.",
+  "priorFailure": "The first run on the same stack used an AAL1 cookie and failed: the privileged consent returned 403 mfa_required instead of the expected 400. That is correct product behavior; the fixture was fixed, not the product.",
+  "result": "1 passed / 0 failed. With the 3 PostgreSQL optimizer-settings cases (8776af2f), all 4 wave6 cases gated on COST-01/02/03 pass.",
+  "limits": "All 4 cases exercise optimizer consent only (default off, human AAL2 session, same-origin, tenant scope, CAS, opt-out). They do not test the dated price catalog (COST-01), placement cost completeness or infeasible-budget refusal (COST-02), or measurable, nonflapping savings (COST-03). No requirement is promoted."
+}

@@ -1,3 +1,16 @@
+## COST optimizer consent passed on the owned stack — 20 October 2026
+
+The optimizer consent HTTP case (`wave6-756bde47cd4150de`) passed 1/1 on exact source `3c5dc825`, against the owned J1 default stack. Together with the three PostgreSQL optimizer-settings cases, all four wave6 cases gated on COST-01/02/03 now pass.
+
+The first attempt failed with 403 `mfa_required`: the fixture session was AAL1, and privileged consent correctly requires AAL2. The fixture now enrols and verifies TOTP through the real UI before it captures the session. The product was not changed.
+
+No COST requirement is promoted. All four cases test consent only: default off, human AAL2 session, same origin, tenant scope, CAS and opt-out. Still missing:
+- COST-01: the refreshable dated price catalog;
+- COST-02: placement cost completeness and infeasible-budget refusal;
+- COST-03: measurable, nonflapping savings.
+
+The wave6 lane record is now 260 passed, 5 failed and 17 not run of 286 non-live cases. [Evidence](evidence/PROD-COST-03/2026-10-20-3c5dc825-optimizer-consent-browser.json)
+
 ## J14 Cilium, gVisor and Gateway lanes — 20 October 2026
 
 With the owner-approved toolchain (helm, the pinned Cilium 1.20.2 chart, gVisor 20260928.0, Gateway API v1.6.3 CRDs, Chrome), J14 passed 34/34 on two consecutive fresh kind clusters at exact source `3e188e18`:

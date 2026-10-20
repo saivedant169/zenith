@@ -1,0 +1,286 @@
+{
+  "schemaVersion": 1,
+  "kind": "local_engine",
+  "date": "2026-10-21",
+  "commit": "b5c61f4d8bd939752e36f80f3e973b174de737cd",
+  "clean": true,
+  "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 (pinned image) with Supabase stand-in roles, removed after; owned Temporal CLI dev server (start-recovery spawns its own, default port refused); real OpenTofu 1.12.5 and pg_dump/pg_restore 16 for the plan handoff.",
+  "command": "scratchpad run-dur-all.sh: ZENITH_TEST_PLATFORM_PG_URL/ZENITH_CONTRACT_POSTGRES/SUPABASE_DB_URL=<owned>, ZENITH_TEST_TEMPORAL=1, ZENITH_TEST_TOFU_NETWORK=1, ZENITH_TOFU_BIN, ZENITH_TEST_PG_DUMP_BIN/RESTORE_BIN, vitest run <34 files> --no-file-parallelism --maxWorkers=1",
+  "totals": {
+    "files": 34,
+    "passed": 1167,
+    "failed": 0,
+    "skipped": 0
+  },
+  "rawReport": "docs/build/production/evidence/engine-acceptance/2026-10-21-b5c61f4d-dur-combined-vitest.json",
+  "rawReportSha256": "44ae02bef79d67d18e3ea956aa68d9228505aeefb04e98464cac6333119194b6",
+  "files": {
+    "tests/adversarial/approvals-forgery.test.ts": {
+      "passed": 48,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 15
+    },
+    "tests/bridge/projection-repair.test.ts": {
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 6
+    },
+    "tests/capabilities/broker.test.ts": {
+      "passed": 100,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 33
+    },
+    "tests/capabilities/destroy-review-mcp.test.ts": {
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 0
+    },
+    "tests/capabilities/execution.test.ts": {
+      "passed": 96,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 32
+    },
+    "tests/capabilities/standing-grants.test.ts": {
+      "passed": 123,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 41
+    },
+    "tests/controlplane/build-launch-broker-binding.test.ts": {
+      "passed": 65,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 61
+    },
+    "tests/controlplane/build-launches.test.ts": {
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 13
+    },
+    "tests/controlplane/durable-intent-authority.test.ts": {
+      "passed": 44,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 22
+    },
+    "tests/controlplane/executable-semantics.test.ts": {
+      "passed": 35,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 17
+    },
+    "tests/controlplane/plan-artifact-access.test.ts": {
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 0
+    },
+    "tests/controlplane/plan-artifact-retention.test.ts": {
+      "passed": 27,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 27
+    },
+    "tests/controlplane/plan-artifacts.test.ts": {
+      "passed": 26,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 15
+    },
+    "tests/controlplane/plan-custody.test.ts": {
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 12
+    },
+    "tests/controlplane/recovery-epoch.test.ts": {
+      "passed": 30,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 15
+    },
+    "tests/effects/build-launch.test.ts": {
+      "passed": 26,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 13
+    },
+    "tests/effects/cleanup.test.ts": {
+      "passed": 22,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 11
+    },
+    "tests/effects/ledger.test.ts": {
+      "passed": 70,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 35
+    },
+    "tests/effects/provider-resolvers.test.ts": {
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 3
+    },
+    "tests/effects/proxy.test.ts": {
+      "passed": 33,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 11
+    },
+    "tests/effects/resolvers.test.ts": {
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 5
+    },
+    "tests/effects/routes.test.ts": {
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 0
+    },
+    "tests/execution/destroy-semantics.test.ts": {
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 0
+    },
+    "tests/execution/semantics-dispatch.test.ts": {
+      "passed": 32,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 16
+    },
+    "tests/execution/semantics.test.ts": {
+      "passed": 57,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 0
+    },
+    "tests/middleware/platform-bearer.test.ts": {
+      "passed": 109,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 0
+    },
+    "tests/platform/codebuild-launch-authority.test.ts": {
+      "passed": 34,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 34
+    },
+    "tests/platform/current-dispatch-requirement.test.ts": {
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 9
+    },
+    "tests/platform/semantics-approval.test.ts": {
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 6
+    },
+    "tests/runners/idempotent-enqueue.test.ts": {
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 5
+    },
+    "tests/security/plan-artifact-secrecy.test.ts": {
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 1
+    },
+    "tests/security/plan-view-separation.test.ts": {
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 0
+    },
+    "tests/tofu/plan-artifact-handoff.test.ts": {
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 18
+    },
+    "tests/workflows/start-recovery.test.ts": {
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "postgresCases": 0
+    }
+  },
+  "requirementFiles": {
+    "PROD-DUR-01": [
+      "tests/runners/idempotent-enqueue.test.ts",
+      "tests/controlplane/durable-intent-authority.test.ts",
+      "tests/bridge/projection-repair.test.ts",
+      "tests/workflows/start-recovery.test.ts"
+    ],
+    "PROD-DUR-02": [
+      "tests/controlplane/durable-intent-authority.test.ts",
+      "tests/bridge/projection-repair.test.ts",
+      "tests/workflows/start-recovery.test.ts"
+    ],
+    "PROD-DUR-03": [
+      "tests/execution/semantics.test.ts",
+      "tests/execution/semantics-dispatch.test.ts",
+      "tests/platform/semantics-approval.test.ts",
+      "tests/controlplane/executable-semantics.test.ts",
+      "tests/execution/destroy-semantics.test.ts"
+    ],
+    "PROD-DUR-04": [
+      "tests/adversarial/approvals-forgery.test.ts",
+      "tests/capabilities/standing-grants.test.ts",
+      "tests/capabilities/execution.test.ts",
+      "tests/platform/current-dispatch-requirement.test.ts",
+      "tests/capabilities/broker.test.ts",
+      "tests/capabilities/destroy-review-mcp.test.ts",
+      "tests/middleware/platform-bearer.test.ts",
+      "tests/execution/semantics-dispatch.test.ts",
+      "tests/controlplane/executable-semantics.test.ts"
+    ],
+    "PROD-DUR-05": [
+      "tests/controlplane/plan-custody.test.ts",
+      "tests/controlplane/plan-artifacts.test.ts",
+      "tests/controlplane/plan-artifact-retention.test.ts",
+      "tests/controlplane/plan-artifact-access.test.ts",
+      "tests/security/plan-view-separation.test.ts",
+      "tests/tofu/plan-artifact-handoff.test.ts",
+      "tests/security/plan-artifact-secrecy.test.ts"
+    ],
+    "PROD-DUR-07": [
+      "tests/effects/ledger.test.ts",
+      "tests/effects/resolvers.test.ts",
+      "tests/effects/provider-resolvers.test.ts",
+      "tests/controlplane/recovery-epoch.test.ts",
+      "tests/effects/routes.test.ts",
+      "tests/effects/proxy.test.ts"
+    ],
+    "PROD-DUR-08": [
+      "tests/controlplane/build-launches.test.ts",
+      "tests/controlplane/build-launch-broker-binding.test.ts",
+      "tests/platform/codebuild-launch-authority.test.ts",
+      "tests/effects/build-launch.test.ts",
+      "tests/effects/cleanup.test.ts",
+      "tests/effects/resolvers.test.ts",
+      "tests/effects/provider-resolvers.test.ts",
+      "tests/effects/proxy.test.ts"
+    ]
+  },
+  "notes": [
+    "tests/controlplane/outbox.test.ts was named in the command but does not exist; vitest ignored it. All 34 existing files ran.",
+    "Wave6 engine cases for DUR-07/08 passed 39/39 at 8776af2f (2026-10-20-wave6-local-lanes.json); no source under controlplane, effects, capabilities, execution or platform changed between 8776af2f and ac8e6c87.",
+    "Product fixes in this window: c32968e5 (projectAcknowledgedStarts repairs lost start projections)."
+  ]
+}

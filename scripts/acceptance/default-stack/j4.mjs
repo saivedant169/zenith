@@ -6,7 +6,7 @@ import postgres from 'postgres';
 import { Client, Connection } from '@temporalio/client';
 import { assertPrivate, environmentsFor, readPrepared, sourceBinding, writeJson } from '../../deploy/installation.mjs';
 import { cli, compose, inventory, readState, requireEngineGate, save } from './runtime.mjs';
-import { apiProbeRequest, poolerProbe, readiness as ordinaryReadiness, supabaseRequest } from './readiness.mjs';
+import { apiFetch, poolerProbe, readiness as ordinaryReadiness, supabaseRequest } from './readiness.mjs';
 import { fail, ports } from './config.mjs';
 import { hostTemporalTls } from './env.mjs';
 
@@ -343,8 +343,7 @@ export async function j4PrestartReadiness(state, { includeApiProbe = true } = {}
   const config = readPrepared(path.join(state.directory, 'installation'));
   const checks = {};
   const api = includeApiProbe ? await (await import('../../deploy/installation.mjs')).probeReadiness(config, async (input, init) => {
-    const request = apiProbeRequest(config.environment.NEXT_PUBLIC_SITE_URL, ports.api, input, init);
-    return fetch(request.url, request.options);
+    return apiFetch(config.environment.NEXT_PUBLIC_SITE_URL, ports.api, input, init);
   }) : undefined;
   if (api) checks.api = api.ready;
   const services = await j4Services(state, includeApiProbe);
@@ -407,8 +406,7 @@ export async function verifyJ4Prestart(state) {
   const services = await j4Services(state, true);
   const config = readPrepared(path.join(state.directory, 'installation'));
   const api = await (await import('../../deploy/installation.mjs')).probeReadiness(config, async (input, init) => {
-    const request = apiProbeRequest(config.environment.NEXT_PUBLIC_SITE_URL, ports.api, input, init);
-    return fetch(request.url, request.options);
+    return apiFetch(config.environment.NEXT_PUBLIC_SITE_URL, ports.api, input, init);
   });
   const headers = { apikey: config.environment.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY };
   if (!api.ready || (await supabaseRequest(state, '/auth/v1/health', headers)).status !== 200

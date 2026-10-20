@@ -5,7 +5,8 @@ import { spawnSync } from 'node:child_process';
 import { load } from 'js-yaml';
 import { describe, expect, it } from 'vitest';
 import { joinedConfiguration, validateInput, planFor, installationEnvironment, environmentsFor } from '../../scripts/deploy/installation.mjs';
-import { apiProbeRequest, poolerProbeArguments } from '../../scripts/acceptance/default-stack/readiness.mjs';
+import http from 'node:http';
+import { apiFetch, apiProbeRequest, poolerProbeArguments } from '../../scripts/acceptance/default-stack/readiness.mjs';
 import { issuerBindings, issuer } from '../../scripts/acceptance/default-stack/issuer.mjs';
 import { cleanupPlan, supabaseConfig, mailpitEnvironment, stackComposition, topology, ports, portsFor, root, installationLabel, projectLabel, digestImage, assertHeadroom, minimumFreeBytes, excludedSupabaseServices } from '../../scripts/acceptance/default-stack/config.mjs';
 
@@ -205,6 +206,20 @@ describe('canonical API origin on declared peer transport', () => {
     expect(request.options.redirect).toBe('error');
     expect(() => apiProbeRequest('http://127.0.0.1:36400', 35000, 'http://127.0.0.1:36400/api/me', {})).toThrow('api-probe-origin');
     expect(() => apiProbeRequest('http://127.0.0.1:36400', ports.peerApi, 'http://foreign.localhost/api/me', {})).toThrow('api-probe-origin');
+  });
+
+  it('sends the canonical Host on the wire, which fetch() silently drops', async () => {
+    const origin = `http://127.0.0.1:${ports.api}`;
+    const server = http.createServer((request, response) => {
+      response.writeHead(401, { 'www-authenticate': `seen ${request.headers.host}`, 'content-type': 'application/json' }); response.end('{"ok":false}');
+    });
+    await new Promise<void>(resolve => server.listen(ports.peerApi, '127.0.0.1', resolve));
+    try {
+      const response = await apiFetch(origin, ports.peerApi, `${origin}/api/agent/v3/mcp`, { headers: { accept: 'application/json' } });
+      expect(response.status).toBe(401);
+      expect(response.headers.get('www-authenticate')).toBe(`seen 127.0.0.1:${ports.api}`);
+      expect(await response.json()).toEqual({ ok: false });
+    } finally { await new Promise(resolve => server.close(resolve)); }
   });
 });
 

@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import http from 'node:http';
 import https from 'node:https';
 import { fileURLToPath } from 'node:url';
 import { assertPrivate, readPrepared, probeReadiness, sourceBinding } from '../../deploy/installation.mjs';
@@ -52,6 +53,28 @@ export function apiProbeRequest(origin, port, input, init) {
   return { url: transport, options: { ...init, headers } };
 }
 
+/** fetch() drops a caller-supplied Host header, so a probe on the peer port would reach the API as a foreign host.
+ * node:http sends it; the response is returned as a standard Response. */
+export function apiFetch(origin, port, input, init) {
+  const { url, options } = apiProbeRequest(origin, port, input, init);
+  if (url.protocol !== 'http:') fail('api-probe-transport');
+  return new Promise((resolve, reject) => {
+    const request = http.request(url, { method: options.method ?? 'GET', headers: Object.fromEntries(options.headers), signal: options.signal ?? undefined }, response => {
+      const chunks = [];
+      response.on('data', chunk => chunks.push(chunk));
+      response.on('error', reject);
+      response.on('end', () => {
+        const headers = new Headers();
+        for (const [name, value] of Object.entries(response.headers)) for (const one of [value].flat()) if (one !== undefined) headers.append(name, one);
+        const status = response.statusCode ?? 0;
+        resolve(new Response([101, 204, 205, 304].includes(status) ? null : Buffer.concat(chunks), { status, headers }));
+      });
+    });
+    request.on('error', reject);
+    request.end();
+  });
+}
+
 export async function readiness(state, { j4Resume = false } = {}) {
   requireEngineGate();
   if (state.j4Mode === 'deferred') fail('j4-deferred-not-j1-ready');
@@ -98,16 +121,12 @@ export async function readiness(state, { j4Resume = false } = {}) {
   }
   /** @type {Record<string, string>[]} */ const apiProbes = [];
   for (let i = 0; i < sizing.apis; i++) {
-    const result = await probeReadiness(config, (input, init) => {
-      const request = apiProbeRequest(config.environment.NEXT_PUBLIC_SITE_URL, ports.api + i, input, init);
-      return fetch(request.url, request.options);
-    });
+    const result = await probeReadiness(config, (input, init) => apiFetch(config.environment.NEXT_PUBLIC_SITE_URL, ports.api + i, input, init));
     checks[`http-api-${i + 1}`] = result.ready; apiProbes.push(result.checks);
     if (result.checks['mcp-bearer-boundary'] !== 'passed') {
       // Diagnostic only: the unauthenticated MCP answer's status and challenge header (public origin, no credential).
       try {
-        const request = apiProbeRequest(config.environment.NEXT_PUBLIC_SITE_URL, ports.api + i, `${config.environment.NEXT_PUBLIC_SITE_URL}/api/agent/v3/mcp`, { redirect: 'error', signal: AbortSignal.timeout(15_000), headers: { accept: 'application/json' } });
-        const response = await fetch(request.url, request.options);
+        const response = await apiFetch(config.environment.NEXT_PUBLIC_SITE_URL, ports.api + i, `${config.environment.NEXT_PUBLIC_SITE_URL}/api/agent/v3/mcp`, { redirect: 'error', signal: AbortSignal.timeout(15_000), headers: { accept: 'application/json' } });
         result.checks['mcp-bearer-boundary-observed'] = `${response.status} ${(response.headers.get('www-authenticate') ?? 'none').slice(0, 200)}`;
       } catch (error) { result.checks['mcp-bearer-boundary-observed'] = `error ${error instanceof Error ? error.name : 'unknown'}`; }
     }

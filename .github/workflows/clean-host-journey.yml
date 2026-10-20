@@ -1,0 +1,166 @@
+name: Clean-host default journey
+
+# PROD-PKG-04 customer-agent acceptance: the J2 default journey (real browser,
+# Supabase Auth, a registered zenithd and an owned kind target) on the default
+# 2 API + 2 worker topology, from a fresh GitHub-hosted Linux runner with no
+# port offset. Manual only: it pulls and builds several GiB of images.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clean-host-journey-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  journey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      SUPABASE_CLI_VERSION: 2.75.0
+      SUPABASE_CLI_SHA256: e5597462f865d5ac72af0453358e37ecb0d85962ad6914a114a53de847303bde
+      KIND_VERSION: v0.33.0
+      KIND_SHA256: aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d
+      KIND_NODE_IMAGE: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+      GO_BUILDER_IMAGE: golang:1.27-alpine@sha256:8a5910f31396cd4d89662f56c68b3ae31d374308270a1c3bd96672ee5ed43414
+      DISTROLESS_IMAGE: gcr.io/distroless/static-debian12:nonroot@sha256:afa5c872c891853ca7fcf1f12c3edb23f7eeef36189728842dd51042ff57f7ab
+      REGISTRY_IMAGE: registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373
+      NEXT_TELEMETRY_DISABLED: "1"
+      # Anonymous public.ecr.aws pulls hit 'toomanyrequests: Data limit exceeded'
+      # on shared runners. Same Supabase images from Docker Hub.
+      SUPABASE_INTERNAL_IMAGE_REGISTRY: docker.io
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.23.3'
+          cache: npm
+
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: '1.27.1'
+          cache: false
+
+      - run: npm ci --ignore-scripts
+
+      - name: Install the pinned Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Free runner disk for stack images
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup
+          df -h /
+
+      - name: Install the pinned Supabase CLI and kind
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -fsSL -o "$RUNNER_TEMP/supabase.tar.gz" "https://github.com/supabase/cli/releases/download/v${SUPABASE_CLI_VERSION}/supabase_linux_amd64.tar.gz"
+          echo "${SUPABASE_CLI_SHA256}  $RUNNER_TEMP/supabase.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/supabase.tar.gz" -C "$RUNNER_TEMP/bin" supabase
+          curl -fsSL -o "$RUNNER_TEMP/bin/kind" "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64"
+          echo "${KIND_SHA256}  $RUNNER_TEMP/bin/kind" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/bin/kind"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Record the clean host
+        run: |
+          set -euo pipefail
+          uname -a
+          docker version --format '{{.Server.Version}}'
+          supabase --version; kind version; kubectl version --client; go version
+          test "$(docker ps -aq | wc -l)" -eq 0
+          test -z "$(kind get clusters 2>/dev/null)"
+          ! ss -ltn | grep -E ':(5000|8025|36400|36401|54321|54322|54323|54324|54327)\b'
+
+      - name: Log command names, exit codes and container events
+        # Exit codes, durations and plain-word subcommands; for failed calls, up to
+        # 20 error lines that name no credential. Container names and actions only.
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/shim"
+          for tool in docker supabase kind kubectl; do
+            real=$(command -v "$tool")
+            cat > "$RUNNER_TEMP/shim/$tool" <<EOF
+          #!/bin/bash
+          start=\$(date +%s); err=\$(mktemp); "$real" "\$@" 2>"\$err"; rc=\$?; cat "\$err" >&2
+          words=\$(printf '%s\n' "\$@" | grep -E '^[a-z][a-z-]{1,30}$' | head -6 | tr '\n' ' ')
+          echo "\$(date -u +%T) rc=\$rc \$(( \$(date +%s) - start ))s $tool \$words" >> "$RUNNER_TEMP/commands.log"
+          [ \$rc -eq 0 ] || grep -iE 'error|unhealthy|failed|timed out' "\$err" | grep -viE 'key|token|password|secret|jwt|eyJ' | head -20 | sed 's/^/    /' >> "$RUNNER_TEMP/commands.log"
+          rm -f "\$err"; exit \$rc
+          EOF
+            chmod +x "$RUNNER_TEMP/shim/$tool"
+          done
+          echo "$RUNNER_TEMP/shim" >> "$GITHUB_PATH"
+          nohup docker events --filter type=container --format '{{.TimeNano}} {{.Action}} {{.Actor.Attributes.name}}' > "$RUNNER_TEMP/events.log" 2>&1 &
+
+      - name: Default stack (2 API + 2 worker, no port offset)
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -m 700 "$RUNNER_TEMP/zenith" "$RUNNER_TEMP/zenith/tmp"
+          env -u ZENITH_DEFAULT_STACK_PORT_OFFSET TMPDIR="$RUNNER_TEMP/zenith/tmp" ZENITH_ACCEPTANCE_DEFAULT_STACK=1 \
+            ZENITH_DEFAULT_STACK_REGISTRY_IMAGE="$REGISTRY_IMAGE" \
+            node scripts/acceptance/default-stack/up.mjs --profile default --directory "$RUNNER_TEMP/zenith/stack"
+
+      - name: Build and push the zenithd witness image
+        run: |
+          set -euo pipefail
+          tag="localhost:5000/zenith-j2-witness:${GITHUB_SHA}"
+          DOCKER_BUILDKIT=1 docker build -q --platform linux/amd64 -f tests/e2e/default/zenithd.Dockerfile \
+            --build-arg GO_BUILDER_IMAGE="$GO_BUILDER_IMAGE" --build-arg DISTROLESS_IMAGE="$DISTROLESS_IMAGE" \
+            --label org.zenith.acceptance.owner=PKG-04-J2 --label "org.zenith.acceptance.source-head=${GITHUB_SHA}" -t "$tag" .
+          docker push -q "$tag"
+          echo "WITNESS_IMAGE=$(docker image inspect "$tag" --format '{{index .RepoDigests 0}}')" >> "$GITHUB_ENV"
+
+      - name: Owned kind target and journey configuration
+        run: |
+          set -euo pipefail
+          stack="$RUNNER_TEMP/zenith/stack"
+          mail=$(node -p "require('$stack/state.json').mailpitUrl")
+          env -u ZENITH_DEFAULT_STACK_PORT_OFFSET TMPDIR="$RUNNER_TEMP/zenith/tmp" ZENITH_ACCEPTANCE_DEFAULT_STACK=1 ZENITH_DEFAULT_JOURNEY=1 \
+            NODE_EXTRA_CA_CERTS="$stack/tls/ca.crt" \
+            node tests/e2e/default/prepare.mjs --directory "$RUNNER_TEMP/zenith/j2" --stack "$stack" \
+              --node-image "$KIND_NODE_IMAGE" --witness-image "$WITNESS_IMAGE" --mailpit-url "$mail"
+
+      - name: J2 default journey
+        run: |
+          set -euo pipefail
+          stack="$RUNNER_TEMP/zenith/stack"
+          spki=$(node -e "const c=require('crypto');console.log(c.createHash('sha256').update(new c.X509Certificate(require('fs').readFileSync('$stack/tls/edge.crt')).publicKey.export({type:'spki',format:'der'})).digest('base64'))")
+          mkdir -p .data-ci-lane
+          env -u ZENITH_DEFAULT_STACK_PORT_OFFSET TMPDIR="$RUNNER_TEMP/zenith/tmp" ZENITH_ACCEPTANCE_DEFAULT_STACK=1 ZENITH_DEFAULT_JOURNEY=1 \
+            NODE_EXTRA_CA_CERTS="$stack/tls/ca.crt" ZENITH_JOURNEY_CHROMIUM_SPKI="$spki" \
+            node scripts/acceptance/default-journey.mjs --config "$RUNNER_TEMP/zenith/j2/journey.json" --receipt .data-ci-lane/clean-host-journey-receipt.json
+
+      - name: Journey and stack diagnostics
+        if: always()
+        run: |
+          node -e 'const r=JSON.parse(require("fs").readFileSync(".data-ci-lane/clean-host-journey-receipt.json","utf8"));console.log("journey",r.status,JSON.stringify(r.counts??{}));for(const c of r.checks??[])console.log(" ",c.id,c.status)' || true
+          node -e 'const r=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));console.log("readiness passed",r.passed,"failed",r.failed,"apis",r.apis,"workers",r.workers,"failed checks:",Object.entries(r.checks).filter(([,v])=>!v).map(([k])=>k).join(","))' "$RUNNER_TEMP/zenith/stack/readiness.receipt.json" || true
+          df -h /; free -m
+          grep -v ' rc=0 ' "$RUNNER_TEMP/commands.log" || true
+          grep -E ' (die|oom|kill|health_status: unhealthy) ' "$RUNNER_TEMP/events.log" | awk '{ printf "%s %s\n", strftime("%T", $1/1e9), substr($0, index($0,$2)) }' || true
+
+      - name: Remove owned kind cluster and stack
+        if: always()
+        run: |
+          for cluster in $(kind get clusters 2>/dev/null); do kind delete cluster --name "$cluster"; done
+          if [ -f "$RUNNER_TEMP/zenith/stack/state.json" ]; then
+            ZENITH_ACCEPTANCE_DEFAULT_STACK=1 TMPDIR="$RUNNER_TEMP/zenith/tmp" node scripts/acceptance/default-stack/down.mjs "$RUNNER_TEMP/zenith/stack"
+          fi
+          docker ps -a --format '{{.Names}} {{.Status}}'
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: clean-host-journey
+          path: .data-ci-lane/clean-host-journey-receipt.json
+          if-no-files-found: warn
+          retention-days: 30

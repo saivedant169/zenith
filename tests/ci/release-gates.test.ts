@@ -113,7 +113,7 @@ const coreRun = (step: string): string => `node scripts/ci/run-gate.mjs core --r
 
 const requiredCommands: Record<string, string[]> = {
   verify: [
-    '"$RUNNER_TEMP/actionlint" .github/workflows/ci.yml .github/workflows/tick.yml .github/workflows/agent-control.yml .github/workflows/live-acceptance.yml .github/workflows/packaged-workers.yml .github/workflows/skipped-platforms.yml .github/workflows/release.yml .github/workflows/clean-host-default-stack.yml',
+    '"$RUNNER_TEMP/actionlint" .github/workflows/ci.yml .github/workflows/tick.yml .github/workflows/agent-control.yml .github/workflows/live-acceptance.yml .github/workflows/packaged-workers.yml .github/workflows/skipped-platforms.yml .github/workflows/release.yml .github/workflows/clean-host-default-stack.yml .github/workflows/clean-host-journey.yml',
     INSTALL,
     coreRun("typecheck"),
     coreRun("lint"),

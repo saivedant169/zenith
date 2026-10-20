@@ -33,7 +33,10 @@ describe.skipIf(!enabled)("real Keycloak DCR (needs ZENITH_TEST_OAUTH_ISSUER=1 a
     expect(metadata.registration_endpoint).toBe(`${ISSUER}/clients-registrations/openid-connect`);
   });
   it("registers an anonymous public coding-agent client with a loopback redirect", async () => {
-    const client = await registerClient(ISSUER, { metadata, clientMetadata: {
+    // The SDK strips RFC 7592 management fields from its parsed result; read them from the issuer's own response.
+    let raw: { registration_client_uri?: string; registration_access_token?: string } = {};
+    const fetchFn: typeof fetch = async (input, init) => { const response = await fetch(input, init); if (response.ok) raw = await response.clone().json(); return response; };
+    const client = await registerClient(ISSUER, { metadata, fetchFn, clientMetadata: {
       client_name: "Zenith Mac DCR verification", redirect_uris: ["http://127.0.0.1:8742/callback"],
       grant_types: ["authorization_code", "refresh_token"], response_types: ["code"], token_endpoint_auth_method: "none",
       scope: "zenith:read zenith:plan",
@@ -41,7 +44,7 @@ describe.skipIf(!enabled)("real Keycloak DCR (needs ZENITH_TEST_OAUTH_ISSUER=1 a
     expect(client.client_id).toBeTruthy();
     expect(client.token_endpoint_auth_method).toBe("none");
     expect(client.redirect_uris).toEqual(["http://127.0.0.1:8742/callback"]);
-    const management = client as typeof client & { registration_client_uri?: string; registration_access_token?: string };
+    const management = raw;
     expect(management.registration_client_uri).toBeTruthy();
     expect(management.registration_access_token).toBeTruthy();
     const uri = management.registration_client_uri!;

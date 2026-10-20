@@ -23,10 +23,11 @@ describe("local OAuth issuer fixture contracts", () => {
     const profile = generated.components["org.keycloak.userprofile.UserProfileProvider"][0];
     const attrs = JSON.parse(profile.config["kc.user.profile.config"][0]).attributes;
     expect(attrs.find((a: { name: string }) => a.name === "zenith_subject").permissions).toEqual({ view: ["admin"], edit: ["admin"] });
+    expect(attrs.find((a: { name: string }) => a.name === "email").permissions.edit).toEqual(["admin"]);
   });
   it("keeps issuer consent, bounded DCR, loopback redirects and default read-only scope", () => {
     const generated = realm();
-    expect(generated.defaultDefaultClientScopes).toEqual(["zenith:read", "zenith-binding"]);
+    expect(generated.defaultDefaultClientScopes).toEqual(["basic", "zenith:read", "zenith-binding"]);
     expect(generated.defaultOptionalClientScopes).toEqual(SCOPES.filter((s) => s !== "read").map((s) => `zenith:${s}`));
     const policies = generated.components["org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy"];
     expect(policies.map((p) => p.providerId)).toEqual(["trusted-hosts", "consent-required", "scope", "max-clients", "allowed-client-templates", "allowed-protocol-mappers"]);

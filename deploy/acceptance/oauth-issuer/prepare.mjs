@@ -17,7 +17,8 @@ export function realmFor({ origin, subject, password }) {
   }
   if (!/^[A-Za-z0-9_-]{1,100}$/.test(subject) || ["local", "system", "navigator"].includes(subject)) throw new Error("Supply an existing Zenith member ID");
   if (typeof password !== "string" || password.length < 24) throw new Error("Generate a disposable password at runtime");
-  const defaults = ["zenith:read", "zenith-binding"];
+  // Keycloak 26 adds "basic" (the sub claim) to every registration; the realm must define and allow it.
+  const defaults = ["basic", "zenith:read", "zenith-binding"];
   const policy = (name, providerId, config) => ({ name, providerId, subType: "anonymous", config });
   return {
     realm: "zenith-interop", enabled: true, sslRequired: "all", registrationAllowed: false,
@@ -31,6 +32,8 @@ export function realmFor({ origin, subject, password }) {
       "org.keycloak.userprofile.UserProfileProvider": [{ name: "declarative-user-profile", providerId: "declarative-user-profile",
         config: { "kc.user.profile.config": [JSON.stringify({ attributes: [
           { name: "username", permissions: { view: ["admin", "user"], edit: ["admin", "user"] } },
+          // Keycloak 26 refuses a declarative profile without email; only an administrator may change it.
+          { name: "email", permissions: { view: ["admin", "user"], edit: ["admin"] } },
           { name: "zenith_subject", permissions: { view: ["admin"], edit: ["admin"] } },
         ] })] } }],
       [POLICY_TYPE]: [
@@ -39,11 +42,16 @@ export function realmFor({ origin, subject, password }) {
         policy("Human issuer consent", "consent-required", {}),
         policy("Disable full scope", "scope", {}),
         policy("Bounded disposable clients", "max-clients", { "max-clients": ["12"] }),
-        policy("Only configured scopes", "allowed-client-templates", { "allowed-client-scopes": ["openid", ...SCOPES.map((s) => `zenith:${s}`), "zenith-binding"], "allow-default-scopes": ["true"] }),
+        policy("Only configured scopes", "allowed-client-templates", { "allowed-client-scopes": ["openid", "basic", ...SCOPES.map((s) => `zenith:${s}`), "zenith-binding"], "allow-default-scopes": ["true"] }),
         policy("No client-supplied mappers", "allowed-protocol-mappers", { "allowed-protocol-mapper-types": [] }),
       ],
     },
     clientScopes: [
+      { name: "basic", protocol: "openid-connect", attributes: { "include.in.token.scope": "false", "display.on.consent.screen": "false" }, protocolMappers: [
+        { name: "sub", protocol: "openid-connect", protocolMapper: "oidc-sub-mapper", config: { "access.token.claim": "true", "introspection.token.claim": "true" } },
+        { name: "auth_time", protocol: "openid-connect", protocolMapper: "oidc-usersessionmodel-note-mapper", config: {
+          "user.session.note": "AUTH_TIME", "claim.name": "auth_time", "jsonType.label": "long", "access.token.claim": "true", "id.token.claim": "true", "introspection.token.claim": "true" } },
+      ] },
       ...SCOPES.map((scope) => ({ name: `zenith:${scope}`, protocol: "openid-connect", attributes: {
         "include.in.token.scope": "true", "display.on.consent.screen": "true", "consent.screen.text": `zenith:${scope}`,
       }, protocolMappers: [] })),

@@ -45,6 +45,8 @@ export function mixedObjects(input: { runId: string; image: string; postgresImag
         containers: [{ name: "db", image: input.postgresImage, imagePullPolicy: "Never",
           args: ["postgres", "-c", "ssl=on", "-c", "ssl_cert_file=/pki/db.crt", "-c", "ssl_key_file=/pki/db.key", "-c", "ssl_ca_file=/pki/ca.crt", "-c", "hba_file=/config/pg_hba.conf", "-c", "shared_buffers=32MB", "-c", "max_connections=20"],
           env: env({ POSTGRES_DB: "mixed", POSTGRES_HOST_AUTH_METHOD: "reject", POSTGRES_PASSWORD_FILE: "/config/password", PGDATA: "/var/lib/postgresql/data/pgdata" }),
+          // The entrypoint restarts an init-only server (socket, no TCP) before the real one; Ready waits for TCP.
+          readinessProbe: { exec: { command: ["pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "mixed"] }, periodSeconds: 2, failureThreshold: 60 },
           securityContext: { allowPrivilegeEscalation: false, capabilities: { drop: ["ALL"] } },
           resources: { requests: { cpu: "50m", memory: "96Mi" }, limits: { cpu: "500m", memory: "256Mi" } },
           volumeMounts: [{ name: "data", mountPath: "/var/lib/postgresql/data" }, { name: "pki", mountPath: "/pki", readOnly: true }, { name: "db-config", mountPath: "/config", readOnly: true }, { name: "socket", mountPath: "/var/run/postgresql" }],

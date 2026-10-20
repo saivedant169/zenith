@@ -154,6 +154,10 @@ function createClient(url:string,defaultCreated:boolean):Sql {
     connect_timeout: PG_CONNECT_TIMEOUT_S,
     // See the header: transaction-mode pooling forbids named prepares.
     prepare: false,
+    // Supavisor transaction mode never forwards a root statement pipelined behind a busy one, and with max: 1 every
+    // later query then waits forever (porsager/postgres#970). Transactions use a reserved connection (pg/tx.ts).
+    // The 3.4 type declarations omit max_pipeline; the driver reads it like max.
+    ...({ max_pipeline: 0 } as object),
     // No `search_path` startup parameter: Supavisor is free to refuse a
     // non-default one in transaction mode, and every statement in this
     // directory names its schema anyway (`hosted.hosted_jobs`, never

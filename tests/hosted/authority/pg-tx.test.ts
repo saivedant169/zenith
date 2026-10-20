@@ -29,27 +29,31 @@ type Sql = Parameters<typeof transactPg>[0];
 type Step = { op: "begin" } | { op: "savepoint"; name: string };
 
 /**
- * A stand-in for postgres.js: `begin` and `savepoint` run their callback and
- * record the call, and nothing is ever sent anywhere.
+ * A stand-in for postgres.js: `reserve` hands out a connection whose `unsafe`
+ * records every statement, and nothing is ever sent anywhere.
  *
- * `savepoint` is put on the object the callback receives, which is how the real
- * driver exposes it too — a savepoint only exists inside a transaction.
+ * Steps are read back from the statements, so a test asserts what the real
+ * driver would have been asked to run.
  */
-function fakeSql(): { sql: Sql; steps: Step[] } {
+function fakeSql(): { sql: Sql; steps: Step[]; sent: string[]; released: () => number } {
   const steps: Step[] = [];
-  const inner = {
-    savepoint: async <T>(name: string, fn: (sp: unknown) => Promise<T>): Promise<T> => {
-      steps.push({ op: "savepoint", name });
-      return fn(inner);
-    },
-  };
+  const sent: string[] = [];
+  let released = 0;
   const sql = {
-    begin: async <T>(fn: (tx: unknown) => Promise<T>): Promise<T> => {
-      steps.push({ op: "begin" });
-      return fn(inner);
-    },
+    reserve: async () => ({
+      unsafe: async (text: string) => {
+        sent.push(text);
+        if (text === "begin") steps.push({ op: "begin" });
+        const savepoint = /^savepoint (\w+)$/.exec(text);
+        if (savepoint) steps.push({ op: "savepoint", name: savepoint[1] });
+        return [];
+      },
+      release: () => {
+        released++;
+      },
+    }),
   };
-  return { sql: sql as unknown as Sql, steps };
+  return { sql: sql as unknown as Sql, steps, sent, released: () => released };
 }
 
 /** An error shaped the way postgres.js shapes one. */
@@ -232,5 +236,25 @@ describe("savepoints", () => {
       expect(currentPgTransaction()).toBe(tx);
     });
     expect(currentPgTransaction()).toBeUndefined();
+  });
+});
+
+describe("reserved-connection transaction", () => {
+  it("commits, rolls back, scopes a savepoint failure and always releases the connection", async () => {
+    const ok = fakeSql();
+    await expect(transactPg(ok.sql, async () => transactPg(ok.sql, async () => 7))).resolves.toBe(7);
+    expect(ok.sent).toEqual(["begin", "savepoint zenith_sp_1", "release savepoint zenith_sp_1", "commit"]);
+
+    const inner = fakeSql();
+    await expect(transactPg(inner.sql, async () => {
+      await expect(transactPg(inner.sql, async () => { throw new Error("inner"); })).rejects.toThrow("inner");
+      return "kept";
+    })).resolves.toBe("kept");
+    expect(inner.sent).toEqual(["begin", "savepoint zenith_sp_1", "rollback to savepoint zenith_sp_1", "commit"]);
+
+    const outer = fakeSql();
+    await expect(transactPg(outer.sql, async () => { throw new Error("outer"); })).rejects.toThrow("outer");
+    expect(outer.sent).toEqual(["begin", "rollback"]);
+    expect([ok.released(), inner.released(), outer.released()]).toEqual([1, 1, 1]);
   });
 });

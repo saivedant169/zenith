@@ -2655,6 +2655,14 @@
           "environment": "GitHub-hosted Linux x64; disposable Supabase CLI stack, Temporal mTLS, kind cluster, zenithd witness image; ephemeral credentials",
           "result": "DRV-2 operated drift repair passed with matched current-source execution receipt: approved workload, kubectl replica drift injected, drift observed on the natural reconcile schedule, REST repair proposal approved in the browser by an independent user, MCP execution, independent kind readback, fresh clean observation, owned cleanup. 1/1 required case. Other operated gates (drv1, crash-partition, j15, d4) not yet passed.",
           "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-21-42e2c030-drv2-drift-repair-hosted.json"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "c1883bbad316bd248df91177e8492825a96819ae",
+          "command": "operated-gate-linux.yml gate=j15-operated-upgrade (GitHub-hosted ubuntu runner, run 39600903793)",
+          "environment": "GitHub-hosted Linux x64; lean disposable J1 stack (1 API + 1 worker), Temporal mTLS on an owned loopback port, kind target, Chromium; candidate api/worker/migration images rebuilt from the same source with distinct labels (scripts/acceptance/default-stack/upgrade-candidates.mjs)",
+          "result": "DRV-3 operated upgrade passed 10/10 with a matched current-source receipt: compatibility gates, browser review held in flight, expand migrate then worker then API onto candidate artifacts, same Temporal run after upgrade, API failure injected and observed, reverse roll API then worker without schema downgrade, same run after rollback, browser-approved execution completed with independent kind readback, one terminal operation, owned cleanup. Limits: same-source candidate artifacts prove replacement, not a released N-1/N matrix; runner upgrades and live/rehearsal levels are separate.",
+          "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-21-c1883bba-j15-operated-upgrade-hosted.json"
         }
       ],
       "requiredEvidence": [
@@ -7141,6 +7149,14 @@
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
           "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
           "result": "Wave6 local lanes 2026-10-20: 19 passed / 0 failed / 0 not run of the requirement's 19 non-live wave6 cases. Same lanes as OPS-02. Not promoted: local-engine slice only; acceptance judged separately."
+        },
+        {
+          "level": "remote_ci",
+          "commit": "c1883bbad316bd248df91177e8492825a96819ae",
+          "command": "operated-gate-linux.yml gate=j15-operated-upgrade (GitHub-hosted ubuntu runner, run 39600903793)",
+          "environment": "GitHub-hosted Linux x64; lean disposable J1 stack (1 API + 1 worker), Temporal mTLS on an owned loopback port, kind target, Chromium; candidate api/worker/migration images rebuilt from the same source with distinct labels (scripts/acceptance/default-stack/upgrade-candidates.mjs)",
+          "result": "DRV-3 operated upgrade passed 10/10 with a matched current-source receipt: compatibility gates, browser review held in flight, expand migrate then worker then API onto candidate artifacts, same Temporal run after upgrade, API failure injected and observed, reverse roll API then worker without schema downgrade, same run after rollback, browser-approved execution completed with independent kind readback, one terminal operation, owned cleanup. Limits: same-source candidate artifacts prove replacement, not a released N-1/N matrix; runner upgrades and live/rehearsal levels are separate.",
+          "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-21-c1883bba-j15-operated-upgrade-hosted.json"
         }
       ],
       "requiredEvidence": [

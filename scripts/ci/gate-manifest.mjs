@@ -12,6 +12,7 @@ export const TOFU_SUITES = [
   ["tests/tofu/backends.test.ts", "real backend block validation (network gate, no cloud calls)"],
   ["tests/tofu/destroy-real.test.ts", "real tofu destroy (ZENITH_TEST_TOFU_NETWORK=1)"],
   ["tests/providers/aws/drivers/compute/assemble.test.ts", "real `tofu validate` against hashicorp/aws 6.66.0 (network, plugin cache)"],
+  ["tests/providers/aws/drivers/compute/ecs-ownership-tofu.test.ts", "tofu ignores desired_count once an autoscaler owns it (real OpenTofu, mock aws provider)"],
   ["tests/providers/aws/drivers/data/assemble.test.ts", "compiled data fragments validate against the real hashicorp/aws provider (network)"],
   ["tests/providers/aws/drivers/messaging/assemble.test.ts", "OpenTofu AWS 6.66.0 schema validation (requires binary/network)"],
   ["tests/providers/aws/drivers/network/compile-graph.test.ts", "tofu validate over the real aws 6.66.0 provider schema (gated: ZENITH_TEST_TOFU_NETWORK=1)"],

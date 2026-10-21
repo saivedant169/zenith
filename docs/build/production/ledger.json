@@ -5725,11 +5725,11 @@
       "acceptance": [
         "Native operations, IaC and autoscalers have explicit field ownership and conflict detection; no competing writers."
       ],
-      "state": "in_progress",
+      "state": "verified",
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "implementation_complete_verification_pending; bounded_snapshot_cas_integrated; common_writer_coordination_and_preissued_grant_policy_pending",
+      "implementationStatus": "verified_11f7a8d0: one owner per mutable field across native operations, IaC and autoscalers. Ownership changes (autoscaling facts, ownership transfers) revoke conflicting live native-write and drift.repair grants in the environment (migration 59); revocation is enforced at runner claim, dispatch and the credential broker before any provider session, AWS included; proposal, claim and grant admission judge native writes and drift.repair re-applied fields under the environment coordinator (migration 53); OpenTofu ignore_changes keeps ECS desired_count, Azure container app replica range and Cloud Run instance range with the autoscaler. Real PostgreSQL 16 2115/0/9 plus drift.repair sweep 825/0/27; exact-source CI success; independent review PROMOTE after two HOLD rounds. Limits: revocation is environment-wide (over-revokes unrelated grants); an environment over 2000 resources refuses drift.repair; observe-only grd_ read grants are not stored so are not revocable (they write no fields); out-of-band autoscalers Zenith neither manages nor imports are not seen; local engines and OpenTofu mock providers, not live cloud.",
       "implementationNote": "J13 adds migration53 environment ownership serialization for claim, grant and readback, mandatory resource/transfer mutation triggers, PGlite controls and gated independent PostgreSQL races. Native verification and wave-5 migration/aggregate integration pending; no acceptance promotion. 2026-10-21 review (not promoted): ownership suites pass on real PostgreSQL (3c8080b8 99/0/0; 64b714c7 batch 1893/0/9) and real OpenTofu shows the emitted ECS ignore_changes holds desired_count (126bbbae). Open competing-writer gaps: (1) capability grants are never consumed on a production path (consumeGrant has no caller); the real gate is revocation (runner claim, dispatch and credential broker check isRevoked), so an ownership change after grant issue must revoke conflicting native-write grants (needs a platform migration trigger on resources autoscaling facts and ownership_transfers, excluding the transfer's own operation); 64b714c7 adds an ownership re-admission to grants.consume, harmless but not on a production path. (2) ecs-service-compile.ts calls factsForNode without the graph, so a separate aws:appautoscaling_target node emits no ignore_changes. (3) Azure container apps emit min/max replicas with no lifecycle and Azure scale has no ownership check, though the registry marks them ignored when autoscaled.",
       "evidence": [
         {
@@ -5809,6 +5809,20 @@
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
           "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
           "result": "Wave6 local lanes 2026-10-20: 7 passed / 5 failed / 3 not run of the requirement's 15 non-live wave6 cases. managed-kind on 8e20b1f4: 1 passed (build egress policy), 5 failed (harness predates tenant operator custody); J6 kind and operated-release not run. Not promoted: local-engine slice only; acceptance judged separately."
+        },
+        {
+          "level": "local_engine",
+          "commit": "11f7a8d00bdf22cb56cdb6fea89a7fdb8a367ec7",
+          "result": "2115 passed / 0 failed / 9 skipped across 62 files on real PostgreSQL 16 (migrated 1..59), Temporal CLI and OpenTofu 1.12.5; 825/0/27 across all 32 drift.repair test files on PostgreSQL; exact-source CI success. Field ownership: ownership changes revoke conflicting live native-write and drift.repair grants (migration 59), the credential broker refuses revoked grants before any provider session including AWS, grant and claim admission judge drift.repair fields, ECS/Azure/Cloud Run IaC leave autoscaler-owned replica fields alone. Independent review PROMOTE on d1da52fe after two HOLD rounds.",
+          "command": "Combined DUR/ownership batch (scratchpad run-dur-all.sh 11f7a8d0) in a clean acceptance worktree plus the drift.repair PostgreSQL sweep",
+          "environment": {
+            "node": "22.23.3",
+            "postgres": "16 native Darwin ARM64 disposable Docker, Supabase-accurate roles",
+            "temporalCli": "1.9.1",
+            "tofu": "1.12.5",
+            "host": "Darwin ARM64"
+          },
+          "logs": "docs/build/production/evidence/PROD-LIFE-12/2026-10-21-11f7a8d0-ownership-combined.json"
         }
       ],
       "requiredEvidence": [

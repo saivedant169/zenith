@@ -113,7 +113,9 @@ async function databasePair(ctx: OperatedContext, cleanup: OwnedCleanup, network
       await command("openssl", ["req", "-newkey", "rsa:2048", "-nodes", "-subj", "/CN=localhost", "-keyout", stem + ".key", "-out", stem + ".csr"]);
       writeFileSync(stem + ".ext", `subjectAltName=IP:127.0.0.1,DNS:${name}\nextendedKeyUsage=serverAuth\n`, { mode: 0o600 });
       await command("openssl", ["x509", "-req", "-in", stem + ".csr", "-CA", path.join(ca, "ca.crt"), "-CAkey", path.join(ca, "ca.key"), "-CAserial", stem + ".serial", "-CAcreateserial", "-days", "1", "-extfile", stem + ".ext", "-out", stem + ".crt"]);
-      chmodSync(stem + ".key", 0o644); // private parent; the server's unprivileged uid must read this bind mount
+      // private parent; the server's unprivileged uid must read these bind mounts on native Linux (a 077 umask
+      // leaves the freshly signed certificate 0600 for the host user; Docker Desktop hides that).
+      chmodSync(stem + ".key", 0o644); chmodSync(stem + ".crt", 0o644);
       mounts.push(`type=bind,src=${stem}.key,dst=/run/server.key,readonly`, `type=bind,src=${stem}.crt,dst=/run/server.crt,readonly`, `type=bind,src=${path.join(ca, "ca.crt")},dst=/run/ca.crt,readonly`, "type=tmpfs,dst=/var/lib/mysql,tmpfs-size=268435456");
       args.push("--require_secure_transport=ON", "--ssl-key=/run/server.key", "--ssl-cert=/run/server.crt", "--ssl-ca=/run/ca.crt", "--innodb-buffer-pool-size=32M", "--innodb-redo-log-capacity=16M", "--performance-schema=OFF", "--max-connections=12");
     } else mounts.push("type=tmpfs,dst=/var/lib/postgresql/data,tmpfs-size=134217728");
@@ -152,7 +154,7 @@ async function databasePair(ctx: OperatedContext, cleanup: OwnedCleanup, network
   }, (ready: boolean) => ready).catch(async (error: unknown) => {
     if (ctx.input.env.ZENITH_OPERATED_DIAGNOSTICS === "1") {
       // mysqld's own SSL/TLS log lines (server messages), with paths and long tokens elided.
-      const tls = kind === "mysql" ? await command("docker", ["logs", "--tail", "200", pair[0]!.id]).catch(() => "")
+      const tls = kind === "mysql" ? await command("sh", ["-c", 'docker logs --tail 200 "$1" 2>&1', "logs", pair[0]!.id]).catch(() => "")
         .then((text: string) => text.split("\n").filter((line: string) => /SSL|TLS|certificate|secure_transport/i.test(line)).slice(-4)
           .map((line: string) => line.replace(/(?:\/[^\s/]+){2,}/g, "…path").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 200))) : [];
       process.stderr.write(`operated outside-step failed: journey:${kind}-tcp-readiness ${JSON.stringify({ lastFailure, tls })}\n`);

@@ -1057,10 +1057,21 @@ export async function deployKind(ctx: OperatedContext, tenant: Tenant): Promise<
   tenant.operationId = result.operationId; tenant.deploymentId = result.deploymentId;
   await approveOperation(ctx, tenant, result.operationId);
   await action(tenant.approver, "deploy.approve", { deploymentId: result.deploymentId }, { projectId: tenant.project.id, environmentId: tenant.environmentId });
-  const inspected = await until(() => detailOf(tenant, result.operationId), (data: OperationStatusView) => data.operation.status === "awaiting_approval" && (data.operation.approvalRound ?? 0) > 0);
+  // Named waits: a timeout reports which phase stalled and, with diagnostics, the operation's status shape only.
+  const stalled = (code: string) => async (error: unknown): Promise<never> => {
+    if (error instanceof Error && error.message === "journey:readback-timeout") {
+      const view = await detailOf(tenant, result.operationId).catch(() => undefined) as OperationStatusView | undefined;
+      if (ctx.input.env.ZENITH_OPERATED_DIAGNOSTICS === "1") process.stderr.write(`operated outside-step failed: journey:${code} ${JSON.stringify({ status: view?.operation.status, round: view?.operation.approvalRound ?? null, phase: view?.authority?.phase ?? null })}\n`);
+      throw new Error("journey:" + code);
+    }
+    throw error;
+  };
+  const inspected = await until(() => detailOf(tenant, result.operationId), (data: OperationStatusView) => data.operation.status === "awaiting_approval" && (data.operation.approvalRound ?? 0) > 0)
+    .catch(stalled("plan-review-timeout"));
   ensure(/^[a-f0-9]{64}$/.test(inspected.operation.planDigest ?? "") && /^[a-f0-9]{64}$/.test(inspected.planReview?.semantics?.digest ?? ""), "immutable-plan-review");
   await approveOperation(ctx, tenant, result.operationId);
-  const terminal = await until(() => detailOf(tenant, result.operationId), (value: OperationStatusView) => ["succeeded", "failed", "uncertain", "denied", "expired"].includes(value.operation.status));
+  const terminal = await until(() => detailOf(tenant, result.operationId), (value: OperationStatusView) => ["succeeded", "failed", "uncertain", "denied", "expired"].includes(value.operation.status), 300_000)
+    .catch(stalled("deploy-terminal-timeout"));
   ensure(terminal.operation.status === "succeeded", "deployment-terminal");
 }
 /** Read the real objects and served witness through the independent observer, never API projections. */

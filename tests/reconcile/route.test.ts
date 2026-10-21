@@ -24,11 +24,14 @@ const call = (opts: { bearer?: string; raw?: string; query?: string } = {}): Pro
 beforeEach(() => {
   process.env.CRON_SECRET = SECRET;
   delete process.env.ZENITH_RECONCILE_MEMORY;
+  // No platform store configured: a set platform DB URL makes the route boot real ports (correctly a 200).
+  for (const name of ["ZENITH_PLATFORM_DB", "ZENITH_PLATFORM_DB_URL", "SUPABASE_DB_URL"]) vi.stubEnv(name, "");
   wireReconcilePorts(null);
   resetMemoryReconcileBackend();
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   delete process.env.CRON_SECRET;
   delete process.env.ZENITH_RECONCILE_MEMORY;
   wireReconcilePorts(null);

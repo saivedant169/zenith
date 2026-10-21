@@ -311,8 +311,8 @@ jobs:
             ZENITH_AGENT_UPDATE_REPO="$GITHUB_WORKSPACE" \
             ZENITH_UPDATE_FIXTURE_OUT="$FIXTURE" \
             ZENITH_AGENT_UPDATE_ARCH=amd64 \
-            "$FIXTURE/update-systemd.test" -test.run '^TestSystemdSignedUpdateAndRollback$' -test.count=1 -test.timeout=20m -test.v=test2json \
-            > "$RUNNER_TEMP/systemd-events.json"
+            "$FIXTURE/update-systemd.test" -test.run '^TestSystemdSignedUpdateAndRollback$' -test.count=1 -test.timeout=20m -test.v=test2json 2>&1 \
+            | go tool test2json -t -p update-systemd > "$RUNNER_TEMP/systemd-events.json"
 
       - name: Write the systemd receipt and fail unless the gated test passed
         if: always()

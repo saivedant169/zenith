@@ -765,7 +765,7 @@ describe("mandatory native custody, retention and Kubernetes target execution", 
     const manifest = manifestFor("platform-postgres", root);
     const added = [...MIXED_CHILD_CUSTODY_POSTGRES_REQUIREMENTS, ...PLAN_RETENTION_POSTGRES_REQUIREMENTS, ...KUBERNETES_VAULT_TARGET_POSTGRES_REQUIREMENTS];
     const ids = new Set(added.map(item => requirementId("platform-postgres", item)));
-    expect(added).toHaveLength(81); expect(ids.size).toBe(81);
+    expect(added).toHaveLength(82); expect(ids.size).toBe(82);
     expect(manifest.requirements.filter(item => ids.has(item.id))).toEqual(added.map(item => ({ ...item, id: requirementId("platform-postgres", item) })));
     for (const discovered of nativeSafetyDiscovered) expect(manifest.requirements).toContainEqual({ ...discovered, id: requirementId("platform-postgres", discovered) });
     const previous = priorNativeSafetyPlatformRequirements();
@@ -796,7 +796,7 @@ describe("mandatory native custody, retention and Kubernetes target execution", 
     "file": "tests/platform/kubernetes-vault-target.test.ts",
     "suite": "default Kubernetes vault target binding [postgres; modeled API boundary]",
     "flag": "ZENITH_TEST_KUBERNETES_VAULT_TARGET_REQUIRED",
-    "count": 17
+    "count": 18
   }
 ])("requires $flag and actual native $count-case execution from $file", group => {
     const manifest = manifestFor("platform-postgres", root);
@@ -866,14 +866,14 @@ describe("saved builtin settlement mandatory CI admission", () => {
     const manifest = manifestFor("platform-postgres", root);
     const added = currentSuccessorPlatformCohort.map(item => ({ ...item, id: requirementId("platform-postgres", item) }));
     expect(manifest.requirements.filter(item => added.some(value => value.id === item.id)).sort((a, b) => a.id.localeCompare(b.id))).toEqual(added.sort((a, b) => a.id.localeCompare(b.id)));
-    expect(manifest.requirements).toHaveLength(1161);
-    expect(new Set(manifest.requirements.map(item => item.id)).size).toBe(1161);
+    expect(manifest.requirements).toHaveLength(1162);
+    expect(new Set(manifest.requirements.map(item => item.id)).size).toBe(1162);
     const mixedStore = manifest.requirements.filter(item => item.file === "tests/execution/mixed-run-store.test.ts");
     expect(mixedStore).toHaveLength(5);
     expect(mixedStore.every(item => item.postgres && item.suite === "mixed run store validation [postgres]" && item.test)).toBe(true);
     const beforeMixedStore = manifest.requirements.filter(item => !mixedStore.some(addition => addition.id === item.id));
-    expect(beforeMixedStore).toHaveLength(1156);
-    expect(beforeMixedStore.filter(item => !wave5PlatformIds.has(item.id))).toHaveLength(1153);
+    expect(beforeMixedStore).toHaveLength(1157);
+    expect(beforeMixedStore.filter(item => !wave5PlatformIds.has(item.id))).toHaveLength(1154);
     const prior = priorOwnershipSnapshotRequirements(manifest.requirements);
     expect(prior).toHaveLength(1150);
     expect(createHash("sha256").update(JSON.stringify(prior.map(item => item.id).sort())).digest("hex"))

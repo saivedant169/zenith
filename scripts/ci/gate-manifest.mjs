@@ -4764,6 +4764,12 @@ export const KUBERNETES_VAULT_TARGET_POSTGRES_REQUIREMENTS = [
   {
     "file": "tests/platform/kubernetes-vault-target.test.ts",
     "suite": "default Kubernetes vault target binding [postgres; modeled API boundary]",
+    "test": "refuses a provider session for a stored grant revoked since issue, before any credential is resolved",
+    "backend": "postgres"
+  },
+  {
+    "file": "tests/platform/kubernetes-vault-target.test.ts",
+    "suite": "default Kubernetes vault target binding [postgres; modeled API boundary]",
     "test": "a same-named foreign sealed value never supplies the owning target or credential",
     "backend": "postgres"
   },

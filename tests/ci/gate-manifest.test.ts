@@ -2098,9 +2098,9 @@ const nativeSafetyGroups = [
     "file": "tests/platform/kubernetes-vault-target.test.ts",
     "suite": "default Kubernetes vault target binding [postgres; modeled API boundary]",
     "flag": "ZENITH_TEST_KUBERNETES_VAULT_TARGET_REQUIRED",
-    "count": 17,
-    "sourceSha256": "6ea5a370acb9fb4f7df73cd77714c80be0af22c9d8b140f15a03c494ccef6cee",
-    "namesSha256": "388f313f7c91557966fc04a6510cf178408e4f6e86a131d2f7aa0d10d93bb18d"
+    "count": 18,
+    "sourceSha256": "42d90cc5725577c3789bc81685580b3f582c78ffb1d323855abc0dc62745c165",
+    "namesSha256": "bc2e272c08f46609afe3a1a830141df9204b6800642ff742381e65ec6db20f3f"
   }
 ] as const;
 function nativeSafetyNamed(sourceRoot = root): Requirement[] {
@@ -2185,8 +2185,8 @@ describe("mandatory native custody, retention and Kubernetes target cases [repor
     const manifest = manifestFor("platform-postgres", root), named = nativeSafetyNamed();
     expect(MIXED_CHILD_CUSTODY_POSTGRES_REQUIREMENTS).toHaveLength(37);
     expect(PLAN_RETENTION_POSTGRES_REQUIREMENTS).toHaveLength(27);
-    expect(KUBERNETES_VAULT_TARGET_POSTGRES_REQUIREMENTS).toHaveLength(17);
-    expect(named).toHaveLength(81); expect(new Set(named.map(item => item.id)).size).toBe(81);
+    expect(KUBERNETES_VAULT_TARGET_POSTGRES_REQUIREMENTS).toHaveLength(18);
+    expect(named).toHaveLength(82); expect(new Set(named.map(item => item.id)).size).toBe(82);
     const predecessor = priorKubernetesLinkPlatformRequirements();
     expect(predecessor).toHaveLength(990); expect(new Set(predecessor.map(item => item.id)).size).toBe(990);
     const previous = priorNativeSafetyPlatformRequirements();
@@ -2258,20 +2258,20 @@ describe("mandatory native custody, retention and Kubernetes target cases [repor
     const sourceRoot = modelRoot(path.join(scratch, "native-safety-"));
     for (const directory of ["tests/controlplane", "tests/capabilities", "tests/reconcile", "tests/agent-access", "tests/platform"]) fs.mkdirSync(path.join(sourceRoot, directory), { recursive: true });
     for (const group of nativeSafetyGroups) fs.copyFileSync(path.join(root, group.file), path.join(sourceRoot, group.file));
-    const before = nativeSafetyNamed(sourceRoot); expect(before).toHaveLength(81);
+    const before = nativeSafetyNamed(sourceRoot); expect(before).toHaveLength(82);
     for (const discovered of nativeSafetyDiscovered) expect(requirementsFor("platform-postgres", sourceRoot)).toContainEqual({ ...discovered, id: requirementId("platform-postgres", discovered) });
     for (const group of nativeSafetyGroups) fs.unlinkSync(path.join(sourceRoot, group.file));
     expect(nativeSafetyNamed(sourceRoot)).toEqual(before);
     for (const discovered of nativeSafetyDiscovered) expect(requirementsFor("platform-postgres", sourceRoot).some(item => item.id === requirementId("platform-postgres", discovered))).toBe(false);
-    expect(reportFailures(before, { success: true, testResults: [] }, sourceRoot)).toHaveLength(81);
+    expect(reportFailures(before, { success: true, testResults: [] }, sourceRoot)).toHaveLength(82);
     expect(reportFailures([], contractReport(before), root)).toEqual(["No required scenarios found"]);
     const suiteOnly = contractReport(before); for (const file of suiteOnly.testResults) file.assertionResults = [{ title: "one passing native suite model", fullName: "one passing native suite model", ancestorTitles: [], status: "passed" }];
-    expect(reportFailures(before, suiteOnly, root)).toHaveLength(81);
+    expect(reportFailures(before, suiteOnly, root)).toHaveLength(82);
     const duplicate = contractReport(before); duplicate.testResults.push(duplicate.testResults[0]);
     expect(reportFailures(before, duplicate, root)).toEqual(["Duplicate Vitest file evidence"]);
     expect(reportFailures(before, { ...contractReport(before), numTotalTests: 0 }, root)).toEqual(["Inconsistent Vitest report counts"]);
     expect(reportFailures(before, { ...contractReport(before), numFailedTests: 1 }, root)).toEqual(["Inconsistent Vitest report counts"]);
-    expect(reportFailures(before, { ...contractReport([]), lane: "platform-postgres", requirements: [] }, root)).toHaveLength(81);
+    expect(reportFailures(before, { ...contractReport([]), lane: "platform-postgres", requirements: [] }, root)).toHaveLength(82);
   });
 });
 
@@ -2616,9 +2616,9 @@ describe("current platform discovery successors [report models]", () => {
       try {
         const after = requirementsFor("platform-postgres", sourceRoot);
         expect(after.some(value => value.id === id)).toBe(false);
-        expect(after).toHaveLength(1160);
-        expect(after.filter(value => !mixedRunStorePlatformIds.has(value.id))).toHaveLength(1155);
-        expect(after.filter(value => !mixedRunStorePlatformIds.has(value.id) && !wave5PlatformIds.has(value.id))).toHaveLength(1152);
+        expect(after).toHaveLength(1161);
+        expect(after.filter(value => !mixedRunStorePlatformIds.has(value.id))).toHaveLength(1156);
+        expect(after.filter(value => !mixedRunStorePlatformIds.has(value.id) && !wave5PlatformIds.has(value.id))).toHaveLength(1153);
         expect(priorCurrentSuccessorPlatformRequirements(sourceRoot)).toEqual(priorCurrentSuccessorPlatformRequirements());
       } finally {
         // Each deletion still begins with the complete tree; restore its exact
@@ -2643,7 +2643,7 @@ describe("registered incident and ownership hardening [report models]", () => {
     const current = requirementsFor("platform-postgres", root), previous = priorHardeningPlatformRequirements();
     const added = INCIDENT_OWNERSHIP_HARDENING_POSTGRES_REQUIREMENTS.map(item => ({ ...item, id: requirementId("platform-postgres", item) }));
     expect(previous).toHaveLength(1119); expect(new Set(previous.map(item => item.id)).size).toBe(1119);
-    expect(current).toHaveLength(1161); expect(new Set(current.map(item => item.id)).size).toBe(1161);
+    expect(current).toHaveLength(1162); expect(new Set(current.map(item => item.id)).size).toBe(1162);
     expect(current.filter(item => hardeningPlatformIds.includes(item.id))).toEqual(added);
     expect(withoutIncomingPlatform(current).map(item => item.id).sort()).toEqual([...previous, ...added].map(item => item.id).sort());
     expect(priorCurrentSuccessorPlatformRequirements()).toHaveLength(1113);
@@ -2953,7 +2953,7 @@ describe("mandatory owned critical scheduling [source/report models]", () => {
     expect(manifest.excludeFiles).not.toContain(file);
     expect(manifest.command).not.toContain("--passWithNoTests");
     expect(reportFailures(named(), contractReport(named()), root)).toEqual([]);
-    expect(requirementsFor("platform-postgres", root)).toHaveLength(1161);
+    expect(requirementsFor("platform-postgres", root)).toHaveLength(1162);
     expect(CLEANUP_WRITER_BARRIER_POSTGRES_REQUIREMENTS).toHaveLength(46);
     expect(SAVED_PLAN_SETTLEMENT_POSTGRES_REQUIREMENTS).toHaveLength(54);
     expect(requirementsFor("postgres", root)).toHaveLength(93);
@@ -3138,7 +3138,7 @@ describe("mandatory live agent journal PostgreSQL cases [report models]", () => 
 describe("incoming platform and workflow obligations", () => {
   it("requires every fixed additive native identity without losing historical obligations", () => {
     const current = requirementsFor("platform-postgres", root);
-    expect(current).toHaveLength(1161);
+    expect(current).toHaveLength(1162);
     const added = current.filter(item => incomingPlatformIds.has(item.id));
     expect(added).toHaveLength(23);
     expect(new Set(added.map(item => item.id))).toEqual(incomingPlatformIds);
@@ -3237,7 +3237,7 @@ describe("mixed run store application-boundary gate", () => {
     expect(new Set(required.map(item => item.id))).toEqual(mixedRunStorePlatformIds);
     const prior = priorOwnershipSnapshotRequirements(current).filter(item => !mixedRunStorePlatformIds.has(item.id) && !integrationPlatformIds.has(item.id));
     const verifierPrior = prior.filter(item => !wave5PlatformIds.has(item.id));
-    expect(current).toHaveLength(1161); expect(prior).toHaveLength(1144);
+    expect(current).toHaveLength(1162); expect(prior).toHaveLength(1144);
     expect(createHash("sha256").update(JSON.stringify(prior.map(item => item.id).sort())).digest("hex"))
       .toBe("9853b95bb67ad11ca77d19ead6db0f484fe718abf7c09b9cb144766806be2873");
     expect(verifierPrior).toHaveLength(1141);
@@ -3417,8 +3417,8 @@ describe("ownership snapshot final-statement PostgreSQL requirements", () => {
   it("adds ten exact native cases and preserves the complete 1146 predecessor", () => {
     const current = requirementsFor("platform-postgres", root);
     const required = current.filter(item => ownershipSnapshotCasIds.has(item.id));
-    expect(current).toHaveLength(1161);
-    expect(new Set(current.map(item => item.id)).size).toBe(1161);
+    expect(current).toHaveLength(1162);
+    expect(new Set(current.map(item => item.id)).size).toBe(1162);
     expect(required).toEqual(OWNERSHIP_SNAPSHOT_CAS_POSTGRES_REQUIREMENTS.map(item => ({ ...item, id: requirementId("platform-postgres", item) })));
     expect(required).toHaveLength(10);
     expect(required.every(item => item.postgres === true && item.suite === "ownership transfer immutable service-role custody [postgres]")).toBe(true);

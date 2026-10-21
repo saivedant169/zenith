@@ -111,7 +111,9 @@ async function databasePair(ctx: OperatedContext, cleanup: OwnedCleanup, network
     if (kind === "mysql") {
       const stem = path.join(ctx.scratch, `mysql-${role}`), ca = path.join(ctx.config.stackDirectory, "tls");
       await command("openssl", ["req", "-newkey", "rsa:2048", "-nodes", "-subj", "/CN=localhost", "-keyout", stem + ".key", "-out", stem + ".csr"]);
-      writeFileSync(stem + ".ext", `subjectAltName=IP:127.0.0.1,DNS:${name}\nextendedKeyUsage=serverAuth\n`, { mode: 0o600 });
+      // mysql2 sends no servername for an IP host and then lets Node check the default name "localhost"; the
+      // driver's own check after connect still requires an authorized chain and the exact IP identity.
+      writeFileSync(stem + ".ext", `subjectAltName=IP:127.0.0.1,DNS:localhost,DNS:${name}\nextendedKeyUsage=serverAuth\n`, { mode: 0o600 });
       await command("openssl", ["x509", "-req", "-in", stem + ".csr", "-CA", path.join(ca, "ca.crt"), "-CAkey", path.join(ca, "ca.key"), "-CAserial", stem + ".serial", "-CAcreateserial", "-days", "1", "-extfile", stem + ".ext", "-out", stem + ".crt"]);
       // private parent; the server's unprivileged uid must read these bind mounts on native Linux (a 077 umask
       // leaves the freshly signed certificate 0600 for the host user; Docker Desktop hides that).

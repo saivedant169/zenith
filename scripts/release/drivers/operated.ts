@@ -140,7 +140,8 @@ export class OperatedSession {
     const environment = await action(this.a, "env.create", { projectId: this.project.id, name: "production", class: "production", connectionId: connection.connectionId, approvalRequired: true });
     this.environmentId = environment.environmentId;
     this.linked = await linkedAgent(this.a, this.stack, this.project, this.workspaceId);
-    await this.a.goto(this.stack.apiUrl + "/p/" + this.project.slug + "/system?env=" + this.environmentId);
+    // The system map is the project page; /p/<slug>/system no longer exists (the J2 journey opens the same page).
+    await this.a.goto(this.stack.apiUrl + "/p/" + this.project.slug + "?env=" + encodeURIComponent(this.environmentId));
     await this.a.getByRole("button", { name: /pending change.*Review/ }).click();
     await this.a.getByLabel("Type production to confirm deploying to production", { exact: true }).fill("production");
     const response = this.a.waitForResponse(value => value.url().endsWith("/api/actions/deploy.apply") && value.request().method() === "POST");
@@ -434,7 +435,7 @@ export class UpgradeRestoreSession {
     ensure((await this.detail(id)).approvals.some((v: { decision: string }) => v.decision === "approve"), "approval-readback");
   }
   async deployReview(): Promise<{ operationId: string; deploymentId: string }> {
-    await this.a.goto(this.stack.apiUrl + `/p/${this.project.slug}/system?env=${this.environmentId}`);
+    await this.a.goto(this.stack.apiUrl + `/p/${this.project.slug}?env=${encodeURIComponent(this.environmentId)}`);
     await this.a.getByRole("button", { name: /pending change.*Review/ }).click();
     await this.a.getByLabel("Type production to confirm deploying to production", { exact: true }).fill("production");
     const response = this.a.waitForResponse(r => r.url().endsWith("/api/actions/deploy.apply") && r.request().method() === "POST");

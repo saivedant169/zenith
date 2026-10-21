@@ -456,7 +456,8 @@ export async function prepareTarget({ r9Binding, actualBrowserContext, ownedLoca
     checkpoint(activeStep, "observed", sha256({ environmentId: created.environmentId, projectId: created.projectId, connectionId: created.connectionId }));
 
     activeStep = "deploy-apply-proposed"; checkpoint(activeStep, "attempting");
-    await requesterPage.goto(`${r9.apiUrl}/p/${encodeURIComponent(created.projectSlug)}/system?env=${encodeURIComponent(created.environmentId)}`);
+    // The system map (and its deploy dock) is the project page itself; there is no /system route.
+    await requesterPage.goto(`${r9.apiUrl}/p/${encodeURIComponent(created.projectSlug)}?env=${encodeURIComponent(created.environmentId)}`);
     await requesterPage.getByRole("button", { name: /pending change.*Review/ }).click();
     await requesterPage.getByLabel("Type production to confirm deploying to production", { exact: true }).fill("production");
     const applyResponse = requesterPage.waitForResponse(value => value.url().endsWith("/api/actions/deploy.apply") && value.request().method() === "POST");

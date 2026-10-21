@@ -138,7 +138,24 @@ export async function crashPartitionDriver(receiptFile: string, env = process.en
         });
         await files.run();
       });
-      await compose(["up", "-d", "--wait", "--wait-timeout", "240"]);
+      await compose(["up", "-d", "--wait", "--wait-timeout", "240"]).catch(async error => {
+        // Diagnostics only: structured log keys of the unready peer (level, message key, error name/code), never values.
+        if (env.ZENITH_OPERATED_DIAGNOSTICS === "1") {
+          const id = (await compose(["ps", "-aq", "execution-worker-" + peerWorkerId]).catch(() => "")).trim();
+          const logs = id ? await command("docker", ["logs", "--tail", "80", id]).catch(() => "") : "";
+          const seen = new Map<string, number>();
+          for (const line of logs.split("\n")) {
+            try {
+              const entry = JSON.parse(line) as { level?: string; msg?: string; error?: { name?: string; code?: string }; err?: { name?: string; code?: string } };
+              const failure = entry.error ?? entry.err;
+              const key = [entry.level, entry.msg, failure?.name, failure?.code].filter(value => typeof value === "string").map(value => value!.replace(/[^A-Za-z0-9 ._:-]/g, "").slice(0, 80)).join(" | ");
+              if (key) seen.set(key, (seen.get(key) ?? 0) + 1);
+            } catch { seen.set("unstructured line", (seen.get("unstructured line") ?? 0) + 1); }
+          }
+          process.stderr.write("peer-unready " + JSON.stringify([...seen].slice(-15)) + "\n");
+        }
+        throw error;
+      });
       peerId = (await compose(["ps", "-q", "execution-worker-" + peerWorkerId])).trim();
       const [running] = JSON.parse(await command("docker", ["inspect", peerId])) as Container[];
       ensure(running.Config.Labels["io.zenith.worker"] === peerWorkerId && running.State.Running && running.State.Health?.Status === "healthy", "independent-survivor");

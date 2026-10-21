@@ -28,7 +28,10 @@ export async function runUpgrade(input: DriverInput): Promise<number> {
     }
     await session.step("compatibility-gates", () => session.gates(GATE_SUITES, { ZENITH_REPLAY_LANE: "1" }));
     let operationId = "", workflowId = "", runId = "";
-    const connection = await Connection.connect(connectionOptionsFor(temporalConfigFromEnv(session.environment)));
+    // A host Temporal client failure is named by its class (no message): config, TLS files or transport.
+    const connection = await (async () => Connection.connect(connectionOptionsFor(temporalConfigFromEnv(session.environment))))().catch((error: unknown) => {
+      throw new Error("journey:host-temporal-" + (error instanceof Error && /^[A-Za-z]{1,40}$/.test(error.name) ? error.name.toLowerCase() : "connect"));
+    });
     session.finalizers.unshift(() => connection.close());
     const temporal = new WorkflowClient({ connection, namespace: session.prepared.environment.ZENITH_TEMPORAL_NAMESPACE });
     await session.step("browser-review-in-flight", async () => {

@@ -152,7 +152,9 @@ export async function runRestoreScenario(input: DriverInput): Promise<number> {
       const targetConnection = pgArgs(target.href);
       const fresh = await openPlatformDb({ kind: "postgres", url: target.href, max: 2, migrate: false });
       try { await fresh.query("drop schema public"); } finally { await fresh.close(); }
-      const auth = await execRunner(tools.pgRestore, [...targetConnection.args, "--no-owner", "--exit-on-error", "--single-transaction", authDump], { env: targetConnection.env });
+      // Prerequisite objects only (the restored platform data references them); Supabase Auth keeps its own
+      // database and grants. The non-superuser connection may not replay Supabase roles' default privileges.
+      const auth = await execRunner(tools.pgRestore, [...targetConnection.args, "--no-owner", "--no-privileges", "--exit-on-error", "--single-transaction", authDump], { env: targetConnection.env });
       if (auth.code !== 0 && input.env.ZENITH_OPERATED_DIAGNOSTICS === "1") {
         // The first pg_restore error lines (object and privilege names), with values, URLs, paths and tokens elided.
         const errors = auth.stderr.split("\n").filter(line => /pg_restore: (error|warning)|ERROR:/.test(line)).slice(0, 4)

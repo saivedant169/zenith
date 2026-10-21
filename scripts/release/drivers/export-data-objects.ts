@@ -1,5 +1,5 @@
 import https from "node:https";
-import { S3Client, CreateBucketCommand, GetBucketTaggingCommand, PutBucketTaggingCommand, PutObjectCommand, ListObjectsV2Command, GetObjectCommand, DeleteObjectCommand, DeleteBucketCommand } from "@aws-sdk/client-s3";
+import { S3Client, CreateBucketCommand, GetBucketTaggingCommand, HeadBucketCommand, PutBucketTaggingCommand, PutObjectCommand, ListObjectsV2Command, GetObjectCommand, DeleteObjectCommand, DeleteBucketCommand } from "@aws-sdk/client-s3";
 import type { DataLeg, LegContext, LegEndpoint } from "./export-data-leg";
 import { assertEqualContent, knownData, objectWitness, pinnedFixtureImages } from "./export-data-plan";
 
@@ -22,7 +22,15 @@ function missing(error: unknown): boolean {
   return (error as { name?: string })?.name === "NoSuchBucket";
 }
 async function owned(client: S3Client, endpoint: LegEndpoint, ctx: LegContext): Promise<void> {
-  const result = await client.send(new GetBucketTaggingCommand({ Bucket: endpoint.bucket }));
+  const result = await client.send(new GetBucketTaggingCommand({ Bucket: endpoint.bucket })).catch(async (error: unknown) => {
+    // Current MinIO answers NoSuchTagSet for an absent bucket too (AWS answers NoSuchBucket): HeadBucket decides.
+    // Absent stays "missing"; an existing but untagged bucket is not ours.
+    if ((error as { name?: string })?.name !== "NoSuchTagSet") throw error;
+    const absent = await client.send(new HeadBucketCommand({ Bucket: endpoint.bucket })).then(() => false,
+      (head: unknown) => { if ((head as { name?: string; $metadata?: { httpStatusCode?: number } })?.$metadata?.httpStatusCode === 404) return true; throw head; });
+    if (absent) throw Object.assign(new Error("Object-store bucket is absent"), { name: "NoSuchBucket" });
+    throw new Error("Object-store bucket ownership mismatch");
+  });
   if (!result.TagSet?.some(tag => tag.Key === ownerTag && tag.Value === ctx.ownerLabel)) throw new Error("Object-store bucket ownership mismatch");
 }
 async function keys(client: S3Client, endpoint: LegEndpoint): Promise<string[]> {

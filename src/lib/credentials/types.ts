@@ -323,6 +323,7 @@ export interface CredentialBroker {
  */
 export type DenialReason =
   | "grant_expired"
+  | "grant_revoked"
   | "grant_invalid"
   | "workspace_mismatch"
   | "connection_not_found"

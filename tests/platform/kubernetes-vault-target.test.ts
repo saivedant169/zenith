@@ -127,6 +127,19 @@ describe.skipIf(!PG_URL)("default Kubernetes vault target binding [postgres; mod
     expect((await repos.events.list(db, f.workspaceId)).some(event => event.type === "credential.assumed")).toBe(false);
     await safe(f, result);
   });
+  it("refuses a provider session for a stored grant revoked since issue, before any credential is resolved", async () => {
+    const f = await fixture(); await verified(f); const g = grant(f);
+    await repos.operations.create(db, { id: g.op, workspaceId: f.workspaceId, principal: { kind: "user", id: "fixture-admin", name: "Fixture" },
+      proposal: { capability: g.cap, scope: { workspaceId: f.workspaceId }, input: {}, summary: "Revoked grant fixture", details: [], risk: "low" } });
+    await repos.grants.insert(db, { jti: g.jti, workspaceId: f.workspaceId, operationId: g.op, capability: g.cap, audience: "worker",
+      issuedAt: new Date(g.iat * 1000).toISOString(), expiresAt: new Date(g.exp * 1000).toISOString() });
+    const callback = vi.fn(async () => "entered");
+    expect(await f.credentials.withSession({ connectionId: f.connection.id, purpose: "observe", grant: g }, callback)).toBe("entered");
+    expect(await repos.grants.revoke(db, f.workspaceId, g.jti)).toBe(true);
+    await expect(f.credentials.withSession({ connectionId: f.connection.id, purpose: "observe", grant: g }, callback)).rejects.toMatchObject({ reason: "grant_revoked" });
+    expect(callback).toHaveBeenCalledOnce();
+  });
+
   it("a same-named foreign sealed value never supplies the owning target or credential", async () => {
     const f = await fixture(undefined, `ws-foreign-vault-${randomUUID()}`);
     expect(await vault.readSecretValueAsync(f.workspaceId, f.ref)).toBeUndefined();

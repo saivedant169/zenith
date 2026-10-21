@@ -469,6 +469,10 @@ export function platformCredentialBroker(db: Sql, options: PlatformCredentialOpt
       };
       if (!Number.isFinite(grant.exp) || grant.exp <= Math.floor(now().getTime() / 1000)) return deny("grant_expired", "The capability grant expired.");
       if (!isCapability(grant.cap)) return deny("unknown_capability", "Unknown capability.");
+      // A grant revoked since issue (cancel, lease loss, field-ownership change) gets no provider session.
+      // shortcut: a grant with no stored row (signed outside the broker) is not refused here; production grants are stored at issue.
+      if (typeof grant.jti === "string" && grant.jti && await repos.grants.status(db, grant.ws, grant.jti) === "revoked")
+        return deny("grant_revoked", "The capability grant was revoked.");
       if (!connection) return deny("connection_not_found", "Connection not found in this workspace.");
       if (connection.status === "revoked") return deny("connection_revoked", "Connection revoked.");
       if (connection.status !== "verified") return deny("connection_not_verified", "Connection has not been verified.");

@@ -172,8 +172,8 @@ export async function consume(sql: Sql, input: { workspaceId: string; jti: strin
     "select capability, operation_id from platform.capability_grants where workspace_id = $1 and jti = $2", [workspaceId, jti]);
   if (!grant || NATIVE_OPERATION_WRITES[grant.capability] === undefined) return once(sql);
   // A native field write is re-admitted at consume under the environment coordinator every
-  // ownership change takes, so an autoscaler or owner that attached after issue refuses it
-  // here (field_ownership_conflict) instead of letting the preissued write reach the provider.
+  // ownership change takes (field_ownership_conflict when current ownership refuses it). No
+  // production path consumes grants today; revocation (migration 59) is the enforced gate.
   return sql.tx(async (tx) => {
     await lockForGrant(tx, workspaceId, grant.operation_id);
     return once(tx);

@@ -1,0 +1,327 @@
+{
+  "schema": "zenith.linux-runner-lifecycle.agent-lifecycle/v1",
+  "runId": "39526463307",
+  "runAttempt": "1",
+  "commit": "d4877e35dd36b3d7b2a0e0316f880884e6cc219e",
+  "runner": "ubuntu-24.04",
+  "goVersion": "1.27.1",
+  "goCount": 3,
+  "goStepOutcome": "success",
+  "go": {
+    "passed": [
+      "TestSpooledResultSurvivesOutageAndRestartThenReplays",
+      "TestSpoolIsClearedAfterAcceptanceAndAfterAlreadySettled",
+      "TestHeartbeatCarriesLifecycleReport",
+      "TestRevocationIsDurableAndStopsRestartedAgent",
+      "TestRevocationViaHeartbeatStopsWorkAndExits3",
+      "TestRevocationOn401AgentRevokedExits3",
+      "TestAlreadySettledResultIsNotRetried",
+      "TestResultPostingRetriesTransientFailures",
+      "TestHeartbeatWiresDurableUpdateControlAndWake",
+      "TestNextKeysArePinnedAndPersisted",
+      "TestRotationIdentityPersistenceUsesPrivateExclusiveReplacement",
+      "TestRotationPersistenceFailureRetriesSameTLSAnnouncement",
+      "TestRotationInvalidDuplicateConflictAndPinnedLimit",
+      "TestRotationConcurrentReadersObservePersistenceBeforePublication",
+      "TestRotationOwnsImmutableRegistrationSnapshot",
+      "TestPutSurvivesReopenAndFirstResultWins",
+      "TestForeignIdentityAndCorruptEntriesAreQuarantined",
+      "TestBoundsRefuseNewEntriesInsteadOfDroppingOld",
+      "TestRecordAttemptKeepsAgeAndCount",
+      "TestStageVerifiesSignatureDigestAndSmokeThenActivatesAsPending",
+      "TestStageRefusesBadSignatureDigestSmokeAndReplay",
+      "TestLauncherExecsPendingReleaseThenRollsBackWhenItNeverBecomesHealthy",
+      "TestLauncherRollsBackAfterDeadlineAndOnTamperedBinary",
+      "TestCommitClearsPendingAndKeepsPreviousForManualRollback",
+      "TestLauncherSkipsWhenAlreadyTheActiveRelease",
+      "TestDirectiveRefusesWrongAuthorityAndBindings",
+      "TestHoldPersistsAndRevisionsCannotBeReplayed",
+      "TestCorruptionAndPersistenceFailureDoNotGrantAuthority",
+      "TestFreshnessIsRequiredAfterRestartAndExpiry",
+      "TestStageRequiresExactRequestedEnvelopeAndIndependentReleaseSignature",
+      "TestDisabledLocalUpdatesCannotBeEnabledRemotely",
+      "TestSignVerifyRoundTrip",
+      "TestVerifyRejectsWrongKeyTamperExpiryAndUnknownFields",
+      "TestDecideEnforcesSequenceChannelAndDowngradeRules"
+    ],
+    "failed": [],
+    "skipped": [],
+    "notRun": [],
+    "tests": [
+      {
+        "name": "TestSpooledResultSurvivesOutageAndRestartThenReplays",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestSpoolIsClearedAfterAcceptanceAndAfterAlreadySettled",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestHeartbeatCarriesLifecycleReport",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestRevocationIsDurableAndStopsRestartedAgent",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestRevocationViaHeartbeatStopsWorkAndExits3",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestRevocationOn401AgentRevokedExits3",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestAlreadySettledResultIsNotRetried",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestResultPostingRetriesTransientFailures",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestHeartbeatWiresDurableUpdateControlAndWake",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestNextKeysArePinnedAndPersisted",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestRotationIdentityPersistenceUsesPrivateExclusiveReplacement",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestRotationPersistenceFailureRetriesSameTLSAnnouncement",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestRotationInvalidDuplicateConflictAndPinnedLimit",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestRotationConcurrentReadersObservePersistenceBeforePublication",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestRotationOwnsImmutableRegistrationSnapshot",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestPutSurvivesReopenAndFirstResultWins",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestForeignIdentityAndCorruptEntriesAreQuarantined",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestBoundsRefuseNewEntriesInsteadOfDroppingOld",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestRecordAttemptKeepsAgeAndCount",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestStageVerifiesSignatureDigestAndSmokeThenActivatesAsPending",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestStageRefusesBadSignatureDigestSmokeAndReplay",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestLauncherExecsPendingReleaseThenRollsBackWhenItNeverBecomesHealthy",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestLauncherRollsBackAfterDeadlineAndOnTamperedBinary",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestCommitClearsPendingAndKeepsPreviousForManualRollback",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestLauncherSkipsWhenAlreadyTheActiveRelease",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestDirectiveRefusesWrongAuthorityAndBindings",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestHoldPersistsAndRevisionsCannotBeReplayed",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestCorruptionAndPersistenceFailureDoNotGrantAuthority",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestFreshnessIsRequiredAfterRestartAndExpiry",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestStageRequiresExactRequestedEnvelopeAndIndependentReleaseSignature",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestDisabledLocalUpdatesCannotBeEnabledRemotely",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestSignVerifyRoundTrip",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestVerifyRejectsWrongKeyTamperExpiryAndUnknownFields",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      },
+      {
+        "name": "TestDecideEnforcesSequenceChannelAndDowngradeRules",
+        "pass": 3,
+        "fail": 0,
+        "skip": 0,
+        "ok": true
+      }
+    ]
+  },
+  "vitest": {
+    "files": [
+      {
+        "file": "tests/runners/lifecycle.test.ts",
+        "suite": "passed",
+        "passed": [
+          "parseLifecycleReport accepts the agent's report and normalises timestamps",
+          "parseLifecycleReport drops a malformed report instead of failing",
+          "parseLifecycleReport redacts credential-shaped text in agent-supplied free text",
+          "heartbeat stores the lifecycle report records it for a runner and for a machine, with the store's report time",
+          "heartbeat stores the lifecycle report never fails a heartbeat because the report is malformed, and keeps the earlier report",
+          "connection state is online after a plain heartbeat",
+          "connection state is recovering while the agent still holds spooled results, and takes work",
+          "connection state returns to online once the spool is empty and the recovery is not recent",
+          "connection state is offline once heartbeats stop, takes no work, and says how many results wait on the host",
+          "connection state is revoked after revocation: no work, and the agent is told to stop",
+          "connection state surfaces a rolled-back or health-checking release",
+          "admin view shows connection and delivery without any key material"
+        ],
+        "failed": [],
+        "skipped": []
+      },
+      {
+        "file": "tests/runners/update-control-postgres.test.ts",
+        "suite": "passed",
+        "passed": [
+          "real PostgreSQL serializes conflicting update/hold intents after migration 54"
+        ],
+        "failed": [],
+        "skipped": []
+      }
+    ],
+    "pgCaseRan": true,
+    "ok": true
+  },
+  "verdict": "pass"
+}

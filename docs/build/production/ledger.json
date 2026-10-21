@@ -6091,11 +6091,11 @@
       "acceptance": [
         "Actual Linux registration/revocation, durable results, reconnect/offline recovery, key rotation and update/rollback pass."
       ],
-      "state": "in_progress",
+      "state": "verified",
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "implementation_complete_verification_pending",
+      "implementationStatus": "verified_d4877e35: on a fresh GitHub-hosted Linux VM, the installed zenithd under real systemd registers, holds, updates and commits a signed release, keeps it across restart, pins a rotated control-plane key, survives a control-plane outage without restarting and reconnects, rolls a failed signed downgrade back automatically and exits 3 on revocation; durable spool replay, revocation, rotation and update/launcher logic pass three -race runs and the update-control store runs on real PostgreSQL; exact-source CI green. Registration and revocation against the real control plane are proven by the J2 journey (PKG-04, 082a0272; agent code unchanged since). Independent review: PROMOTE after the outage and exit-3 phase was added. Limits: the systemd lane talks to a signed protocol fixture, not the real control plane; result replay after an outage is proven by the Go spool tests (in-process restart), not by a systemd outage with a pending job; one disposable hosted VM run; no real update/rollback through the operated control plane.",
       "implementationNote": "J5 update/hold wired into the real agent loop; migration 54 and table inventory added; Windows identity reader/replacement contention fixed without changing the rotation assertion. Real PostgreSQL and Linux systemd acceptance remain pending.",
       "evidence": [
         {
@@ -6180,6 +6180,15 @@
           "runId": 39477790980,
           "url": "https://github.com/saivedant169/zenith/actions/runs/39477790980",
           "result": "J2 default journey 18/18 passed on a clean Linux host (ledgerEligible, native AMD64, five readbacks): real browser and Supabase Auth, a registered zenithd and an owned kind target. Covers this requirement only where the journey exercises it."
+        },
+        {
+          "level": "local_engine",
+          "commit": "d4877e35dd36b3d7b2a0e0316f880884e6cc219e",
+          "command": ".github/workflows/linux-runner-lifecycle.yml (run 39526463307): agent-lifecycle (go test -race -count=3 over 34 named agent, spool, rotation, update and release tests; vitest update-control-postgres and lifecycle on PostgreSQL 16) and systemd-update-rollback (TestSystemdSignedUpdateAndRollback under real systemd)",
+          "environment": "GitHub-hosted ubuntu-24.04 fresh VM with real systemd and a PostgreSQL 16.15 service container; Go 1.27.1",
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39526463307",
+          "logs": "docs/build/production/evidence/PROD-MACH-04/2026-10-21-d4877e35-linux-runner-lifecycle-agent.json, docs/build/production/evidence/PROD-MACH-04/2026-10-21-d4877e35-linux-runner-lifecycle-systemd.json",
+          "result": "Both receipts pass on the commit; exact-source CI 39526450858 green. Under real systemd the installed zenithd registers with a single-use token, holds on a held channel, updates 1.0.0 to 1.1.0 and commits after health, keeps the committed version across restart, pins a rotated control-plane key, stays up with no systemd restart while the control plane is unreachable and resumes signed heartbeats on reconnect, rolls a failed signed downgrade back automatically, and on revocation stops with exit status 3. Go agent tests pass in all three -race runs; the update-control store runs on real PostgreSQL."
         }
       ],
       "requiredEvidence": [

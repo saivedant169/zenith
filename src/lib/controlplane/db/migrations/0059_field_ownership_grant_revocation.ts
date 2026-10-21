@@ -9,8 +9,9 @@
  *
  * - An autoscaling fact (a workload's own spec.autoscaling, or an autoscaler
  *   node, see src/lib/ownership/facts.ts AUTOSCALER_NATIVE_TYPES) only moves
- *   replicas/size, which only service.scale writes: revoke live service.scale
- *   grants in the environment. Deploys and applies keep their grants.
+ *   replicas/size, which service.scale and a drift.repair reapply (ECS replica
+ *   repair) write: revoke their live grants in the environment. Deploys and
+ *   applies keep their grants.
  * - An ownership transfer can move any field: revoke live native-write grants
  *   (NATIVE_OPERATION_WRITES) in the environment except those of the transfer's
  *   own operation.
@@ -47,7 +48,7 @@ begin
         return null;
       end if;
     end if;
-    revoked_capabilities := array['service.scale'];
+    revoked_capabilities := array['service.scale','drift.repair'];
   else
     revoked_capabilities := writes;
     if TG_OP='DELETE' then own_operation := old.operation_id; else own_operation := new.operation_id; end if;

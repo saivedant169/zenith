@@ -4776,7 +4776,7 @@ begin
         return null;
       end if;
     end if;
-    revoked_capabilities := array['service.scale'];
+    revoked_capabilities := array['service.scale','drift.repair'];
   else
     revoked_capabilities := writes;
     if TG_OP='DELETE' then own_operation := old.operation_id; else own_operation := new.operation_id; end if;
@@ -4805,7 +4805,7 @@ after insert or update or delete on platform.ownership_transfers
 for each row execute function platform.revoke_grants_on_ownership_change();
 
 insert into platform.schema_migrations (version, name, checksum)
-values (59, 'field_ownership_grant_revocation', '2019a07dc4b84154bdf29b11cda31dd32b03bf4f3a625b825e1174a0bb0c252f')
+values (59, 'field_ownership_grant_revocation', '65049a39d46229bd9fefe1eeaa2e496c6771c2bd85957e95bafacaf09ec8ca05')
 on conflict (version) do nothing;
 
 -- ============================ hardening (Supabase roles) ============================

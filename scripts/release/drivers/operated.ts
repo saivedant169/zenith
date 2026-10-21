@@ -9,7 +9,7 @@ import { chromium } from "@playwright/test";
 import { load as yamlLoad } from "js-yaml";
 import { readPrepared, sourceBinding, privateLocation, assertPrivate } from "../../deploy/installation.mjs";
 import { readState, compose, docker, cleanup as cleanupStack } from "../../acceptance/default-stack/runtime.mjs";
-import { Config, action, adminHeaders, browserRequest, command, ensure, jsonRequest, kindReadback, kubeconfig, linkedAgent, login, mcp, nonce, ok, operator, prerequisites, privateFile, sha256, until as journeyUntil, nativeHost } from "../../../tests/e2e/default/support.mjs";
+import { Config, action, adminHeaders, browserRequest, command, ensure, jsonRequest, kindReadback, kubeconfig, linkedAgent, mcp, nonce, ok, operator, prerequisites, privateFile, sha256, until as journeyUntil, nativeHost } from "../../../tests/e2e/default/support.mjs";
 import { enrollOperator } from "../../../tests/e2e/default/mfa.mjs";
 import { localPaths, assertLocalDocker, waitFor } from "../local-environment";
 import { requiredChecks, validateLocalReceipt, type LocalReceipt, type SourceBoundLocalReceipt, localEnvironment } from "../local-targets";
@@ -110,7 +110,8 @@ export class OperatedSession {
     });
     const operatorA = await operator(this.stack, this.config.mailpitUrl, "a", this.users);
     const operatorB = await operator(this.stack, this.config.mailpitUrl, "b", this.users);
-    await login(this.a, this.stack, operatorA); await login(this.b, this.stack, operatorB);
+    // Fresh operators have no workspace yet, so /api/bootstrap is a 404 by design; sign in as J2 does.
+    await authenticateBeforeWorkspace(this.a, this.stack, operatorA); await authenticateBeforeWorkspace(this.b, this.stack, operatorB);
     await enrollOperator(this.a, this.stack); await enrollOperator(this.b, this.stack);
     const workspace = ok(await browserRequest(this.a, "/api/workspace", { name: "Zenith DRV2 " + nonce() })).workspace as { id: string };
     this.workspaceId = workspace.id;
@@ -384,7 +385,7 @@ export class UpgradeRestoreSession {
     const users: string[] = [];
     const userA = await operator(this.stack, this.config.mailpitUrl, "a", users);
     const userB = await operator(this.stack, this.config.mailpitUrl, "b", users);
-    await login(this.a, this.stack, userA); await login(this.b, this.stack, userB);
+    await authenticateBeforeWorkspace(this.a, this.stack, userA); await authenticateBeforeWorkspace(this.b, this.stack, userB);
     await enrollOperator(this.a, this.stack); await enrollOperator(this.b, this.stack);
     this.workspaceId = ok(await browserRequest(this.a, "/api/workspace", { name: `DRV3 ${this.input.runId}` })).workspace.id;
     const invite = ok(await browserRequest(this.a, "/api/workspace/invites", { email: userB.email, role: "admin", workspaceId: this.workspaceId })).invite;
@@ -629,7 +630,7 @@ export class Operated {
     });
     const userA = await operator(this.stack, this.config.mailpitUrl, "drv1-a", this.users);
     const userB = await operator(this.stack, this.config.mailpitUrl, "drv1-b", this.users);
-    await login(this.a, this.stack, userA); await login(this.b, this.stack, userB);
+    await authenticateBeforeWorkspace(this.a, this.stack, userA); await authenticateBeforeWorkspace(this.b, this.stack, userB);
     await enrollOperator(this.a, this.stack); await enrollOperator(this.b, this.stack);
     const workspace = ok(await browserRequest(this.a, "/api/workspace", { name: "DRV-1 " + this.scenario + " " + nonce() })).workspace;
     this.workspaceId = workspace.id;

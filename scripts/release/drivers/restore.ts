@@ -4,6 +4,7 @@ import path from "node:path";
 import { randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
 import { openPlatformDb } from "@/lib/controlplane/db";
+import { renderSupabaseMigration } from "@/lib/controlplane/db/migrations/emit";
 import { KeyRing } from "@/lib/keycustody/registry";
 import { captureBackup } from "@/lib/ops/recovery/backup";
 import { verifyBackupDirectory, type BackupManifest } from "@/lib/ops/recovery/manifest";
@@ -167,7 +168,10 @@ export async function runRestoreScenario(input: DriverInput): Promise<number> {
         "--run-id", options.runId, "--actor", options.actor, "--reason", options.reason,
         "--report", options.reportFile, "--confirm-customer-state",
         "--observed-epoch", String(options.observedEpoch), "--temporal-namespace", namespace,
-        "--temporal-address", temporal.address!, "--terminate-temporal"];
+        "--temporal-address", temporal.address!, "--terminate-temporal",
+        // Supabase roles differ from the restoring role (RECOVERY.md 2.1): restore without privileges, then re-apply
+        // the emitted platform SQL below, which puts back row level security and the role grants.
+        "--no-privileges"];
       const sourceUrl = session.environment.ZENITH_PLATFORM_DB_URL!;
       const privateValues = Object.entries(session.environment)
         .filter(([key, value]) => value !== undefined && value !== "" && /(PASSWORD|TOKEN|SECRET|CREDENTIAL|KEY|JWK|SUPABASE.*DB_URL|ZENITH_PLATFORM_DB_URL|DATABASE_URL|POSTGRES.*URL)/i.test(key))
@@ -202,6 +206,10 @@ export async function runRestoreScenario(input: DriverInput): Promise<number> {
       ensure(candidate.format === RECOVERY_REPORT_FORMAT && candidate.runId === options.runId
         && candidate.backupId === manifest.backupId && candidate.manifestDigest === manifest.digest, "restore-cli-report-binding");
       report = candidate as RestoreReport;
+      if (report.ok) {
+        const regranted = await openPlatformDb({ kind: "postgres", url: target.href, max: 1, migrate: false });
+        try { await regranted.exec(renderSupabaseMigration()); } finally { await regranted.close(); }
+      }
       const reportText = JSON.stringify(report);
       ensure(!reportText.includes(target.href) && !reportText.includes(sourceUrl)
         && privateValues.every(value => !reportText.includes(value)), "restore-cli-report-redaction");

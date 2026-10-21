@@ -69,7 +69,7 @@ npm run migrate:platform -- --status --url postgres://.../zenith_platform_restor
 
 When the target is another cluster whose roles differ (for example Supabase's
 `anon`, `authenticated`, `service_role`), restore with `--no-owner --no-privileges`
-and then re-apply `supabase/migrations/0016_platform_core.sql`. It is idempotent
+and then re-apply `supabase/migrations/0026_platform_core.sql` (the emitted platform aggregate). It is idempotent
 and puts back row level security and the role grants; rehearsed against plain
 Postgres (25 tables, all with row level security on afterwards), not against
 Supabase.

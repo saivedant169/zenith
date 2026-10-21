@@ -198,7 +198,13 @@ export async function crashPartitionDriver(receiptFile: string, env = process.en
       const first = await session.propose(2), second = await session.propose(3, "rest");
       await session.approve(first); await session.approve(second);
       const [firstWorkflow, secondWorkflow] = await Promise.all([session.execute(first), session.execute(second)]);
-      await Promise.all([session.terminal(first), session.terminal(second)]).catch((error: unknown) => {
+      await Promise.all([session.terminal(first), session.terminal(second)]).catch(async (error: unknown) => {
+        if (env.ZENITH_OPERATED_DIAGNOSTICS === "1") {
+          // Status and the product's own error sentence, elided like other diagnostics (no values, paths, URLs or tokens).
+          const elide = (text: unknown) => typeof text === "string" ? text.replace(/\b\w+=\S+/g, "…=…").replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/(?:\/[^\s/]+){2,}/g, "…path").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 240) : undefined;
+          const shape = async (id: string) => { const d = await session.detail(id); return { status: d.operation.status, error: elide((d.operation as { error?: unknown }).error), phase: d.authority?.phase }; };
+          process.stderr.write("writers-terminal " + JSON.stringify({ first: await shape(first).catch(() => null), second: await shape(second).catch(() => null) }) + "\n");
+        }
         throw error instanceof Error && error.message === "journey:readback-timeout" ? new Error("journey:writers-terminal-timeout") : error;
       });
       await durableStart(session, env, first, firstWorkflow, "first-writer-workflow");

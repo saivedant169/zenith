@@ -21,8 +21,8 @@ async function worker(session: OperatedSession): Promise<Container> {
   return value;
 }
 async function mutate(session: OperatedSession, args: string[]): Promise<void> { await worker(session); await command("docker", [...args, session.stack.worker]); }
-/** While the worker is down the durable record is the acknowledged start intent: only a running worker records workflowId on the operation. */
-async function durableWhileDown(session: OperatedSession, env: NodeJS.ProcessEnv, operationId: string, workflowId: string, code: string): Promise<void> {
+/** The durable binding of an execution is its acknowledged start intent with the run id execute() started; operations.workflow_id is not written by any production path. */
+async function durableStart(session: OperatedSession, env: NodeJS.ProcessEnv, operationId: string, workflowId: string, code: string): Promise<void> {
   const authority = (await session.detail(operationId)).authority;
   const runId = session.runIds.get(operationId);
   const durable = !!authority && !!runId && authority.startIntent?.phase === "acknowledged" && authority.startIntent.runId === runId
@@ -59,18 +59,18 @@ export async function crashPartitionDriver(receiptFile: string, env = process.en
       const killed = await worker(session);
       ensure(!killed.State.Running && killed.State.ExitCode === 137, "actual-sigkill");
       crashWorkflow = await session.execute(crashOperation);
-      await durableWhileDown(session, env, crashOperation, crashWorkflow, "durable-during-crash");
+      await durableStart(session, env, crashOperation, crashWorkflow, "durable-during-crash");
     });
     await step("outage-traffic", async () => {
       ensure(!(await worker(session)).State.Running, "crash-outage-observed");
       session.readbacks.outage = await session.readback(1);
-      await durableWhileDown(session, env, crashOperation, crashWorkflow, "durable-crash-operation");
+      await durableStart(session, env, crashOperation, crashWorkflow, "durable-crash-operation");
     });
     await step("restart-readback", async () => {
       await mutate(session, ["update", "--restart=unless-stopped"]);
       await mutate(session, ["start"]);
       await session.terminal(crashOperation);
-      ensure((await session.detail(crashOperation)).authority?.workflowId === crashWorkflow, "same-crash-workflow");
+      await durableStart(session, env, crashOperation, crashWorkflow, "same-crash-workflow");
       session.readbacks.restarted = await session.readback(2);
     });
     let partitionOperation = "", partitionWorkflow = "", peerId = "", peerProject = "", peerFile = "", peerWorkerId = "";
@@ -90,7 +90,8 @@ export async function crashPartitionDriver(receiptFile: string, env = process.en
       ensure((await session.deployment()).metadata.generation === partitionGeneration, "partition-provider-no-write");
       session.readbacks.partition = await session.readback(2);
       const detail = await session.detail(partitionOperation);
-      ensure(detail.authority?.workflowId === partitionWorkflow && detail.operation.status === "running", "retained-partition-workflow");
+      ensure(detail.operation.status === "running", "retained-partition-workflow");
+      await durableStart(session, env, partitionOperation, partitionWorkflow, "retained-partition-workflow");
     });
     await step("survivor-readback", async () => {
       // J1's existing cleanup owns this exact private peer directory, including partial prepare failures.
@@ -142,7 +143,7 @@ export async function crashPartitionDriver(receiptFile: string, env = process.en
       const [running] = JSON.parse(await command("docker", ["inspect", peerId])) as Container[];
       ensure(running.Config.Labels["io.zenith.worker"] === peerWorkerId && running.State.Running && running.State.Health?.Status === "healthy", "independent-survivor");
       await session.terminal(partitionOperation);
-      ensure((await session.detail(partitionOperation)).authority?.workflowId === partitionWorkflow, "same-partition-workflow");
+      await durableStart(session, env, partitionOperation, partitionWorkflow, "same-partition-workflow");
       session.readbacks.survivor = await session.readback(1);
     });
     let lastGeneration = 0;

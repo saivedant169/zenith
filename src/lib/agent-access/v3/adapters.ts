@@ -242,6 +242,12 @@ async function retainedIntent(workspaceId: string, operationId: string): Promise
   const handle = await openPlatformDb({ kind: "postgres", url: config.url, max: 1, migrate: false });
   try {
     await assertPlatformSchemaCurrent(handle);
+    // A claim restored from a backup is never recovered from a pre-restore intent: a person decides its recovery item.
+    const { operationPredatesRestore } = await import("@/lib/controlplane/recovery");
+    if (await operationPredatesRestore(handle, workspaceId, operationId)) {
+      throw new McpToolError("recovery_epoch_stale", "This operation predates a restore (the recovery epoch changed); nothing was started.", 409,
+        "An operator must decide its recovery item (resume, abandon or keep uncertain) in the Zenith web app or with the recovery CLI before anything runs.");
+    }
     if (!await repos.workflowStartIntents.get(handle, workspaceId, operationId)) {
       throw new McpToolError("workflow_start_unconfirmed", "The operation is claimed but has no retained start intent.", 409,
         "Inspect this operation. This call cannot reconstruct an unrecorded start or dispatch another attempt.");

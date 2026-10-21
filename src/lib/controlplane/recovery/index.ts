@@ -88,6 +88,13 @@ export async function currentRecoveryEpoch(sql: Sql): Promise<number> {
   return Number(rows[0]?.epoch ?? 0);
 }
 
+/** True when the operation was recorded before the current recovery epoch (it came back in a restore). */
+export async function operationPredatesRestore(sql: Sql, workspaceId: string, operationId: string): Promise<boolean> {
+  const rows = await sql.query<{ stale: boolean }>(
+    "select (recovery_epoch < platform.current_recovery_epoch()) as stale from platform.operations where workspace_id=$1 and id=$2", [workspaceId, operationId]);
+  return rows[0]?.stale === true;
+}
+
 /** The lowest fence token a lease acquired in `epoch` can hold. */
 export const fenceFloor = (epoch: number): number => epoch * FENCE_EPOCH_STRIDE + 1;
 /** The epoch a fence token was issued in. */

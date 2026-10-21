@@ -15,7 +15,7 @@ import * as repos from "@/lib/controlplane/db/repos";
 import { openPlatformDb, type PlatformDbHandle } from "@/lib/controlplane/db";
 import { claimDue, enqueueIntent, settleIntent } from "@/lib/controlplane/outbox";
 import {
-  bumpRecoveryEpoch, currentRecoveryEpoch, decideItem, epochOfFence, fenceFloor, getRecoveryItem, listRecoveryItems, recoveryItemId, recoveryStatus,
+  bumpRecoveryEpoch, currentRecoveryEpoch, decideItem, operationPredatesRestore, epochOfFence, fenceFloor, getRecoveryItem, listRecoveryItems, recoveryItemId, recoveryStatus,
   type RecoveryDecision, type RecoveryItem,
 } from "@/lib/controlplane/recovery";
 import type { Sql } from "@/lib/controlplane/types";
@@ -110,7 +110,9 @@ describe.each(ENGINES)("recovery epochs [$name]", (engine) => {
       const ws = awaiting.workspaceId;
       const approved = await approve(db(), awaiting, user("approver-1"));
       expect(approved.operation.status).toBe("approved");
+      expect(await operationPredatesRestore(db(), ws, awaiting.operation.id)).toBe(false);
       await bump(db());
+      expect(await operationPredatesRestore(db(), ws, awaiting.operation.id)).toBe(true);
       const details = await expectCode(repos.operations.claimForExecution(db(), { workspaceId: ws, id: awaiting.operation.id, expectedDigest: awaiting.operation.proposalDigest, holder: "w" }), "invalid_state");
       expect(details).toMatchObject({ reason: "recovery_epoch_stale" });
       expect((await repos.operations.get(db(), ws, awaiting.operation.id))?.status).toBe("approved");

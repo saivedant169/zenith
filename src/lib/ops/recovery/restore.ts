@@ -25,7 +25,7 @@ import { bumpRecoveryEpoch, type BumpResult } from "@/lib/controlplane/recovery"
 import {
   COMPONENT_IDS, verifyBackupDirectory, sha256File, type BackupManifest, type ComponentId, type KeyRequirement, type ManifestComponent,
 } from "./manifest";
-import { RecoveryToolError, mustRun, pgArgs, scrub, type CommandRunner, type Tools } from "./process";
+import { RecoveryToolError, mustRun, pgArgs, scrub, temporalConnectionArgs, type CommandRunner, type TemporalCliTls, type Tools } from "./process";
 import { RECOVERY_REPORT_FORMAT, fileSink, deliverReport, measureContinuation, measureRecovery, targetsFromEnv, type ContinuationMeasurement, type RecoveryMeasurement } from "./report";
 
 export type StepStatus = "ok" | "refused" | "handed_off" | "skipped" | "not_run";
@@ -52,7 +52,7 @@ export interface RestoreOptions {
   productDataDir?: string;
   hostedBundleOut?: string;
   artifactDir?: string;
-  temporal?: { address?: string; namespace: string; terminate: boolean };
+  temporal?: { address?: string; tls?: TemporalCliTls; namespace: string; terminate: boolean };
   reportFile: string;
 }
 
@@ -124,9 +124,9 @@ function requireTerminatedDescribe(stdout: string, expected: TemporalWorkflowExe
 }
 
 /** Terminate each observed execution synchronously, then prove its status and the recovery query's empty postcondition. */
-export async function terminateOpenTemporalWorkflows(run: CommandRunner, temporal: string, namespace: string, address?: string): Promise<number> {
+export async function terminateOpenTemporalWorkflows(run: CommandRunner, temporal: string, namespace: string, address?: string, tls?: TemporalCliTls): Promise<number> {
   const deadline = Date.now() + TEMPORAL_TIMEOUT_MS;
-  const addressArgs = address ? ["--address", address] : [];
+  const addressArgs = temporalConnectionArgs(address, tls);
   const runCommand = (label: string, args: readonly string[]) => {
     const timeoutMs = deadline - Date.now();
     if (timeoutMs <= 0) throw new RecoveryToolError("refused", "Temporal recovery termination exceeded its time limit.");
@@ -314,7 +314,7 @@ export async function runRestore(deps: RestoreDeps, options: RestoreOptions): Pr
   const t = options.temporal;
   if (t?.terminate) {
     try {
-      const open = await terminateOpenTemporalWorkflows(deps.run, deps.tools.temporal, t.namespace, t.address);
+      const open = await terminateOpenTemporalWorkflows(deps.run, deps.tools.temporal, t.namespace, t.address, t.tls);
       step("temporal", "ok", `Terminated ${open} open operation workflow(s) of the lost timeline; operations they covered are uncertain or held for a decision.`);
     } catch (error) {
       step("temporal", "refused", error instanceof RecoveryToolError ? error.message : "Temporal could not be reached.");

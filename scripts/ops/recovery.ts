@@ -29,7 +29,10 @@ import type { PlatformDb } from "@/lib/controlplane/types";
 import { KeyRing } from "@/lib/keycustody/registry";
 import { captureBackup, type HostedSource, type ProductSource } from "@/lib/ops/recovery/backup";
 import { COMPONENT_IDS, verifyBackupDirectory, type ComponentId, type KeyRequirement } from "@/lib/ops/recovery/manifest";
-import { RecoveryToolError, execRunner, toolsFromEnv } from "@/lib/ops/recovery/process";
+import { RecoveryToolError, execRunner, temporalTlsFromEnv, toolsFromEnv } from "@/lib/ops/recovery/process";
+
+/** The authenticated Temporal client settings the worker uses, when configured. */
+const temporalTls = (env: Readonly<Record<string, string | undefined>>) => { const tls = temporalTlsFromEnv(env); return tls ? { tls } : {}; };
 import { measureContinuation } from "@/lib/ops/recovery/report";
 import { runRestore } from "@/lib/ops/recovery/restore";
 
@@ -133,7 +136,7 @@ export async function recoveryMain(
         const manifest = await captureBackup({ db, run: execRunner, tools: toolsFromEnv(env) }, {
           outDir: path.resolve(out), platformUrl: config.url, product, hosted,
           ...(one(p, "--artifact-dir") ? { artifacts: { dir: path.resolve(one(p, "--artifact-dir")!), includeFiles: p.bools.has("--include-artifact-files") } } : {}),
-          ...(namespace ? { temporal: { namespace, ...(one(p, "--temporal-address") ? { address: one(p, "--temporal-address") } : {}), ...(one(p, "--temporal-db-file") ? { dbFile: path.resolve(one(p, "--temporal-db-file")!) } : {}), required: p.bools.has("--require-temporal") } } : {}),
+          ...(namespace ? { temporal: { namespace, ...(one(p, "--temporal-address") ? { address: one(p, "--temporal-address") } : {}), ...temporalTls(env), ...(one(p, "--temporal-db-file") ? { dbFile: path.resolve(one(p, "--temporal-db-file")!) } : {}), required: p.bools.has("--require-temporal") } } : {}),
           keys: keyRequirements(env),
         });
         output(`Backup ${manifest.backupId} written to ${path.resolve(out)}; snapshot ${manifest.platform.snapshotAt}, schema ${manifest.platform.schemaVersion}, epoch ${manifest.platform.recoveryEpoch}.`);
@@ -198,7 +201,7 @@ export async function recoveryMain(
         ...(one(p, "--product-data-dir") ? { productDataDir: path.resolve(one(p, "--product-data-dir")!) } : {}),
         ...(one(p, "--hosted-bundle-out") ? { hostedBundleOut: path.resolve(one(p, "--hosted-bundle-out")!) } : {}),
         ...(one(p, "--artifact-dir") ? { artifactDir: path.resolve(one(p, "--artifact-dir")!) } : {}),
-        ...(namespace ? { temporal: { namespace, ...(one(p, "--temporal-address") ? { address: one(p, "--temporal-address") } : {}), terminate: p.bools.has("--terminate-temporal") } } : {}),
+        ...(namespace ? { temporal: { namespace, ...(one(p, "--temporal-address") ? { address: one(p, "--temporal-address") } : {}), ...temporalTls(env), terminate: p.bools.has("--terminate-temporal") } } : {}),
       }).finally(unregister);
       for (const s of result.steps) output(`${s.status.toUpperCase().padEnd(10)} ${s.id.padEnd(10)} ${s.detail}`);
       if (result.measurement) output(`RPO ${result.measurement.rpoSeconds ?? `<= ${result.measurement.backupAgeAtRestoreStartSeconds}`}s, restore ${result.measurement.restoreDurationSeconds}s, verdict ${result.measurement.verdict} (targets: see the SLO definitions).`);

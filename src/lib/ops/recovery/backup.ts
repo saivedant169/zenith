@@ -18,7 +18,7 @@ import {
   BACKUP_MANIFEST_FORMAT, MANIFEST_FILE, describeFile, isSafeRelativePath, sealManifest, sha256File,
   type BackupManifest, type ComponentId, type FactValue, type KeyRequirement, type ManifestComponent, type ManifestFile,
 } from "./manifest";
-import { RecoveryToolError, mustRun, pgArgs, scrub, type CommandRunner, type Tools } from "./process";
+import { RecoveryToolError, mustRun, pgArgs, scrub, temporalConnectionArgs, type CommandRunner, type TemporalCliTls, type Tools } from "./process";
 
 /** Tables whose row counts are recorded and re-checked by the restore. Only tables that exist are counted. */
 export const COUNTED_TABLES = [
@@ -44,7 +44,7 @@ export interface BackupOptions {
   product: ProductSource;
   hosted: HostedSource;
   artifacts?: { dir: string; includeFiles: boolean };
-  temporal?: { address?: string; namespace: string; dbFile?: string; required: boolean };
+  temporal?: { address?: string; tls?: TemporalCliTls; namespace: string; dbFile?: string; required: boolean };
   keys: readonly KeyRequirement[];
 }
 
@@ -204,7 +204,7 @@ async function captureTemporal(deps: BackupDeps, options: BackupOptions): Promis
   const t = options.temporal;
   const base = { id: "temporal" as const, title: "Temporal namespace (open workflows, namespace description, dev database file)", method: "temporal_cli" };
   if (!t) return { ...base, status: "not_applicable", method: "none", note: "No Temporal namespace was named for this backup.", files: [], facts: {} };
-  const address = t.address ? ["--address", t.address] : [];
+  const address = temporalConnectionArgs(t.address, t.tls);
   const ns = ["--namespace", t.namespace];
   const files: ManifestFile[] = [];
   const facts: Record<string, FactValue> = { namespace: t.namespace };

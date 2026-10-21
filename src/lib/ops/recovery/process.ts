@@ -76,6 +76,25 @@ export function toolsFromEnv(env: Readonly<Record<string, string | undefined>> =
 }
 
 /** Run a tool and require success; stderr is trimmed to a short, URL-free tail. */
+/** Temporal CLI client TLS: the same mTLS files and server name the worker uses (ZENITH_TEMPORAL_TLS_*). */
+export interface TemporalCliTls { caFile?: string; certFile?: string; keyFile?: string; serverName?: string }
+export function temporalTlsFromEnv(env: Readonly<Record<string, string | undefined>> = process.env): TemporalCliTls | undefined {
+  const value = (name: string) => env[name]?.trim() || undefined;
+  const caFile = value("ZENITH_TEMPORAL_TLS_CA_FILE"), certFile = value("ZENITH_TEMPORAL_TLS_CERT_FILE"), keyFile = value("ZENITH_TEMPORAL_TLS_KEY_FILE");
+  if (value("ZENITH_TEMPORAL_TLS") !== "true" && !caFile && !certFile && !keyFile) return undefined;
+  for (const [name, file] of [["ZENITH_TEMPORAL_TLS_CA_FILE", caFile], ["ZENITH_TEMPORAL_TLS_CERT_FILE", certFile], ["ZENITH_TEMPORAL_TLS_KEY_FILE", keyFile]] as const)
+    if (file && !path.isAbsolute(file)) throw new RecoveryToolError("invalid_input", `${name} must be an absolute path.`);
+  if (!certFile !== !keyFile) throw new RecoveryToolError("invalid_input", "ZENITH_TEMPORAL_TLS_CERT_FILE and ZENITH_TEMPORAL_TLS_KEY_FILE must be set together.");
+  const serverName = value("ZENITH_TEMPORAL_TLS_SERVER_NAME");
+  return { ...(caFile ? { caFile } : {}), ...(certFile ? { certFile, keyFile } : {}), ...(serverName ? { serverName } : {}) };
+}
+/** Address and TLS arguments for every Temporal CLI call; an authenticated (mTLS) engine is reachable only with them. */
+export function temporalConnectionArgs(address?: string, tls?: TemporalCliTls): string[] {
+  return [...(address ? ["--address", address] : []), ...(tls ? ["--tls",
+    ...(tls.caFile ? ["--tls-ca-path", tls.caFile] : []), ...(tls.certFile ? ["--tls-cert-path", tls.certFile] : []),
+    ...(tls.keyFile ? ["--tls-key-path", tls.keyFile] : []), ...(tls.serverName ? ["--tls-server-name", tls.serverName] : [])] : [])];
+}
+
 export async function mustRun(run: CommandRunner, label: string, file: string, args: readonly string[], options?: RunOptions): Promise<RunResult> {
   const result = await run(file, args, options);
   if (result.code === 127 && result.stderr === "") throw new RecoveryToolError("tool_unavailable", `${label} is not available (${path.basename(file)} was not found).`);

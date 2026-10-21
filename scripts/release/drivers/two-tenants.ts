@@ -3,9 +3,11 @@ import { pathToFileURL } from "node:url";
 import { browserRequest, jsonRequest, ok, mcp, nonce, ensure } from "../../../tests/e2e/default/support.mjs";
 import { runOperated, createTenant, connectKind, deployKind, observeKind, detailOf, runDriverCli, type DriverInput } from "./operated";
 
-export function assertHttpRefusal(response: { status: number; data: unknown }): void {
+export function assertHttpRefusal(response: { status: number; data: unknown }, action = "request"): void {
   // A crash, redirect, expired fixture (401) or validation error is not tenant-isolation evidence.
-  if (![403, 404].includes(response.status)) throw new Error("Expected tenant-authority refusal");
+  // The fixed code names the action and the observed status (a number) so a breach and a validation-order
+  // refusal are distinguishable without any response body.
+  if (![403, 404].includes(response.status)) throw new Error(`journey:tenant-refusal-${action}-${Number.isInteger(response.status) ? response.status : "unknown"}`);
 }
 export function assertMcpRefusal(response: { status: number; data: { error?: unknown; result?: { structuredContent?: { ok?: boolean; error?: { code?: string } } } } }): void {
   const envelope = response.data.result?.structuredContent;
@@ -53,9 +55,9 @@ export async function runTwoTenants(input: DriverInput): Promise<number> {
       for (const [home, other] of [[a, b], [b, a]]) {
         assertHttpRefusal(await browserRequest(home.owner, "/api/actions/project.updateManifest", { mode: "execute",
           input: { projectId: other.project.id, manifest: { version: 1, services: [], resources: [], routes: [], bindings: [] } },
-          scope: { workspaceId: home.workspaceId, projectId: other.project.id }, idempotencyKey: nonce() }));
+          scope: { workspaceId: home.workspaceId, projectId: other.project.id }, idempotencyKey: nonce() }), "update-manifest");
         assertHttpRefusal(await browserRequest(home.owner, "/api/actions/deploy.cancel", { mode: "execute", input: { deploymentId: other.deploymentId },
-          scope: { projectId: other.project.id, environmentId: other.environmentId }, idempotencyKey: nonce() }));
+          scope: { projectId: other.project.id, environmentId: other.environmentId }, idempotencyKey: nonce() }), "deploy-cancel");
       }
     });
     await ctx.step("mcp-isolation", async () => {

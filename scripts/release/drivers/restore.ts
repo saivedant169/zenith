@@ -9,7 +9,7 @@ import { captureBackup } from "@/lib/ops/recovery/backup";
 import { verifyBackupDirectory, type BackupManifest } from "@/lib/ops/recovery/manifest";
 import { runRestore, type RestoreOptions, type RestoreReport } from "@/lib/ops/recovery/restore";
 import { RECOVERY_REPORT_FORMAT } from "@/lib/ops/recovery/report";
-import { execRunner, pgArgs, toolsFromEnv } from "@/lib/ops/recovery/process";
+import { execRunner, pgArgs, temporalTlsFromEnv, toolsFromEnv } from "@/lib/ops/recovery/process";
 import { compose } from "../../acceptance/default-stack/runtime.mjs";
 import { browserRequest, ensure, kindReadback, ok } from "../../../tests/e2e/default/support.mjs";
 import { restoreDatabaseName } from "./contracts";
@@ -88,7 +88,8 @@ export async function runRestoreScenario(input: DriverInput): Promise<number> {
       ensure(result.code === 0 && Number(result.stdout.match(/(\d+)\./)?.[1]) === Math.floor(server / 10000), "matching-pg-client-major");
     }
     const namespace = session.prepared.environment.ZENITH_TEMPORAL_NAMESPACE;
-    const temporal = { address: session.environment.ZENITH_TEMPORAL_ADDRESS, namespace, required: true };
+    const tls = temporalTlsFromEnv(session.environment);
+    const temporal = { address: session.environment.ZENITH_TEMPORAL_ADDRESS, ...(tls ? { tls } : {}), namespace, required: true };
     const keys = KeyRing.fromEnv(session.prepared.environment).descriptors().map(({ purpose, keyId, role }) => ({ purpose, keyId, role }));
     ensure(keys.length > 0, "real-key-custody");
     let operationId = "", manifest!: BackupManifest, report!: RestoreReport;
@@ -127,7 +128,7 @@ export async function runRestoreScenario(input: DriverInput): Promise<number> {
     const options: RestoreOptions = { backupDir: backup, targetUrl: target.href, runId: `j15-restore-${input.runId}`, actor: "operator:local-rehearsal",
       reason: "Owned local operated restore", reportFile: path.join(root, "restore-private-report.json"), confirmCustomerState: true,
       keysAvailable: keys, observedEpoch: manifest.platform.recoveryEpoch,
-      temporal: { address: temporal.address, namespace, terminate: true } };
+      temporal: { address: temporal.address, ...(tls ? { tls } : {}), namespace, terminate: true } };
     const deps = { run: execRunner, tools, env: session.environment,
       openTarget: (url: string, options: { migrate: boolean }) => openPlatformDb({ kind: "postgres" as const, url, max: 2, migrate: options.migrate }) };
     session.privateFiles.push(options.reportFile);

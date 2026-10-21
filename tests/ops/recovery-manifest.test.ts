@@ -324,3 +324,17 @@ describe("RPO / RTO measurement", () => {
     await mkdir(dir, { recursive: true });
   });
 });
+
+describe("Temporal CLI connection for authenticated engines", () => {
+  it("passes the worker's mTLS files and server name to every Temporal CLI call", async () => {
+    const { temporalConnectionArgs, temporalTlsFromEnv } = await import("@/lib/ops/recovery/process");
+    expect(temporalTlsFromEnv({})).toBeUndefined();
+    const tls = temporalTlsFromEnv({ ZENITH_TEMPORAL_TLS: "true", ZENITH_TEMPORAL_TLS_CA_FILE: "/run/t/ca.crt", ZENITH_TEMPORAL_TLS_CERT_FILE: "/run/t/client.crt",
+      ZENITH_TEMPORAL_TLS_KEY_FILE: "/run/t/client.key", ZENITH_TEMPORAL_TLS_SERVER_NAME: "temporal" });
+    expect(temporalConnectionArgs("127.0.0.1:27233", tls)).toEqual(["--address", "127.0.0.1:27233", "--tls", "--tls-ca-path", "/run/t/ca.crt",
+      "--tls-cert-path", "/run/t/client.crt", "--tls-key-path", "/run/t/client.key", "--tls-server-name", "temporal"]);
+    expect(temporalConnectionArgs("temporal:7233")).toEqual(["--address", "temporal:7233"]);
+    expect(() => temporalTlsFromEnv({ ZENITH_TEMPORAL_TLS: "true", ZENITH_TEMPORAL_TLS_CERT_FILE: "relative.crt", ZENITH_TEMPORAL_TLS_KEY_FILE: "/k" })).toThrow("absolute");
+    expect(() => temporalTlsFromEnv({ ZENITH_TEMPORAL_TLS: "true", ZENITH_TEMPORAL_TLS_CERT_FILE: "/c" })).toThrow("together");
+  });
+});

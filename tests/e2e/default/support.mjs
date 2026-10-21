@@ -206,8 +206,15 @@ export async function mcp(stack, token, method, params, allowError = false) {
   ensure(!result.error, 'mcp-jsonrpc-error');
   if (method !== 'tools/call') return result.result;
   const envelope = result.result?.structuredContent;
-  ensure(envelope?.ok === true && envelope.simulated === false && envelope.truncated === false &&
-    Array.isArray(envelope.unavailable) && envelope.unavailable.length === 0, 'mcp-evidence-unavailable');
+  const usable = envelope?.ok === true && envelope.simulated === false && envelope.truncated === false &&
+    Array.isArray(envelope.unavailable) && envelope.unavailable.length === 0;
+  if (!usable && DIAGNOSTICS) {
+    // Tool name, error code and the product sentence only, elided; never arguments or data.
+    const message = typeof envelope?.error?.message === 'string' ? envelope.error.message.replace(/\b\w+=\S+/g, '…=…').replace(/[a-z]+:\/\/\S+/gi, '…url').replace(/[A-Za-z0-9_+/=-]{24,}/g, '…').slice(0, 200) : null;
+    console.error('mcp-refused ' + JSON.stringify({ tool: String(params?.name ?? '').slice(0, 60), ok: envelope?.ok ?? null, code: typeof envelope?.error?.code === 'string' ? envelope.error.code.slice(0, 60) : null,
+      message, simulated: envelope?.simulated ?? null, truncated: envelope?.truncated ?? null, unavailable: Array.isArray(envelope?.unavailable) ? envelope.unavailable.length : null }));
+  }
+  ensure(usable, 'mcp-evidence-unavailable');
   return envelope;
 }
 export async function linkedAgent(page, stack, project, workspaceId) {

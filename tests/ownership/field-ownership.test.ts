@@ -130,6 +130,15 @@ describe("native operation enforcement", () => {
     expect(moved!.verdict).toBe("allowed");
   });
 
+  it("gives an autoscaled Cloud Run instance range to the autoscaler: native scale refused, IaC ignores the range", () => {
+    const run = node({ address: "service/run", provider: "gcp", nativeType: "gcp:cloud_run_service", spec: { replicas: 1, autoscaling: { min: 1, max: 5 } } });
+    const [c] = checkNativeOperation({ capability: "service.scale", node: run, input: { minInstances: 3 }, now: NOW });
+    expect(c).toMatchObject({ verdict: "transfer_required", resolution: { owner: "autoscaler" } });
+    expect(lifecycleIgnoreChanges({ resourceType: "google_cloud_run_v2_service", address: run.address, facts: { autoscaled: true } })?.ignore_changes)
+      .toEqual(expect.arrayContaining(["template[0].scaling[0].min_instance_count", "template[0].scaling[0].max_instance_count"]));
+    expect(lifecycleIgnoreChanges({ resourceType: "google_cloud_run_v2_service", address: run.address, facts: {} })).toBeUndefined();
+  });
+
   it("refuses scaling an autoscaled workload and asks for a transfer from the autoscaler", () => {
     const [c] = checkNativeOperation({ capability: "service.scale", node: scaledWeb, now: NOW });
     expect(c).toMatchObject({ verdict: "transfer_required", resolution: { owner: "autoscaler" } });

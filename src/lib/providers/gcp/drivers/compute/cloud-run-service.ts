@@ -59,6 +59,13 @@ import {
   runtimeIdentity,
 } from "./run-common";
 import { imageOf, ignoredImageChanges } from "./run-image";
+import { factsForNode, lifecycleIgnoreChanges } from "@/lib/ownership";
+
+/** The instance range, when an autoscaler owns it (field-ownership registry); the IaC apply must not reset it. */
+function ownedScalingPaths(node: ResourceNode, ctx: CompileContext): string[] {
+  return lifecycleIgnoreChanges({ resourceType: "google_cloud_run_v2_service", address: node.address, facts: factsForNode(node, ctx.nodes ? { nodes: ctx.nodes() } : undefined) })?.ignore_changes
+    .filter((path) => path.includes("scaling")) ?? [];
+}
 
 export const DRIVER_ID = "gcp.cloud_run_service@1";
 const INGRESS = { all: "INGRESS_TRAFFIC_ALL", internal: "INGRESS_TRAFFIC_INTERNAL_ONLY", lb: "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER" } as const;
@@ -152,7 +159,7 @@ function compile(node: ResourceNode, ctx: CompileContext): TofuFragment {
         // Stateless: teardown must be possible. The provider defaults this to true.
         deletion_protection: false,
         template: [template],
-        lifecycle: { ignore_changes: [...IGNORED_OPERATION_ANNOTATIONS, ...ignoredImageChanges(node)] },
+        lifecycle: { ignore_changes: [...IGNORED_OPERATION_ANNOTATIONS, ...ignoredImageChanges(node), ...ownedScalingPaths(node, ctx)] },
       },
     },
   };

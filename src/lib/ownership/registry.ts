@@ -158,6 +158,15 @@ export const DEFAULT_OWNERSHIP_RULES: readonly OwnershipRule[] = [
     reason: "The manifest sets replicas; a HorizontalPodAutoscaler takes the field over and the Deployment omits it.",
   },
   {
+    id: "gcp.cloud-run.replicas",
+    resourceTypes: ["gcp:cloud_run_service", "google_cloud_run_v2_service"],
+    paths: ["replicas", "template[].scaling[].min_instance_count", "template[].scaling[].max_instance_count"],
+    owner: "iac",
+    whenFact: { autoscaled: "autoscaler" },
+    ignorePaths: ["template[0].scaling[0].min_instance_count", "template[0].scaling[0].max_instance_count"],
+    reason: "The manifest sets the instance range; native service.scale needs an approved transfer, and an attached autoscaler takes the range over.",
+  },
+  {
     id: "azure.container-app.replicas",
     resourceTypes: ["azure:container_app", "azurerm_container_app"],
     paths: ["replicas", "template[].min_replicas", "template[].max_replicas"],

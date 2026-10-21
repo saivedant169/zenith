@@ -56,8 +56,21 @@ export async function command(binary, args, { input, timeout = 60_000, maxBytes 
       else output += data.toString('utf8');
     });
     // No error text, stdout or command argument is ever forwarded to receipts.
-    child.stderr.resume();
-    child.once('close', code => { clearTimeout(timer); if (code === 0) resolve(output.trim()); else reject(new Error('journey:command-failed')); });
+    let stderr = '';
+    child.stderr.on('data', data => { if (DIAGNOSTICS) stderr = (stderr + data.toString('utf8')).slice(-4096); });
+    child.once('close', code => {
+      clearTimeout(timer);
+      if (code === 0) return resolve(output.trim());
+      // Diagnostics only: the binary, its first subcommand word, the exit code and the tail of stderr with
+      // long tokens, key=value pairs, URLs and absolute paths elided; never stdout, input or other arguments.
+      if (DIAGNOSTICS) {
+        const verb = args.filter(a => /^[a-z][a-z-]{1,20}$/.test(a)).slice(0, 2).join(' ');
+        const tail = stderr.split('\n').map(line => line.trim()).filter(Boolean).slice(-3)
+          .map(line => line.replace(/\b\w+=\S+/g, '…=…').replace(/[a-z]+:\/\/\S+/gi, '…url').replace(/(?:\/[^\s/]+){2,}/g, '…path').replace(/[A-Za-z0-9_+/=-]{24,}/g, '…').slice(0, 160));
+        console.error('command-failed', path.basename(binary), verb, 'exit=' + code, JSON.stringify(tail));
+      }
+      reject(new Error('journey:command-failed'));
+    });
     child.stdin.end(input);
   });
 }

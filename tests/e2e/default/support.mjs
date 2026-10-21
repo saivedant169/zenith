@@ -82,6 +82,11 @@ export async function browserRequest(page, endpoint, body, method = body === und
   }, { endpoint, body, method, workspaceId });
 }
 export function ok(response) {
+  if (process.env.ZENITH_OPERATED_DIAGNOSTICS === '1' && !(response.status >= 200 && response.status < 300 && response.data?.ok !== false)) {
+    // Opt-in CI diagnosis: the status and the API's own fixed-vocabulary error code only.
+    const code = response.data?.error?.code;
+    process.stderr.write(`http-refused status=${Number(response.status)} code=${typeof code === 'string' && /^[a-z0-9_.:-]{1,64}$/.test(code) ? code : 'none'}\n`);
+  }
   ensure(response.status >= 200 && response.status < 300 && response.data?.ok !== false, 'http-refused');
   return response.data;
 }

@@ -208,6 +208,9 @@ jobs:
 
       - name: Require the exact operated case and current-source execution
         if: always()
+        env:
+          # The receipt binds the run step's effective environment; validate under the identical one.
+          ZENITH_OPERATED_DIAGNOSTICS: "1"
         run: node scripts/ci/run-gate.mjs "$GATE" --validate ".data-ci-lane/${GATE}.json" --require-execution
 
       - name: Preserve sanitized gate evidence

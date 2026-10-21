@@ -1,0 +1,23 @@
+{
+  "schema": "zenith.linux-runner-lifecycle.systemd-update-rollback/v1",
+  "runId": "39522821673",
+  "runAttempt": "1",
+  "commit": "49aed0771d4884db959e85c3a6f95d608e268d7f",
+  "runner": "ubuntu-24.04",
+  "goVersion": "1.27.1",
+  "stepOutcome": "success",
+  "tests": {
+    "passed": [
+      "TestSystemdSignedUpdateAndRollback"
+    ],
+    "failed": [],
+    "skipped": []
+  },
+  "gates": [
+    "ZENITH_TEST_AGENT_UPDATE_SYSTEMD=1",
+    "ZENITH_AGENT_UPDATE_DISPOSABLE_SYSTEMD=1",
+    "ZENITH_AGENT_UPDATE_ARCH=amd64"
+  ],
+  "controlPlane": "protocol fixture (real installed zenithd, real systemd, real exec); not production control-plane acceptance",
+  "verdict": "pass"
+}

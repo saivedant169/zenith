@@ -38,6 +38,7 @@ type fixturePlane struct {
 	nonces             map[string]bool
 	consumed           bool
 	revoked            bool
+	offline            bool
 	revision           int64
 	hold               bool
 	sha                *string
@@ -61,6 +62,10 @@ func (p *fixturePlane) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if r.URL.Path == "/artifact" {
 		w.Write(p.artifact)
+		return
+	}
+	if p.offline {
+		refuse(503, "fixture_offline")
 		return
 	}
 	raw, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
@@ -374,6 +379,30 @@ func runSystemdAcceptance(t *testing.T) {
 	p.priv = nextPriv
 	p.signingKid = nextKey.Kid
 	p.mu.Unlock()
+	// Reconnect/offline recovery: the control plane becomes unreachable. The installed
+	// agent keeps running offline (no crash, no systemd restart) and resumes signed
+	// heartbeats on the same identity once the plane answers again.
+	restarts := func() string {
+		out, err := exec.Command("systemctl", "show", "-p", "NRestarts", "--value", name+".service").Output()
+		if err != nil {
+			t.Fatal(err)
+		}
+		return strings.TrimSpace(string(out))
+	}
+	restartsBefore := restarts()
+	p.mu.Lock()
+	p.offline = true
+	p.version = ""
+	p.mu.Unlock()
+	time.Sleep(15 * time.Second)
+	if exec.Command("systemctl", "is-active", "--quiet", name+".service").Run() != nil || restarts() != restartsBefore {
+		logs, _ := exec.Command("journalctl", "-u", name+".service", "--no-pager", "-n", "40").CombinedOutput()
+		t.Fatalf("agent did not stay up while the control plane was unreachable: %s", logs)
+	}
+	p.mu.Lock()
+	p.offline = false
+	p.mu.Unlock()
+	wait("reconnect resumes signed heartbeats on the same identity", 90*time.Second, func() bool { p.mu.Lock(); defer p.mu.Unlock(); return p.version == "1.1.0" })
 	publish("1.0.0", 2, true, baseline)
 	p.mu.Lock()
 	p.failVersion = "1.0.0"
@@ -390,5 +419,8 @@ func runSystemdAcceptance(t *testing.T) {
 	wait("revocation stops restart loop", 30*time.Second, func() bool {
 		return exec.Command("systemctl", "is-active", "--quiet", name+".service").Run() != nil && agent.IsRevokedLocally(stateDir, binding.AgentID)
 	})
-	t.Log("PASS: actual installed signed registration, held channel, update commit/restart, trust rotation, failed-health automatic rollback, revocation and delegated unprivileged cgroup writes; control-plane server is a protocol fixture")
+	if out, err := exec.Command("systemctl", "show", "-p", "ExecMainStatus", "--value", name+".service").Output(); err != nil || strings.TrimSpace(string(out)) != "3" {
+		t.Fatalf("revoked agent did not exit with status 3: %q %v", out, err)
+	}
+	t.Log("PASS: actual installed signed registration, held channel, update commit/restart, trust rotation, offline survival and reconnect, failed-health automatic rollback, revocation (exit 3) and delegated unprivileged cgroup writes; control-plane server is a protocol fixture")
 }

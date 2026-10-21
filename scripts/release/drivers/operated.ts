@@ -247,7 +247,13 @@ async function runDriftCrashOperated(input: { scenarioId: DriverScenario; receip
       if (id !== "cleanup") abort.signal.throwIfAborted();
       facts.push({ id, status: "passed" });
     }
-    catch { facts.push({ id, status: "failed" }); throw new Error("Operated step failed"); }
+    catch (error) {
+      facts.push({ id, status: "failed" });
+      // Opt-in diagnosis for disposable CI: only a fixed-vocabulary code (no free text, values or paths) reaches stderr.
+      const code = error instanceof Error ? error.message : "";
+      if (input.env.ZENITH_OPERATED_DIAGNOSTICS === "1") process.stderr.write(`operated step ${id} failed: ${/^[a-z0-9:._-]{1,80}$/.test(code) ? code : "unclassified"}\n`);
+      throw new Error("Operated step failed");
+    }
   };
   try { await step("prerequisites", async () => { await assertLocalDocker(process.env); await session.prepare(process.env, binding); }); await step("approved-workload", () => session.deploy()); await work(session, step); }
   catch { /* Only fixed vocabulary escapes; remaining checks become skipped. */ }

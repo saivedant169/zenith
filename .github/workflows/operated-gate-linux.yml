@@ -183,7 +183,18 @@ jobs:
           done < "$ZENITH_LOCAL_ROOT/ci-host.env"
 
       - name: Run the operated gate
+        env:
+          # Prints only fixed-vocabulary failure codes of failed steps (scripts/release/drivers/operated.ts).
+          ZENITH_OPERATED_DIAGNOSTICS: "1"
         run: node scripts/ci/run-gate.mjs "$GATE" --run
+
+      - name: Operated receipt checks (ids and statuses only)
+        if: always()
+        run: |
+          for file in "$ZENITH_LOCAL_ROOT"/*.json; do
+            [ -f "$file" ] || continue
+            node -e 'const r = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); for (const c of r.checks ?? []) console.log(c.id, c.status);' "$file" || true
+          done
 
       - name: Require the exact operated case and current-source execution
         if: always()

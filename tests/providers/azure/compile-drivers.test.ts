@@ -92,6 +92,13 @@ describe("landing zone (network)", () => {
 });
 
 describe("container app sizing, replicas and ingress", () => {
+  it("ignores the replica range once an autoscaler owns it (field-ownership registry), and not otherwise", () => {
+    const plain = body(compile("container_service/web"), "azurerm_container_app");
+    expect(JSON.stringify(plain.lifecycle ?? {})).not.toContain("min_replicas");
+    const scaled = body(compile("container_service/web", setSpec("container_service/web", { autoscaling: { min: 1, max: 4 } })), "azurerm_container_app");
+    expect((scaled.lifecycle as { ignore_changes: string[] }).ignore_changes).toEqual(expect.arrayContaining(["template[0].min_replicas", "template[0].max_replicas"]));
+  });
+
   it("bootstraps built jobs by digest and keeps literal job images under OpenTofu ownership", () => {
     const literal = body(compile("scheduled_job/report"), "azurerm_container_app_job");
     expect(literal).not.toHaveProperty("lifecycle");

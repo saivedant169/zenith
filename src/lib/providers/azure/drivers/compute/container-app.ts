@@ -37,6 +37,7 @@ import { azureTags, tfLabel } from "@/lib/providers/azure/naming";
 import { acaSize, API } from "@/lib/providers/azure/platform";
 import { bootstrapArgs, buildWorkload, isRouted, memoryToMb, RELEASE_ARGS_PATH, RELEASE_IMAGE_PATH } from "@/lib/providers/azure/drivers/compute/workload";
 import { clientRequestId, intInRange, notManagedHere, opFailure, opFailureFromError } from "@/lib/providers/azure/ops";
+import { factsForNode, lifecycleIgnoreChanges } from "@/lib/ownership";
 
 export const CONTAINER_APP = { type: "Microsoft.App/containerApps", apiVersion: API.containerApps } as const;
 
@@ -70,6 +71,11 @@ export function compileContainerApp(node: ResourceNode, ctx: CompileContext): To
     ...(hasIngress && spec.healthPath ? { liveness_probe: [probe("liveness")], readiness_probe: [probe("readiness")] } : {}),
   };
 
+  // The release owns the image when built; an autoscaler owns the replica range (field-ownership registry).
+  const releasePaths = spec.artifact.type === "built" ? [RELEASE_IMAGE_PATH, RELEASE_ARGS_PATH] : [];
+  const owned = lifecycleIgnoreChanges({ resourceType: "azurerm_container_app", address: node.address, facts: factsForNode(node, ctx.nodes ? { nodes: ctx.nodes() } : undefined) });
+  // Release paths keep their order (unchanged output); ownership adds only paths not already present.
+  const ignoreChanges = owned ? [...releasePaths, ...owned.ignore_changes.filter((path) => !releasePaths.includes(path))] : releasePaths;
   const body: Record<string, unknown> = {
     name: w.name,
     resource_group_name: exportRef(net, "rg_name"),
@@ -91,7 +97,7 @@ export function compileContainerApp(node: ResourceNode, ctx: CompileContext): To
         }
       : {}),
     template: { min_replicas: replicas, max_replicas: replicas, container: [container] },
-    ...(spec.artifact.type === "built" ? { lifecycle: { ignore_changes: [RELEASE_IMAGE_PATH, RELEASE_ARGS_PATH] } } : {}),
+    ...(ignoreChanges.length ? { lifecycle: { ignore_changes: ignoreChanges } } : {}),
     tags: azureTags(ctx, node),
   };
 

@@ -157,7 +157,10 @@ jobs:
         # The driver inspects these digest-pinned images and never pulls them itself (DRV-4.md).
         run: |
           set -euo pipefail
-          for image in "$ZENITH_LOCAL_EXPORT_POSTGRES_IMAGE" "$ZENITH_LOCAL_EXPORT_MYSQL_IMAGE" "$ZENITH_LOCAL_EXPORT_MINIO_IMAGE"; do
+          # The portable-apply leg targets LocalStack pinned in the local-targets composition (single source of the pin).
+          localstack="$(sed -n 's/^ *image: \(localstack\/localstack:[^ ]*@sha256:[a-f0-9]\{64\}\).*/\1/p' deploy/acceptance/local-targets/compose.yml)"
+          test -n "$localstack"
+          for image in "$ZENITH_LOCAL_EXPORT_POSTGRES_IMAGE" "$ZENITH_LOCAL_EXPORT_MYSQL_IMAGE" "$ZENITH_LOCAL_EXPORT_MINIO_IMAGE" "$localstack"; do
             docker pull -q "$image"
           done
 

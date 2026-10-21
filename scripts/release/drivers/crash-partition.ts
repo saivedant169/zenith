@@ -146,9 +146,11 @@ export async function crashPartitionDriver(receiptFile: string, env = process.en
           const seen = new Map<string, number>();
           for (const line of logs.split("\n")) {
             try {
-              const entry = JSON.parse(line) as { level?: string; msg?: string; error?: { name?: string; code?: string }; err?: { name?: string; code?: string } };
-              const failure = entry.error ?? entry.err;
-              const key = [entry.level, entry.msg, failure?.name, failure?.code].filter(value => typeof value === "string").map(value => value!.replace(/[^A-Za-z0-9 ._:-]/g, "").slice(0, 80)).join(" | ");
+              const entry = JSON.parse(line) as { level?: string; msg?: string; failureCategory?: string; error?: string | { name?: string; code?: string }; err?: { name?: string; code?: string } };
+              const failure = typeof entry.error === "object" ? entry.error : entry.err;
+              // Startup failures carry a product-authored error sentence; key=value pairs, URLs, paths and long tokens are elided.
+              const sentence = typeof entry.error === "string" ? entry.error.replace(/\b\w+=\S+/g, "…=…").replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/(?:\/[^\s/]+){2,}/g, "…path").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 200) : undefined;
+              const key = [entry.level, entry.msg, entry.failureCategory, failure?.name, failure?.code].filter(value => typeof value === "string").map(value => value!.replace(/[^A-Za-z0-9 ._:-]/g, "").slice(0, 80)).concat(sentence ? [sentence] : []).join(" | ");
               if (key) seen.set(key, (seen.get(key) ?? 0) + 1);
             } catch { seen.set("unstructured line", (seen.get("unstructured line") ?? 0) + 1); }
           }

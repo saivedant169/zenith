@@ -169,3 +169,16 @@ describe("cli", () => {
     expect(await runOrchestratorCli(["nope"], c.io)).toBe(2);
   });
 });
+
+describe("forwardOperatedDiagnostics", () => {
+  it("forwards only fixed-format diagnostic lines, and only with the opt-in flag", async () => {
+    const { forwardOperatedDiagnostics } = await import("../../scripts/release/acceptance-orchestrator");
+    const stderr = ["operated step browser-approved-deployments failed: journey:approval-required", "secret=hunter2 at /etc/zenith/key", "command-failed docker compose up exit=1 []", "operated outside-step failed: unclassified Error"].join("\n");
+    const lines: string[] = [];
+    forwardOperatedDiagnostics({}, stderr, line => lines.push(line));
+    expect(lines).toEqual([]);
+    forwardOperatedDiagnostics({ ZENITH_OPERATED_DIAGNOSTICS: "1" }, stderr, line => lines.push(line));
+    expect(lines.join("")).not.toContain("hunter2");
+    expect(lines).toHaveLength(3);
+  });
+});

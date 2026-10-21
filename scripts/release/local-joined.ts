@@ -1,7 +1,7 @@
 /** Adapt owned J1/J2/J4 evidence without inventing a pass for an uncovered scenario. */
 import { readFileSync, writeFileSync, existsSync, lstatSync, accessSync, constants as fsConstants } from "node:fs";
 import path from "node:path";
-import { defaultExec } from "./acceptance-orchestrator";
+import { defaultExec, forwardOperatedDiagnostics } from "./acceptance-orchestrator";
 import { requiredChecks, validateLocalReceipt, type LocalReceipt } from "./local-targets";
 import { readiness } from "../acceptance/default-stack/readiness.mjs";
 import { readState } from "../acceptance/default-stack/runtime.mjs";
@@ -91,6 +91,7 @@ export async function runJoinedScenario(input: { scenarioId: string; runId: stri
     const child = await defaultExec([process.execPath, "node_modules/tsx/dist/cli.mjs", `scripts/release/drivers/${scenarioId}.ts`,
       "--run-id", runId, "--source-commit", sourceCommit, "--receipt", receiptFile],
       { cwd: process.cwd(), env: { ...env, ...hostEnvironment(state) }, timeoutMs: 3_600_000 });
+    forwardOperatedDiagnostics(env, child.stderr);
     if (child.code === 2) return 2;
     const receipt = validateLocalReceipt(JSON.parse(readFileSync(receiptFile, "utf8")), { scenarioId, runId, sourceCommit });
     return child.code === 0 && receipt.checks.every(check => check.status === "passed") ? 0 : 1;

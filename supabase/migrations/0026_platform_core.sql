@@ -4747,6 +4747,67 @@ insert into platform.schema_migrations (version, name, checksum)
 values (58, 'kubernetes_source_provider', 'afef954e9417c33a3a0dadc254253ab523c9dbc425af27da5120927e8064df9a')
 on conflict (version) do nothing;
 
+-- ============================ migration 59: field_ownership_grant_revocation ============================
+
+create or replace function platform.revoke_grants_on_ownership_change() returns trigger
+language plpgsql set search_path=pg_catalog as $$
+declare
+  autoscalers constant text[] := array['k8s:HorizontalPodAutoscaler','aws:appautoscaling_target'];
+  writes constant text[] := array['service.scale','deployment.deploy','deployment.rollback'];
+  ws text;
+  envs text[];
+  revoked_capabilities text[];
+  own_operation text;
+begin
+  if TG_TABLE_NAME='resources' then
+    if TG_OP='INSERT' then
+      if not (new.native_type=any(autoscalers) or new.spec ? 'autoscaling') then return null; end if;
+    elsif TG_OP='DELETE' then
+      if not (old.native_type=any(autoscalers) or old.spec ? 'autoscaling') then return null; end if;
+    else
+      if not (old.native_type=any(autoscalers) or old.spec ? 'autoscaling' or new.native_type=any(autoscalers) or new.spec ? 'autoscaling') then
+        return null;
+      end if;
+      -- Unchanged facts: same place, same type, same autoscaling block, and an autoscaler node's spec unchanged.
+      if new.environment_id is not distinct from old.environment_id and new.address is not distinct from old.address
+         and new.native_type is not distinct from old.native_type
+         and (new.spec->'autoscaling') is not distinct from (old.spec->'autoscaling')
+         and (not (new.native_type=any(autoscalers)) or new.spec is not distinct from old.spec) then
+        return null;
+      end if;
+    end if;
+    revoked_capabilities := array['service.scale'];
+  else
+    revoked_capabilities := writes;
+    if TG_OP='DELETE' then own_operation := old.operation_id; else own_operation := new.operation_id; end if;
+  end if;
+  if TG_OP='DELETE' then
+    ws := old.workspace_id; envs := array[old.environment_id];
+  elsif TG_OP='INSERT' then
+    ws := new.workspace_id; envs := array[new.environment_id];
+  else
+    ws := new.workspace_id; envs := array_remove(array[old.environment_id, new.environment_id], null);
+  end if;
+  update platform.capability_grants g set revoked_at=clock_timestamp()
+    from platform.operations o
+   where g.workspace_id=ws and g.revoked_at is null and g.consumed_at is null and g.expires_at>clock_timestamp()
+     and g.capability=any(revoked_capabilities)
+     and o.workspace_id=g.workspace_id and o.id=g.operation_id and o.environment_id=any(envs)
+     and (own_operation is null or o.id<>own_operation);
+  return null;
+end
+$$;
+create or replace trigger field_ownership_resource_grant_revocation
+after insert or delete or update of environment_id,address,kind,native_type,spec on platform.resources
+for each row execute function platform.revoke_grants_on_ownership_change();
+create or replace trigger field_ownership_transfer_grant_revocation
+after insert or update or delete on platform.ownership_transfers
+for each row execute function platform.revoke_grants_on_ownership_change();
+
+insert into platform.schema_migrations (version, name, checksum)
+values (59, 'field_ownership_grant_revocation', '2019a07dc4b84154bdf29b11cda31dd32b03bf4f3a625b825e1174a0bb0c252f')
+on conflict (version) do nothing;
+
 -- ============================ hardening (Supabase roles) ============================
 
 do $$

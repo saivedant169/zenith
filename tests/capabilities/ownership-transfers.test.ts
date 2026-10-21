@@ -208,7 +208,9 @@ describe.each(STORE_KINDS.filter((k) => k !== "memory"))("ownership transfers [%
     await expect(worker.issueGrant(next.id, "worker", lease)).rejects.toMatchObject({ code: "conflict", details: { reason: "field_ownership_conflict" } });
     await expect(h.store.insertGrant({ jti: uid("bypass"), workspaceId: h.ids.wsA, operationId: next.id, capability: "service.restart", audience: "worker", issuedAt: new Date().toISOString(), expiresAt: new Date(Date.now()+60_000).toISOString() }))
       .rejects.toMatchObject({ code: "conflict", details: { reason: "field_ownership_conflict" } });
-    expect((await repos.grants.get(h.db!, h.ids.wsA, earlier.claims.jti))?.revokedAt).toBeUndefined();
+    // The earlier grant's row is retained as history, but revoking the enabling transfer
+    // revokes it (migration 59): the autoscaler owns replicas again, so it must not be used.
+    expect((await repos.grants.get(h.db!, h.ids.wsA, earlier.claims.jti))?.revokedAt).toEqual(expect.any(String));
     expect((await h.db!.query<{ count: number }>("select count(*)::integer as count from platform.capability_grants where workspace_id=$1 and operation_id=$2", [h.ids.wsA, next.id]))[0]!.count).toBe(1);
     const read = await worker.issueGrant(next.id, "worker", lease, { capability: "infrastructure.observe" });
     expect(read.claims.cap).toBe("infrastructure.observe");

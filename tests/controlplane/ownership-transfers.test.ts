@@ -411,13 +411,16 @@ describe.skipIf(!PG_URL)("ownership transfer immutable service-role custody [pos
     });
   }, 60_000);
 
-  it("refuses to consume an issued native write grant once an autoscaler took the field before use", async () => {
+  it("revokes an issued native write grant, and refuses its consume, once an autoscaler took the field before use", async () => {
     await withNative(async (db, independent) => {
       const owned = await manifestAdmission(db);
       await asService(db, tx => repos.operations.claimForExecution(tx, owned.claim));
       await asService(db, tx => repos.grants.insert(tx, owned.grant));
+      expect(await repos.grants.isRevoked(db, owned.workspaceId, owned.grant.jti)).toBe(false);
       // The autoscaler attaches after issue and before the worker uses the grant.
       await asService(independent, tx => addAutoscaler(tx, owned));
+      // Revocation is the gate every execution surface checks (runner claim, dispatch, credential broker).
+      expect(await repos.grants.isRevoked(db, owned.workspaceId, owned.grant.jti)).toBe(true);
       await expect(asService(db, tx => repos.grants.consume(tx, { workspaceId: owned.workspaceId, jti: owned.grant.jti, audience: "worker" })))
         .rejects.toMatchObject({ code: "conflict", details: { reason: "field_ownership_conflict" } });
       expect((await repos.grants.get(db, owned.workspaceId, owned.grant.jti))?.consumedAt).toBeUndefined();

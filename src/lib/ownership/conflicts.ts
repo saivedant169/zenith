@@ -107,6 +107,9 @@ export const NATIVE_OPERATION_WRITES: Readonly<Record<string, readonly NativeOpe
   "deployment.rollback": [{ path: "artifact.image", writer: "native-op" }],
 };
 
+/** Whether a capability's writes are judged by field ownership: the native table plus drift.repair (an IaC reapply). */
+export const writesOwnedFields = (capability: string): boolean => capability === "drift.repair" || NATIVE_OPERATION_WRITES[capability] !== undefined;
+
 /** Fields a `drift.repair` re-applies, as IaC writes (reapply_desired_state). */
 export const driftRepairWrites = (attributes: readonly string[]): NativeOperationWrite[] => attributes.map((path) => ({ path, writer: "iac" as const }));
 

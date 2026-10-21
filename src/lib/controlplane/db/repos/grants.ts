@@ -9,7 +9,7 @@
  */
 import type { Sql } from "@/lib/controlplane/types";
 import { ControlStoreError, requireText } from "../errors";
-import { NATIVE_OPERATION_WRITES } from "@/lib/ownership/conflicts";
+import { writesOwnedFields } from "@/lib/ownership/conflicts";
 import { assertFence } from "./leases";
 import { lockForGrant } from "./ownership-transfers";
 import { textArray } from "../sql";
@@ -93,8 +93,8 @@ export async function insert(sql: Sql, input: InsertGrantInput): Promise<GrantRe
   // Missing/foreign rows retain the existing composite-FK refusal. A read
   // attenuation cannot authorize a field mutation, so its old path is unchanged.
   if (!observed) return originalInsert(sql);
-  const ownedCapability = NATIVE_OPERATION_WRITES[observed.capability] !== undefined;
-  const requestedOwnershipWrite = NATIVE_OPERATION_WRITES[grantCapability] !== undefined;
+  const ownedCapability = writesOwnedFields(observed.capability);
+  const requestedOwnershipWrite = writesOwnedFields(grantCapability);
   const read = grantCapability === "infrastructure.plan" || grantCapability === "infrastructure.observe";
   const secretSync = grantCapability === "secret.write" && ["deployment.deploy", "deployment.rollback"].includes(observed.capability);
   if ((ownedCapability || requestedOwnershipWrite) && grantCapability !== observed.capability && !read && !secretSync)
@@ -170,7 +170,7 @@ export async function consume(sql: Sql, input: { workspaceId: string; jti: strin
   )).length > 0;
   const [grant] = await sql.query<{ capability: string; operation_id: string }>(
     "select capability, operation_id from platform.capability_grants where workspace_id = $1 and jti = $2", [workspaceId, jti]);
-  if (!grant || NATIVE_OPERATION_WRITES[grant.capability] === undefined) return once(sql);
+  if (!grant || !writesOwnedFields(grant.capability)) return once(sql);
   // A native field write is re-admitted at consume under the environment coordinator every
   // ownership change takes (field_ownership_conflict when current ownership refuses it). No
   // production path consumes grants today; revocation (migration 59) is the enforced gate.

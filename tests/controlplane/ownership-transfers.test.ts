@@ -432,7 +432,7 @@ describe.skipIf(!PG_URL)("ownership transfer immutable service-role custody [pos
     await withNative(async (db, independent) => {
       const owned = await manifestAdmission(db, "drift.repair");
       await asService(db, tx => repos.operations.claimForExecution(tx, owned.claim));
-      // Admission derives the reapplied fields from the proposal input: replicas is IaC-owned here, so the grant issues.
+      // Grant admission judges the reapplied fields from the proposal input: replicas is IaC-owned here, so the grant issues.
       await asService(db, tx => repos.grants.insert(tx, owned.grant));
       expect(await repos.grants.isRevoked(db, owned.workspaceId, owned.grant.jti)).toBe(false);
       const other = await seedAwaitingApproval(db, { workspaceId: owned.workspaceId, proposal: {
@@ -447,6 +447,9 @@ describe.skipIf(!PG_URL)("ownership transfer immutable service-role custody [pos
         [uid("own"), receipt.address, receipt.resourceType, receipt.path, receipt.from, receipt.to, receipt.digest, owned.workspaceId, other.operation.id, decision.approval.id]));
       // The IaC reapply would now revert a native-op-owned field: its grant is revoked, not left usable.
       expect(await repos.grants.isRevoked(db, owned.workspaceId, owned.grant.jti)).toBe(true);
+      // And a grant issued after the transfer is refused at admission, before any row exists to revoke.
+      await expect(asService(db, tx => repos.grants.insert(tx, { ...owned.grant, jti: uid("after-transfer") })))
+        .rejects.toMatchObject({ code: "conflict", details: { reason: "field_ownership_conflict" } });
     });
   }, 60_000);
 

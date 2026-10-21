@@ -15,7 +15,7 @@ import type { Sql } from "@/lib/controlplane/types";
 import { normalizePath } from "@/lib/ownership/paths";
 import { transferDigest } from "@/lib/ownership/registry";
 import { factsByAddress } from "@/lib/ownership/facts";
-import { checkNativeOperation, NATIVE_OPERATION_WRITES } from "@/lib/ownership/conflicts";
+import { checkNativeOperation, writesOwnedFields } from "@/lib/ownership/conflicts";
 import { defaultFieldOwnershipRegistry } from "@/lib/ownership/registry";
 import type { FieldOwner, OwnershipFacts, OwnershipTransfer, OwnershipTransferRequest } from "@/lib/ownership/types";
 import type { ResourceNode } from "@/lib/resources/types";
@@ -228,7 +228,7 @@ async function lockedOwnership(sql: Sql, workspaceId: string, operationId: strin
   if (!op) throw new ControlStoreError("operation_not_found", "Operation not found.");
   const changesSize = op.capability === "service.scale" && !!op.proposal?.input && Object.hasOwn(op.proposal.input, "size");
   if (changesSize && (!op.environment_id || !op.resource_id)) throw new ControlStoreError("conflict", "Current size-field ownership refuses this operation.");
-  if (!NATIVE_OPERATION_WRITES[op.capability] || !op.environment_id || !op.resource_id) return null;
+  if (!writesOwnedFields(op.capability) || !op.environment_id || !op.resource_id) return null;
   await lockEnvironment(sql, workspaceId, op.environment_id);
   // Mutation triggers share the coordinator; tuple locks here would invert
   // the order of an UPDATE that already owns its tuple before its trigger waits.

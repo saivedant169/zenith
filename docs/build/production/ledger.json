@@ -2671,6 +2671,14 @@
           "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, Temporal mTLS, owned kind target, Chromium; joined peer worker with private binds staged for its container uid",
           "result": "DRV-2 operated crash-partition passed 11/11 with a matched current-source receipt: owned worker SIGKILLed (exit 137) with durable start intent during the outage, independent API served, restart readback on the same workflow, real Docker network partition with no write, an independent joined worker recovered the retained workflow, two approved same-environment writes ran under distinct native fences with both workers polling (a concurrent start is refused as lease_busy with nothing changed), duplicate execute returned startedNow=false with no provider duplicate, owned cleanup. Caution: in 2 of the 4 preceding runs the rejoined original worker did not report ready within 240s because durable reconciliation was not yet current; the timing margin is not established.",
           "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-21-2bd1a6ac-drv2-crash-partition-hosted.json"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "38e4188ab444b3ad8eeb08cf9ba3ed7772ae2d73",
+          "command": "operated-gate-linux.yml gate=drivers-d4-two-tenants (GitHub-hosted ubuntu runner, run 39627870189)",
+          "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, Temporal mTLS, owned kind target with one operator-provisioned namespace shared by two environments, Chromium",
+          "result": "D-4 two-tenants passed with a matched current-source receipt: two independent workspaces each deployed through independent browser approval into a shared operator namespace (environment-scoped NetworkPolicies), independent provider readback, browser read and write isolation (cross-tenant mutation refused exactly like a missing object), MCP isolation, foreign approval refused, no cross-tenant effects, source stable, owned cleanup. 1 passed / 0 failed / 1 lane-gated skip (export case). Not live cloud.",
+          "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-21-38e4188a-drivers-d4-two-tenants-hosted.json"
         }
       ],
       "requiredEvidence": [
@@ -7719,6 +7727,14 @@
           "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, Temporal mTLS, owned kind target, Chromium; joined peer worker with private binds staged for its container uid",
           "result": "DRV-2 operated crash-partition passed 11/11 with a matched current-source receipt: owned worker SIGKILLed (exit 137) with durable start intent during the outage, independent API served, restart readback on the same workflow, real Docker network partition with no write, an independent joined worker recovered the retained workflow, two approved same-environment writes ran under distinct native fences with both workers polling (a concurrent start is refused as lease_busy with nothing changed), duplicate execute returned startedNow=false with no provider duplicate, owned cleanup. Caution: in 2 of the 4 preceding runs the rejoined original worker did not report ready within 240s because durable reconciliation was not yet current; the timing margin is not established.",
           "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-21-2bd1a6ac-drv2-crash-partition-hosted.json"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "38e4188ab444b3ad8eeb08cf9ba3ed7772ae2d73",
+          "command": "operated-gate-linux.yml gate=drivers-d4-two-tenants (GitHub-hosted ubuntu runner, run 39627870189)",
+          "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, Temporal mTLS, owned kind target with one operator-provisioned namespace shared by two environments, Chromium",
+          "result": "D-4 two-tenants passed with a matched current-source receipt: two independent workspaces each deployed through independent browser approval into a shared operator namespace (environment-scoped NetworkPolicies), independent provider readback, browser read and write isolation (cross-tenant mutation refused exactly like a missing object), MCP isolation, foreign approval refused, no cross-tenant effects, source stable, owned cleanup. 1 passed / 0 failed / 1 lane-gated skip (export case). Not live cloud.",
+          "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-21-38e4188a-drivers-d4-two-tenants-hosted.json"
         }
       ],
       "requiredEvidence": [

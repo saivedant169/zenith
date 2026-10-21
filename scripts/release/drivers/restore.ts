@@ -153,6 +153,12 @@ export async function runRestoreScenario(input: DriverInput): Promise<number> {
       const fresh = await openPlatformDb({ kind: "postgres", url: target.href, max: 2, migrate: false });
       try { await fresh.query("drop schema public"); } finally { await fresh.close(); }
       const auth = await execRunner(tools.pgRestore, [...targetConnection.args, "--no-owner", "--exit-on-error", "--single-transaction", authDump], { env: targetConnection.env });
+      if (auth.code !== 0 && input.env.ZENITH_OPERATED_DIAGNOSTICS === "1") {
+        // The first pg_restore error lines (object and privilege names), with values, URLs, paths and tokens elided.
+        const errors = auth.stderr.split("\n").filter(line => /pg_restore: (error|warning)|ERROR:/.test(line)).slice(0, 4)
+          .map(line => line.replace(/\b\w+=\S+/g, "…=…").replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/(?:\/[^\s/]+){2,}/g, "…path").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 220));
+        process.stderr.write("restore-cli " + JSON.stringify({ phase: "auth-prerequisites", exitCode: auth.code, errors }) + "\n");
+      }
       ensure(auth.code === 0, "auth-prerequisites-restored");
       const targetUrlEnv = "ZENITH_OPERATED_RESTORE_TARGET_URL";
       const argv = ["restore", "--backup", backup, "--target-url-env", targetUrlEnv,

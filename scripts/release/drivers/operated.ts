@@ -519,7 +519,12 @@ export class UpgradeRestoreSession {
   }
   async finish(): Promise<void> {
     // Keep the entire owned fixture and private evidence for parent settlement after uncertain restore CLI activity.
-    if (this.cleanupBlocked) throw new Error("operated:cleanup-retained-for-parent-settlement");
+    if (this.cleanupBlocked) {
+      // The stack, private files and evidence stay for parent settlement; only this process's own handles
+      // close, or the driver could never exit and the gate would idle until its outer timeout.
+      await finishOwned([async () => { if (this.browser) await this.browser.close(); }, async () => { if (this.db) await this.db.close(); }]).catch(() => undefined);
+      throw new Error("operated:cleanup-retained-for-parent-settlement");
+    }
     await finishOwned([
       async () => { if (this.browser) await this.browser.close(); },
       ...this.finalizers,

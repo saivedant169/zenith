@@ -14,7 +14,7 @@ export function portsFor(offset) {
   // Whole thousands only: the MCP topology guard admits exactly these shifted local Supabase origins.
   if (!Number.isInteger(offset) || offset < 0 || offset > 10000 || offset % 1000 !== 0) fail('port-offset');
   return Object.freeze({ api: 36400 + offset, peerApi: 36401 + offset, supabase: 54321 + offset, cliApi: 54326 + offset, db: 54322 + offset,
-    shadow: 54320 + offset, mail: 8025 + offset, pooler: 6543 + offset, cliPooler: 54329 + offset, j4Temporal: 17233 + offset, registry: 5000 });
+    shadow: 54320 + offset, mail: 8025 + offset, pooler: 6543 + offset, cliPooler: 54329 + offset, j4Temporal: 17233 + offset, temporal: 27233 + offset, registry: 5000 });
 }
 const offsetText = process.env.ZENITH_DEFAULT_STACK_PORT_OFFSET ?? '0';
 if (!/^(0|[1-9][0-9]{0,4})$/.test(offsetText)) fail('port-offset');
@@ -158,6 +158,8 @@ export function stackComposition(config, directory, profile, gatewayImage, peer)
     document.services[name] = { ...raw, labels, ...(raw.volumes ? { volumes: raw.volumes.map(bind) } : {}) };
   }
   document.services.temporal.mem_limit = '256m';
+  // Host-side clients (J15 operated drivers, host env) reach the owned engine on loopback only, over its mTLS.
+  document.services.temporal.ports = [`127.0.0.1:${ports.temporal}:7233`];
   for (const [name, service] of Object.entries(base.services)) {
     document.services[name] = { ...service, labels,
       env_file: [{ path: path.join(directory, name === 'api' ? 'api.env' : name === 'execution-worker' ? 'worker.env' : 'migration.env'), format: 'raw' }],

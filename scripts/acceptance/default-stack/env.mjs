@@ -20,7 +20,8 @@ export function hostEnvironment(state) {
   // The certificate has localhost in its SAN and J4 admits literal loopback hosts.
   pooler.hostname = 'localhost'; pooler.port = String(ports.pooler);
   environment.SUPABASE_DB_URL = environment.ZENITH_PLATFORM_DB_URL = pooler.href;
-  environment.ZENITH_TEMPORAL_ADDRESS = '127.0.0.1:7233';
+  // The lean stack publishes its own engine on an owned loopback port, never a host-wide 7233 another service may hold.
+  environment.ZENITH_TEMPORAL_ADDRESS = `127.0.0.1:${ports.temporal}`;
   Object.assign(environment, hostTemporalTls(state.directory));
   environment.ZENITH_DEFAULT_STACK_DIRECTORY = state.directory;
   environment.ZENITH_LOCAL_STACK_DIRECTORY = state.directory;

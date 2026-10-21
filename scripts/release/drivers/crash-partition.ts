@@ -3,6 +3,9 @@ import fs from "node:fs";
 import path from "node:path";
 import postgres from "postgres";
 import { prepareJoin, joinComposition } from "../../deploy/installation.mjs";
+import { stagedComposition, stagingArguments } from "../../deploy/private-staging.mjs";
+import { stagingImage } from "../../acceptance/default-stack/runtime.mjs";
+import { installationLabel } from "../../acceptance/default-stack/config.mjs";
 import { hostEnvironment } from "../../acceptance/default-stack/env.mjs";
 import { mcp, pause, privateFile } from "../../../tests/e2e/default/support.mjs";
 import { OwnedCleanup } from "./operated-contract";
@@ -105,8 +108,16 @@ export async function crashPartitionDriver(receiptFile: string, env = process.en
       service.mem_limit = "512m";
       service.volumes.push(path.join(session.stack.state.directory, "tls/ca.crt") + ":/run/zenith-ca.crt:ro");
       Object.assign(service, { environment: { NODE_EXTRA_CA_CERTS: "/run/zenith-ca.crt", NODE_OPTIONS: "--max-old-space-size=384", ZENITH_PLATFORM_DB_MAX: "2", ZENITH_WORKER_RECONCILE_MAX_ENVIRONMENTS: "1", ZENITH_WORKER_RECONCILE_CONCURRENCY: "1" } });
+      // Native Linux keeps the host owner and 0600 mode on binds, which uid 10001 cannot read: bind the same
+      // least-privilege uid-owned 0400 copies the stack's own compose uses (see private-staging.mjs). No-op elsewhere.
+      const stageRoot = path.join(session.stack.state.directory, "staged");
+      const staged = stagedComposition(document, { privateRoot: session.stack.state.directory, stageRoot });
+      if (staged.copies.length) {
+        fs.mkdirSync(stageRoot, { mode: 0o700, recursive: true });
+        await command("docker", stagingArguments(staged.copies, { stageRoot, image: stagingImage(), labels: { [installationLabel]: session.stack.state.installationId } }));
+      }
       peerFile = path.join(peerDirectory, "driver.compose.json");
-      fs.writeFileSync(peerFile, JSON.stringify(document), { mode: 0o600, flag: "wx" });
+      fs.writeFileSync(peerFile, JSON.stringify(staged.document), { mode: 0o600, flag: "wx" });
       const peerFileDigest = sha256(fs.readFileSync(peerFile, "utf8"));
       peerProject = "zenith-drv2-" + env.ZENITH_LOCAL_RUN_ID;
       const compose = (args: string[]) => {

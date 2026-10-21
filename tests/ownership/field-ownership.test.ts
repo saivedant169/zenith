@@ -154,6 +154,8 @@ describe("native operation enforcement", () => {
   it("treats drift.repair as an iac write and blocks it on autoscaler-owned fields", () => {
     expect(checkNativeOperation({ capability: "drift.repair", node: web, repairAttributes: ["replicas"], now: NOW })[0]!.verdict).toBe("allowed");
     expect(checkNativeOperation({ capability: "drift.repair", node: scaledWeb, repairAttributes: ["replicas"], now: NOW })[0]!.verdict).toBe("transfer_required");
+    // The broker and grant re-admission pass only the proposal input: its attributes are the repaired fields.
+    expect(checkNativeOperation({ capability: "drift.repair", node: scaledWeb, input: { action: "reapply_desired_state", attributes: ["replicas"] }, now: NOW })[0]!.verdict).toBe("transfer_required");
   });
 
   it("refuses provider-managed fields outright and never offers a transfer", () => {

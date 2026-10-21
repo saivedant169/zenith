@@ -110,6 +110,10 @@ export const NATIVE_OPERATION_WRITES: Readonly<Record<string, readonly NativeOpe
 /** Fields a `drift.repair` re-applies, as IaC writes (reapply_desired_state). */
 export const driftRepairWrites = (attributes: readonly string[]): NativeOperationWrite[] => attributes.map((path) => ({ path, writer: "iac" as const }));
 
+/** A reapply_desired_state proposal names the attributes it re-applies (see EcsReplicaRepairInput). */
+const repairInputAttributes = (input: Readonly<Record<string, unknown>> | undefined): string[] =>
+  Array.isArray(input?.attributes) ? input.attributes.filter((a): a is string => typeof a === "string") : [];
+
 export interface NativeOperationCheck extends EnforcementOptions {
   capability: string;
   node: Pick<ResourceNode, "address" | "nativeType" | "spec">;
@@ -123,7 +127,7 @@ export interface NativeOperationCheck extends EnforcementOptions {
 
 export function checkNativeOperation(check: NativeOperationCheck): FieldConflict[] {
   const writes: readonly NativeOperationWrite[] =
-    check.capability === "drift.repair" ? driftRepairWrites(check.repairAttributes ?? []) : ((check.table ?? NATIVE_OPERATION_WRITES)[check.capability] ?? []);
+    check.capability === "drift.repair" ? driftRepairWrites(check.repairAttributes ?? repairInputAttributes(check.input)) : ((check.table ?? NATIVE_OPERATION_WRITES)[check.capability] ?? []);
   const facts = { ...factsForNode(check.node), ...(check.facts ?? {}) };
   const typedScaleInput = check.input && (Object.hasOwn(check.input, "replicas") || Object.hasOwn(check.input, "size"));
   return writes.filter(w => !w.inputField || (typedScaleInput ? Object.hasOwn(check.input!, w.inputField) : w.inputField === "replicas")).map((w) =>

@@ -461,18 +461,19 @@ export function platformCredentialBroker(db: Sql, options: PlatformCredentialOpt
       const grant = req?.grant;
       if (!grant?.ws || !grant.op) throw new CredentialDeniedError("No usable capability grant.", { reason: "grant_invalid" });
       const connection = await repos.connections.get(db, grant.ws, req.connectionId);
-      if (connection?.config.provider === "aws") return aws.withSession(req, fn);
       const base = { workspaceId: grant.ws, operationId: grant.op, projectId: grant.proj, environmentId: grant.env, resourceId: grant.res, correlationId: grant.op };
       const deny = async (reason: DenialReason, message: string): Promise<never> => {
         await Promise.resolve(emit({ ...base, type: "credential.denied", data: { connectionId: req.connectionId, reason } })).catch(() => undefined);
         throw new CredentialDeniedError(message, { reason });
       };
-      if (!Number.isFinite(grant.exp) || grant.exp <= Math.floor(now().getTime() / 1000)) return deny("grant_expired", "The capability grant expired.");
-      if (!isCapability(grant.cap)) return deny("unknown_capability", "Unknown capability.");
       // A grant revoked since issue (cancel, lease loss, field-ownership change) gets no provider session.
       // shortcut: a grant with no stored row (signed outside the broker) is not refused here; production grants are stored at issue.
       if (typeof grant.jti === "string" && grant.jti && await repos.grants.status(db, grant.ws, grant.jti) === "revoked")
         return deny("grant_revoked", "The capability grant was revoked.");
+      // AWS sessions are minted by their own broker, after the shared revocation gate.
+      if (connection?.config.provider === "aws") return aws.withSession(req, fn);
+      if (!Number.isFinite(grant.exp) || grant.exp <= Math.floor(now().getTime() / 1000)) return deny("grant_expired", "The capability grant expired.");
+      if (!isCapability(grant.cap)) return deny("unknown_capability", "Unknown capability.");
       if (!connection) return deny("connection_not_found", "Connection not found in this workspace.");
       if (connection.status === "revoked") return deny("connection_revoked", "Connection revoked.");
       if (connection.status !== "verified") return deny("connection_not_verified", "Connection has not been verified.");

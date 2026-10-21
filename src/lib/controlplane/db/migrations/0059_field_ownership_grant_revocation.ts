@@ -13,7 +13,7 @@
  *   repair) write: revoke their live grants in the environment. Deploys and
  *   applies keep their grants.
  * - An ownership transfer can move any field: revoke live native-write grants
- *   (NATIVE_OPERATION_WRITES) in the environment except those of the transfer's
+ *   (NATIVE_OPERATION_WRITES and drift.repair, an IaC reapply) in the environment except those of the transfer's
  *   own operation.
  * Runs AFTER the 0053 BEFORE trigger, so it holds the same environment lock.
  */
@@ -25,7 +25,7 @@ create or replace function platform.revoke_grants_on_ownership_change() returns 
 language plpgsql set search_path=pg_catalog as $$
 declare
   autoscalers constant text[] := array['k8s:HorizontalPodAutoscaler','aws:appautoscaling_target'];
-  writes constant text[] := array['service.scale','deployment.deploy','deployment.rollback'];
+  writes constant text[] := array['service.scale','deployment.deploy','deployment.rollback','drift.repair'];
   ws text;
   envs text[];
   revoked_capabilities text[];

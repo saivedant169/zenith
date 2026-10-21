@@ -730,7 +730,7 @@ Registered migrations: **59**; highest version: **59**.
 | 56 | `workspace_mfa_controls` | `aad9739d5412fe15b5ecd065a80dd205e74818287861c8484c68de578ecef3b0` |
 | 57 | `wave5_gaps` | `55b72ecf1af8739036f17f1cd7f77b7e13f6de0e1de76773dd110af12aa8e450` |
 | 58 | `kubernetes_source_provider` | `afef954e9417c33a3a0dadc254253ab523c9dbc425af27da5120927e8064df9a` |
-| 59 | `field_ownership_grant_revocation` | `65049a39d46229bd9fefe1eeaa2e496c6771c2bd85957e95bafacaf09ec8ca05` |
+| 59 | `field_ownership_grant_revocation` | `f5490db5eed06ab6ada997f33f13430eb249dbcfcc8a1b0c75252b6bb5a87b29` |
 <!-- platform-migrations:end -->
 
 For the actual target, `npm run migrate:platform -- --status` calls the canonical

@@ -4753,7 +4753,7 @@ create or replace function platform.revoke_grants_on_ownership_change() returns 
 language plpgsql set search_path=pg_catalog as $$
 declare
   autoscalers constant text[] := array['k8s:HorizontalPodAutoscaler','aws:appautoscaling_target'];
-  writes constant text[] := array['service.scale','deployment.deploy','deployment.rollback'];
+  writes constant text[] := array['service.scale','deployment.deploy','deployment.rollback','drift.repair'];
   ws text;
   envs text[];
   revoked_capabilities text[];
@@ -4805,7 +4805,7 @@ after insert or update or delete on platform.ownership_transfers
 for each row execute function platform.revoke_grants_on_ownership_change();
 
 insert into platform.schema_migrations (version, name, checksum)
-values (59, 'field_ownership_grant_revocation', '65049a39d46229bd9fefe1eeaa2e496c6771c2bd85957e95bafacaf09ec8ca05')
+values (59, 'field_ownership_grant_revocation', 'f5490db5eed06ab6ada997f33f13430eb249dbcfcc8a1b0c75252b6bb5a87b29')
 on conflict (version) do nothing;
 
 -- ============================ hardening (Supabase roles) ============================

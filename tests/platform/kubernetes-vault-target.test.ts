@@ -137,6 +137,11 @@ describe.skipIf(!PG_URL)("default Kubernetes vault target binding [postgres; mod
     expect(await f.credentials.withSession({ connectionId: f.connection.id, purpose: "observe", grant: g }, callback)).toBe("entered");
     expect(await repos.grants.revoke(db, f.workspaceId, g.jti)).toBe(true);
     await expect(f.credentials.withSession({ connectionId: f.connection.id, purpose: "observe", grant: g }, callback)).rejects.toMatchObject({ reason: "grant_revoked" });
+    // AWS sessions come from their own broker; the revoked grant is refused before it is reached.
+    const aws = await repos.connections.create(db, { workspaceId: f.workspaceId, createdBy: "native-target-fixture", config: { provider: "aws", mode: "aws_assume_role",
+      accountId: "123456789012", region: "us-east-1", observeRoleArn: "arn:aws:iam::123456789012:role/ZenithObserveRole", deployRoleArn: "arn:aws:iam::123456789012:role/ZenithDeployRole",
+      externalId: "zenith-revoked-grant-fixture" } });
+    await expect(f.credentials.withSession({ connectionId: aws.id, purpose: "observe", grant: g }, callback)).rejects.toMatchObject({ reason: "grant_revoked" });
     expect(callback).toHaveBeenCalledOnce();
   });
 

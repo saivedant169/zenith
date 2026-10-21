@@ -2099,7 +2099,7 @@ const nativeSafetyGroups = [
     "suite": "default Kubernetes vault target binding [postgres; modeled API boundary]",
     "flag": "ZENITH_TEST_KUBERNETES_VAULT_TARGET_REQUIRED",
     "count": 18,
-    "sourceSha256": "42d90cc5725577c3789bc81685580b3f582c78ffb1d323855abc0dc62745c165",
+    "sourceSha256": "a08599fe95710f3fa9d6b4ba4669bc63c5fe7b146b96ea7101ea73f9d9a076b9",
     "namesSha256": "bc2e272c08f46609afe3a1a830141df9204b6800642ff742381e65ec6db20f3f"
   }
 ] as const;

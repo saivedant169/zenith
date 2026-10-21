@@ -89,14 +89,15 @@ async function stateOf(db: PlatformDbHandle, input: { workspaceId: string; opera
 }
 
 /** A genuine approved manifest baseline, with no enabling transfer to mask a new owner. */
-async function manifestAdmission(db: PlatformDbHandle) {
+async function manifestAdmission(db: PlatformDbHandle, capability: "service.scale" | "drift.repair" = "service.scale") {
   const workspaceId = newWorkspace(), environmentId = uid("env"), projectId = uid("project");
   const node = { address: "container_service/web", kind: "container_service" as const, provider: "aws" as const,
     region: "us-east-1", nativeType: "aws:ecs_service", ownership: "managed" as const,
     spec: { replicas: 2 } as Record<string, unknown>, specDigest: digest({ replicas: 2 }), origin: ["web"], dependsOn: [], labels: {} };
   const resource = await asService(db, tx => repos.resources.upsertDesired(tx, { workspaceId, environmentId, projectId, node }));
   const seeded = await seedAwaitingApproval(db, { workspaceId, proposal: {
-    capability: "service.scale", scope: { workspaceId, projectId, environmentId, resourceId: resource.id },
+    capability, scope: { workspaceId, projectId, environmentId, resourceId: resource.id },
+    ...(capability === "drift.repair" ? { input: { action: "reapply_desired_state", attributes: ["replicas"] } } : {}),
   } });
   await asService(db, tx => approve(tx, seeded, user()));
   expect(await repos.ownershipTransfers.listActive(db, workspaceId, environmentId)).toEqual([]);
@@ -105,7 +106,7 @@ async function manifestAdmission(db: PlatformDbHandle) {
   const now = Date.now();
   return { workspaceId, environmentId, projectId, node, resourceId: resource.id, operationId: seeded.operation.id,
     claim: { workspaceId, id: seeded.operation.id, expectedDigest: seeded.operation.proposalDigest, holder: "worker:fact-race", lease: lease! },
-    grant: { jti: uid("jti"), workspaceId, operationId: seeded.operation.id, capability: "service.scale", audience: "worker",
+    grant: { jti: uid("jti"), workspaceId, operationId: seeded.operation.id, capability, audience: "worker",
       issuedAt: new Date(now).toISOString(), expiresAt: new Date(now + 60_000).toISOString() } };
 }
 
@@ -424,6 +425,28 @@ describe.skipIf(!PG_URL)("ownership transfer immutable service-role custody [pos
       await expect(asService(db, tx => repos.grants.consume(tx, { workspaceId: owned.workspaceId, jti: owned.grant.jti, audience: "worker" })))
         .rejects.toMatchObject({ code: "conflict", details: { reason: "field_ownership_conflict" } });
       expect((await repos.grants.get(db, owned.workspaceId, owned.grant.jti))?.consumedAt).toBeUndefined();
+    });
+  }, 60_000);
+
+  it("revokes a live drift.repair reapply grant once another operation's ownership transfer lands in its environment", async () => {
+    await withNative(async (db, independent) => {
+      const owned = await manifestAdmission(db, "drift.repair");
+      await asService(db, tx => repos.operations.claimForExecution(tx, owned.claim));
+      // Admission derives the reapplied fields from the proposal input: replicas is IaC-owned here, so the grant issues.
+      await asService(db, tx => repos.grants.insert(tx, owned.grant));
+      expect(await repos.grants.isRevoked(db, owned.workspaceId, owned.grant.jti)).toBe(false);
+      const other = await seedAwaitingApproval(db, { workspaceId: owned.workspaceId, proposal: {
+        capability: "service.scale", scope: { workspaceId: owned.workspaceId, projectId: owned.projectId, environmentId: owned.environmentId, resourceId: owned.resourceId } } });
+      const decision = await asService(db, tx => approve(tx, other, user()));
+      const receipt = transferRequest({ address: owned.node.address, resourceType: owned.node.nativeType, path: "replicas", from: "iac", to: "native-op" });
+      await asService(independent, tx => tx.query(`insert into platform.ownership_transfers
+        (id,workspace_id,project_id,environment_id,address,resource_type,field_path,from_owner,to_owner,transfer_digest,operation_id,approval_id,proposal_digest,approved_at,expires_at)
+        select $1,o.workspace_id,o.project_id,o.environment_id,$2,$3,$4,$5,$6,$7,o.id,a.id,o.proposal_digest,a.created_at,null
+        from platform.operations o join platform.approvals a on a.workspace_id=o.workspace_id and a.operation_id=o.id
+        where o.workspace_id=$8 and o.id=$9 and a.id=$10 and a.decision='approve' and a.proposal_digest=o.proposal_digest`,
+        [uid("own"), receipt.address, receipt.resourceType, receipt.path, receipt.from, receipt.to, receipt.digest, owned.workspaceId, other.operation.id, decision.approval.id]));
+      // The IaC reapply would now revert a native-op-owned field: its grant is revoked, not left usable.
+      expect(await repos.grants.isRevoked(db, owned.workspaceId, owned.grant.jti)).toBe(true);
     });
   }, 60_000);
 

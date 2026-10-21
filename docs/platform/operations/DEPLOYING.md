@@ -667,7 +667,7 @@ current aggregate emitter output, including additive cleanup writer barrier migr
 function, then verifies every row, the count and highest version. A new migration
 requires a regenerated inventory; changing a literal count alone does not pass.
 
-Registered migrations: **58**; highest version: **58**.
+Registered migrations: **59**; highest version: **59**.
 
 <!-- platform-migrations:start -->
 | Version | Name | SQL SHA-256 |
@@ -730,6 +730,7 @@ Registered migrations: **58**; highest version: **58**.
 | 56 | `workspace_mfa_controls` | `aad9739d5412fe15b5ecd065a80dd205e74818287861c8484c68de578ecef3b0` |
 | 57 | `wave5_gaps` | `55b72ecf1af8739036f17f1cd7f77b7e13f6de0e1de76773dd110af12aa8e450` |
 | 58 | `kubernetes_source_provider` | `afef954e9417c33a3a0dadc254253ab523c9dbc425af27da5120927e8064df9a` |
+| 59 | `field_ownership_grant_revocation` | `2019a07dc4b84154bdf29b11cda31dd32b03bf4f3a625b825e1174a0bb0c252f` |
 <!-- platform-migrations:end -->
 
 For the actual target, `npm run migrate:platform -- --status` calls the canonical
@@ -1091,7 +1092,7 @@ writes while building: no zero-downtime or live migration claim follows local te
 
 ## Wave 5 assembly inventory and operator gates
 
-The current cumulative snapshot is `0026_platform_core.sql`, schema 58. Published schemas 1â€“43 and aggregates 0016â€“0025 remain byte-identical. The canonical inventory/checksums above include schemas 44 mixed outputs, 45 SLO measurements, 46 recovery epochs, 47 retention, 48 audit exports, 49 managed source CHECK widening, 50 managed serving, 51 isolation effect-family widening and 52 billing. `scripts/ci/apply-supabase-migrations.sh` applies 0026 last. Emit with `npx tsx scripts/platform/emit-sql.ts`; verify with `--check`.
+The current cumulative snapshot is `0026_platform_core.sql`, schema 59. Published schemas 1â€“43 and aggregates 0016â€“0025 remain byte-identical. The canonical inventory/checksums above include schemas 44 mixed outputs, 45 SLO measurements, 46 recovery epochs, 47 retention, 48 audit exports, 49 managed source CHECK widening, 50 managed serving, 51 isolation effect-family widening and 52 billing. `scripts/ci/apply-supabase-migrations.sh` applies 0026 last. Emit with `npx tsx scripts/platform/emit-sql.ts`; verify with `--check`.
 
 `0027_product_flush_atomic.sql` adds `public.zenith_product_flush(jsonb, jsonb)`, the one-transaction product-store flush (`PostgresStore` writes every changed row of a pass through it, with per-row version guards; EXECUTE is granted only to `service_role`). Apply it with the other product migrations before deploying an API or worker image that contains this change, or every product write fails.
 

@@ -4,7 +4,7 @@ import { assessPlatformMigration, assertPendingMigrationsCompatible } from "@/li
 
 describe("Wave 5 migration admission", () => {
   it("keeps the verifier baseline and the complete contiguous assembly", () => {
-    expect(PLATFORM_MIGRATIONS.map(m => m.version)).toEqual(Array.from({ length: 58 }, (_, i) => i + 1));
+    expect(PLATFORM_MIGRATIONS.map(m => m.version)).toEqual(Array.from({ length: 59 }, (_, i) => i + 1));
     expect(PLATFORM_MIGRATIONS[41].name).toBe("external_effect_key_bounds");
     expect(PLATFORM_MIGRATIONS[42].name).toBe("mcp_stream_events_tenant_index");
   });

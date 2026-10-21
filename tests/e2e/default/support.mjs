@@ -71,8 +71,12 @@ export async function jsonRequest(url, { method = 'GET', body, headers = {} } = 
   ensure(Buffer.byteLength(text) <= 512 * 1024, 'response-bound');
   let data;
   try { data = text ? JSON.parse(text) : {}; } catch { fail('response-json'); }
-  return { status: response.status, data };
+  return withEndpoint({ status: response.status, data }, new URL(url).pathname);
 }
+// Diagnosis only: the request path with id-like segments redacted, never the query or host.
+const withEndpoint = (result, pathname) => DIAGNOSTICS
+  ? Object.defineProperty(result, 'endpoint', { value: pathname.split('/').map(part => /^[a-z]+(?:-[a-z]+)*$|^v[0-9]+$/.test(part) || part === '' ? part : ':id').join('/') })
+  : result;
 export async function browserRequest(page, endpoint, body, method = body === undefined ? 'GET' : 'POST', workspaceId) {
   ensure(endpoint.startsWith('/api/'), 'browser-path');
   return page.evaluate(async ({ endpoint, body, method, workspaceId }) => {
@@ -81,13 +85,13 @@ export async function browserRequest(page, endpoint, body, method = body === und
         ...(body === undefined ? {} : { 'content-type': 'application/json' }) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
     return { status: response.status, data: await response.json() };
-  }, { endpoint, body, method, workspaceId });
+  }, { endpoint, body, method, workspaceId }).then(result => withEndpoint(result, endpoint));
 }
 export function ok(response) {
   if (DIAGNOSTICS && !(response.status >= 200 && response.status < 300 && response.data?.ok !== false)) {
     // Opt-in CI diagnosis: the status and the API's own fixed-vocabulary error code only.
     const code = response.data?.error?.code;
-    process.stderr.write(`http-refused status=${Number(response.status)} code=${typeof code === 'string' && /^[a-z0-9_.:-]{1,64}$/.test(code) ? code : 'none'}\n`);
+    process.stderr.write(`http-refused endpoint=${response.endpoint ?? 'unknown'} status=${Number(response.status)} code=${typeof code === 'string' && /^[a-z0-9_.:-]{1,64}$/.test(code) ? code : 'none'}\n`);
   }
   ensure(response.status >= 200 && response.status < 300 && response.data?.ok !== false, 'http-refused');
   return response.data;

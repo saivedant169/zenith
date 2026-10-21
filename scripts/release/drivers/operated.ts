@@ -1047,9 +1047,12 @@ export async function approveOperation(ctx: OperatedContext, tenant: Tenant, ope
   await tenant.approver.goto(ctx.stack.apiUrl + "/platform/operations/" + operationId);
   const response = tenant.approver.waitForResponse(value => value.url().endsWith("/operations/" + operationId + "/approve") && value.request().method() === "POST");
   await tenant.approver.getByRole("button", { name: /^Approve / }).click();
-  ensure((await response).ok(), "browser-human-approval");
+  // The approval response is the authoritative "approved" moment; a later read may already show the
+  // operation planning or running (as DRV-2's approve() expects), so the readback checks the recorded approval.
+  const approved = await response;
+  ensure(approved.ok() && (await approved.json()).operation?.status === "approved", "browser-human-approval");
   const recorded = await detailOf(tenant, operationId);
-  ensure(recorded.operation.status === "approved" && recorded.approvals.some((value: { approverId: string; decision: string }) => value.approverId === tenant.approverId && value.decision === "approve"), "human-approval-readback");
+  ensure(recorded.operation.proposalDigest === detail.operation.proposalDigest && recorded.approvals.some((value: { approverId: string; decision: string }) => value.approverId === tenant.approverId && value.decision === "approve"), "human-approval-readback");
 }
 export async function deployKind(ctx: OperatedContext, tenant: Tenant): Promise<void> {
   const result = await action(tenant.owner, "deploy.apply", {}, { projectId: tenant.project.id, environmentId: tenant.environmentId });

@@ -209,6 +209,23 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      - name: Application warnings and errors (message key, error name and code only)
+        if: always()
+        run: |
+          for name in $(docker ps -a --format '{{.Names}}' | grep -E -- '-(api|execution-worker|worker)(-[0-9]+)?$' || true); do
+            echo "== $name"
+            docker logs --tail 400 "$name" 2>&1 | node -e '
+              const lines = require("fs").readFileSync(0, "utf8").split("\n");
+              const seen = new Map();
+              for (const line of lines) {
+                let e; try { e = JSON.parse(line); } catch { continue; }
+                if (!["warn", "error", "fatal"].includes(e.level)) continue;
+                const key = [e.level, e.msg, e.error?.name, e.error?.code ?? e.code].filter(Boolean).join(" | ");
+                seen.set(key, (seen.get(key) ?? 0) + 1);
+              }
+              for (const [key, count] of seen) console.log(count + "x " + key);' || true
+          done
+
       - name: Stack and runner diagnostics
         if: always()
         run: |

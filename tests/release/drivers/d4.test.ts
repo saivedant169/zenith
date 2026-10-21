@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { randomBytes } from "node:crypto";
 import { DRIVER_CHECKS, DRIVER_LIMITS, OPERATED_LABEL, OwnedCleanup, receiptExit, validateOperatedReceipt, type OperatedReceipt } from "../../../scripts/release/drivers/protocol";
 import { validateExportBundle, validatePortablePlan, runExport } from "../../../scripts/release/drivers/export";
-import { assertHttpRefusal, assertMcpRefusal, runTwoTenants } from "../../../scripts/release/drivers/two-tenants";
+import { assertActionRefusal, assertHttpRefusal, assertMcpRefusal, runTwoTenants } from "../../../scripts/release/drivers/two-tenants";
 import { localTargetLane, LOCAL_TARGETS, requiredChecks, validateLocalReceipt } from "../../../scripts/release/local-targets";
 import { SCENARIOS } from "../../../scripts/release/scenarios";
 import { exportBundle } from "@/lib/providers/localstack/export";
@@ -79,6 +79,13 @@ describe("DRV-4 owned cleanup", () => {
 describe("DRV-4 refusal evidence", () => {
   it.each([200, 301, 400, 401, 409, 500, 503])("HTTP %s is not an isolation pass", status => {
     expect(() => assertHttpRefusal({ status, data: {} })).toThrow();
+  });
+  it("accepts a cross-tenant action only when the mutation endpoint refused it as absent", () => {
+    expect(() => assertActionRefusal({ status: 200, data: { result: { ok: false, error: 'Project "p" does not exist. Pick one from the workspace overview.' } } }, "update-manifest")).not.toThrow();
+    expect(() => assertActionRefusal({ status: 404, data: {} }, "update-manifest")).not.toThrow();
+    expect(() => assertActionRefusal({ status: 200, data: { result: { ok: true } } }, "update-manifest")).toThrow("tenant-refusal-update-manifest-200-ok");
+    expect(() => assertActionRefusal({ status: 200, data: { result: { ok: false, error: "Invalid input." } } }, "update-manifest")).toThrow();
+    expect(() => assertActionRefusal({ status: 500, data: {} }, "deploy-cancel")).toThrow("tenant-refusal-deploy-cancel-500");
   });
   it("accepts only current authority refusals on the browser path", () => {
     for (const status of [403, 404]) expect(() => assertHttpRefusal({ status, data: {} })).not.toThrow();

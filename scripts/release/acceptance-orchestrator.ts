@@ -60,7 +60,16 @@ export const defaultExec: Exec = (argv, options) => new Promise((resolve) => {
   let stdout = ""; let stderr = "";
   const timer = setTimeout(() => child.kill("SIGKILL"), options.timeoutMs);
   child.stdout.on("data", (c: Buffer) => { stdout = (stdout + c.toString()).slice(-20_000); });
-  child.stderr.on("data", (c: Buffer) => { stderr = (stderr + c.toString()).slice(-20_000); });
+  // Diagnostics only: relay the child's fixed-format diagnostic lines as they arrive, so a hung child still reports.
+  const env = options.env ?? process.env;
+  let pending = "";
+  child.stderr.on("data", (c: Buffer) => {
+    stderr = (stderr + c.toString()).slice(-20_000);
+    if (env.ZENITH_OPERATED_DIAGNOSTICS !== "1") return;
+    pending = (pending + c.toString()).slice(-8_192);
+    const lines = pending.split("\n"); pending = lines.pop() ?? "";
+    forwardOperatedDiagnostics(env, lines.join("\n"));
+  });
   child.on("close", (code) => { clearTimeout(timer); resolve({ code: code ?? 1, stdout, stderr }); });
   child.on("error", () => { clearTimeout(timer); resolve({ code: 127, stdout, stderr: `${stderr}\ncould not start ${argv[0]}` }); });
 });
@@ -68,7 +77,7 @@ export const defaultExec: Exec = (argv, options) => new Promise((resolve) => {
 /** Diagnostics only: forward a child's already-sanitized fixed-format diagnostic lines, never any other output. */
 export function forwardOperatedDiagnostics(env: Readonly<Record<string, string | undefined>>, stderr: string, write: (line: string) => void = line => { process.stderr.write(line); }): void {
   if (env.ZENITH_OPERATED_DIAGNOSTICS !== "1") return;
-  for (const line of stderr.split("\n")) if (/^(?:operated (?:step [a-z0-9-]+|outside-step) failed: |command-failed |peer-unready |http-refused )/.test(line)) write(line.slice(0, 600) + "\n");
+  for (const line of stderr.split("\n")) if (/^(?:operated (?:step [a-z0-9-]+|outside-step) failed: |command-failed |peer-unready |http-refused |restore-cli )/.test(line)) write(line.slice(0, 600) + "\n");
 }
 
 const STATEMENT = "Local target results are local rehearsal, never live or production signoff. Component lanes alone do not establish an end-to-end journey. This report records which lanes actually ran. A deferred, skipped or not-run lane is not evidence of anything. A scenario is verified_live only when every lane, including the live harness, passed.";

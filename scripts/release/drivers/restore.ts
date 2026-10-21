@@ -169,9 +169,15 @@ export async function runRestoreScenario(input: DriverInput): Promise<number> {
       // No detached child/session: direct exit/signal are recorded only from `close`.
       // This is not descendant custody; the outer R17 acceptance must prove CLI descendants closed before cleanup.
       const result = await runRestoreCli(
-        [process.execPath, "node_modules/tsx/dist/cli.mjs", "scripts/ops/recovery.ts", ...argv],
+        // One process (tsx as a loader): the tsx CLI wrapper spawns a grandchild that survives a timeout kill and holds the pipes open.
+        [process.execPath, "--import", "tsx", "scripts/ops/recovery.ts", ...argv],
         { ...session.environment, [targetUrlEnv]: target.href },
       );
+      if (input.env.ZENITH_OPERATED_DIAGNOSTICS === "1" && (result.exitCode !== 0 || result.timedOut)) {
+        // Step status and id only (the CLI prints "STATUS id detail"); never details, URLs or values.
+        const steps = result.stdout.split("\n").flatMap(line => { const m = /^([A-Z]{2,12})\s+([a-z][a-z-]{1,20})\s/.exec(line); return m ? [m[1] + " " + m[2]] : []; }).slice(-20);
+        process.stderr.write("restore-cli " + JSON.stringify({ exitCode: result.exitCode, signal: result.signal, timedOut: result.timedOut, overflow: result.overflow, steps }) + "\n");
+      }
       ensure(result.exitCode === 0 && result.signal === null && !result.timedOut && !result.overflow
         && !result.launchFailed && !result.streamFailed, "restore-cli-closed-without-overflow");
       const transcript = `${result.stdout}\n${result.stderr}`;

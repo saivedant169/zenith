@@ -2,7 +2,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { randomBytes } from "node:crypto";
-import { defaultExec, classifyVitest, forwardOperatedDiagnostics } from "./acceptance-orchestrator";
+import { defaultExec, classifyVitest } from "./acceptance-orchestrator";
 import { LOCAL_TARGETS, localEnvironment, validateLocalReceipt, requiredChecks, type LocalReceipt } from "./local-targets";
 import { command, localPaths, upLocal, downLocal, readState, waitFor, type Profile } from "./local-environment";
 import { mixedRehearsal } from "./local-mixed";
@@ -60,7 +60,6 @@ export async function runLocalScenario(scenarioId: string, receiptFile: string, 
       if (env.ZENITH_LOCAL_DRIVER_D4 !== "1" || env.ZENITH_ACCEPTANCE_DEFAULT_STACK !== "1" || !env.ZENITH_ACCEPTANCE_DEFAULT_STACK_DIR) return 2;
       const child = await defaultExec([process.execPath, "node_modules/tsx/dist/cli.mjs", target.driver, "--run-id", runId, "--receipt", receiptFile],
         { cwd: process.cwd(), env: { ...env, ...hostEnvironment(defaultStackState(env.ZENITH_ACCEPTANCE_DEFAULT_STACK_DIR)) }, timeoutMs: 2_400_000 });
-      forwardOperatedDiagnostics(env, child.stderr);
       if (child.code === 2) return 2;
       const source = sourceBinding();
       if (source.head !== sourceCommit) throw new Error("Source changed during operated run");

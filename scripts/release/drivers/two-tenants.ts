@@ -9,6 +9,16 @@ export function assertHttpRefusal(response: { status: number; data: unknown }, a
   // refusal are distinguishable without any response body.
   if (![403, 404].includes(response.status)) throw new Error(`journey:tenant-refusal-${action}-${Number.isInteger(response.status) ? response.status : "unknown"}`);
 }
+/** /api/actions reports an action's own failure as HTTP 200 with result.ok=false (the one mutation endpoint's
+ * envelope). A cross-tenant action is refused there exactly like a missing object, so only that refusal counts;
+ * no-cross-tenant-effects separately proves nothing changed. */
+export function assertActionRefusal(response: { status: number; data: unknown }, action: string): void {
+  if ([403, 404].includes(response.status)) return;
+  const result = (response.data as { result?: { ok?: unknown; error?: unknown } } | null)?.result;
+  if (response.status === 200 && result?.ok === false && typeof result.error === "string"
+    && /does not exist|not found|not in this workspace|forbidden|denied|scope/i.test(result.error)) return;
+  throw new Error(`journey:tenant-refusal-${action}-${Number.isInteger(response.status) ? response.status : "unknown"}${result?.ok === true ? "-ok" : ""}`);
+}
 export function assertMcpRefusal(response: { status: number; data: { error?: unknown; result?: { structuredContent?: { ok?: boolean; error?: { code?: string } } } } }): void {
   const envelope = response.data.result?.structuredContent;
   if (response.status >= 500 || response.data.error || envelope?.ok !== false
@@ -53,10 +63,10 @@ export async function runTwoTenants(input: DriverInput): Promise<number> {
     });
     await ctx.step("browser-write-isolation", async () => {
       for (const [home, other] of [[a, b], [b, a]]) {
-        assertHttpRefusal(await browserRequest(home.owner, "/api/actions/project.updateManifest", { mode: "execute",
+        assertActionRefusal(await browserRequest(home.owner, "/api/actions/project.updateManifest", { mode: "execute",
           input: { projectId: other.project.id, manifest: { version: 1, services: [], resources: [], routes: [], bindings: [] } },
           scope: { workspaceId: home.workspaceId, projectId: other.project.id }, idempotencyKey: nonce() }), "update-manifest");
-        assertHttpRefusal(await browserRequest(home.owner, "/api/actions/deploy.cancel", { mode: "execute", input: { deploymentId: other.deploymentId },
+        assertActionRefusal(await browserRequest(home.owner, "/api/actions/deploy.cancel", { mode: "execute", input: { deploymentId: other.deploymentId },
           scope: { projectId: other.project.id, environmentId: other.environmentId }, idempotencyKey: nonce() }), "deploy-cancel");
       }
     });

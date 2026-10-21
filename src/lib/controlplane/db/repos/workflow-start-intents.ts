@@ -68,6 +68,8 @@ export interface StartBinding extends StartRequest {
   readonly format: "zenith.workflow-start.v1";
   readonly workflowType: string;
   readonly workflowId: string;
+  /** Present (> 0) only for an operation reopened after a restore; part of workflowId and of the binding digest. */
+  readonly recoveryEpoch?: number;
   readonly argumentsDigest: string;
   readonly proposalDigest: string;
   readonly inputDigest: string;
@@ -89,6 +91,7 @@ interface Operation {
   workspace_id: string; id: string; capability: string; project_id: string|null; environment_id: string|null;
   proposal: { capability: string; scope: {workspaceId:string;projectId?:string;environmentId?:string}; input?: Record<string,unknown> };
   proposal_digest: string; input_digest: string; plan_digest: string|null;
+  recovery_epoch?: number|string|null;
   status: string; approval_round: number; approval_required: boolean; workflow_id: string|null;
   lease_scope: string|null; fence_token: number|null; lease_holder: string|null;
   principal: Principal;
@@ -105,13 +108,19 @@ function fromRow(row: WorkflowStartIntent): WorkflowStartIntent {
   const request = requestCopy(row.binding);
   const b = row.binding;
   if (b.format !== "zenith.workflow-start.v1" || b.workflowType !== WORKFLOW_START_TYPES[request.kind]
-    || b.workflowId !== workflowId(request) || b.argumentsDigest !== digest(request.arguments)
+    || epochOf(b as { recoveryEpoch?: unknown }) < 0 || b.workflowId !== workflowId(request, epochOf(b as { recoveryEpoch?: unknown })) || b.argumentsDigest !== digest(request.arguments)
     || b.configDigest !== digest(START_CONFIG) || !HEX.test(b.proposalDigest) || !HEX.test(b.inputDigest)
     || b.sourceDigest !== digest({proposalDigest:b.proposalDigest,inputDigest:b.inputDigest,argumentsDigest:b.argumentsDigest})
     || digest(b) !== row.binding_digest || request.arguments.workspaceId !== row.workspace_id || request.arguments.operationId !== row.operation_id) return refuse();
   return Object.freeze({ ...row, binding: Object.freeze({ ...b, ...request }) });
 }
-function workflowId(request: StartRequest): string { return `${request.kind === "teardownReview" ? "teardown-review" : "op"}-${request.arguments.operationId}`; }
+/** Epoch 0 keeps the historical id. An operation reopened after a restore (recovery epoch > 0) starts a NEW
+ * workflow: the pre-restore one may have run after the backup, and REJECT_DUPLICATE must keep refusing it. */
+function workflowId(request: StartRequest, recoveryEpoch = 0): string {
+  return `${request.kind === "teardownReview" ? "teardown-review" : "op"}-${request.arguments.operationId}${recoveryEpoch > 0 ? `-e${recoveryEpoch}` : ""}`;
+}
+const epochOf = (b: { recoveryEpoch?: unknown }): number => b.recoveryEpoch === undefined ? 0
+  : Number.isSafeInteger(b.recoveryEpoch) && (b.recoveryEpoch as number) > 0 ? b.recoveryEpoch as number : -1;
 function matches(row: WorkflowStartIntent, request: StartRequest): void {
   const prior = row.binding;
   if (prior.kind !== request.kind || prior.endpointDigest !== request.endpointDigest || prior.namespace !== request.namespace
@@ -147,8 +156,11 @@ function bind(request: StartRequest, op: Operation): StartBinding {
     if (request.kind === "dayTwo" && args.capability !== op.capability) return refuse();
     if (request.kind === "remediation" && args.incidentId !== input?.incidentId) return refuse();
   }
+  const recoveryEpoch = Number(op.recovery_epoch ?? 0);
+  if (!Number.isSafeInteger(recoveryEpoch) || recoveryEpoch < 0) return refuse();
   return Object.freeze({ ...request, format: "zenith.workflow-start.v1", workflowType: WORKFLOW_START_TYPES[request.kind],
-    workflowId: workflowId(request), argumentsDigest: digest(args), proposalDigest: op.proposal_digest,
+    ...(recoveryEpoch > 0 ? { recoveryEpoch } : {}),
+    workflowId: workflowId(request, recoveryEpoch), argumentsDigest: digest(args), proposalDigest: op.proposal_digest,
     inputDigest: op.input_digest, sourceDigest:digest({proposalDigest:op.proposal_digest,inputDigest:op.input_digest,argumentsDigest:digest(args)}),
     configDigest: digest(START_CONFIG) });
 }

@@ -49,6 +49,16 @@ describe.each(kinds)("workflow start intents [%s]",kind=>{
     expect((await f.store.claim(f.db2,f.request)).dispatch).toBe(false);
     expect(await f.db.query("select phase from platform.workflow_start_intents where workspace_id=$1 and operation_id=$2",[f.h.ids.wsA,f.op.id])).toEqual([{phase:"attempted"}]);
   });
+  it("an operation reopened after a restore binds a new epoch-scoped workflow id; epoch 0 keeps the historical id",async()=>{
+    const f=await fixture(kind);
+    await f.db.query("update platform.operations set recovery_epoch=3 where workspace_id=$1 and id=$2",[f.h.ids.wsA,f.op.id]);
+    const prepared=await f.store.prepare(f.db,f.request);
+    expect(prepared.binding.workflowId).toBe(`op-${f.op.id}-e3`);
+    expect(prepared.binding.recoveryEpoch).toBe(3);
+    expect((await intents.get(f.db2,f.h.ids.wsA,f.op.id))?.binding.workflowId).toBe(`op-${f.op.id}-e3`);
+    const plain=await fixture(kind);
+    expect((await plain.store.prepare(plain.db,plain.request)).binding.workflowId).toBe(`op-${plain.op.id}`);
+  });
   it("rebinds an alternative broker store to the actual locked SQL authority rather than trusting another approval ledger",async()=>{
     const f=await fixture(kind),other=await makeHarness({kind:"memory"});
     const actual=createBroker({...f.h.deps,store:other.store});

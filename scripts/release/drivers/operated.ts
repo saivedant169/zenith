@@ -255,12 +255,7 @@ async function runDriftCrashOperated(input: { scenarioId: DriverScenario; receip
     }
     catch (error) {
       facts.push({ id, status: "failed" });
-      // Opt-in diagnosis for disposable CI: only a fixed-vocabulary code (no free text, values or paths) reaches stderr.
-      const code = error instanceof Error ? error.message : "";
-      if (input.env.ZENITH_OPERATED_DIAGNOSTICS === "1") process.stderr.write(`operated step ${id} failed: ${/^[a-z0-9:._-]{1,80}$/.test(code) ? code : "unclassified " + (error instanceof Error && /^[A-Za-z]{1,40}$/.test(error.name) ? error.name : "value")
-        // A Playwright timeout names the locator it waited for: static UI text, with any URL removed.
-        + (error instanceof Error && error.name === "TimeoutError" ? " " + [error.message.split("\n")[0]!, error.message.split("\n").find((line) => /waiting for /.test(line)) ?? ""]
-          .map((line) => line.trim().replace(/[a-z]+:\/\/\S+/gi, "<url>").slice(0, 200)).join(" / ") : "")}\n`);
+      diagnoseOperatedFailure(input.env, "step " + id, error);
       throw new Error("Operated step failed");
     }
   };
@@ -280,6 +275,15 @@ async function runDriftCrashOperated(input: { scenarioId: DriverScenario; receip
   return receipt.checks.some(check => check.status === "failed") ? 1 : receipt.checks.some(check => check.status !== "passed") ? 3 : 0;
 }
 /** Preserve the J2 polling implementation while supplying its generic TypeScript contract. */
+/** Opt-in diagnosis for disposable CI: only a fixed-vocabulary code (no free text, values or paths) reaches stderr.
+ * A Playwright timeout also names the locator it waited for: static UI text, with any URL removed. */
+export function diagnoseOperatedFailure(env: NodeJS.ProcessEnv, where: string, error: unknown): void {
+  if (env.ZENITH_OPERATED_DIAGNOSTICS !== "1") return;
+  const code = error instanceof Error ? error.message : "";
+  const timeout = error instanceof Error && error.name === "TimeoutError" ? " " + [error.message.split("\n")[0]!, error.message.split("\n").find((line) => /waiting for /.test(line)) ?? ""]
+    .map((line) => line.trim().replace(/[a-z]+:\/\/\S+/gi, "<url>").slice(0, 200)).join(" / ") : "";
+  process.stderr.write(`operated ${where} failed: ${/^[a-z0-9:._-]{1,80}$/.test(code) ? code : "unclassified " + (error instanceof Error && /^[A-Za-z]{1,40}$/.test(error.name) ? error.name : "value") + timeout}\n`);
+}
 export function until<T>(read: () => Promise<T>, predicate: (value: T) => boolean, timeout = 180_000): Promise<T> { return journeyUntil(read, predicate, timeout); }
 export { command, ensure, sha256 };
 
@@ -338,7 +342,8 @@ export class UpgradeRestoreSession {
   constructor(readonly input: DriverInput) {}
   async step(id: string, work: () => Promise<void>): Promise<void> {
     try { await work(); this.facts.push({ id, status: "passed" }); }
-    catch {
+    catch (error) {
+      diagnoseOperatedFailure(this.input.env, "step " + id, error);
       if (id === "operator-cli-route" || id === "fresh-restore") this.cleanupBlocked = true;
       this.facts.push({ id, status: "failed" }); throw new Error("operated:" + id);
     }
@@ -540,7 +545,10 @@ export async function operatedRun(input: DriverInput, work: (session: UpgradeRes
     await session.step("preconditions", () => session.prepare());
     await work(session);
     await session.step("source-bound", async () => ensure(JSON.stringify(sourceBinding()) === JSON.stringify(session.state.source), "source-drift"));
-  } catch { failed = true; }
+  } catch (error) {
+    failed = true;
+    if (!(error instanceof Error && error.message.startsWith("operated:"))) diagnoseOperatedFailure(input.env, "outside-step", error);
+  }
   finally {
     try { await session.step("cleanup", () => session.finish()); } catch { failed = true; }
   }
@@ -898,7 +906,7 @@ async function runTenantExportOperated(input: TenantExportInput, work: (context:
   const step = async (id: string, fn: () => Promise<void>) => {
     const check = receipt.checks.find(item => item.id === id);
     ensure(check?.status === "skipped", "check-inventory");
-    try { await fn(); check!.status = "passed"; } catch { check!.status = "failed"; throw new Error("Operated driver check failed"); }
+    try { await fn(); check!.status = "passed"; } catch (error) { check!.status = "failed"; diagnoseOperatedFailure(input.env, "step " + id, error); throw new Error("Operated driver check failed"); }
   };
   try {
     await step("preconditions", async () => {
@@ -939,9 +947,10 @@ async function runTenantExportOperated(input: TenantExportInput, work: (context:
     if (!context) throw new Error("Operated context was not initialized");
     await work(context);
     await step("source-stable", async () => { ensure(JSON.stringify(sourceBinding()) === JSON.stringify(source), "source-drift"); });
-  } catch {
+  } catch (error) {
     // An exception between named steps is an attempted failure, not a skipped prerequisite.
     if (!receipt.checks.some(check => check.status === "failed")) {
+      diagnoseOperatedFailure(input.env, "outside-step", error);
       const pending = receipt.checks.find(check => check.id !== "owned-cleanup" && check.status === "skipped");
       if (pending) pending.status = "failed";
     }

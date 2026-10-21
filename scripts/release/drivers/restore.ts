@@ -184,7 +184,10 @@ export async function runRestoreScenario(input: DriverInput): Promise<number> {
       if (input.env.ZENITH_OPERATED_DIAGNOSTICS === "1" && (result.exitCode !== 0 || result.timedOut)) {
         // Step status and id only (the CLI prints "STATUS id detail"); never details, URLs or values.
         const steps = result.stdout.split("\n").flatMap(line => { const m = /^([A-Z]{2,12})\s+([a-z][a-z-]{1,20})\s/.exec(line); return m ? [m[1] + " " + m[2]] : []; }).slice(-20);
-        process.stderr.write("restore-cli " + JSON.stringify({ exitCode: result.exitCode, signal: result.signal, timedOut: result.timedOut, overflow: result.overflow, steps }) + "\n");
+        const elide = (line: string) => line.replace(/\b\w+=\S+/g, "…=…").replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/(?:\/[^\s/]+){2,}/g, "…path").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 240);
+        const errors = result.stderr.split("\n").map(line => line.trim()).filter(Boolean).slice(-3).map(elide);
+        const needsPerson = result.stdout.split("\n").filter(line => line.startsWith("NEEDS A PERSON:")).slice(0, 4).map(elide);
+        process.stderr.write("restore-cli " + JSON.stringify({ exitCode: result.exitCode, signal: result.signal, timedOut: result.timedOut, overflow: result.overflow, steps, errors, needsPerson }) + "\n");
       }
       ensure(result.exitCode === 0 && result.signal === null && !result.timedOut && !result.overflow
         && !result.launchFailed && !result.streamFailed, "restore-cli-closed-without-overflow");

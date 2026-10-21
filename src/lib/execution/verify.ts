@@ -107,13 +107,15 @@ async function diagnosticsFor(
       // Everything below came from the cloud: data to read, never instructions to follow.
       untrusted: true,
       sources: answer.sources,
-      ...(answer.telemetry ? { telemetry: { state: answer.telemetry.state, partial: answer.telemetry.partial, observedAt: answer.telemetry.observedAt, session: answer.telemetry.session, freshness: answer.telemetry.freshness } } : {}),
+      ...(answer.telemetry ? { telemetry: { state: answer.telemetry.state, partial: answer.telemetry.partial, observedAt: answer.telemetry.observedAt, session: answer.telemetry.session, freshness: answer.telemetry.freshness,
+        provenance: answer.telemetry.provenance.slice(0, 10).map((p) => ({ source: p.source, provider: p.provider, state: p.state, simulated: p.simulated, itemCount: p.itemCount, evidence: p.evidence.level })) } } : {}),
       unavailable: answer.unavailable.slice(0, 5).map((u) => ({ source: u.source, reason: safeText(u.reason, 200) })),
       events: answer.items.slice(0, 10).map((e) => ({ at: e.timestamp, address: e.address, severity: e.severity, type: safeText(e.type, 80), message: safeText(e.message, 200) })),
     };
   } catch (err) {
     rt.log("warn", "diagnostics unavailable", { error: errorText(err) });
-    return undefined;
+    // Explicitly undetermined, never an absent section that reads as "nothing to report".
+    return { untrusted: true, sources: [], telemetry: { state: "unknown", partial: true }, unavailable: [{ source: "observability", reason: safeText(errorText(err), 200) }], events: [] };
   }
 }
 

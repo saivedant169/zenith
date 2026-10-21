@@ -104,6 +104,23 @@ describe("verifyInfrastructure", () => {
     expect(w.stored()).not.toContain(CANARY_SECRET);
   });
 
+  it("records diagnostics as explicitly unknown, never omitted, when the observability read throws", async () => {
+    const w = world({
+      overrides: {
+        "aws:ecs_service": {
+          verify: async (ctx, node) => ({ address: node.address, status: "failed", checks: [{ id: "steady_state", description: "steady state", passed: false }], checkedAt: ctx.now().toISOString(), simulated: false }),
+        },
+      },
+    });
+    (w.deps as { observability?: ObservabilityFactory }).observability = () => { throw new Error("events endpoint timed out"); };
+    await prepared(w);
+    await w.activities.verifyInfrastructure({ operationId: OP });
+    const summary = w.evidence.ofKind("verification")[0].summary as { diagnostics: { telemetry: { state: string }; unavailable: { source: string; reason: string }[]; events: unknown[] } };
+    expect(summary.diagnostics.telemetry.state).toBe("unknown");
+    expect(summary.diagnostics.unavailable).toEqual([{ source: "observability", reason: expect.stringContaining("timed out") }]);
+    expect(summary.diagnostics.events).toEqual([]);
+  });
+
   it("is unknown — not failed, not passed — when a check is unknown and none failed", async () => {
     const w = world({
       overrides: {

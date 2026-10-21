@@ -153,6 +153,10 @@ describe("telemetry envelope on fabric answers", () => {
 describe("telemetry primitives", () => {
   it("classifies refusals as inaccessible and everything else as unknown", () => {
     for (const r of ["AccessDenied", "UnauthorizedOperation", "403 Forbidden", "Scope is unavailable.", "The credential broker refused a session (denied)."]) expect(classifyUnavailable(r)).toBe("inaccessible");
+    // Provider token failures are refusals; a read that never had a broker session is undetermined.
+    for (const r of ["read_failed:ExpiredTokenException", "InvalidClientTokenId: The security token included in the request is invalid", "UnrecognizedClientException", "SignatureDoesNotMatch"]) expect(classifyUnavailable(r)).toBe("inaccessible");
+    for (const r of ["no AWS session: reading aws signals needs a credential-broker session", "no GCP session: signals need a credential-broker session",
+      "Zenith-managed signals need a workspace and a credential-broker Kubernetes session for the tenant namespace"]) expect(classifyUnavailable(r)).toBe("unknown");
     for (const r of ["timed out after 10s", "source does not implement log queries", "no observability source supports log signals"]) expect(classifyUnavailable(r)).toBe("unknown");
   });
 

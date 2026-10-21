@@ -101,11 +101,13 @@ export interface TelemetryEnvelope {
 /* ------------------------------ classification ------------------------------ */
 
 const INACCESSIBLE =
-  /(?:access ?denied|denied|forbidden|unauthori[sz]ed|not authori[sz]ed|permission|credential|session (?:ended|expired|refused)|refused a session|scope is unavailable|expired token|invalid token|\b40[13]\b)/i;
+  /(?:access ?denied|denied|forbidden|unauthori[sz]ed|not authori[sz]ed|permission|credential|session (?:ended|expired|refused)|refused a session|scope is unavailable|expired ?token|invalid ?(?:client ?)?token|unrecognized ?client|signature ?does ?not ?match|\b40[13]\b)/i;
+/** No provider session was ever requested for this read: nothing was refused, so the state is undetermined. */
+const NOT_ATTEMPTED = /\bneeds? (?:a workspace and )?a credential-broker\b/i;
 
 /** Map a source's failure text to `inaccessible` (refused) or `unknown` (could not be determined). */
 export function classifyUnavailable(reason: string): "unknown" | "inaccessible" {
-  return INACCESSIBLE.test(reason) ? "inaccessible" : "unknown";
+  return !NOT_ATTEMPTED.test(reason) && INACCESSIBLE.test(reason) ? "inaccessible" : "unknown";
 }
 
 export function evidenceOf(source: string): { level: string; basis: string } {

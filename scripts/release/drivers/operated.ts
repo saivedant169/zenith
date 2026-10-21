@@ -282,7 +282,10 @@ export function diagnoseOperatedFailure(env: NodeJS.ProcessEnv, where: string, e
   const code = error instanceof Error ? error.message : "";
   const timeout = error instanceof Error && error.name === "TimeoutError" ? " " + [error.message.split("\n")[0]!, error.message.split("\n").find((line) => /waiting for /.test(line)) ?? ""]
     .map((line) => line.trim().replace(/[a-z]+:\/\/\S+/gi, "<url>").slice(0, 200)).join(" / ") : "";
-  process.stderr.write(`operated ${where} failed: ${/^[a-z0-9:._-]{1,80}$/.test(code) ? code : "unclassified " + (error instanceof Error && /^[A-Za-z]{1,40}$/.test(error.name) ? error.name : "value") + timeout}\n`);
+  // Typed product errors (RecoveryToolError, ControlStoreError, ...) carry a fixed snake_case code.
+  const errorCode = error instanceof Error ? (error as unknown as { code?: unknown }).code : undefined;
+  const typed = typeof errorCode === "string" && /^[a-z][a-z_]{1,40}$/.test(errorCode) ? " code=" + errorCode : "";
+  process.stderr.write(`operated ${where} failed: ${/^[a-z0-9:._-]{1,80}$/.test(code) ? code : "unclassified " + (error instanceof Error && /^[A-Za-z]{1,40}$/.test(error.name) ? error.name : "value") + typed + timeout}\n`);
 }
 export function until<T>(read: () => Promise<T>, predicate: (value: T) => boolean, timeout = 180_000): Promise<T> { return journeyUntil(read, predicate, timeout); }
 export { command, ensure, sha256 };

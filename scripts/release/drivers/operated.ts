@@ -252,7 +252,7 @@ async function runDriftCrashOperated(input: { scenarioId: DriverScenario; receip
       facts.push({ id, status: "failed" });
       // Opt-in diagnosis for disposable CI: only a fixed-vocabulary code (no free text, values or paths) reaches stderr.
       const code = error instanceof Error ? error.message : "";
-      if (input.env.ZENITH_OPERATED_DIAGNOSTICS === "1") process.stderr.write(`operated step ${id} failed: ${/^[a-z0-9:._-]{1,80}$/.test(code) ? code : "unclassified"}\n`);
+      if (input.env.ZENITH_OPERATED_DIAGNOSTICS === "1") process.stderr.write(`operated step ${id} failed: ${/^[a-z0-9:._-]{1,80}$/.test(code) ? code : "unclassified " + (error instanceof Error && /^[A-Za-z]{1,40}$/.test(error.name) ? error.name : "value")}\n`);
       throw new Error("Operated step failed");
     }
   };

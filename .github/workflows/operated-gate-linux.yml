@@ -13,13 +13,14 @@ on:
         type: choice
         options:
           - drv2-drift-repair
+          - drv2-crash-partition
         default: drv2-drift-repair
 
 permissions:
   contents: read
 
 concurrency:
-  group: operated-gate-linux-${{ github.ref }}
+  group: operated-gate-linux-${{ github.ref }}-${{ inputs.gate }}
   cancel-in-progress: false
 
 jobs:

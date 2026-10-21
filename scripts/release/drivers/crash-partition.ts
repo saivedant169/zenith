@@ -24,6 +24,22 @@ async function worker(session: OperatedSession): Promise<Container> {
   return value;
 }
 async function mutate(session: OperatedSession, args: string[]): Promise<void> { await worker(session); await command("docker", [...args, session.stack.worker]); }
+/** Diagnostics only: structured log keys of a container (level, message key, failure category, error name/code, elided startup sentence), never values. */
+async function logKeys(id: string): Promise<[string, number][]> {
+  const logs = id ? await command("docker", ["logs", "--tail", "80", id]).catch(() => "") : "";
+  const seen = new Map<string, number>();
+  for (const line of logs.split("\n")) {
+    try {
+      const entry = JSON.parse(line) as { level?: string; msg?: string; failureCategory?: string; error?: string | { name?: string; code?: string }; err?: { name?: string; code?: string } };
+      const failure = typeof entry.error === "object" ? entry.error : entry.err;
+      // Startup failures carry a product-authored error sentence; key=value pairs, URLs, paths and long tokens are elided.
+      const sentence = typeof entry.error === "string" ? entry.error.replace(/\b\w+=\S+/g, "…=…").replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/(?:\/[^\s/]+){2,}/g, "…path").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 200) : undefined;
+      const key = [entry.level, entry.msg, entry.failureCategory, failure?.name, failure?.code].filter(value => typeof value === "string").map(value => value!.replace(/[^A-Za-z0-9 ._:-]/g, "").slice(0, 80)).concat(sentence ? [sentence] : []).join(" | ");
+      if (key) seen.set(key, (seen.get(key) ?? 0) + 1);
+    } catch { seen.set("unstructured line", (seen.get("unstructured line") ?? 0) + 1); }
+  }
+  return [...seen].slice(-15);
+}
 /** The durable binding of an execution is its acknowledged start intent with the run id execute() started; operations.workflow_id is not written by any production path. */
 async function durableStart(session: OperatedSession, env: NodeJS.ProcessEnv, operationId: string, workflowId: string, code: string): Promise<void> {
   const authority = (await session.detail(operationId)).authority;
@@ -155,19 +171,7 @@ export async function crashPartitionDriver(receiptFile: string, env = process.en
         // Diagnostics only: structured log keys of the unready peer (level, message key, error name/code), never values.
         if (env.ZENITH_OPERATED_DIAGNOSTICS === "1") {
           const id = (await compose(["ps", "-aq", "execution-worker-" + peerWorkerId]).catch(() => "")).trim();
-          const logs = id ? await command("docker", ["logs", "--tail", "80", id]).catch(() => "") : "";
-          const seen = new Map<string, number>();
-          for (const line of logs.split("\n")) {
-            try {
-              const entry = JSON.parse(line) as { level?: string; msg?: string; failureCategory?: string; error?: string | { name?: string; code?: string }; err?: { name?: string; code?: string } };
-              const failure = typeof entry.error === "object" ? entry.error : entry.err;
-              // Startup failures carry a product-authored error sentence; key=value pairs, URLs, paths and long tokens are elided.
-              const sentence = typeof entry.error === "string" ? entry.error.replace(/\b\w+=\S+/g, "…=…").replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/(?:\/[^\s/]+){2,}/g, "…path").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 200) : undefined;
-              const key = [entry.level, entry.msg, entry.failureCategory, failure?.name, failure?.code].filter(value => typeof value === "string").map(value => value!.replace(/[^A-Za-z0-9 ._:-]/g, "").slice(0, 80)).concat(sentence ? [sentence] : []).join(" | ");
-              if (key) seen.set(key, (seen.get(key) ?? 0) + 1);
-            } catch { seen.set("unstructured line", (seen.get("unstructured line") ?? 0) + 1); }
-          }
-          process.stderr.write("peer-unready " + JSON.stringify([...seen].slice(-15)) + "\n");
+          process.stderr.write("peer-unready " + JSON.stringify(await logKeys(id)) + "\n");
         }
         throw error;
       });
@@ -183,7 +187,14 @@ export async function crashPartitionDriver(receiptFile: string, env = process.en
       // Rejoin the original while a genuinely different joined worker is still polling.
       await worker(session); await command("docker", ["network", "connect", network, session.stack.worker]);
       if (!(await worker(session)).State.Running) await mutate(session, ["start"]);
-      await until(() => worker(session), value => value.State.Health?.Status === "healthy", 240_000).catch(() => { throw new Error("journey:rejoined-worker-unhealthy"); });
+      await until(() => worker(session), value => value.State.Health?.Status === "healthy", 240_000).catch(async () => {
+        if (env.ZENITH_OPERATED_DIAGNOSTICS === "1") {
+          const [state] = JSON.parse(await command("docker", ["inspect", "--format", "{{json .State}}", session.stack.worker]).then(text => "[" + text + "]").catch(() => "[{}]")) as { Status?: string; ExitCode?: number; Health?: { Status?: string; FailingStreak?: number } }[];
+          const restarts = (await command("docker", ["inspect", "--format", "{{.RestartCount}}", session.stack.worker]).catch(() => "")).trim();
+          process.stderr.write("rejoined-unready " + JSON.stringify({ status: state?.Status, exitCode: state?.ExitCode, health: state?.Health?.Status, failingStreak: state?.Health?.FailingStreak, restarts, logs: await logKeys(session.stack.worker) }) + "\n");
+        }
+        throw new Error("journey:rejoined-worker-unhealthy");
+      });
       const first = await session.propose(2), second = await session.propose(3, "rest");
       await session.approve(first); await session.approve(second);
       const [firstWorkflow, secondWorkflow] = await Promise.all([session.execute(first), session.execute(second)]);

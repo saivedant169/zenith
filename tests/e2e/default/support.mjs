@@ -6,6 +6,8 @@ import { pathToFileURL } from 'node:url';
 import { z } from 'zod';
 import { load as yamlLoad } from 'js-yaml';
 
+// Read once at load: the journey scrubs process.env to an allowlist before it makes requests.
+const DIAGNOSTICS = process.env.ZENITH_OPERATED_DIAGNOSTICS === '1';
 export const fail = id => { throw new Error('journey:' + id); };
 export const ensure = (condition, id) => { if (!condition) fail(id); };
 export const sha256 = value => createHash('sha256').update(typeof value === 'string' ? value : JSON.stringify(value)).digest('hex');
@@ -82,7 +84,7 @@ export async function browserRequest(page, endpoint, body, method = body === und
   }, { endpoint, body, method, workspaceId });
 }
 export function ok(response) {
-  if (process.env.ZENITH_OPERATED_DIAGNOSTICS === '1' && !(response.status >= 200 && response.status < 300 && response.data?.ok !== false)) {
+  if (DIAGNOSTICS && !(response.status >= 200 && response.status < 300 && response.data?.ok !== false)) {
     // Opt-in CI diagnosis: the status and the API's own fixed-vocabulary error code only.
     const code = response.data?.error?.code;
     process.stderr.write(`http-refused status=${Number(response.status)} code=${typeof code === 'string' && /^[a-z0-9_.:-]{1,64}$/.test(code) ? code : 'none'}\n`);

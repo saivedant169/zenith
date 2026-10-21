@@ -183,20 +183,26 @@ export async function crashPartitionDriver(receiptFile: string, env = process.en
       // Rejoin the original while a genuinely different joined worker is still polling.
       await worker(session); await command("docker", ["network", "connect", network, session.stack.worker]);
       if (!(await worker(session)).State.Running) await mutate(session, ["start"]);
-      await until(() => worker(session), value => value.State.Health?.Status === "healthy", 240_000);
+      await until(() => worker(session), value => value.State.Health?.Status === "healthy", 240_000).catch(() => { throw new Error("journey:rejoined-worker-unhealthy"); });
       const first = await session.propose(2), second = await session.propose(3, "rest");
       await session.approve(first); await session.approve(second);
-      await Promise.all([session.execute(first), session.execute(second)]);
-      await Promise.all([session.terminal(first), session.terminal(second)]);
+      const [firstWorkflow, secondWorkflow] = await Promise.all([session.execute(first), session.execute(second)]);
+      await Promise.all([session.terminal(first), session.terminal(second)]).catch((error: unknown) => {
+        throw error instanceof Error && error.message === "journey:readback-timeout" ? new Error("journey:writers-terminal-timeout") : error;
+      });
+      await durableStart(session, env, first, firstWorkflow, "first-writer-workflow");
+      await durableStart(session, env, second, secondWorkflow, "second-writer-workflow");
       const url = (hostEnvironment(session.stack.state) as Record<string, string>).ZENITH_PLATFORM_DB_URL;
       const sql = postgres(url, { prepare: false, max: 1, connect_timeout: 10, ssl: { ca: fs.readFileSync(path.join(session.stack.state.directory, "tls/ca.crt"), "utf8"), rejectUnauthorized: true } });
       try {
         const rows = await sql.begin("read only", tx => tx`select id, status, fence_token::text, lease_scope, workflow_id from platform.operations where workspace_id=${session.workspaceId} and environment_id=${session.environmentId} and id in (${first},${second})`);
-        ensure(rows.length === 2 && rows.every(row => row.status === "succeeded" && row.lease_scope === "env:" + session.environmentId && /^[1-9][0-9]*$/.test(row.fence_token) && row.workflow_id), "native-writer-fences");
+        ensure(rows.length === 2 && rows.every(row => row.status === "succeeded" && row.lease_scope === "env:" + session.environmentId && /^[1-9][0-9]*$/.test(row.fence_token)), "native-writer-fences");
         ensure(rows[0].fence_token !== rows[1].fence_token, "distinct-serialized-fences");
         const latest = [...rows].sort((a, b) => BigInt(a.fence_token) < BigInt(b.fence_token) ? -1 : 1).at(-1)!;
         const replicas = latest.id === first ? 2 : 3;
-        await session.readback(replicas);
+        await session.readback(replicas).catch((error: unknown) => {
+          throw error instanceof Error && error.message === "journey:readback-timeout" ? new Error("journey:latest-writer-readback-timeout") : error;
+        });
         session.readbacks.writers = sha256(rows);
       } finally { await sql.end({ timeout: 5 }); }
       lastGeneration = (await session.deployment()).metadata.generation;

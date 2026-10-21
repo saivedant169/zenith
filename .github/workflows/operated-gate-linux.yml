@@ -152,6 +152,15 @@ jobs:
             } >> "$GITHUB_ENV"
           fi
 
+      - name: Pull the pinned export fixture engines (drivers-d4-export only)
+        if: inputs.gate == 'drivers-d4-export'
+        # The driver inspects these digest-pinned images and never pulls them itself (DRV-4.md).
+        run: |
+          set -euo pipefail
+          for image in "$ZENITH_LOCAL_EXPORT_POSTGRES_IMAGE" "$ZENITH_LOCAL_EXPORT_MYSQL_IMAGE" "$ZENITH_LOCAL_EXPORT_MINIO_IMAGE"; do
+            docker pull -q "$image"
+          done
+
       - name: Lean default stack (1 API + 1 worker, no port offset)
         run: |
           set -euo pipefail

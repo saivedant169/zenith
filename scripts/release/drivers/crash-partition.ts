@@ -191,7 +191,13 @@ export async function crashPartitionDriver(receiptFile: string, env = process.en
         if (env.ZENITH_OPERATED_DIAGNOSTICS === "1") {
           const [state] = JSON.parse(await command("docker", ["inspect", "--format", "{{json .State}}", session.stack.worker]).then(text => "[" + text + "]").catch(() => "[{}]")) as { Status?: string; ExitCode?: number; Health?: { Status?: string; FailingStreak?: number } }[];
           const restarts = (await command("docker", ["inspect", "--format", "{{.RestartCount}}", session.stack.worker]).catch(() => "")).trim();
-          process.stderr.write("rejoined-unready " + JSON.stringify({ status: state?.Status, exitCode: state?.ExitCode, health: state?.Health?.Status, failingStreak: state?.Health?.FailingStreak, restarts, logs: await logKeys(session.stack.worker) }) + "\n");
+          // Readiness reports enumerated check states only; the reconcile status log carries a phase and counts.
+          const ready = (await command("docker", ["exec", session.stack.worker, "node", "-e", "fetch('http://127.0.0.1:9464/readyz').then(r=>r.text()).then(t=>process.stdout.write(t),()=>process.stdout.write('{}'))"]).catch(() => "{}")).slice(0, 400);
+          const statusLines = (await command("docker", ["logs", "--tail", "200", session.stack.worker]).catch(() => "")).split("\n").flatMap((line: string) => { try { const entry = JSON.parse(line); return entry.msg === "durable reconciliation status" ? [entry] : []; } catch { return []; } });
+          const last = statusLines.at(-1) as { phase?: unknown; observationCurrent?: unknown; running?: unknown; counts?: Record<string, unknown> } | undefined;
+          const counts = last?.counts ? Object.fromEntries(Object.entries(last.counts).filter(([key, value]) => /^[A-Za-z]{1,30}$/.test(key) && (typeof value === "number" || typeof value === "boolean"))) : null;
+          const reconcile = last ? { phase: typeof last.phase === "string" ? last.phase.slice(0, 20) : null, observationCurrent: last.observationCurrent === true, running: typeof last.running === "number" ? last.running : null, counts } : null;
+          process.stderr.write("rejoined-unready " + JSON.stringify({ status: state?.Status, exitCode: state?.ExitCode, health: state?.Health?.Status, failingStreak: state?.Health?.FailingStreak, restarts, ready, reconcile, logs: await logKeys(session.stack.worker) }) + "\n");
         }
         throw new Error("journey:rejoined-worker-unhealthy");
       });

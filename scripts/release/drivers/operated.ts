@@ -1061,7 +1061,10 @@ export async function deployKind(ctx: OperatedContext, tenant: Tenant): Promise<
   const stalled = (code: string) => async (error: unknown): Promise<never> => {
     if (error instanceof Error && error.message === "journey:readback-timeout") {
       const view = await detailOf(tenant, result.operationId).catch(() => undefined) as OperationStatusView | undefined;
-      if (ctx.input.env.ZENITH_OPERATED_DIAGNOSTICS === "1") process.stderr.write(`operated outside-step failed: journey:${code} ${JSON.stringify({ status: view?.operation.status, round: view?.operation.approvalRound ?? null, phase: view?.authority?.phase ?? null })}\n`);
+      // The product's error sentence with key=value pairs, URLs, paths and long tokens elided.
+      const raw = (view?.operation as { error?: unknown } | undefined)?.error;
+      const error = typeof raw === "string" ? raw.replace(/\b\w+=\S+/g, "…=…").replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/(?:\/[^\s/]+){2,}/g, "…path").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 240) : null;
+      if (ctx.input.env.ZENITH_OPERATED_DIAGNOSTICS === "1") process.stderr.write(`operated outside-step failed: journey:${code} ${JSON.stringify({ status: view?.operation.status, round: view?.operation.approvalRound ?? null, phase: view?.authority?.phase ?? null, error })}\n`);
       throw new Error("journey:" + code);
     }
     throw error;

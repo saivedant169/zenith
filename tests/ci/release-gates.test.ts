@@ -113,7 +113,7 @@ const coreRun = (step: string): string => `node scripts/ci/run-gate.mjs core --r
 
 const requiredCommands: Record<string, string[]> = {
   verify: [
-    '"$RUNNER_TEMP/actionlint" .github/workflows/ci.yml .github/workflows/tick.yml .github/workflows/agent-control.yml .github/workflows/live-acceptance.yml .github/workflows/packaged-workers.yml .github/workflows/skipped-platforms.yml .github/workflows/release.yml .github/workflows/clean-host-default-stack.yml .github/workflows/clean-host-journey.yml .github/workflows/clean-host-kind-guest.yml .github/workflows/build-profiles-linux.yml .github/workflows/product-store-postgrest.yml',
+    '"$RUNNER_TEMP/actionlint" .github/workflows/ci.yml .github/workflows/tick.yml .github/workflows/agent-control.yml .github/workflows/live-acceptance.yml .github/workflows/packaged-workers.yml .github/workflows/skipped-platforms.yml .github/workflows/release.yml .github/workflows/clean-host-default-stack.yml .github/workflows/clean-host-journey.yml .github/workflows/clean-host-kind-guest.yml .github/workflows/build-profiles-linux.yml .github/workflows/product-store-postgrest.yml .github/workflows/linux-runner-lifecycle.yml',
     INSTALL,
     coreRun("typecheck"),
     coreRun("lint"),

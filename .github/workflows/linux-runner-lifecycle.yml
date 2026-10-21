@@ -1,0 +1,384 @@
+name: Linux runner lifecycle
+
+# PROD-MACH-04 native Linux evidence for the agent delivery lifecycle:
+#   agent-lifecycle        - durable result spool, reconnect/heartbeat report, revocation,
+#                            trust-key rotation and the signed update/hold/rollback state
+#                            machine, against a real PostgreSQL 16 service container
+#                            (the platform control store, migration 54 included).
+#   systemd-update-rollback - the gated real-systemd acceptance: the built zenithd is
+#                            installed as a unit under a test-owned name, registers, takes
+#                            a held channel, commits a signed update, rotates trust, rolls
+#                            a failed signed downgrade back and stops on revocation.
+# Dispatch only, on disposable GitHub-hosted runners. No secrets: every credential is
+# generated inside the job or is the throwaway loopback password used across ci.yml.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linux-runner-lifecycle-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  agent-lifecycle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    services:
+      postgres:
+        # The same digest as the `postgres` job in ci.yml: one Postgres build for every lane.
+        image: postgres:16.15-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+        env:
+          POSTGRES_USER: postgres
+          # Not a secret; see the `postgres` job in ci.yml. Reachable only from this job.
+          POSTGRES_PASSWORD: zenith-ci-throwaway
+          POSTGRES_DB: zenith_lifecycle_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready --username postgres --dbname zenith_lifecycle_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+
+    env:
+      GOTOOLCHAIN: local
+      # Every -count repetition must pass; one skipped or failed repetition fails the lane.
+      GO_COUNT: '3'
+      # Exact top-level names. Each must run and pass in every repetition, never skip.
+      GO_REQUIRED_TESTS: |
+        TestSpooledResultSurvivesOutageAndRestartThenReplays
+        TestSpoolIsClearedAfterAcceptanceAndAfterAlreadySettled
+        TestHeartbeatCarriesLifecycleReport
+        TestRevocationIsDurableAndStopsRestartedAgent
+        TestRevocationViaHeartbeatStopsWorkAndExits3
+        TestRevocationOn401AgentRevokedExits3
+        TestAlreadySettledResultIsNotRetried
+        TestResultPostingRetriesTransientFailures
+        TestHeartbeatWiresDurableUpdateControlAndWake
+        TestNextKeysArePinnedAndPersisted
+        TestRotationIdentityPersistenceUsesPrivateExclusiveReplacement
+        TestRotationPersistenceFailureRetriesSameTLSAnnouncement
+        TestRotationInvalidDuplicateConflictAndPinnedLimit
+        TestRotationConcurrentReadersObservePersistenceBeforePublication
+        TestRotationOwnsImmutableRegistrationSnapshot
+        TestPutSurvivesReopenAndFirstResultWins
+        TestForeignIdentityAndCorruptEntriesAreQuarantined
+        TestBoundsRefuseNewEntriesInsteadOfDroppingOld
+        TestRecordAttemptKeepsAgeAndCount
+        TestStageVerifiesSignatureDigestAndSmokeThenActivatesAsPending
+        TestStageRefusesBadSignatureDigestSmokeAndReplay
+        TestLauncherExecsPendingReleaseThenRollsBackWhenItNeverBecomesHealthy
+        TestLauncherRollsBackAfterDeadlineAndOnTamperedBinary
+        TestCommitClearsPendingAndKeepsPreviousForManualRollback
+        TestLauncherSkipsWhenAlreadyTheActiveRelease
+        TestDirectiveRefusesWrongAuthorityAndBindings
+        TestHoldPersistsAndRevisionsCannotBeReplayed
+        TestCorruptionAndPersistenceFailureDoNotGrantAuthority
+        TestFreshnessIsRequiredAfterRestartAndExpiry
+        TestStageRequiresExactRequestedEnvelopeAndIndependentReleaseSignature
+        TestDisabledLocalUpdatesCannotBeEnabledRemotely
+        TestSignVerifyRoundTrip
+        TestVerifyRejectsWrongKeyTamperExpiryAndUnknownFields
+        TestDecideEnforcesSequenceChannelAndDowngradeRules
+      ZENITH_TEST_PLATFORM_PG_URL: postgresql://postgres:zenith-ci-throwaway@127.0.0.1:5432/zenith_lifecycle_ci
+      ZENITH_DATA: ${{ github.workspace }}/.data-ci-lifecycle
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: '1.27.1'
+          cache-dependency-path: |
+            go/go.mod
+            go/go.sum
+
+      - name: Toolchain is exactly the pinned one
+        working-directory: go
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(go env GOVERSION)" = "go1.27.1"
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.23.3'
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+
+      - name: Create the Supabase stand-in roles
+        # The same stand-ins apply-supabase-migrations.sh creates. The platform migrations
+        # grant to service_role only when it exists, so 0054's grants are exercised here.
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v psql >/dev/null
+          psql "$ZENITH_TEST_PLATFORM_PG_URL" --quiet --set ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          begin
+            if not exists (select 1 from pg_roles where rolname = 'service_role') then
+              create role service_role nologin noinherit bypassrls;
+            end if;
+          end
+          $$;
+          alter role service_role bypassrls;
+          do $$
+          begin
+            if not exists (select 1 from pg_roles where rolname = 'anon') then
+              create role anon nologin noinherit;
+            end if;
+            if not exists (select 1 from pg_roles where rolname = 'authenticated') then
+              create role authenticated nologin noinherit;
+            end if;
+            if not exists (select 1 from pg_roles where rolname = 'supabase_auth_admin') then
+              create role supabase_auth_admin nologin noinherit;
+            end if;
+          end
+          $$;
+          SQL
+
+      - name: Migrate the platform control store and require a current ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+          node node_modules/tsx/dist/cli.mjs scripts/platform/migrate.ts --url "$ZENITH_TEST_PLATFORM_PG_URL"
+          node node_modules/tsx/dist/cli.mjs scripts/platform/migrate.ts --url "$ZENITH_TEST_PLATFORM_PG_URL" --status
+
+      - name: Go agent spool, lifecycle, rotation and update tests
+        id: go
+        working-directory: go
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP"
+          regex="^($(printf '%s\n' "$GO_REQUIRED_TESTS" | grep -v '^[[:space:]]*$' | sed 's/^[[:space:]]*//' | paste -sd'|' -))\$"
+          go test -race -count="$GO_COUNT" -timeout 25m -json -run "$regex" \
+            ./internal/agent/... ./internal/runner/update ./internal/release > "$RUNNER_TEMP/go-lifecycle.json"
+
+      - name: Vitest runner lifecycle and Postgres update-control tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .data-ci-lane
+          npx vitest run --no-file-parallelism --reporter=default --reporter=json --outputFile.json=.data-ci-lane/linux-runner-lifecycle-vitest.json \
+            tests/runners/update-control-postgres.test.ts \
+            tests/runners/lifecycle.test.ts
+
+      - name: Write the agent-lifecycle receipt and fail on any missing, failed or skipped test
+        if: always()
+        shell: bash
+        env:
+          GO_OUTCOME: ${{ steps.go.outcome }}
+          RECEIPT_RUN_ID: ${{ github.run_id }}
+          RECEIPT_RUN_ATTEMPT: ${{ github.run_attempt }}
+          RECEIPT_COMMIT: ${{ github.sha }}
+        run: |
+          node --input-type=module <<'JS'
+          import fs from "node:fs";
+          const required = process.env.GO_REQUIRED_TESTS.split("\n").map((s) => s.trim()).filter(Boolean);
+          const count = Number(process.env.GO_COUNT);
+          const tally = new Map();
+          let goLines = [];
+          try { goLines = fs.readFileSync(`${process.env.RUNNER_TEMP}/go-lifecycle.json`, "utf8").split("\n"); } catch { /* absent: go never ran */ }
+          for (const line of goLines) {
+            let e;
+            try { e = JSON.parse(line); } catch { continue; }
+            if (!e.Test || !["pass", "fail", "skip"].includes(e.Action)) continue;
+            const t = tally.get(e.Test) ?? { pass: 0, fail: 0, skip: 0 };
+            t[e.Action] += 1;
+            tally.set(e.Test, t);
+          }
+          const go = required.map((name) => {
+            const t = tally.get(name) ?? { pass: 0, fail: 0, skip: 0 };
+            const ok = t.pass >= count && t.fail === 0 && t.skip === 0;
+            return { name, ...t, ok };
+          });
+          // Vitest: each file must run, pass every test, and the real-PostgreSQL case must not skip.
+          const vitestFile = ".data-ci-lane/linux-runner-lifecycle-vitest.json";
+          const vitest = { files: [], pgCaseRan: false, ok: false };
+          try {
+            const report = JSON.parse(fs.readFileSync(vitestFile, "utf8"));
+            vitest.files = report.testResults.map((f) => ({
+              file: f.name.replace(process.cwd() + "/", ""),
+              suite: f.status,
+              passed: f.assertionResults.filter((a) => a.status === "passed").map((a) => a.fullName),
+              failed: f.assertionResults.filter((a) => a.status === "failed").map((a) => a.fullName),
+              skipped: f.assertionResults.filter((a) => !["passed", "failed"].includes(a.status)).map((a) => a.fullName),
+            }));
+            vitest.pgCaseRan = vitest.files.some((f) => f.passed.some((n) => n.includes("real PostgreSQL serializes conflicting update/hold intents")));
+            vitest.ok = report.testResults.length === 2 && vitest.files.every((f) => f.suite === "passed" && f.failed.length === 0 && f.skipped.length === 0 && f.passed.length > 0) && vitest.pgCaseRan;
+          } catch { /* absent or unreadable: the lane did not pass */ }
+          const goOk = process.env.GO_OUTCOME === "success" && go.every((g) => g.ok);
+          const verdict = goOk && vitest.ok ? "pass" : "fail";
+          const receipt = {
+            schema: "zenith.linux-runner-lifecycle.agent-lifecycle/v1",
+            runId: process.env.RECEIPT_RUN_ID, runAttempt: process.env.RECEIPT_RUN_ATTEMPT, commit: process.env.RECEIPT_COMMIT,
+            runner: "ubuntu-24.04", goVersion: "1.27.1", goCount: count, goStepOutcome: process.env.GO_OUTCOME,
+            go: { passed: go.filter((g) => g.ok).map((g) => g.name), failed: go.filter((g) => g.fail > 0).map((g) => g.name), skipped: go.filter((g) => g.skip > 0).map((g) => g.name), notRun: go.filter((g) => g.pass === 0 && g.fail === 0 && g.skip === 0).map((g) => g.name), tests: go },
+            vitest,
+            verdict,
+          };
+          fs.mkdirSync(".data-ci-lane", { recursive: true });
+          fs.writeFileSync(".data-ci-lane/linux-runner-lifecycle-agent.json", JSON.stringify(receipt, null, 2) + "\n");
+          console.log(`agent-lifecycle verdict: ${verdict}; go ${go.filter((g) => g.ok).length}/${required.length} required tests passed in all ${count} runs; vitest ${vitest.ok ? "ok" : "not ok"}`);
+          process.exit(verdict === "pass" ? 0 : 1);
+          JS
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: linux-runner-lifecycle-agent-${{ github.run_id }}
+          path: .data-ci-lane/linux-runner-lifecycle-agent.json
+          if-no-files-found: error
+          retention-days: 30
+
+  systemd-update-rollback:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    env:
+      GOTOOLCHAIN: local
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: '1.27.1'
+          cache-dependency-path: |
+            go/go.mod
+            go/go.sum
+
+      - name: Toolchain is exactly the pinned one
+        working-directory: go
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(go env GOVERSION)" = "go1.27.1"
+
+      - name: Require real systemd PID 1 with unified cgroups and sudo
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(cat /proc/1/comm)" = systemd
+          test "$(stat -fc %T /sys/fs/cgroup)" = cgroup2fs
+          systemctl --version | head -n 1
+          sudo -n true
+          # Nothing from a previous run may be present: the fixture names are random but
+          # any stray zenith-mach04-* unit would make the ownership argument unsafe.
+          test -z "$(systemctl list-units --all --plain --no-legend 'zenith-mach04-*' | head -n 1)"
+
+      - name: Create the zenithd service account as the Dockerfile does
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! id zenithd >/dev/null 2>&1; then
+            sudo useradd --system --home-dir /var/lib/zenithd --shell /usr/sbin/nologin zenithd
+            echo "ZENITH_MACH04_CREATED_ZENITHD=1" >> "$GITHUB_ENV"
+          fi
+          sudo usermod -a -G systemd-journal zenithd
+          id zenithd
+
+      - name: Build the versioned zenithd fixtures and the systemd test binary
+        shell: bash
+        env:
+          ZENITH_UPDATE_FIXTURE_OUT: ${{ runner.temp }}/zenith-update-fixture
+        run: bash deploy/zenithd/acceptance/build.sh
+
+      - name: Run the gated real-systemd update and rollback acceptance
+        id: systemd
+        timeout-minutes: 25
+        shell: bash
+        env:
+          FIXTURE: ${{ runner.temp }}/zenith-update-fixture
+        run: |
+          set -euo pipefail
+          # The test refuses unless every gate is set; the runner VM is disposable.
+          # ZENITH_AGENT_UPDATE_ARCH must match the built binaries (linux/amd64).
+          sudo env \
+            ZENITH_TEST_AGENT_UPDATE_SYSTEMD=1 \
+            ZENITH_AGENT_UPDATE_DISPOSABLE_SYSTEMD=1 \
+            ZENITH_AGENT_UPDATE_REPO="$GITHUB_WORKSPACE" \
+            ZENITH_UPDATE_FIXTURE_OUT="$FIXTURE" \
+            ZENITH_AGENT_UPDATE_ARCH=amd64 \
+            "$FIXTURE/update-systemd.test" -test.run '^TestSystemdSignedUpdateAndRollback$' -test.count=1 -test.timeout=20m -test.v=test2json \
+            > "$RUNNER_TEMP/systemd-events.json"
+
+      - name: Write the systemd receipt and fail unless the gated test passed
+        if: always()
+        shell: bash
+        env:
+          SYSTEMD_OUTCOME: ${{ steps.systemd.outcome }}
+          RECEIPT_RUN_ID: ${{ github.run_id }}
+          RECEIPT_RUN_ATTEMPT: ${{ github.run_attempt }}
+          RECEIPT_COMMIT: ${{ github.sha }}
+        run: |
+          node --input-type=module <<'JS'
+          import fs from "node:fs";
+          const name = "TestSystemdSignedUpdateAndRollback";
+          const tally = { pass: 0, fail: 0, skip: 0 };
+          let lines = [];
+          try { lines = fs.readFileSync(`${process.env.RUNNER_TEMP}/systemd-events.json`, "utf8").split("\n"); } catch { /* absent: the test never ran */ }
+          for (const line of lines) {
+            let e;
+            try { e = JSON.parse(line); } catch { continue; }
+            if (e.Test === name && ["pass", "fail", "skip"].includes(e.Action)) tally[e.Action] += 1;
+          }
+          const ok = process.env.SYSTEMD_OUTCOME === "success" && tally.pass === 1 && tally.fail === 0 && tally.skip === 0;
+          const verdict = ok ? "pass" : "fail";
+          const receipt = {
+            schema: "zenith.linux-runner-lifecycle.systemd-update-rollback/v1",
+            runId: process.env.RECEIPT_RUN_ID, runAttempt: process.env.RECEIPT_RUN_ATTEMPT, commit: process.env.RECEIPT_COMMIT,
+            runner: "ubuntu-24.04", goVersion: "1.27.1", stepOutcome: process.env.SYSTEMD_OUTCOME,
+            tests: { passed: tally.pass ? [name] : [], failed: tally.fail ? [name] : [], skipped: tally.skip ? [name] : [] },
+            gates: ["ZENITH_TEST_AGENT_UPDATE_SYSTEMD=1", "ZENITH_AGENT_UPDATE_DISPOSABLE_SYSTEMD=1", "ZENITH_AGENT_UPDATE_ARCH=amd64"],
+            controlPlane: "protocol fixture (real installed zenithd, real systemd, real exec); not production control-plane acceptance",
+            verdict,
+          };
+          fs.mkdirSync(".data-ci-lane", { recursive: true });
+          fs.writeFileSync(".data-ci-lane/linux-runner-lifecycle-systemd.json", JSON.stringify(receipt, null, 2) + "\n");
+          console.log(`systemd-update-rollback verdict: ${verdict}`);
+          process.exit(ok ? 0 : 1);
+          JS
+
+      - name: Print journals for any failed owned unit
+        if: failure()
+        shell: bash
+        run: |
+          sudo journalctl --no-pager -n 200 -u 'zenith-mach04-*' || true
+
+      - name: Tear down only the test-owned units, paths and service account
+        # Names come from the test: zenith-mach04-<random hex>. Nothing else on the host matches.
+        if: always()
+        shell: bash
+        run: |
+          set -uo pipefail
+          status=0
+          for unit in $(systemctl list-units --all --plain --no-legend 'zenith-mach04-*.service' | awk '{print $1}'); do
+            sudo systemctl stop "$unit" || status=1
+            sudo systemctl reset-failed "$unit" 2>/dev/null || true
+          done
+          sudo rm -rf /etc/systemd/system/zenith-mach04-*.service /var/lib/zenith-mach04-* /etc/zenith-mach04-* /usr/local/lib/zenith-mach04-*
+          sudo systemctl daemon-reload
+          remaining="$(systemctl list-units --all --plain --no-legend 'zenith-mach04-*' | head -n 1)"
+          if [ -n "$remaining" ]; then echo "::error::owned unit still present: $remaining"; status=1; fi
+          if [ "${ZENITH_MACH04_CREATED_ZENITHD:-}" = 1 ]; then sudo userdel zenithd || status=1; fi
+          exit "$status"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: linux-runner-lifecycle-systemd-${{ github.run_id }}
+          path: .data-ci-lane/linux-runner-lifecycle-systemd.json
+          if-no-files-found: error
+          retention-days: 30

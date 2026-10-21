@@ -18,6 +18,10 @@ async function fixture(kind: "pglite" | "postgres", strict = false) {
     strict && input.request.capability === "drift.repair" && input.plan ? requireApproval(2, "admin", true) : allowDecision()) });
   const input = { action: "reapply_desired_state", address: "service/web", kind: "container_service", findingClass: "changed", severity: "medium",
     attributes: ["replicas"], graphDigest: "a".repeat(64), reportComputedAt: "2026-09-30T00:00:00.000Z" };
+  // The repaired service's platform row: claim and grant admission judge its current field ownership (IaC-owned replicas).
+  await h.db!.query(`insert into platform.resources (id, workspace_id, environment_id, address, kind, provider, native_type, ownership, spec_digest, spec)
+    values ($1,$2,$3,$4,'container_service','aws','aws:ecs_service','managed',$5,$6::text::jsonb)`,
+    [h.ids.resAWebProd, h.ids.wsA, h.ids.envAProd, input.address, "b".repeat(64), JSON.stringify({ replicas: 3 })]);
   const proposed = await h.broker.propose({ capability: "drift.repair", scope: { workspaceId: h.ids.wsA, projectId: h.ids.projA,
     environmentId: h.ids.envAProd, resourceId: h.ids.resAWebProd }, input }, user("alice"));
   const op = proposed.operation;

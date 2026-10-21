@@ -17,6 +17,7 @@ on:
           - drivers-d4-two-tenants
           - j15-operated-upgrade
           - j15-operated-restore
+          - drivers-d4-export
         default: drv2-drift-repair
 
 permissions:
@@ -138,6 +139,18 @@ jobs:
             echo "ZENITH_LOCAL_TWO_TENANTS_CONFIG_FILE=$RUNNER_TEMP/zenith/j2/journey.json"
             echo "ZENITH_LOCAL_UPGRADE_IMAGES_FILE=${root}/upgrade-images.json"
           } >> "$GITHUB_ENV"
+          # D-4 export only (d4.operated.test.ts holds both D-4 cases): explicit data rehearsal with native
+          # fixture engines pinned by digest. MinIO's own images are no longer publicly pullable; Chainguard
+          # publishes upstream MinIO (same server command and health endpoint).
+          if [ "$GATE" = "drivers-d4-export" ]; then
+            {
+              echo "ZENITH_LOCAL_EXPORT_DATA=1"
+              echo "ZENITH_LOCAL_EXPORT_CONFIG_FILE=$RUNNER_TEMP/zenith/j2/journey.json"
+              echo "ZENITH_LOCAL_EXPORT_POSTGRES_IMAGE=postgres:17-alpine@sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24"
+              echo "ZENITH_LOCAL_EXPORT_MYSQL_IMAGE=mysql:8.4@sha256:0f51e63e537a1f176423fa03ef559aabe6fa4372a53160a44bc7e75da7d15364"
+              echo "ZENITH_LOCAL_EXPORT_MINIO_IMAGE=cgr.dev/chainguard/minio@sha256:ad134b2dd572ae0d989d6807c3e45516cc75a34883a8021db2ff04be5d1d496a"
+            } >> "$GITHUB_ENV"
+          fi
 
       - name: Lean default stack (1 API + 1 worker, no port offset)
         run: |

@@ -197,8 +197,12 @@ export async function crashPartitionDriver(receiptFile: string, env = process.en
       });
       const first = await session.propose(2), second = await session.propose(3, "rest");
       await session.approve(first); await session.approve(second);
-      const [firstWorkflow, secondWorkflow] = await Promise.all([session.execute(first), session.execute(second)]);
-      await Promise.all([session.terminal(first), session.terminal(second)]).catch(async (error: unknown) => {
+      // Same-environment writes are serialized by the environment lease: a concurrent start is refused as
+      // lease_busy with nothing changed (src/lib/execution/errors.ts), so the two writes run one after the other
+      // while both workers poll, and each must hold its own native fence.
+      const runWriter = async (id: string) => { const workflow = await session.execute(id); await session.terminal(id); return workflow; };
+      const writers = (async () => [await runWriter(first), await runWriter(second)] as const)();
+      const [firstWorkflow, secondWorkflow] = await writers.catch(async (error: unknown) => {
         if (env.ZENITH_OPERATED_DIAGNOSTICS === "1") {
           // Status and the product's own error sentence, elided like other diagnostics (no values, paths, URLs or tokens).
           const elide = (text: unknown) => typeof text === "string" ? text.replace(/\b\w+=\S+/g, "…=…").replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/(?:\/[^\s/]+){2,}/g, "…path").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 240) : undefined;

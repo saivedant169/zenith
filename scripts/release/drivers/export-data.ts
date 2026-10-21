@@ -129,6 +129,7 @@ async function databasePair(ctx: OperatedContext, cleanup: OwnedCleanup, network
     ...(kind === "mysql" ? { caFile: path.join(ctx.config.stackDirectory, "tls/ca.crt") } : {}) });
   // Stock images briefly run socket-only initialization servers. A socket query
   // allows provisioning but cannot establish readiness for host or worker TCP.
+  let lastFailure = "";
   for (const container of pair) await until(async () => {
     try {
       const host = endpoint(container);
@@ -139,8 +140,16 @@ async function databasePair(ctx: OperatedContext, cleanup: OwnedCleanup, network
       }
       const sql = postgres(postgresEndpoint(host), { max: 1, ssl: false, prepare: false, connect_timeout: 5, onnotice: () => undefined });
       try { await sql`select 1`; return true; } finally { await sql.end({ timeout: 5 }); }
-    } catch { return false; } // Initial listener refusal is retried within the bounded readiness deadline.
-  }, (ready: boolean) => ready);
+    } catch (error) {
+      // Initial listener refusal is retried within the bounded readiness deadline; only the error class and code are kept.
+      const code = (error as { code?: unknown })?.code;
+      lastFailure = (error instanceof Error && /^[A-Za-z]{1,40}$/.test(error.name) ? error.name : "Error") + (typeof code === "string" && /^[A-Z0-9_]{1,60}$/.test(code) ? ":" + code : "");
+      return false;
+    }
+  }, (ready: boolean) => ready).catch((error: unknown) => {
+    if (ctx.input.env.ZENITH_OPERATED_DIAGNOSTICS === "1") process.stderr.write(`operated outside-step failed: journey:${kind}-tcp-readiness ${JSON.stringify({ lastFailure })}\n`);
+    throw error;
+  });
   return { source, target, sourceEndpoint: endpoint(source), targetEndpoint: endpoint(target), password, user };
 }
 async function platformFixtureSql(ctx: OperatedContext, sql: string): Promise<string> {

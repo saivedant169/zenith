@@ -16,6 +16,7 @@ on:
           - drv2-crash-partition
           - drivers-d4-two-tenants
           - j15-operated-upgrade
+          - j15-operated-restore
         default: drv2-drift-repair
 
 permissions:
@@ -155,6 +156,26 @@ jobs:
             --label org.zenith.acceptance.owner=PKG-04-J2 --label "org.zenith.acceptance.source-head=${GITHUB_SHA}" -t "$tag" .
           docker push -q "$tag"
           echo "WITNESS_IMAGE=$(docker image inspect "$tag" --format '{{index .RepoDigests 0}}')" >> "$GITHUB_ENV"
+
+      - name: Restore tools (j15-operated-restore only)
+        if: inputs.gate == 'j15-operated-restore'
+        # pg_dump/pg_restore must match the stack's PostgreSQL 17; the Temporal CLI is the pin ci.yml uses.
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y --no-install-recommends postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y --no-install-recommends postgresql-client-17
+          /usr/lib/postgresql/17/bin/pg_dump --version
+          cd "$RUNNER_TEMP"
+          mkdir -p temporal-cli
+          curl --fail --silent --show-error --location --retry 3 --connect-timeout 15 --max-time 300 --output temporal_cli.tar.gz https://github.com/temporalio/cli/releases/download/v1.9.1/temporal_cli_1.9.1_linux_amd64.tar.gz
+          printf '%s  %s\n' '09a0326a51db84d02735e53542b9ebd8c4758daf47482a9ab0abce15844e60d5' 'temporal_cli.tar.gz' | sha256sum --check --strict
+          tar -xzf temporal_cli.tar.gz -C temporal-cli temporal
+          {
+            echo "ZENITH_TEST_PG_DUMP_BIN=/usr/lib/postgresql/17/bin/pg_dump"
+            echo "ZENITH_TEST_PG_RESTORE_BIN=/usr/lib/postgresql/17/bin/pg_restore"
+            echo "ZENITH_TEST_TEMPORAL_BIN=$RUNNER_TEMP/temporal-cli/temporal"
+          } >> "$GITHUB_ENV"
 
       - name: Upgrade candidate images (j15-operated-upgrade only)
         if: inputs.gate == 'j15-operated-upgrade'

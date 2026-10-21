@@ -34,6 +34,13 @@ export async function runUpgrade(input: DriverInput): Promise<number> {
     });
     session.finalizers.unshift(() => connection.close());
     const temporal = new WorkflowClient({ connection, namespace: session.prepared.environment.ZENITH_TEMPORAL_NAMESPACE });
+    // Run id and status from the raw RPC: handle.describe() decodes memo/search attributes with the default
+    // converter and refuses the product's encrypted payloads (ValueError); identity needs no payload key.
+    const describe = async (id: string): Promise<{ runId: string; running: boolean }> => {
+      const response = await connection.workflowService.describeWorkflowExecution({ namespace: session.prepared.environment.ZENITH_TEMPORAL_NAMESPACE, execution: { workflowId: id } });
+      const info = response.workflowExecutionInfo;
+      return { runId: info?.execution?.runId ?? "", running: info?.status === 1 /* WORKFLOW_EXECUTION_STATUS_RUNNING */ };
+    };
     await session.step("browser-review-in-flight", async () => {
       operationId = (await session.deployReview()).operationId;
       // The durable binding is the acknowledged start intent; no production path writes operations.workflow_id.
@@ -41,8 +48,8 @@ export async function runUpgrade(input: DriverInput): Promise<number> {
       const start = authority?.startIntent;
       workflowId = WORKFLOW_ID(operationId);
       ensure(start?.phase === "acknowledged" && !!start.runId && (authority!.workflowId === null || authority!.workflowId === workflowId), "real-operation-workflow");
-      const description = await temporal.getHandle(workflowId).describe();
-      ensure(description.status.name === "RUNNING" && description.runId === start!.runId, "in-flight-history"); runId = description.runId;
+      const description = await describe(workflowId);
+      ensure(description.running && description.runId === start!.runId, "in-flight-history"); runId = description.runId;
     });
     await session.step("expand-worker-api", async () => {
       const order = upgradeOrder(candidate);
@@ -59,8 +66,8 @@ export async function runUpgrade(input: DriverInput): Promise<number> {
     await session.step("candidate-readback", async () => {
       const detail = await session.detail(operationId);
       ensure(detail.operation.status === "awaiting_approval", "review-preserved");
-      const current = await temporal.getHandle(workflowId).describe();
-      ensure(current.runId === runId && current.status.name === "RUNNING", "same-history-after-upgrade");
+      const current = await describe(workflowId);
+      ensure(current.runId === runId && current.running, "same-history-after-upgrade");
     });
     await session.step("api-failure-injected", async () => {
       await compose(session.activeState, ["stop", "api"]);
@@ -74,8 +81,8 @@ export async function runUpgrade(input: DriverInput): Promise<number> {
       // OPS-03 reverse roll: API, worker. Never downgrade the schema.
       await compose(rollback, ["up", "-d", "--no-deps", "api"]); await session.healthy(rollback, "api", previous.api);
       await compose(rollback, ["up", "-d", "--no-deps", "execution-worker"]); await session.healthy(rollback, "execution-worker", previous.worker);
-      const description = await temporal.getHandle(workflowId).describe();
-      ensure(description.runId === runId && description.status.name === "RUNNING", "same-history-after-rollback");
+      const description = await describe(workflowId);
+      ensure(description.runId === runId && description.running, "same-history-after-rollback");
       ensure((await session.detail(operationId)).operation.status === "awaiting_approval", "rollback-review");
     });
     await session.step("approved-execution-readback", async () => {

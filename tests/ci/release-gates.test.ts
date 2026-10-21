@@ -540,6 +540,7 @@ const lines = (text: string | undefined): string[] => (text ?? "").split(/\r?\n/
  * Dependabot does not manage them.
  */
 const DOWNLOADS = [
+  { job: "product-store-postgrest", url: "https://github.com/supabase/cli/releases/download/v2.75.0/supabase_linux_amd64.tar.gz", file: "supabase.tar.gz", sha256: "e5597462f865d5ac72af0453358e37ecb0d85962ad6914a114a53de847303bde" },
   { job: "recovery", url: "https://github.com/temporalio/cli/releases/download/v1.9.1/temporal_cli_1.9.1_linux_amd64.tar.gz", file: "temporal_cli.tar.gz", sha256: "09a0326a51db84d02735e53542b9ebd8c4758daf47482a9ab0abce15844e60d5" },
   {
     job: "verify",

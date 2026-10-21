@@ -602,9 +602,10 @@ jobs:
   # (`tests/db/contract/factories.ts:31-34`), as is the hosted *data* backend
   # (`tests/hosted/data/pg-contract.live.test.ts:38-41`). A bare Postgres
   # container serves neither, so the PostgREST product-store suites and
-  # `pg-contract.live.test.ts` are **not** in this job and are reported BLOCKED
-  # by the summary step below. Pointing them at this container would make them
-  # fail, not pass.
+  # `pg-contract.live.test.ts` are **not** in this job (the summary step below
+  # still names them). The product-store suites run in the
+  # `product-store-postgrest` job against a disposable PostgREST stack;
+  # `pg-contract.live.test.ts` stays a hosted-data live lane.
   #
   # Two details of this database are a stand-in rather than the real thing, and
   # `scripts/ci/apply-supabase-migrations.sh` documents both: `service_role` is
@@ -1642,6 +1643,115 @@ jobs:
   #     which bypasses row level security: what is proven about tenant isolation
   #     is the `workspace_id` scoping in SQL, not RLS.
   #   - Any PostgreSQL version but 16.15.
+  # The PostgresStore (PostgREST) contract suites the `postgres` job cannot
+  # serve: a disposable pinned Supabase CLI stack on a fresh runner. Same
+  # steps as .github/workflows/product-store-postgrest.yml (manual reruns).
+  product-store-postgrest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      # Anonymous public.ecr.aws pulls hit 'toomanyrequests: Data limit exceeded'
+      # on shared runners. Same Supabase images from Docker Hub.
+      SUPABASE_INTERNAL_IMAGE_REGISTRY: docker.io
+      # scripts/acceptance/default-stack/config.mjs excludedSupabaseServices
+      SUPABASE_EXCLUDE: mailpit,storage-api,imgproxy,realtime,studio,postgres-meta,logflare,vector,edge-runtime
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.23.3'
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+
+      - name: Install the pinned Supabase CLI
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          curl --fail --silent --show-error --location --retry 3 --connect-timeout 15 --max-time 300 --output supabase.tar.gz https://github.com/supabase/cli/releases/download/v2.75.0/supabase_linux_amd64.tar.gz
+          printf '%s  %s\n' 'e5597462f865d5ac72af0453358e37ecb0d85962ad6914a114a53de847303bde' 'supabase.tar.gz' | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/bin"
+          tar -xzf supabase.tar.gz -C "$RUNNER_TEMP/bin" supabase
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Start the disposable Supabase stack with the repository migrations
+        run: |
+          set -euo pipefail
+          test "$(docker ps -aq | wc -l)" -eq 0
+          supabase --version
+          # supabase/config.toml carries keys newer than this pinned CLI accepts
+          # (config.local_smtp, experimental.pgdelta); the stack only needs the
+          # database, Auth and PostgREST, so use a minimal config. The CLI's
+          # statement splitter refuses 0004 ("cannot insert multiple commands into
+          # a prepared statement"), so migrations are applied with psql below, as
+          # scripts/ci/apply-supabase-migrations.sh does.
+          work="$RUNNER_TEMP/supabase-project"; mkdir -p "$work/supabase"
+          printf '%s\n' 'project_id = "zenith-product-store-ci"' '[api]' 'enabled = true' 'port = 54321' \
+            'schemas = ["public", "graphql_public"]' 'extra_search_path = ["public", "extensions"]' \
+            '[db]' 'port = 54322' 'shadow_port = 54320' 'major_version = 17' '[db.migrations]' 'enabled = false' \
+            '[db.seed]' 'enabled = false' '[studio]' 'enabled = false' '[inbucket]' 'enabled = false' \
+            '[auth]' 'enabled = true' 'site_url = "http://127.0.0.1:3400"' > "$work/supabase/config.toml"
+          echo "SUPABASE_WORKDIR=$work" >> "$GITHUB_ENV"
+          supabase start --workdir "$work" --exclude "$SUPABASE_EXCLUDE"
+          supabase status --workdir "$work" -o env > "$RUNNER_TEMP/supabase.env"
+          # CLI 2.x prints API_URL and SERVICE_ROLE_KEY (newer builds also SECRET_KEY).
+          api=$(sed -n 's/^API_URL="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' "$RUNNER_TEMP/supabase.env")
+          key=$(sed -n 's/^SERVICE_ROLE_KEY="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' "$RUNNER_TEMP/supabase.env")
+          db=$(sed -n 's/^DB_URL="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' "$RUNNER_TEMP/supabase.env")
+          test -n "$api" && test -n "$key" && test -n "$db"
+          echo "::add-mask::$key"
+          { echo "NEXT_PUBLIC_SUPABASE_URL=$api"; echo "SUPABASE_SERVICE_ROLE_KEY=$key"; echo "SUPABASE_DB_URL=$db"; } >> "$GITHUB_ENV"
+          rm -f "$RUNNER_TEMP/supabase.env"
+          for file in supabase/migrations/*.sql; do
+            echo "apply $(basename "$file")"
+            psql --quiet -v ON_ERROR_STOP=1 -f "$file" "$db" >/dev/null
+          done
+          psql --quiet -v ON_ERROR_STOP=1 -c "notify pgrst, 'reload schema'" "$db" >/dev/null
+          sleep 3
+          node -e 'fetch(process.argv[1] + "/rest/v1/projects?select=id&limit=1", { headers: { apikey: process.argv[2], authorization: "Bearer " + process.argv[2] } }).then((r) => { console.log("rest", r.status); if (!r.ok) process.exit(1); })' "$api" "$key"
+
+      - name: Product-store contract suites on PostgREST
+        run: |
+          set -euo pipefail
+          mkdir -p .data-ci-lane "$RUNNER_TEMP/vitest-tmp"
+          TMPDIR="$RUNNER_TEMP/vitest-tmp" ZENITH_CONTRACT_POSTGRES=1 \
+            npx vitest run --no-file-parallelism --reporter=default --reporter=json --outputFile.json=.data-ci-lane/product-store-postgrest-vitest.json \
+              tests/db/contract
+
+      - name: Per-file counts; a skipped case fails the run
+        if: always()
+        run: |
+          node -e '
+            const fs = require("fs"), file = ".data-ci-lane/product-store-postgrest-vitest.json";
+            if (!fs.existsSync(file)) { console.log("no report"); process.exit(1); }
+            const r = JSON.parse(fs.readFileSync(file, "utf8")); let bad = 0;
+            for (const t of r.testResults) {
+              const c = { passed: 0, failed: 0, skipped: 0 };
+              for (const a of t.assertionResults) c[a.status === "passed" ? "passed" : a.status === "failed" ? "failed" : "skipped"]++;
+              bad += c.failed + c.skipped;
+              console.log(t.name.split("/tests/")[1], JSON.stringify(c));
+            }
+            console.log("total passed", r.numPassedTests, "failed", r.numFailedTests, "skipped", r.numPendingTests + r.numTodoTests);
+            if (bad || r.numTotalTests === 0) process.exit(1);'
+
+      - name: Stop the disposable stack
+        if: always()
+        run: |
+          supabase stop --workdir "${SUPABASE_WORKDIR:-.}" --no-backup || true
+          docker ps -a --format '{{.Names}} {{.Status}}'
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: product-store-postgrest
+          path: .data-ci-lane/product-store-postgrest-vitest.json
+          if-no-files-found: warn
+          retention-days: 30
+
   platform-postgres:
     runs-on: ubuntu-latest
     timeout-minutes: 25

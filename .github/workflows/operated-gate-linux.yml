@@ -176,7 +176,9 @@ jobs:
           umask 077
           ZENITH_ACCEPTANCE_DEFAULT_STACK=1 node scripts/acceptance/default-stack/env.mjs "$ZENITH_ACCEPTANCE_DEFAULT_STACK_DIR" "$ZENITH_LOCAL_ROOT/ci-host.env"
           trap 'rm -f -- "$ZENITH_LOCAL_ROOT/ci-host.env"' EXIT
+          # Public repository: mask every value before later steps can echo their env.
           while IFS='=' read -r key value; do
+            if [ "${#value}" -ge 8 ]; then echo "::add-mask::$value"; fi
             printf '%s=%s\n' "$key" "$value" >> "$GITHUB_ENV"
           done < "$ZENITH_LOCAL_ROOT/ci-host.env"
 

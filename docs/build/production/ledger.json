@@ -2647,6 +2647,14 @@
           "commit": "4fac547c39ea0ee346112f113245bf7c5e10ced0",
           "artifact": "docs/build/production/evidence/PROD-OBS-04/2026-10-20-4fac547c-coherent-verification.json",
           "result": "Exact-source CI: main 39357934404 20 success/8 conditional operated skips/0 failures; native packaged workers 39357934596 and native platforms 39357934426 success."
+        },
+        {
+          "level": "remote_ci",
+          "commit": "42e2c030b76ad28ffa55e33d8ac3223885d67397",
+          "command": "operated-gate-linux.yml gate=drv2-drift-repair (GitHub-hosted ubuntu runner, run 39565873311): lean default stack 1 API + 1 worker, owned kind target, Chromium",
+          "environment": "GitHub-hosted Linux x64; disposable Supabase CLI stack, Temporal mTLS, kind cluster, zenithd witness image; ephemeral credentials",
+          "result": "DRV-2 operated drift repair passed with matched current-source execution receipt: approved workload, kubectl replica drift injected, drift observed on the natural reconcile schedule, REST repair proposal approved in the browser by an independent user, MCP execution, independent kind readback, fresh clean observation, owned cleanup. 1/1 required case. Other operated gates (drv1, crash-partition, j15, d4) not yet passed.",
+          "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-21-42e2c030-drv2-drift-repair-hosted.json"
         }
       ],
       "requiredEvidence": [
@@ -6351,6 +6359,14 @@
           "testedCandidateCommit": "b46fb8a2617f59448f943088e3ed1a446a9a7c38",
           "result": "Root independently verified combined ECS candidate: 1,232 tests passed, zero failures or skips; full typecheck/lint, five real network OpenTofu checks and Go 226 top-level plus 539 subtests passed, with three Linux-only skips on macOS. Fresh actual PostgreSQL 16.15 passed 1,422 cases and all 45 mandatory groups, including six genuine PostgreSQL grant behaviors; all 12 schema-2 bindings and separate required-execution validation passed. Fresh local kind provider 6/6 and release 1/1 passed. Owned database, cluster, containers and kubeconfig were removed. Final guide-only clarification passed 109 documentation cases and independent exact-source review. Source 4895569 merged cb33a61. This bounded recipe retains browser-human plan approval, immutable ownership/autoscaler binding, raw one-field guards and durable owned readback; original approval-time binary handoff, live AWS/IAM and broader production acceptance remain incomplete.",
           "artifact": "docs/build/production/evidence/ecs-replica-repair/combined-root-verification.json"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "42e2c030b76ad28ffa55e33d8ac3223885d67397",
+          "command": "operated-gate-linux.yml gate=drv2-drift-repair (GitHub-hosted ubuntu runner, run 39565873311): lean default stack 1 API + 1 worker, owned kind target, Chromium",
+          "environment": "GitHub-hosted Linux x64; disposable Supabase CLI stack, Temporal mTLS, kind cluster, zenithd witness image; ephemeral credentials",
+          "result": "DRV-2 operated drift repair passed with matched current-source execution receipt: approved workload, kubectl replica drift injected, drift observed on the natural reconcile schedule, REST repair proposal approved in the browser by an independent user, MCP execution, independent kind readback, fresh clean observation, owned cleanup. 1/1 required case. Other operated gates (drv1, crash-partition, j15, d4) not yet passed.",
+          "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-21-42e2c030-drv2-drift-repair-hosted.json"
         }
       ],
       "requiredEvidence": [

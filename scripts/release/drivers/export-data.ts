@@ -143,11 +143,20 @@ async function databasePair(ctx: OperatedContext, cleanup: OwnedCleanup, network
     } catch (error) {
       // Initial listener refusal is retried within the bounded readiness deadline; only the error class and code are kept.
       const code = (error as { code?: unknown })?.code;
-      lastFailure = (error instanceof Error && /^[A-Za-z]{1,40}$/.test(error.name) ? error.name : "Error") + (typeof code === "string" && /^[A-Z0-9_]{1,60}$/.test(code) ? ":" + code : "");
+      // The TLS cause carries Node's fixed code (e.g. ERR_TLS_CERT_ALTNAME_INVALID, UNABLE_TO_VERIFY_LEAF_SIGNATURE).
+      const cause = (error as { cause?: { code?: unknown } })?.cause?.code ?? (error instanceof Error ? /\b(ERR_[A-Z0-9_]{3,60}|[A-Z][A-Z0-9_]{6,60})\b/.exec(error.message.replace(/HANDSHAKE_SSL_ERROR/g, ""))?.[1] : undefined);
+      lastFailure = (error instanceof Error && /^[A-Za-z]{1,40}$/.test(error.name) ? error.name : "Error") + (typeof code === "string" && /^[A-Z0-9_]{1,60}$/.test(code) ? ":" + code : "")
+        + (typeof cause === "string" && /^[A-Z0-9_]{1,60}$/.test(cause) ? ":" + cause : "");
       return false;
     }
-  }, (ready: boolean) => ready).catch((error: unknown) => {
-    if (ctx.input.env.ZENITH_OPERATED_DIAGNOSTICS === "1") process.stderr.write(`operated outside-step failed: journey:${kind}-tcp-readiness ${JSON.stringify({ lastFailure })}\n`);
+  }, (ready: boolean) => ready).catch(async (error: unknown) => {
+    if (ctx.input.env.ZENITH_OPERATED_DIAGNOSTICS === "1") {
+      // mysqld's own SSL/TLS log lines (server messages), with paths and long tokens elided.
+      const tls = kind === "mysql" ? await command("docker", ["logs", "--tail", "200", pair[0]!.id]).catch(() => "")
+        .then((text: string) => text.split("\n").filter((line: string) => /SSL|TLS|certificate|secure_transport/i.test(line)).slice(-4)
+          .map((line: string) => line.replace(/(?:\/[^\s/]+){2,}/g, "…path").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 200))) : [];
+      process.stderr.write(`operated outside-step failed: journey:${kind}-tcp-readiness ${JSON.stringify({ lastFailure, tls })}\n`);
+    }
     throw error;
   });
   return { source, target, sourceEndpoint: endpoint(source), targetEndpoint: endpoint(target), password, user };

@@ -35,7 +35,18 @@ export async function driftRepairDriver(receiptFile: string, env = process.env):
     });
     await step("fresh-clean-observation", async () => {
       const repairedAt = Math.max(Date.now(), observedAt);
-      const value = await until(() => observation(session), value => complete(value, repairedAt) && value.report!.findings.length === 0, 360_000);
+      let last: Drift | undefined;
+      const value = await until(() => observation(session).then(read => (last = read)), value => complete(value, repairedAt) && value.report!.findings.length === 0, 360_000)
+        .catch(error => {
+          // Shape only: freshness, coverage and finding classes/attributes, never observed values.
+          if (env.ZENITH_OPERATED_DIAGNOSTICS === "1") process.stderr.write("clean-observation last " + JSON.stringify(last?.report ? {
+            simulated: last.report.simulated, truncated: last.truncated, unobserved: last.report.unobserved.length, fresh: Date.parse(last.report.computedAt) > repairedAt,
+            ageSeconds: Math.round((Date.now() - Date.parse(last.report.computedAt)) / 1000),
+            findings: last.report.findings.slice(0, 10).map(finding => ({ address: finding.address.replace(/[^a-z0-9_/.-]/gi, "").slice(0, 80), class: finding.class,
+              attributes: (finding.fields ?? []).map(field => field.attribute.replace(/[^a-z0-9_.-]/gi, "").slice(0, 60)) })),
+          } : { report: null }) + "\n");
+          throw error;
+        });
       ensure(value.report!.graphDigest.length === 64, "clean-graph-digest");
       session.readbacks.clean = sha256(value.report);
     });

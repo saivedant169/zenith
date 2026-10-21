@@ -989,9 +989,9 @@ export async function createTenant(ctx: OperatedContext, letter: string): Promis
   const b = await operator(stack, config.mailpitUrl, `drv4-${letter}-approver`, users);
   await authenticateBeforeWorkspace(owner, stack, a);
   const workspace = ok(await browserRequest(owner, "/api/workspace", { name: `DRV4 ${input.runId} ${letter}` })).workspace;
-  await requireTwoPersonProduction(owner, workspace.id);
   ok(await browserRequest(owner, "/api/bootstrap"));
   await enrollOperator(owner, stack);
+  await requireTwoPersonProduction(owner, workspace.id);
   const invite = ok(await browserRequest(owner, "/api/workspace/invites", { workspaceId: workspace.id, email: b.email, role: "admin" })).invite;
   await authenticateBeforeWorkspace(approver, stack, b);
   await enrollOperator(approver, stack);

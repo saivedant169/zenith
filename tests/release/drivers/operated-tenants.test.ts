@@ -10,6 +10,8 @@ type FixtureReply = {
     member?: { id: string; role: string };
     workspaces?: unknown[];
     projects?: unknown[];
+    workspaceId?: string;
+    effective?: { twoPersonProduction?: boolean };
     error?: { code: string };
   };
 };
@@ -65,7 +67,7 @@ import { createTenant, type OperatedContext } from "../../../scripts/release/dri
 import { OwnedCleanup as TenantExportCleanup } from "../../../scripts/release/drivers/protocol";
 
 function fakePage(): FakePage {
-  const route = (page: Pick<FakePage, "email">, endpoint: string, body?: FixtureBody): FixtureReply => {
+  const route = (page: Pick<FakePage, "email">, endpoint: string, body?: FixtureBody, workspaceHeader?: string): FixtureReply => {
     const actorId = fixture.users.get(page.email);
     if (endpoint === "/api/bootstrap") {
       fixture.events.push(`bootstrap:${page.email}`);
@@ -79,6 +81,12 @@ function fakePage(): FakePage {
       const workspaceId = "workspace-owner";
       fixture.memberships.set(actorId, workspaceId);
       return { status: 201, data: { workspace: { id: workspaceId } } };
+    }
+    if (endpoint === "/api/platform/v1/workspace/policy") {
+      fixture.events.push(`policy:${page.email}`);
+      if (!actorId || fixture.memberships.get(actorId) !== workspaceHeader || !fixture.aal2.has(page.email))
+        return { status: 403, data: { error: { code: "mfa_required" } } };
+      return { status: 200, data: { workspaceId: workspaceHeader, effective: { twoPersonProduction: true } } };
     }
     if (endpoint === "/api/workspace/invites") {
       fixture.events.push(`invite:${page.email}`);
@@ -115,7 +123,7 @@ function fakePage(): FakePage {
       expect(predicate(new URL("http://127.0.0.1:36400/overview"))).toBe(true);
     },
     // Keep the real support.mjs login/browserRequest helpers, but model their route result here.
-    evaluate: async (_fn, args) => route(page, args.endpoint, args.body),
+    evaluate: async (_fn, args) => route(page, args.endpoint, args.body, args.workspaceId),
   };
   return page;
 }
@@ -201,6 +209,7 @@ describe("DRV-4 tenant bootstrap sequencing", () => {
       "workspace:drv4-a-owner@example.test",
       "bootstrap:drv4-a-owner@example.test",
       "mfa-proof:drv4-a-owner@example.test",
+      "policy:drv4-a-owner@example.test",
       "invite:drv4-a-owner@example.test",
       "session:drv4-a-approver@example.test",
       "mfa-proof:drv4-a-approver@example.test",

@@ -164,10 +164,16 @@ export function makeKubernetesDriver(def: KindDef, provider: ProviderKey = "kube
         const { ref, live } = await locate(ctx, node, externalId);
         if (!live) return { ...base(node, at), presence: "missing", attributes: {} };
         const attrs: Record<string, unknown> = { managedByZenith: isOwned(live, ctx.environmentId), ...def.attributes(live) };
+        const native = nativeBag(live);
+        // apply.ts uses, never writes, an unlabeled Namespace on the connection allowlist: Zenith ownership is not a
+        // desired attribute of it, so it is not reported for drift to compare (verify still checks it is unmarked).
+        const provisioned = def.kind === "Namespace" && attrs.managedByZenith === false && native.managedBy === undefined && typeof attrs.name === "string"
+          && sessionNamespaces(ctx.session).includes(attrs.name) && !SYSTEM_NAMESPACES.has(attrs.name);
+        if (provisioned) { delete attrs.managedByZenith; native.operatorProvisioned = true; }
         const attributes: Record<string, ObservedValue> = {};
         for (const [k, v] of Object.entries(attrs)) if (v !== undefined) attributes[k] = known(v, at);
-        for (const k of wanted) if (!(k in attributes)) attributes[k] = known(null, at);
-        return { ...base(node, at), externalId: externalIdFor(ref), presence: "present", attributes, native: nativeBag(live) };
+        for (const k of wanted) if (!(k in attributes) && !(provisioned && k === "managedByZenith")) attributes[k] = known(null, at);
+        return { ...base(node, at), externalId: externalIdFor(ref), presence: "present", attributes, native };
       } catch (e) {
         const f = classify(e);
         const attributes: Record<string, ObservedValue> = {};
@@ -188,7 +194,8 @@ export function makeKubernetesDriver(def: KindDef, provider: ProviderKey = "kube
       const native = isRecord(observation.native) ? observation.native : {};
       const name = observation.attributes.name;
       // apply.ts uses, never writes, an unlabeled Namespace on the connection allowlist; it carries no Zenith marks to check.
-      const provisioned = def.kind === "Namespace" && observation.presence === "present" && owned?.state === "known" && owned.value === false
+      const provisioned = def.kind === "Namespace" && observation.presence === "present"
+        && ((owned?.state === "known" && owned.value === false) || (owned === undefined && native.operatorProvisioned === true))
         && native.managedBy === undefined && name?.state === "known" && typeof name.value === "string"
         && sessionNamespaces(ctx.session).includes(name.value) && !SYSTEM_NAMESPACES.has(name.value);
       if (provisioned) checks.push({ id: "owned", description: "operator-provisioned namespace on this connection's allowlist; Zenith uses it and never modifies it", passed: true });

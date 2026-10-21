@@ -7,6 +7,7 @@ import { kubernetesDrivers, registerKubernetesDrivers, registerZenithManagedDriv
 import { renderGraph } from "@/lib/providers/kubernetes/render";
 import { ANNOTATION, LABEL } from "@/lib/providers/kubernetes/types";
 import { NATIVE_TYPE_TABLE } from "@/lib/resources/native-types";
+import { computeDriftV2 } from "@/lib/resources/drift";
 import { PORTABLE_KINDS, type ResourceNode } from "@/lib/resources/types";
 import { startFakeK8s, type FakeK8s } from "./fake-api";
 import { ENV_ID, NS, SECRET_CANARY, dbNode, driverCtx, fullGraph, inNs, node, pod, secretNode, serviceNode, sessionFor, resolver } from "./helpers";
@@ -139,11 +140,18 @@ describe("observe + verify across every kind", () => {
     const n = node({ address: "network/ops", kind: "network", spec: { zones: 1, namespace: "ops-provided" } });
     fake.seed({ apiVersion: "v1", kind: "Namespace", metadata: { name: "ops-provided", labels: { "pod-security.kubernetes.io/enforce": "restricted" } } });
     const allowed = driverCtx(await sessionFor(fake, ["ops-provided"]));
-    const ok = await driverFor(n).verify(allowed, n, await driverFor(n).observe(allowed, n));
+    const observed = await driverFor(n).observe(allowed, n);
+    const ok = await driverFor(n).verify(allowed, n, observed);
     expect(ok.status).toBe("passed");
     expect(ok.checks.map((c: any) => c.id)).toEqual(["exists", "owned", "configuration"]);
+    // Zenith ownership is not desired of a namespace it only uses, so drift never reports it as changed.
+    expect(observed.attributes.managedByZenith).toBeUndefined();
+    const drift = computeDriftV2({ nodes: [n] } as never, [observed], { expectedAttributes: driverFor(n).expectedAttributes });
+    expect(drift.findings.flatMap(f => f.fields ?? []).map(f => f.attribute)).not.toContain("managedByZenith");
     const offList = driverCtx(await sessionFor(fake, []));
-    expect((await driverFor(n).verify(offList, n, await driverFor(n).observe(offList, n))).status).toBe("failed");
+    const unlisted = await driverFor(n).observe(offList, n);
+    expect(unlisted.attributes.managedByZenith).toMatchObject({ state: "known", value: false });
+    expect((await driverFor(n).verify(offList, n, unlisted)).status).toBe("failed");
     fake.seed({ apiVersion: "v1", kind: "Namespace", metadata: { name: "ops-provided", labels: { [LABEL.managedBy]: "zenith", "pod-security.kubernetes.io/enforce": "baseline" } } });
     expect((fake.get("Namespace", undefined, "ops-provided") as any).metadata.labels[LABEL.managedBy]).toBe("zenith");
     expect((await driverFor(n).verify(allowed, n, await driverFor(n).observe(allowed, n))).status).toBe("failed");

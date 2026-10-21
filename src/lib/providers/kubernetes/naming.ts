@@ -24,6 +24,8 @@ const DNS_LABEL = /^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$/;
 export const isDnsLabel = (s: string): boolean => DNS_LABEL.test(s);
 
 const hash6 = (s: string) => fnv1a(s).slice(0, 6);
+/** A short deterministic DNS-safe tag for an environment, for names that must not collide in a shared namespace. */
+export const environmentTag = (environmentId: string): string => hash6(environmentId);
 
 /** A DNS-1035 label: lowercase alphanumerics and `-`, starts with a letter, ends alphanumeric. */
 export function dnsLabel(input: string, max = 63): string {

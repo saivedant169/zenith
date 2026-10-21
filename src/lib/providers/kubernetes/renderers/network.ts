@@ -34,7 +34,7 @@
 import type { DnsRecordSpec, FirewallSpec, LoadBalancerSpec, NetworkSpec, TlsCertificateSpec } from "@/lib/resources/specs";
 import type { ResourceNode } from "@/lib/resources/types";
 import { ANNOTATION, LABEL, type K8sObject, type K8sRenderContext, type RenderResult } from "../types";
-import { dnsLabel, addressLeaf, labelValue, objectName, tlsSecretName } from "../naming";
+import { dnsLabel, addressLeaf, environmentTag, labelValue, objectName, tlsSecretName } from "../naming";
 import { isRecord, sortedUnique } from "../util";
 import { ctxNamespace, metadata, namespaceOf, renderError, specOf } from "./common";
 
@@ -69,11 +69,15 @@ export function renderNamespace(node: ResourceNode, ctx: K8sRenderContext): Rend
     }),
   };
   // An operator-provisioned namespace may hold workloads Zenith does not own; its policies never select them.
-  const pods = ctx.provisionedNamespaces?.includes(name) ? { matchLabels: { [LABEL.partOf]: labelValue(ctx.environmentId) } } : {};
+  const provisioned = ctx.provisionedNamespaces?.includes(name) === true;
+  const pods = provisioned ? { matchLabels: { [LABEL.partOf]: labelValue(ctx.environmentId) } } : {};
+  // Several environments may share an operator-provisioned namespace: each one's policies are named for it, so
+  // one environment's policy is never another's object (the ownership guard would otherwise refuse the second).
+  const policyName = (base: string) => provisioned ? `${base}-${environmentTag(ctx.environmentId)}` : base;
   const deny: K8sObject = {
     apiVersion: "networking.k8s.io/v1",
     kind: "NetworkPolicy",
-    metadata: metadata(node, ctx, { name: DEFAULT_DENY_NAME, namespace: name }),
+    metadata: metadata(node, ctx, { name: policyName(DEFAULT_DENY_NAME), namespace: name }),
     spec: { podSelector: pods, policyTypes: ["Ingress"] },
   };
   const objects = [ns, deny];
@@ -88,13 +92,13 @@ export function renderNamespace(node: ResourceNode, ctx: K8sRenderContext): Rend
       {
         apiVersion: "networking.k8s.io/v1",
         kind: "NetworkPolicy",
-        metadata: metadata(node, ctx, { name: DEFAULT_DENY_EGRESS_NAME, namespace: name }),
+        metadata: metadata(node, ctx, { name: policyName(DEFAULT_DENY_EGRESS_NAME), namespace: name }),
         spec: { podSelector: pods, policyTypes: ["Egress"] },
       },
       {
         apiVersion: "networking.k8s.io/v1",
         kind: "NetworkPolicy",
-        metadata: metadata(node, ctx, { name: ALLOW_DNS_EGRESS_NAME, namespace: name }),
+        metadata: metadata(node, ctx, { name: policyName(ALLOW_DNS_EGRESS_NAME), namespace: name }),
         spec: {
           podSelector: pods,
           policyTypes: ["Egress"],

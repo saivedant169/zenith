@@ -261,6 +261,16 @@ describe("ownership guard", () => {
     expect(pod["app.kubernetes.io/part-of"]).toBe(scoped.matchLabels["app.kubernetes.io/part-of"]);
   });
 
+  it("names a provisioned namespace's policies per environment, so two environments sharing it never collide", () => {
+    const names = (environmentId: string, provisioned: boolean) => renderGraph([networkNode(), serviceNode()], { ...ctx, environmentId, ...(provisioned ? { provisionedNamespaces: [NS] } : {}) })
+      .objects.filter((o) => o.kind === "NetworkPolicy" && o.metadata.namespace === NS).map((o) => o.metadata.name);
+    const a = names(ENV_ID, true), b = names(OTHER_ENV, true);
+    expect(a.length).toBeGreaterThan(0);
+    expect(a.filter((name) => b.includes(name))).toEqual([]);
+    expect(names(ENV_ID, true)).toEqual(a); // deterministic
+    expect(names(ENV_ID, false)).toContain("zenith-default-deny-ingress"); // a Zenith-owned namespace keeps its stable names
+  });
+
   it("never treats another environment's namespace or a system namespace as provisioned", async () => {
     fake.seed({ apiVersion: "v1", kind: "Namespace", metadata: { name: NS, labels: { "app.kubernetes.io/managed-by": "zenith", "pod-security.kubernetes.io/enforce": "baseline" }, annotations: { [ANNOTATION.environment]: OTHER_ENV } } });
     const foreign = await serverSideApply(small(), await sessionFor(fake, [NS]), { environmentId: ENV_ID });

@@ -284,7 +284,10 @@ export function diagnoseOperatedFailure(env: NodeJS.ProcessEnv, where: string, e
     .map((line) => line.trim().replace(/[a-z]+:\/\/\S+/gi, "<url>").slice(0, 200)).join(" / ") : "";
   // Typed product errors (RecoveryToolError, ControlStoreError, ...) carry a fixed snake_case code.
   const errorCode = error instanceof Error ? (error as unknown as { code?: unknown }).code : undefined;
-  const typed = typeof errorCode === "string" && /^[a-z][a-z_]{1,40}$/.test(errorCode) ? " code=" + errorCode : "";
+  // Recovery tools fail as "<label> failed (exit N): <scrubbed stderr>"; only the label and exit code are printed.
+  const tool = error instanceof Error && error.name === "RecoveryToolError" ? /^([A-Za-z0-9_ -]{1,30}) (?:failed \(exit (\d{1,3})\)|is not available)/.exec(error.message) : null;
+  const typed = (typeof errorCode === "string" && /^[a-z][a-z_]{1,40}$/.test(errorCode) ? " code=" + errorCode : "")
+    + (tool ? ` tool=${tool[1]!.replace(/\s+/g, "_")}${tool[2] ? " exit=" + tool[2] : ""}` : "");
   process.stderr.write(`operated ${where} failed: ${/^[a-z0-9:._-]{1,80}$/.test(code) ? code : "unclassified " + (error instanceof Error && /^[A-Za-z]{1,40}$/.test(error.name) ? error.name : "value") + typed + timeout}\n`);
 }
 export function until<T>(read: () => Promise<T>, predicate: (value: T) => boolean, timeout = 180_000): Promise<T> { return journeyUntil(read, predicate, timeout); }

@@ -2679,6 +2679,14 @@
           "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, Temporal mTLS, owned kind target with one operator-provisioned namespace shared by two environments, Chromium",
           "result": "D-4 two-tenants passed with a matched current-source receipt: two independent workspaces each deployed through independent browser approval into a shared operator namespace (environment-scoped NetworkPolicies), independent provider readback, browser read and write isolation (cross-tenant mutation refused exactly like a missing object), MCP isolation, foreign approval refused, no cross-tenant effects, source stable, owned cleanup. 1 passed / 0 failed / 1 lane-gated skip (export case). Not live cloud.",
           "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-21-38e4188a-drivers-d4-two-tenants-hosted.json"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "c49904a91ffec9f5d34f3214c343fb58483298d6",
+          "command": "operated-gate-linux.yml gate=j15-operated-restore (GitHub-hosted ubuntu runner, run 39667197229)",
+          "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, Temporal mTLS on an owned loopback port, kind target, Chromium; PostgreSQL 17 client tools (PGDG) and the SHA-pinned Temporal CLI 1.9.1",
+          "result": "DRV-3 operated restore passed with a matched current-source receipt: browser-approved operation snapshotted; backup verified (platform/product, keys, Temporal over mTLS); post-snapshot consumption; damaged backup, missing keys and nonempty target refused; operator CLI route restored into a fresh database with --no-privileges and the re-applied platform SQL (RECOVERY.md 2.1); fresh restore with epoch and ledger readback; the pre-restore approval refused as recovery_epoch_stale with no resurrected execution; browser continuation with stale binding refused and the item resumed; fresh approval in the new epoch executed under a new epoch-scoped workflow and read back; owned cleanup. Product fixes found by this gate: Temporal CLI mTLS in backup/restore, recovery_epoch_stale before retained-intent recovery, epoch-scoped workflow ids for reopened operations. Limits: local disposable engines on a hosted runner, not live cloud; best-effort wake-up signals/progress still address op-<id>.",
+          "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-21-c49904a9-j15-operated-restore-hosted.json"
         }
       ],
       "requiredEvidence": [
@@ -7197,7 +7205,16 @@
       ],
       "implementationStatus": "implementation_complete_verification_pending",
       "implementationNote": "L3 gated observation/cleanup/inventory harness built; live and operational evidence plus owner fixtures/decisions pending. No verification claimed.",
-      "evidence": [],
+      "evidence": [
+        {
+          "level": "remote_ci",
+          "commit": "c49904a91ffec9f5d34f3214c343fb58483298d6",
+          "command": "operated-gate-linux.yml gate=j15-operated-restore (GitHub-hosted ubuntu runner, run 39667197229)",
+          "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, Temporal mTLS on an owned loopback port, kind target, Chromium; PostgreSQL 17 client tools (PGDG) and the SHA-pinned Temporal CLI 1.9.1",
+          "result": "DRV-3 operated restore passed with a matched current-source receipt: browser-approved operation snapshotted; backup verified (platform/product, keys, Temporal over mTLS); post-snapshot consumption; damaged backup, missing keys and nonempty target refused; operator CLI route restored into a fresh database with --no-privileges and the re-applied platform SQL (RECOVERY.md 2.1); fresh restore with epoch and ledger readback; the pre-restore approval refused as recovery_epoch_stale with no resurrected execution; browser continuation with stale binding refused and the item resumed; fresh approval in the new epoch executed under a new epoch-scoped workflow and read back; owned cleanup. Product fixes found by this gate: Temporal CLI mTLS in backup/restore, recovery_epoch_stale before retained-intent recovery, epoch-scoped workflow ids for reopened operations. Limits: local disposable engines on a hosted runner, not live cloud; best-effort wake-up signals/progress still address op-<id>.",
+          "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-21-c49904a9-j15-operated-restore-hosted.json"
+        }
+      ],
       "requiredEvidence": [
         "contract",
         "local_engine",
@@ -7735,6 +7752,14 @@
           "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, Temporal mTLS, owned kind target with one operator-provisioned namespace shared by two environments, Chromium",
           "result": "D-4 two-tenants passed with a matched current-source receipt: two independent workspaces each deployed through independent browser approval into a shared operator namespace (environment-scoped NetworkPolicies), independent provider readback, browser read and write isolation (cross-tenant mutation refused exactly like a missing object), MCP isolation, foreign approval refused, no cross-tenant effects, source stable, owned cleanup. 1 passed / 0 failed / 1 lane-gated skip (export case). Not live cloud.",
           "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-21-38e4188a-drivers-d4-two-tenants-hosted.json"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "c49904a91ffec9f5d34f3214c343fb58483298d6",
+          "command": "operated-gate-linux.yml gate=j15-operated-restore (GitHub-hosted ubuntu runner, run 39667197229)",
+          "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, Temporal mTLS on an owned loopback port, kind target, Chromium; PostgreSQL 17 client tools (PGDG) and the SHA-pinned Temporal CLI 1.9.1",
+          "result": "DRV-3 operated restore passed with a matched current-source receipt: browser-approved operation snapshotted; backup verified (platform/product, keys, Temporal over mTLS); post-snapshot consumption; damaged backup, missing keys and nonempty target refused; operator CLI route restored into a fresh database with --no-privileges and the re-applied platform SQL (RECOVERY.md 2.1); fresh restore with epoch and ledger readback; the pre-restore approval refused as recovery_epoch_stale with no resurrected execution; browser continuation with stale binding refused and the item resumed; fresh approval in the new epoch executed under a new epoch-scoped workflow and read back; owned cleanup. Product fixes found by this gate: Temporal CLI mTLS in backup/restore, recovery_epoch_stale before retained-intent recovery, epoch-scoped workflow ids for reopened operations. Limits: local disposable engines on a hosted runner, not live cloud; best-effort wake-up signals/progress still address op-<id>.",
+          "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-21-c49904a9-j15-operated-restore-hosted.json"
         }
       ],
       "requiredEvidence": [

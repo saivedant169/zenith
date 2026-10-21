@@ -188,11 +188,14 @@ export class OperatedSession {
     ensure(result.data.status === "awaiting_approval" && result.data.executed === false, "mcp-proposal-gated");
     return result.data.operationId as string;
   }
+  /** Temporal run id each execute() started, by operation: the durable start intent records the same one. */
+  readonly runIds = new Map<string, string>();
   async execute(id: string): Promise<string> {
     const detail = await this.detail(id);
     const result = await mcp(this.stack, this.linked!.token, "tools/call", { name: "zenith_execute_approved_operation",
       arguments: { workspaceId: this.workspaceId, operationId: id, expectedDigest: detail.operation.proposalDigest } });
     ensure(result.data.workflow?.id, "durable-workflow");
+    if (typeof result.data.workflow.runId === "string") this.runIds.set(id, result.data.workflow.runId);
     return result.data.workflow.id as string;
   }
   async terminal(id: string): Promise<Detail> {

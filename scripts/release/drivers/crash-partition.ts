@@ -21,6 +21,17 @@ async function worker(session: OperatedSession): Promise<Container> {
   return value;
 }
 async function mutate(session: OperatedSession, args: string[]): Promise<void> { await worker(session); await command("docker", [...args, session.stack.worker]); }
+/** While the worker is down the durable record is the acknowledged start intent: only a running worker records workflowId on the operation. */
+async function durableWhileDown(session: OperatedSession, env: NodeJS.ProcessEnv, operationId: string, workflowId: string, code: string): Promise<void> {
+  const authority = (await session.detail(operationId)).authority;
+  const runId = session.runIds.get(operationId);
+  const durable = !!authority && !!runId && authority.startIntent?.phase === "acknowledged" && authority.startIntent.runId === runId
+    && (authority.workflowId === null || authority.workflowId === workflowId);
+  if (!durable && env.ZENITH_OPERATED_DIAGNOSTICS === "1") process.stderr.write(code + " authority " + JSON.stringify(authority ? {
+    phase: authority.phase, status: authority.status, start: authority.startIntent?.phase ?? null, runMatches: authority.startIntent?.runId === runId,
+    workflowId: authority.workflowId === null ? null : authority.workflowId === workflowId ? "match" : "other" } : null) + "\n");
+  ensure(durable, code);
+}
 
 export async function crashPartitionDriver(receiptFile: string, env = process.env): Promise<number> {
   return runOperated({ scenarioId: "crash-partition", receiptFile, env }, async (session, step) => {
@@ -48,12 +59,12 @@ export async function crashPartitionDriver(receiptFile: string, env = process.en
       const killed = await worker(session);
       ensure(!killed.State.Running && killed.State.ExitCode === 137, "actual-sigkill");
       crashWorkflow = await session.execute(crashOperation);
-      ensure((await session.detail(crashOperation)).authority?.workflowId === crashWorkflow, "durable-during-crash");
+      await durableWhileDown(session, env, crashOperation, crashWorkflow, "durable-during-crash");
     });
     await step("outage-traffic", async () => {
       ensure(!(await worker(session)).State.Running, "crash-outage-observed");
       session.readbacks.outage = await session.readback(1);
-      ensure((await session.detail(crashOperation)).authority?.workflowId === crashWorkflow, "durable-crash-operation");
+      await durableWhileDown(session, env, crashOperation, crashWorkflow, "durable-crash-operation");
     });
     await step("restart-readback", async () => {
       await mutate(session, ["update", "--restart=unless-stopped"]);

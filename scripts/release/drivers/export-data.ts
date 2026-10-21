@@ -148,7 +148,9 @@ async function databasePair(ctx: OperatedContext, cleanup: OwnedCleanup, network
       // The TLS cause carries Node's fixed code (e.g. ERR_TLS_CERT_ALTNAME_INVALID, UNABLE_TO_VERIFY_LEAF_SIGNATURE).
       const cause = (error as { cause?: { code?: unknown } })?.cause?.code ?? (error instanceof Error ? /\b(ERR_[A-Z0-9_]{3,60}|[A-Z][A-Z0-9_]{6,60})\b/.exec(error.message.replace(/HANDSHAKE_SSL_ERROR/g, ""))?.[1] : undefined);
       lastFailure = (error instanceof Error && /^[A-Za-z]{1,40}$/.test(error.name) ? error.name : "Error") + (typeof code === "string" && /^[A-Z0-9_]{1,60}$/.test(code) ? ":" + code : "")
-        + (typeof cause === "string" && /^[A-Z0-9_]{1,60}$/.test(cause) ? ":" + cause : "");
+        + (typeof cause === "string" && /^[A-Z0-9_]{1,60}$/.test(cause) ? ":" + cause : "")
+        // Node's TLS sentence (fixed library text, e.g. "unable to verify the first certificate"), addresses and tokens elided.
+        + (error instanceof Error ? " " + error.message.replace(/\b\d{1,3}(?:\.\d{1,3}){3}\b/g, "…ip").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 160) : "");
       return false;
     }
   }, (ready: boolean) => ready).catch(async (error: unknown) => {

@@ -1,0 +1,412 @@
+{
+ "schemaVersion": 1,
+ "kind": "local_engine",
+ "date": "2026-10-21",
+ "commit": "a460e3c5fa0f7684b2538428f55c17a056b8acd9",
+ "clean": true,
+ "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 with Supabase-accurate roles, migrated by scripts/platform/migrate.ts; owned Temporal CLI; real OpenTofu 1.12.5 with pg_dump/pg_restore 16. S3 lane: LocalStack 4.14.0 (localstack/localstack@sha256:3ebc37595918b8accb852f8048fef2aff047d465167edd655528065b07bc364a, SERVICES=s3). GCS lane: fsouza/fake-gcs-server@sha256:797ce226d62f947c009dc40246b30cfb456b8473d8241407f9d6f2c04e4d69ef (memory backend).",
+ "totals": {
+  "files": 49,
+  "passed": 1752,
+  "failed": 0,
+  "skipped": 9
+ },
+ "skippedNote": "8 lane-specific memory/PGlite registrations of database-boundary cases that ran on PostgreSQL; 1 GCS CMEK case skipped with the server response because fake-gcs-server does not store kmsKeyName",
+ "rawReport": "docs/build/production/evidence/engine-acceptance/2026-10-21-a460e3c5-dur-combined-vitest.json",
+ "rawReportSha256": "86f5a7c512fd8d4f6ee1cd22dbb4bd6ff0af27fbb38d17a5e02e07b1148bbde4",
+ "files": {
+  "tests/adversarial/approvals-forgery.test.ts": {
+   "passed": 48,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 15
+  },
+  "tests/bridge/projection-repair.test.ts": {
+   "passed": 15,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 6
+  },
+  "tests/capabilities/broker.test.ts": {
+   "passed": 112,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 37
+  },
+  "tests/capabilities/destroy-review-mcp.test.ts": {
+   "passed": 6,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 0
+  },
+  "tests/capabilities/execution.test.ts": {
+   "passed": 96,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 32
+  },
+  "tests/capabilities/standing-grants.test.ts": {
+   "passed": 123,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 41
+  },
+  "tests/controlplane/build-launch-broker-binding.test.ts": {
+   "passed": 65,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 61
+  },
+  "tests/controlplane/build-launches.test.ts": {
+   "passed": 13,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 13
+  },
+  "tests/controlplane/cleanup-writer-barriers.test.ts": {
+   "passed": 100,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 100
+  },
+  "tests/controlplane/durable-intent-authority.test.ts": {
+   "passed": 46,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 23
+  },
+  "tests/controlplane/executable-semantics.test.ts": {
+   "passed": 35,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 17
+  },
+  "tests/controlplane/plan-artifact-access.test.ts": {
+   "passed": 2,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 0
+  },
+  "tests/controlplane/plan-artifact-retention.test.ts": {
+   "passed": 27,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 27
+  },
+  "tests/controlplane/plan-artifacts.test.ts": {
+   "passed": 26,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 15
+  },
+  "tests/controlplane/plan-custody.test.ts": {
+   "passed": 24,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 12
+  },
+  "tests/controlplane/recovery-epoch.test.ts": {
+   "passed": 30,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 15
+  },
+  "tests/controlplane/state-backend-recovery.test.ts": {
+   "passed": 26,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 13
+  },
+  "tests/controlplane/workflow-start-intents.test.ts": {
+   "passed": 42,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 24
+  },
+  "tests/effects/build-launch.test.ts": {
+   "passed": 26,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 13
+  },
+  "tests/effects/cleanup.test.ts": {
+   "passed": 22,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 11
+  },
+  "tests/effects/ledger.test.ts": {
+   "passed": 70,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 35
+  },
+  "tests/effects/provider-resolvers.test.ts": {
+   "passed": 14,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 3
+  },
+  "tests/effects/proxy.test.ts": {
+   "passed": 33,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 11
+  },
+  "tests/effects/resolvers.test.ts": {
+   "passed": 24,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 5
+  },
+  "tests/effects/routes.test.ts": {
+   "passed": 14,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 0
+  },
+  "tests/execution/destroy-semantics.test.ts": {
+   "passed": 32,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 16
+  },
+  "tests/execution/semantics-dispatch.test.ts": {
+   "passed": 114,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 57
+  },
+  "tests/execution/semantics.test.ts": {
+   "passed": 57,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 0
+  },
+  "tests/middleware/platform-bearer.test.ts": {
+   "passed": 109,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 0
+  },
+  "tests/platform/codebuild-launch-authority.test.ts": {
+   "passed": 34,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 34
+  },
+  "tests/platform/current-dispatch-requirement.test.ts": {
+   "passed": 9,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 9
+  },
+  "tests/platform/deploy-e2e.test.ts": {
+   "passed": 24,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 0
+  },
+  "tests/platform/housekeeping.test.ts": {
+   "passed": 14,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 0
+  },
+  "tests/platform/semantics-approval.test.ts": {
+   "passed": 12,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 6
+  },
+  "tests/platform/state-session.test.ts": {
+   "passed": 8,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 0
+  },
+  "tests/runners/dispatch.test.ts": {
+   "passed": 27,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 0
+  },
+  "tests/runners/idempotent-enqueue.test.ts": {
+   "passed": 21,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 7
+  },
+  "tests/runners/late-effect-receipts.test.ts": {
+   "passed": 112,
+   "failed": 0,
+   "skipped": 8,
+   "postgresCases": 40
+  },
+  "tests/security/plan-artifact-secrecy.test.ts": {
+   "passed": 1,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 1
+  },
+  "tests/security/plan-view-separation.test.ts": {
+   "passed": 17,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 4
+  },
+  "tests/server/cron-housekeeping.test.ts": {
+   "passed": 6,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 0
+  },
+  "tests/tofu/backend-capabilities.test.ts": {
+   "passed": 8,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 0
+  },
+  "tests/tofu/plan-artifact-handoff.test.ts": {
+   "passed": 18,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 18
+  },
+  "tests/tofu/state-backend-gcs-fake.test.ts": {
+   "passed": 7,
+   "failed": 0,
+   "skipped": 1,
+   "postgresCases": 0
+  },
+  "tests/tofu/state-backend-gcs.test.ts": {
+   "passed": 5,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 0
+  },
+  "tests/tofu/state-backend-s3-minio.test.ts": {
+   "passed": 7,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 0
+  },
+  "tests/tofu/state-backend-s3.test.ts": {
+   "passed": 12,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 0
+  },
+  "tests/workflows/start-intent.test.ts": {
+   "passed": 50,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 4
+  },
+  "tests/workflows/start-recovery.test.ts": {
+   "passed": 9,
+   "failed": 0,
+   "skipped": 0,
+   "postgresCases": 0
+  }
+ },
+ "requirementFiles": {
+  "PROD-DUR-01": [
+   "tests/runners/idempotent-enqueue.test.ts",
+   "tests/controlplane/durable-intent-authority.test.ts",
+   "tests/bridge/projection-repair.test.ts",
+   "tests/workflows/start-recovery.test.ts",
+   "tests/runners/late-effect-receipts.test.ts",
+   "tests/runners/dispatch.test.ts",
+   "tests/workflows/start-intent.test.ts",
+   "tests/controlplane/workflow-start-intents.test.ts",
+   "tests/platform/housekeeping.test.ts",
+   "tests/server/cron-housekeeping.test.ts",
+   "tests/platform/deploy-e2e.test.ts"
+  ],
+  "PROD-DUR-02": [
+   "tests/controlplane/durable-intent-authority.test.ts",
+   "tests/bridge/projection-repair.test.ts",
+   "tests/workflows/start-recovery.test.ts"
+  ],
+  "PROD-DUR-03": [
+   "tests/execution/semantics.test.ts",
+   "tests/execution/semantics-dispatch.test.ts",
+   "tests/platform/semantics-approval.test.ts",
+   "tests/controlplane/executable-semantics.test.ts",
+   "tests/execution/destroy-semantics.test.ts"
+  ],
+  "PROD-DUR-04": [
+   "tests/adversarial/approvals-forgery.test.ts",
+   "tests/capabilities/standing-grants.test.ts",
+   "tests/capabilities/execution.test.ts",
+   "tests/platform/current-dispatch-requirement.test.ts",
+   "tests/capabilities/broker.test.ts",
+   "tests/capabilities/destroy-review-mcp.test.ts",
+   "tests/middleware/platform-bearer.test.ts",
+   "tests/execution/semantics-dispatch.test.ts",
+   "tests/controlplane/executable-semantics.test.ts",
+   "tests/platform/deploy-e2e.test.ts"
+  ],
+  "PROD-DUR-05": [
+   "tests/controlplane/plan-custody.test.ts",
+   "tests/controlplane/plan-artifacts.test.ts",
+   "tests/controlplane/plan-artifact-retention.test.ts",
+   "tests/controlplane/plan-artifact-access.test.ts",
+   "tests/security/plan-view-separation.test.ts",
+   "tests/tofu/plan-artifact-handoff.test.ts",
+   "tests/security/plan-artifact-secrecy.test.ts"
+  ],
+  "PROD-DUR-07": [
+   "tests/effects/ledger.test.ts",
+   "tests/effects/resolvers.test.ts",
+   "tests/effects/provider-resolvers.test.ts",
+   "tests/controlplane/recovery-epoch.test.ts",
+   "tests/effects/routes.test.ts",
+   "tests/effects/proxy.test.ts"
+  ],
+  "PROD-DUR-08": [
+   "tests/controlplane/build-launches.test.ts",
+   "tests/controlplane/build-launch-broker-binding.test.ts",
+   "tests/platform/codebuild-launch-authority.test.ts",
+   "tests/effects/build-launch.test.ts",
+   "tests/effects/cleanup.test.ts",
+   "tests/effects/resolvers.test.ts",
+   "tests/effects/provider-resolvers.test.ts",
+   "tests/effects/proxy.test.ts"
+  ],
+  "PROD-DUR-06": [
+   "tests/workers/plan-janitor.test.ts",
+   "tests/controlplane/cleanup-writer-barriers.test.ts",
+   "tests/controlplane/state-backend-recovery.test.ts",
+   "tests/tofu/backend-capabilities.test.ts",
+   "tests/tofu/state-backend-s3.test.ts",
+   "tests/tofu/state-backend-s3-minio.test.ts",
+   "tests/tofu/state-backend-gcs.test.ts",
+   "tests/tofu/state-backend-gcs-fake.test.ts",
+   "tests/platform/state-session.test.ts",
+   "tests/controlplane/plan-artifact-retention.test.ts"
+  ]
+ },
+ "policy": {
+  "commit": "23a873a0",
+  "command": "node policy/build.mjs --check (opa 1.19.1)",
+  "result": "PASS 219/219; policy/dist matches a fresh build (sha256 708b2e07eff3762498bbbf8f99c2574717dcf7a8346acf788e3d40e3bce539e1)",
+  "sourceChangeSince": "23a873a0..a460e3c5 changes no policy/ or src/lib/policy file"
+ },
+ "added": {
+  "PROD-DUR-06": "Plan janitor (writer/unlink race): the file janitor retains legacy plan bytes for every terminal outcome, never deletes a non-terminal or newly owned plan, re-checks a file refreshed during its ownership read and is single-flight under its directory lease (41/41, supplemental report). Cleanup-writer barriers 100/100 and state-backend recovery 26/26 on real PostgreSQL. f6c1e5f7, a9871d41: the S3 state adapter against a real S3 API (LocalStack): versioned SSE bucket admitted, unversioned refused, IfMatch conditional writes and a server-side race refused, version listing and digest-checked read, restore as a new version keeping the newer one, conditional-create lock refusing a second holder, and no Delete* command sent. a460e3c5: the GCS adapter against fake-gcs-server with generations and ifGenerationMatch preconditions (CMEK reporting unsupported by the server)."
+ },
+ "supplementalReports": [
+  {
+   "rawReport": "docs/build/production/evidence/engine-acceptance/2026-10-21-a460e3c5-dur06-janitor-vitest.json",
+   "rawReportSha256": "8f94e0c6983e20f2b3cdda53e4d616761b783cd4724ca5756f266601631a0cb7",
+   "command": "vitest run tests/workers/plan-janitor.test.ts tests/controlplane/cleanup-writer-barriers.test.ts on an owned PostgreSQL 16 migrated 1..58, clean a460e3c5",
+   "totals": {
+    "passed": 141,
+    "failed": 0,
+    "skipped": 0
+   }
+  }
+ ]
+}

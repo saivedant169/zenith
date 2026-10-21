@@ -1,0 +1,53 @@
+{
+ "schemaVersion": 1,
+ "kind": "local_engine",
+ "requirement": [
+  "PROD-DUR-02"
+ ],
+ "date": "2026-10-21",
+ "commit": "8a31dadc66fd9451e9934d5e81b10bd94265e0e6",
+ "workflow": ".github/workflows/product-store-postgrest.yml",
+ "runId": 39515310716,
+ "url": "https://github.com/saivedant169/zenith/actions/runs/39515310716",
+ "environment": "GitHub-hosted ubuntu-latest fresh VM; pinned Supabase CLI 2.75.0 stack (Postgres 17, Auth, PostgREST behind Kong) with supabase/migrations 0001-0027 applied by psql",
+ "totals": {
+  "passed": 113,
+  "failed": 0,
+  "skipped": 0
+ },
+ "rawReport": "docs/build/production/evidence/engine-acceptance/2026-10-21-8a31dadc-product-store-postgrest-vitest.json",
+ "rawReportSha256": "f16cb44af1b31c30b7e0a6175850e66184e184c616bfc6988892f74e0d111ed8",
+ "files": {
+  "zenith/tests/db/contract/alerts.test.ts": {
+   "passed": 7,
+   "failed": 0,
+   "skipped": 0
+  },
+  "zenith/tests/db/contract/audit.test.ts": {
+   "passed": 15,
+   "failed": 0,
+   "skipped": 0
+  },
+  "zenith/tests/db/contract/history.test.ts": {
+   "passed": 25,
+   "failed": 0,
+   "skipped": 0
+  },
+  "zenith/tests/db/contract/secrets.test.ts": {
+   "passed": 18,
+   "failed": 0,
+   "skipped": 0
+  },
+  "zenith/tests/db/contract/store-contract.test.ts": {
+   "passed": 26,
+   "failed": 0,
+   "skipped": 0
+  },
+  "zenith/tests/db/contract/workspace-sharing.test.ts": {
+   "passed": 22,
+   "failed": 0,
+   "skipped": 0
+  }
+ },
+ "note": "PostgresStore flushes through zenith_product_flush (0027): one transaction per pass. Cases include the environment lease plus deployment pair never landing half-written, version-guarded update and delete races, the start-projection repair path, dense two-instance event sequences and scoped reset. Adds the index-friendly typed key match and the duplicate-insert (23505) refusal case."
+}

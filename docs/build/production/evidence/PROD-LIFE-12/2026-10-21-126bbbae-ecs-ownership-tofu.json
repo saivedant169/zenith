@@ -1,0 +1,17 @@
+{
+ "schemaVersion": 1,
+ "kind": "local_engine",
+ "requirement": "PROD-LIFE-12",
+ "date": "2026-10-21",
+ "commit": "126bbbaee83f2d0e2e0007fdeae69be1388f4aab",
+ "clean": true,
+ "environment": "Native Darwin ARM64, Node 22.23.3; real OpenTofu 1.12.5 tofu test with mock_provider aws (hashicorp/aws 6.66.0 schema); no cloud credentials",
+ "totals": {
+  "passed": 4,
+  "failed": 0,
+  "skipped": 0
+ },
+ "rawReport": "docs/build/production/evidence/PROD-LIFE-12/2026-10-21-126bbbae-ecs-ownership-tofu-vitest.json",
+ "rawReportSha256": "6e0dd7f37de2a3ddc1120bdc9533dd873781bb9c321da0bbc1d9fa9ea81b22a8",
+ "result": "With the emitted lifecycle ignore_changes, re-rendering desired_count from 2 to 5 plans no change; the control without it plans 2 -> 5."
+}

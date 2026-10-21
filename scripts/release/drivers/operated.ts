@@ -115,6 +115,7 @@ export class OperatedSession {
     await enrollOperator(this.a, this.stack); await enrollOperator(this.b, this.stack);
     const workspace = ok(await browserRequest(this.a, "/api/workspace", { name: "Zenith DRV2 " + nonce() })).workspace as { id: string };
     this.workspaceId = workspace.id;
+    await requireTwoPersonProduction(this.a, workspace.id);
     const invite = ok(await browserRequest(this.a, "/api/workspace/invites", { email: operatorB.email, role: "admin", workspaceId: workspace.id })).invite as { id: string };
     const accepted = ok(await browserRequest(this.b, "/api/workspace/invites/" + invite.id + "/accept", {}));
     ensure(accepted.member?.id === operatorB.id && accepted.member?.role === "admin", "independent-member");
@@ -392,6 +393,7 @@ export class UpgradeRestoreSession {
     await authenticateBeforeWorkspace(this.a, this.stack, userA); await authenticateBeforeWorkspace(this.b, this.stack, userB);
     await enrollOperator(this.a, this.stack); await enrollOperator(this.b, this.stack);
     this.workspaceId = ok(await browserRequest(this.a, "/api/workspace", { name: `DRV3 ${this.input.runId}` })).workspace.id;
+    await requireTwoPersonProduction(this.a, this.workspaceId);
     const invite = ok(await browserRequest(this.a, "/api/workspace/invites", { email: userB.email, role: "admin", workspaceId: this.workspaceId })).invite;
     ensure(ok(await browserRequest(this.b, `/api/workspace/invites/${invite.id}/accept`, {})).member.id === userB.id, "independent-admin");
     const name = `DRV3 witness ${this.input.runId}`;
@@ -638,6 +640,7 @@ export class Operated {
     await enrollOperator(this.a, this.stack); await enrollOperator(this.b, this.stack);
     const workspace = ok(await browserRequest(this.a, "/api/workspace", { name: "DRV-1 " + this.scenario + " " + nonce() })).workspace;
     this.workspaceId = workspace.id;
+    await requireTwoPersonProduction(this.a, workspace.id);
     const invite = ok(await browserRequest(this.a, "/api/workspace/invites", { email: userB.email, role: "admin", workspaceId: workspace.id })).invite;
     ensure(ok(await browserRequest(this.b, "/api/workspace/invites/" + invite.id + "/accept", {})).member?.id === userB.id, "independent-membership");
     for (const page of [this.a, this.b]) await page.setExtraHTTPHeaders({ "x-zenith-workspace": workspace.id });
@@ -950,6 +953,12 @@ async function runTenantExportOperated(input: TenantExportInput, work: (context:
   return receiptExit(receipt);
 }
 
+/** Production approvals need an independent second person (two-person production), as the J2 journey sets it. */
+async function requireTwoPersonProduction(page: Page, workspaceId: string): Promise<void> {
+  const policy = ok(await browserRequest(page, "/api/platform/v1/workspace/policy", { overrides: { twoPersonProduction: true } }, "PUT", workspaceId));
+  ensure(policy.workspaceId === workspaceId && policy.effective?.twoPersonProduction === true, "two-person-production-policy");
+}
+
 async function authenticateBeforeWorkspace(page: Page, stack: Stack, user: { id: string; email: string; password: string }): Promise<void> {
   await page.goto(stack.apiUrl + '/login?next=/overview');
   await page.getByLabel('Email', { exact: true }).fill(user.email);
@@ -980,6 +989,7 @@ export async function createTenant(ctx: OperatedContext, letter: string): Promis
   const b = await operator(stack, config.mailpitUrl, `drv4-${letter}-approver`, users);
   await authenticateBeforeWorkspace(owner, stack, a);
   const workspace = ok(await browserRequest(owner, "/api/workspace", { name: `DRV4 ${input.runId} ${letter}` })).workspace;
+  await requireTwoPersonProduction(owner, workspace.id);
   ok(await browserRequest(owner, "/api/bootstrap"));
   await enrollOperator(owner, stack);
   const invite = ok(await browserRequest(owner, "/api/workspace/invites", { workspaceId: workspace.id, email: b.email, role: "admin" })).invite;

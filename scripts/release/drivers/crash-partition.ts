@@ -107,7 +107,9 @@ export async function crashPartitionDriver(receiptFile: string, env = process.en
       // Retain canonical joined authority, user, capabilities, image and fresh scratch.
       service.mem_limit = "512m";
       service.volumes.push(path.join(session.stack.state.directory, "tls/ca.crt") + ":/run/zenith-ca.crt:ro");
-      Object.assign(service, { environment: { NODE_EXTRA_CA_CERTS: "/run/zenith-ca.crt", NODE_OPTIONS: "--max-old-space-size=384", ZENITH_PLATFORM_DB_MAX: "2", ZENITH_WORKER_RECONCILE_MAX_ENVIRONMENTS: "1", ZENITH_WORKER_RECONCILE_CONCURRENCY: "1" } });
+      // The reconcile sweep input is part of the shared durable schedule contract: a joined worker must keep the
+      // installation's values or it (correctly) refuses the existing schedule as incompatible.
+      Object.assign(service, { environment: { NODE_EXTRA_CA_CERTS: "/run/zenith-ca.crt", NODE_OPTIONS: "--max-old-space-size=384", ZENITH_PLATFORM_DB_MAX: "2" } });
       // Native Linux keeps the host owner and 0600 mode on binds, which uid 10001 cannot read: bind the same
       // least-privilege uid-owned 0400 copies the stack's own compose uses (see private-staging.mjs). No-op elsewhere.
       const stageRoot = path.join(session.stack.state.directory, "staged");

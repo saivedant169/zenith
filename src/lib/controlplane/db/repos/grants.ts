@@ -160,14 +160,24 @@ export async function insert(sql: Sql, input: InsertGrantInput): Promise<GrantRe
  * grant of another workspace all return false.
  */
 export async function consume(sql: Sql, input: { workspaceId: string; jti: string; audience?: string }): Promise<boolean> {
-  const rows = await sql.query<{ jti: string }>(
+  const workspaceId = requireText("workspaceId", input.workspaceId), jti = requireText("jti", input.jti, 128);
+  const once = async (tx: Sql): Promise<boolean> => (await tx.query<{ jti: string }>(
     `update platform.capability_grants set consumed_at = clock_timestamp()
       where workspace_id = $1 and jti = $2 and consumed_at is null and revoked_at is null
         and expires_at > clock_timestamp() and ($3::text is null or audience = $3::text)
       returning jti`,
-    [requireText("workspaceId", input.workspaceId), requireText("jti", input.jti, 128), input.audience ?? null]
-  );
-  return rows.length > 0;
+    [workspaceId, jti, input.audience ?? null]
+  )).length > 0;
+  const [grant] = await sql.query<{ capability: string; operation_id: string }>(
+    "select capability, operation_id from platform.capability_grants where workspace_id = $1 and jti = $2", [workspaceId, jti]);
+  if (!grant || NATIVE_OPERATION_WRITES[grant.capability] === undefined) return once(sql);
+  // A native field write is re-admitted at consume under the environment coordinator every
+  // ownership change takes, so an autoscaler or owner that attached after issue refuses it
+  // here (field_ownership_conflict) instead of letting the preissued write reach the provider.
+  return sql.tx(async (tx) => {
+    await lockForGrant(tx, workspaceId, grant.operation_id);
+    return once(tx);
+  });
 }
 
 /** Revoke a grant (idempotent; true when it was newly revoked). A consumed grant can still be marked revoked. */

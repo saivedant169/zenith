@@ -168,6 +168,7 @@ export function compileGraph(input: { graph: ResourceGraph; environmentId: strin
       ...(node.provider === "azure" && input.connection?.config.provider === "azure" && input.connection.config.cloud ? { azureCloud: input.connection.config.cloud } : {}),
       ...(node.provider === "aws" && awsBootstrap ? { awsBootstrap: awsBootstrapContextForConnection(input.connection!.config, node.region || input.region) } : {}),
       node: (a) => nodes.get(a),
+      nodes: () => [...nodes.values()],
       input: (name) => {
         // A typed dependency input of this consumer: only a declared one resolves, as the interpolation of its variable.
         if (!input.inputs?.some((declared) => declared.name === name)) throw new StepFailedError(`${safeText(node.address, 120)} asked for the typed input "${safeText(name, 60)}", which this operation does not consume.`);

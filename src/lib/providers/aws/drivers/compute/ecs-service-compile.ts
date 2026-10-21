@@ -101,7 +101,7 @@ export function compileEcsService(node: ResourceNode, ctx: CompileContext): Tofu
     }
 
     const name = cloudName(ctx.namePrefix, nodeName(node.address), 255);
-    const ownedLifecycle = lifecycleIgnoreChanges({ resourceType: "aws_ecs_service", address: node.address, facts: factsForNode(node) });
+    const ownedLifecycle = lifecycleIgnoreChanges({ resourceType: "aws_ecs_service", address: node.address, facts: factsForNode(node, ctx.nodes ? { nodes: ctx.nodes() } : undefined) });
     const service = b.resource("aws_ecs_service", label, {
       name,
       cluster: attr(t.cluster, "arn"),

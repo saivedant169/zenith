@@ -133,6 +133,8 @@ export interface CompileContext {
   input?(name: string): string;
   /** all nodes, for drivers that need a neighbour's spec */
   node(address: string): ResourceNode | undefined;
+  /** the whole graph, for facts that come from other nodes (e.g. an autoscaler node targeting this workload) */
+  nodes?(): readonly ResourceNode[];
 }
 
 /* ------------------------------ verification ------------------------------ */

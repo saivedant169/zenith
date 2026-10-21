@@ -3768,11 +3768,11 @@
       "acceptance": [
         "Nonroot permissions, SSM assets, private plan storage, cleanup and runtime filesystem constraints pass under actual image execution."
       ],
-      "state": "in_progress",
+      "state": "verified",
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "in_progress",
+      "implementationStatus": "verified_b8d7465b: under actual image execution on native GitHub-hosted amd64 and arm64 runners, the worker runs as uid 10001 with a read-only root filesystem (inspected, and a write probe gets EROFS), cap-drop ALL and no-new-privileges, a writable tmpfs /tmp, packaged SSM documents equal to deploy/aws/ssm-documents, private plan storage as a 0700 directory of 0600 files owned by 10001 that is retained, and every created resource and private input removed (22/22 checks each), exact-source CI green. Independent review: PROMOTE. Limits: plan-mode proof covers the harness's retention sentinels, not product-written OpenTofu plans; expired plan files are retained by product design (no removal claim); the sanitized artifact records plan-storage, uid and SSM results as check verdicts while the mode values exist only in the gate run; hosted runners, not a production registry or signed release image.",
       "evidence": [
         {
           "level": "local_linux_amd64",
@@ -3820,6 +3820,15 @@
           "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-14-f2d0-pkg-r5-pressure-refusal.json",
           "result": "R5 source correction independently reviewed P; actual fresh-image build refused by host-pressure monitor (exit 130) before 0/22 required acceptance checks. No subject terminal receipt; held worker return -15, strict closeout incomplete/custody uncertain despite two recorded absence confirmations. Root owned-builder/cache recovery pending; no stage-specific or heap-failure diagnosis; no retry or acceptance claim.",
           "passed": false
+        },
+        {
+          "level": "native_runtime",
+          "commit": "b8d7465bb436de9aeb7d89d9c3510957d86fd9d0",
+          "command": ".github/workflows/packaged-workers.yml (run 39518849066): scripts/ci/packaged-worker-native.mjs --run, --validate and --validate-artifact per architecture",
+          "environment": "GitHub-hosted ubuntu-24.04 (linux/amd64) and ubuntu-24.04-arm (linux/arm64) fresh runners, native Docker, emulated false",
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39518849066",
+          "logs": "docs/build/production/evidence/packaged-worker/amd64-b8d7465b-passed.json, docs/build/production/evidence/packaged-worker/arm64-b8d7465b-passed.json",
+          "result": "22/22 checks on each architecture under actual image execution: worker runs as uid 10001; docker inspect shows read-only rootfs, cap-drop ALL and no-new-privileges, an exec probe gets EROFS on the root filesystem and a writable /tmp; the packaged SSM documents equal deploy/aws/ssm-documents by count and sha256; private plan storage is a 0700 directory with 0600 files owned by 10001 and retained; every created resource (61/61) and private input is removed."
         }
       ],
       "requiredEvidence": [
@@ -4827,11 +4836,11 @@
       "acceptance": [
         "Janitor writer/unlink race closed; supported backends prove locking/encryption/versioning/restore without unsafe deletion."
       ],
-      "state": "in_progress",
+      "state": "verified",
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "implementation_complete_verification_pending",
+      "implementationStatus": "verified_a460e3c5: the plan janitor closes the writer/unlink race by never unlinking (legacy bytes retained, owners re-checked across refresh and races, single-flight under its lease) and cleanup-writer barriers hold on real PostgreSQL; restore-capable backends prove locking, encryption, versioning and restore without deletion against real S3 and GCS APIs (LocalStack S3, fake-gcs-server): unversioned buckets refused, conditional writes and server-side races refused, restore as a new version that keeps the newer one, conditional-create lock, no delete call; backends without a restore adapter are refused explicitly. 1752/0/9 plus 141/0/0, exact-source CI green on b8d7465b. Independent review: PROMOTE after the janitor proof was added. Limits: local engines with S3/GCS emulators (LocalStack 4.14.0, fake-gcs-server), not real AWS or GCP; GCS CMEK reporting unproven (emulator lacks kmsKeyName) and GCS default encryption is the unobserved provider default; restore probes the lock object rather than acquiring one, with IfMatch guarding the write; OCI hosted state is admitted with unverified locking and OCI, azurerm, http, local and pg state are not restorable.",
       "evidence": [
         {
           "level": "contract",
@@ -4851,6 +4860,14 @@
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-1650e6c4-postgres-halves.json",
           "artifactSha256": "b0a81178930178ee289668ad7c457b76415ce448dda04981c8f85fa1a206100e",
           "result": "Real-PostgreSQL lanes of durable-intent-authority (22), k8s-guest-bindings (7), state-backend-recovery (13), cleanup-writer-barriers (100) and late-effect-receipts (40) passed 182/182 on clean 1650e6c4; these are ungated, recorded as additional evidence. Real-PostgreSQL janitor writer/unlink race now covered (cleanup-writer-barriers 100/100). Still missing: locking, encryption, versioning and restore on a real storage backend (state-backend-recovery covers these on PostgreSQL, not real S3). Not promoted (independent review, 2026-10-20)."
+        },
+        {
+          "level": "local_engine",
+          "commit": "a460e3c5fa0f7684b2538428f55c17a056b8acd9",
+          "command": "combined DUR batch (scratchpad run-dur-all.sh with ZENITH_TEST_MINIO=1 ZENITH_TEST_S3_ENGINE=localstack ZENITH_TEST_GCS=1) plus a supplemental plan-janitor and cleanup-writer-barriers run, clean acceptance worktree at the commit",
+          "environment": "Native Darwin ARM64, Node 22.23.3; owned PostgreSQL 16 migrated 1..58; Temporal CLI; OpenTofu 1.12.5; LocalStack 4.14.0 S3 (digest-pinned); fake-gcs-server (digest-pinned, memory backend)",
+          "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-a460e3c5-dur-combined.json",
+          "result": "1752 passed / 0 failed / 9 skipped across 49 files plus 141/0/0 supplemental: plan janitor retains legacy bytes and never unlinks an owned or refreshed plan; cleanup-writer barriers 100/100 and state-backend recovery 26/26 on PostgreSQL; S3 adapter against a real S3 API (versioning required, IfMatch writes and server-side race refused, restore as a new version, conditional-create lock, no Delete*); GCS adapter with generations and ifGenerationMatch; unsupported backends refused explicitly."
         }
       ],
       "requiredEvidence": [

@@ -254,7 +254,8 @@ async function runDriftCrashOperated(input: { scenarioId: DriverScenario; receip
       const code = error instanceof Error ? error.message : "";
       if (input.env.ZENITH_OPERATED_DIAGNOSTICS === "1") process.stderr.write(`operated step ${id} failed: ${/^[a-z0-9:._-]{1,80}$/.test(code) ? code : "unclassified " + (error instanceof Error && /^[A-Za-z]{1,40}$/.test(error.name) ? error.name : "value")
         // A Playwright timeout names the locator it waited for: static UI text, with any URL removed.
-        + (error instanceof Error && error.name === "TimeoutError" ? " " + error.message.split("\n")[0]!.replace(/[a-z]+:\/\/\S+/gi, "<url>").slice(0, 200) : "")}\n`);
+        + (error instanceof Error && error.name === "TimeoutError" ? " " + [error.message.split("\n")[0]!, error.message.split("\n").find((line) => /waiting for /.test(line)) ?? ""]
+          .map((line) => line.trim().replace(/[a-z]+:\/\/\S+/gi, "<url>").slice(0, 200)).join(" / ") : "")}\n`);
       throw new Error("Operated step failed");
     }
   };

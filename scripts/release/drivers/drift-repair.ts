@@ -23,7 +23,7 @@ export async function driftRepairDriver(receiptFile: string, env = process.env):
     });
     await step("drift-observed", async () => {
       // Natural default reconcile schedule, never a seeded finding or forged timer.
-      const value = await until(() => observation(session), value => complete(value, injectedAt) && value.report!.findings.some(finding => finding.address === "service/witness" && finding.class === "changed" && finding.fields?.some(field => field.attribute === "replicas" && field.desired === 1 && field.observed === 2)), 360_000);
+      const value = await until(() => observation(session), value => complete(value, injectedAt) && value.report!.findings.some(finding => finding.address === "container_service/witness" && finding.class === "changed" && finding.fields?.some(field => field.attribute === "replicas" && field.desired === 1 && field.observed === 2)), 360_000);
       observedAt = Date.parse(value.report!.computedAt);
       session.readbacks.drift = sha256(value.report);
     });

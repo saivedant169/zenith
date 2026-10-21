@@ -203,7 +203,7 @@ export class OperatedSession {
   kubectl(args: string[]): Promise<string> { return command("kubectl", ["--kubeconfig", this.config.kind.observerKubeconfigFile, "--context", this.config.kind.context, "-n", this.config.kind.namespace, ...args]); }
   async deployment(): Promise<Deployment> {
     const object = JSON.parse(await this.kubectl(["get", "deployment", "witness", "-o", "json"])) as Deployment;
-    ensure(object.metadata.labels["app.kubernetes.io/managed-by"] === "zenith" && object.metadata.annotations["zenith.dev/environment"] === this.environmentId && object.metadata.annotations["zenith.dev/resource"] === "service/witness", "owned-workload");
+    ensure(object.metadata.labels["app.kubernetes.io/managed-by"] === "zenith" && object.metadata.annotations["zenith.dev/environment"] === this.environmentId && object.metadata.annotations["zenith.dev/resource"] === "container_service/witness", "owned-workload");
     ensure(object.spec.template.spec.containers[0].env?.some(value => value.name === "WITNESS_NONCE" && value.value === this.witnessNonce), "owned-workload-nonce");
     return object;
   }

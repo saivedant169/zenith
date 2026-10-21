@@ -6333,11 +6333,11 @@
       "acceptance": [
         "Reconcile Temporal/HTTP/controller reuse one observe/diagnose/brokered proposal/policy/approval/remediate/verify lifecycle; repair:not_implemented removed with implementation."
       ],
-      "state": "in_progress",
+      "state": "verified",
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "implementation_complete_verification_pending",
+      "implementationStatus": "verified_3c762584: reconcile via Temporal workflow, HTTP tick and durable sweep reuses one observe/diagnose/brokered proposal/policy/approval/remediate/verify lifecycle (runRepairLifecycle); repair:not_implemented removed with implementation; hosted operated DRV-2 drift repair passed end to end on 42e2c030 with a matched current-source receipt; exact-source CI success on 3c762584; independent review PROMOTE. Limits: kind Kubernetes target on a hosted runner, not live cloud; the read-only /api/environments/[id]/drift route still observes through the adapter directly rather than reconcile/observe.ts; unattended repair planning is governed by policy/autonomy, while the effect always needs a human.",
       "evidence": [
         {
           "level": "local_engine",
@@ -6366,6 +6366,14 @@
           "command": "operated-gate-linux.yml gate=drv2-drift-repair (GitHub-hosted ubuntu runner, run 39565873311): lean default stack 1 API + 1 worker, owned kind target, Chromium",
           "environment": "GitHub-hosted Linux x64; disposable Supabase CLI stack, Temporal mTLS, kind cluster, zenithd witness image; ephemeral credentials",
           "result": "DRV-2 operated drift repair passed with matched current-source execution receipt: approved workload, kubectl replica drift injected, drift observed on the natural reconcile schedule, REST repair proposal approved in the browser by an independent user, MCP execution, independent kind readback, fresh clean observation, owned cleanup. 1/1 required case. Other operated gates (drv1, crash-partition, j15, d4) not yet passed.",
+          "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-21-42e2c030-drv2-drift-repair-hosted.json"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "3c7625844cb732e1ded3438d45695fed5a52fb48",
+          "command": "Exact-source ci.yml run 39574757610 on 3c762584 (product source identical to 42e2c030 and 11f7a8d0; later commits change only operated drivers, diagnostics and the hosted workflow) plus independent lifecycle review",
+          "environment": "GitHub-hosted Linux runners",
+          "result": "CI success. Independent review PROMOTE: the Temporal reconcile workflow (workflows/definitions/reconcile.ts -> reconcile/activity.ts), the HTTP tick (api/internal/tick/reconcile) and the durable sweep (workflows/reconcile-schedule.ts) all run runRepairLifecycle (src/lib/repair/lifecycle.ts); reconcile/core.ts is the only controller; remediation is proposed only through the capability broker with policy evaluation; a policy allow starts only read-only planning and the concrete repair effect always requires human approval (capabilities/evaluate.ts drift.repair forced require_approval); no repair:not_implemented stub remains. Operated proof: hosted DRV-2 drift repair on 42e2c030 (natural reconcile schedule, brokered REST proposal, independent browser approval, MCP execution, independent kind readback, fresh clean observation).",
           "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-21-42e2c030-drv2-drift-repair-hosted.json"
         }
       ],

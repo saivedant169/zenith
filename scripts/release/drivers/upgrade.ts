@@ -1,6 +1,7 @@
 /** DRV-3: operated expand/worker/API replacement, injected outage and image rollback. */
 import { Connection, WorkflowClient } from "@temporalio/client";
 import { connectionOptionsFor, temporalConfigFromEnv } from "../../../src/lib/workflows/config";
+import { WORKFLOW_ID } from "../../../src/lib/workflows/types";
 import { compose, docker } from "../../acceptance/default-stack/runtime.mjs";
 import { GATE_SUITES, buildPlan, parseArgs } from "../../ops/rolling-upgrade.mjs";
 import { ensure, privateFile, kindReadback, NATIVE } from "../../../tests/e2e/default/support.mjs";
@@ -32,10 +33,13 @@ export async function runUpgrade(input: DriverInput): Promise<number> {
     const temporal = new WorkflowClient({ connection, namespace: session.prepared.environment.ZENITH_TEMPORAL_NAMESPACE });
     await session.step("browser-review-in-flight", async () => {
       operationId = (await session.deployReview()).operationId;
-      workflowId = (await session.detail(operationId)).authority?.workflowId ?? "";
-      ensure(typeof workflowId === "string" && workflowId.startsWith("op-"), "real-operation-workflow");
+      // The durable binding is the acknowledged start intent; no production path writes operations.workflow_id.
+      const authority = (await session.detail(operationId)).authority;
+      const start = authority?.startIntent;
+      workflowId = WORKFLOW_ID(operationId);
+      ensure(start?.phase === "acknowledged" && !!start.runId && (authority!.workflowId === null || authority!.workflowId === workflowId), "real-operation-workflow");
       const description = await temporal.getHandle(workflowId).describe();
-      ensure(description.status.name === "RUNNING", "in-flight-history"); runId = description.runId;
+      ensure(description.status.name === "RUNNING" && description.runId === start!.runId, "in-flight-history"); runId = description.runId;
     });
     await session.step("expand-worker-api", async () => {
       const order = upgradeOrder(candidate);

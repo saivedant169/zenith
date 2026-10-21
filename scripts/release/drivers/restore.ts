@@ -229,6 +229,12 @@ export async function runRestoreScenario(input: DriverInput): Promise<number> {
     await compose(recoveryState, ["up", "-d", "--no-deps", "api"]); await session.healthy(recoveryState, "api");
     await session.step("old-approval-refused", async () => {
       const denied = await session.execute(operationId, true);
+      if (!/recovery_epoch_stale|recovery.epoch|recovery epoch/i.test(JSON.stringify(denied)) && input.env.ZENITH_OPERATED_DIAGNOSTICS === "1") {
+        // The refusal's code and product sentence only, elided.
+        const envelope = (denied as { data?: { result?: { structuredContent?: { error?: { code?: unknown; message?: unknown } } } } })?.data?.result?.structuredContent?.error;
+        const message = typeof envelope?.message === "string" ? envelope.message.replace(/\b\w+=\S+/g, "…=…").replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 240) : null;
+        process.stderr.write("restore-cli " + JSON.stringify({ phase: "old-approval", status: (denied as { status?: unknown })?.status ?? null, code: typeof envelope?.code === "string" ? envelope.code.slice(0, 60) : null, message }) + "\n");
+      }
       ensure(/recovery_epoch_stale|recovery.epoch|recovery epoch/i.test(JSON.stringify(denied)), "old-approval-denial-reason");
       await kindReadback(session.config, 2, session.marker);
       const row = await restored.query<{ status: string }>("select status from platform.operations where workspace_id=$1 and id=$2", [session.workspaceId, operationId]);

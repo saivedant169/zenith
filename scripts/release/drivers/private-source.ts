@@ -1,6 +1,6 @@
 /** J15 successful isolated private-source release, followed by revoked-source refusal. */
 import path from "node:path";
-import { ensure, ok, until, nonce } from "../../../tests/e2e/default/support.mjs";
+import { ensure, ok, until, nonce, command } from "../../../tests/e2e/default/support.mjs";
 import { immutableSourceSnapshot, sourceSnapshotDigest } from "@/lib/execution/source-snapshot";
 import { githubFixture } from "./github-fixture";
 import { sourceBuildFixture, sourceDockerfile } from "./source-build-fixture";
@@ -66,7 +66,21 @@ export async function run(receipt: string, env = process.env) {
     let baseline!: Awaited<ReturnType<typeof builtReadback>>;
     await step("isolated-private-build", async () => {
       await ctx.approve(operationId);
-      ensure((await ctx.settle(operationId)).operation.status === "succeeded", "successful-private-source-operation");
+      const settled = await ctx.settle(operationId);
+      if (settled.operation.status !== "succeeded" && ctx.env.ZENITH_OPERATED_DIAGNOSTICS === "1") {
+        // Status shapes only: the elided product error and the build namespaces' pod phases and container reasons.
+        const raw = settled.operation.error;
+        const error = typeof raw === "string" ? raw.replace(/\b\w+=\S+/g, "…=…").replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/(?:\/[^\s/]+){2,}/g, "…path").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 300) : null;
+        const pods = async (namespace: string) => {
+          const list = await command("kubectl", ["--kubeconfig", ctx.config!.kind.observerKubeconfigFile, "--context", ctx.config!.kind.context, "-n", namespace, "get", "pods", "-o", "json"]).catch(() => "");
+          const items = (list ? JSON.parse(list).items : []) as { metadata: { labels?: Record<string, string> }; status?: { phase?: string; reason?: string; containerStatuses?: { name: string; restartCount: number; state?: Record<string, { reason?: string; exitCode?: number }> }[] } }[];
+          return items.map(p => ({ role: p.metadata.labels?.["zenith.dev/role"] ?? p.metadata.labels?.["app.kubernetes.io/component"] ?? null, phase: p.status?.phase ?? null, reason: p.status?.reason ?? null,
+            containers: (p.status?.containerStatuses ?? []).map(c => ({ name: c.name, restarts: c.restartCount, state: Object.keys(c.state ?? {})[0] ?? null, reason: Object.values(c.state ?? {})[0]?.reason ?? null, exit: Object.values(c.state ?? {})[0]?.exitCode ?? null })) }));
+        };
+        process.stderr.write(`operated outside-step failed: journey:private-build-terminal ${JSON.stringify({ status: settled.operation.status, error,
+          build: await pods(build.profile.config.namespace), proxy: await pods(build.profile.config.proxy.namespace) })}\n`);
+      }
+      ensure(settled.operation.status === "succeeded", "successful-private-source-operation");
     });
     await step("provenance-verified-deploy", async () => {
       const rows = await snapshotRows(ctx, operationId);

@@ -152,8 +152,21 @@ export async function run(receipt: string, env = process.env) {
       const rows = await ctx.sql<{ operation_id: string; revision_id: string; image_digest: string; kind: string; state: string; readback: unknown }>(
         "select operation_id,revision_id,image_digest,kind,state,readback from platform.release_runs where workspace_id=$1 and environment_id=$2 and service_address='container_service/witness'",
         [ctx.workspaceId, ctx.environmentId]);
-      assertReleaseRecords(rows, { baseline: baseline.operationId, update: update.operationId, failure: failure.operationId, rollback: rollback.operationId,
-        baselineRevision: baseline.revisionId, baseDigest: baseImage.split("@")[1]!, updateDigest: updateImage.split("@")[1]! });
+      const expected = { baseline: baseline.operationId, update: update.operationId, failure: failure.operationId, rollback: rollback.operationId,
+        baselineRevision: baseline.revisionId, baseDigest: baseImage.split("@")[1]!, updateDigest: updateImage.split("@")[1]! };
+      try { assertReleaseRecords(rows, expected); } catch (error) {
+        if (ctx.env.ZENITH_OPERATED_DIAGNOSTICS === "1") {
+          // Match flags only: which release row disagrees with the deployed digests, never the digests themselves.
+          const role = (id: string) => Object.entries(expected).find(([key, value]) => value === id && ["baseline", "update", "failure", "rollback"].includes(key))?.[0] ?? "other";
+          const want = (id: string) => role(id) === "update" || role(id) === "failure" ? expected.updateDigest : expected.baseDigest;
+          process.stderr.write(`operated outside-step failed: journey:release-rows ${JSON.stringify(rows.map(row => {
+            const readback = row.readback as { status?: string; observedDigest?: string } | null;
+            return { role: role(row.operation_id), kind: row.kind, state: row.state, imageMatch: row.image_digest === want(row.operation_id),
+              readback: readback?.status ?? null, observedMatch: readback?.observedDigest === want(row.operation_id), observedIsImage: readback?.observedDigest === row.image_digest };
+          }))}\n`);
+        }
+        throw error;
+      }
       const releases = ok(await ctx.request("/api/platform/v1/releases?environmentId=" + encodeURIComponent(ctx.environmentId))).releases;
       ensure(releases.length === rows.length && releases.some((r: { operationId: string; revisionId: string }) => r.operationId === rollback.operationId && r.revisionId === baseline.revisionId), "release-api-independent-pg-agreement");
       const after = ok(await ctx.request("/api/projects/" + ctx.project!.id));

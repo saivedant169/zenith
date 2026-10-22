@@ -52,6 +52,8 @@ async function deployLegacy(ctx: OperatedContext, tenant: Tenant): Promise<{ dep
   await tenant.approver.getByRole("button", { name: "Approve and apply", exact: true }).click();
   const response = tenant.approver.waitForResponse(value => value.url().endsWith("/api/actions/deploy.approve")
     && value.request().method() === "POST" && value.request().postDataJSON()?.mode === "execute");
+  // If the click below fails, this wait rejects only when the browser closes; never let that crash the driver.
+  response.catch(() => undefined);
   await tenant.approver.getByRole("button", { name: "Apply anyway", exact: true }).click();
   const approved = await response;
   ensure(approved.ok() && (await approved.json()).result?.ok === true, "localstack-browser-approval");

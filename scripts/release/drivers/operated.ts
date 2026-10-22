@@ -1107,6 +1107,9 @@ export async function observeKind(ctx: OperatedContext, tenant: Tenant): Promise
 export async function runDriverCli(scenarioId: TenantExportScenario, driver: (input: TenantExportInput) => Promise<number>, args = process.argv.slice(2)): Promise<number> {
   const env = process.env;
   if (env.ZENITH_LOCAL_DRIVER_D4 !== "1") return 2;
+  // A browser wait left behind by a failed step rejects when cleanup closes the browser. Record it instead of
+  // crashing, so the step's own failure and the sanitized receipt still reach the parent.
+  process.on("unhandledRejection", error => diagnoseOperatedFailure(env, "outside-step", error));
   try {
     const flags: Record<string, string> = {};
     for (let i = 0; i < args.length; i += 2) {

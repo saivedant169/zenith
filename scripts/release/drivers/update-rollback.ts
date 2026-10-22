@@ -121,6 +121,7 @@ export async function run(receipt: string, env = process.env) {
     });
     await step("failed-rollout-readback", async () => {
       // Real failure: J2 witness refuses an empty nonce and the new pod crashes. Existing ready pods remain available.
+      // Kubernetes omits an empty env value from the pod JSON (omitempty), so an absent value is the empty nonce.
       // Named waits: a timeout reports which phase stalled; diagnostics add status shapes only.
       const named = (code: string, shape?: () => Promise<unknown>) => async (error: unknown): Promise<never> => {
         if (!(error instanceof Error && error.message === "journey:readback-timeout")) throw error;
@@ -132,11 +133,11 @@ export async function run(receipt: string, env = process.env) {
       const deployment = JSON.parse(await ctx.kubectl(["get", "deployment", "witness", "-o", "json"]));
       const selector = Object.entries(deployment.spec.selector.matchLabels).map(([key, value]) => key + "=" + value).join(",");
       const podShape = async () => (JSON.parse(await ctx.kubectl(["get", "pods", "-l", selector, "-o", "json"])).items as { spec: { containers: { env?: { name: string; value?: string }[] }[] }; status?: { phase?: string; containerStatuses?: { ready?: boolean; restartCount: number; state?: Record<string, { reason?: string }> }[] } }[])
-        .map(p => ({ emptyNonce: p.spec.containers[0]?.env?.some(e => e.name === "WITNESS_NONCE" && e.value === "") ?? false, phase: p.status?.phase ?? null,
+        .map(p => ({ emptyNonce: p.spec.containers[0]?.env?.some(e => e.name === "WITNESS_NONCE" && (e.value ?? "") === "") ?? false, phase: p.status?.phase ?? null,
           containers: (p.status?.containerStatuses ?? []).map(c => ({ ready: c.ready ?? null, restarts: c.restartCount, state: Object.keys(c.state ?? {})[0] ?? null, reason: Object.values(c.state ?? {})[0]?.reason ?? null })) }));
       await until(async () => JSON.parse(await ctx.kubectl(["get", "pods", "-l", selector, "-o", "json"])),
         (pods: { items: { spec: { containers: { env?: { name: string; value?: string }[] }[] }; status?: { containerStatuses?: { restartCount: number; state?: { waiting?: { reason?: string } } }[] } }[] }) => pods.items.some(p =>
-        p.spec.containers[0]?.env?.some(e => e.name === "WITNESS_NONCE" && e.value === "")
+        p.spec.containers[0]?.env?.some(e => e.name === "WITNESS_NONCE" && (e.value ?? "") === "")
         && p.status?.containerStatuses?.some(s => s.restartCount > 0 && s.state?.waiting?.reason === "CrashLoopBackOff")), 30_000)
         .catch(named("crashloop-observation-timeout", podShape));
       ensure(await readback(ctx, phases[1].marker, updateImage, false).catch(named("serving-readback-timeout", podShape)) === uid, "failed-update-preserves-serving-version");

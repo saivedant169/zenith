@@ -63,8 +63,14 @@ export async function githubFixture(ctx: Operated, built?: {
   const keyFile = path.join(directory, "tls.key"), csr = path.join(directory, "tls.csr"), cert = path.join(directory, "tls.crt"), ext = path.join(directory, "tls.ext");
   let overlayAttempted = false;
   const overlay = path.join(directory, "source.compose.json"), base = path.join(state.directory, "installation");
-  const compose = (extra: string[]) => modules.docker(["compose", "--project-name", state.applicationProjectName, "--env-file", path.join(base, "compose.env"),
-    "-f", path.join(base, "stack.compose.json"), "-f", overlay, ...extra]);
+  // On native Linux J1 composes from its staged file (uid-owned 0400 private bind copies, see private-staging.mjs);
+  // stacking the overlay on the raw file would give recreated containers unreadable keys and TLS files.
+  const compose = async (extra: string[]) => {
+    await modules.compose(state, ["ps", "-q"]); // refreshes the staged composition and copies when needed
+    const staged = path.join(base, "stack.compose.staged.json");
+    return modules.docker(["compose", "--project-name", state.applicationProjectName, "--env-file", path.join(base, "compose.env"),
+      "-f", existsSync(staged) ? staged : path.join(base, "stack.compose.json"), "-f", overlay, ...extra]);
+  };
   const owned = async (kind: string, resource: string) => {
     const [current] = JSON.parse(await modules.docker([kind, "inspect", resource]));
     ensure((current.Config?.Labels ?? current.Labels)?.["io.zenith.drv1"] === id, "fixture-cleanup-owner"); return current;

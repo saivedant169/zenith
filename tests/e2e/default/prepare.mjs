@@ -62,7 +62,10 @@ export async function prepare(args) {
     const [image] = JSON.parse(await docker(['image','inspect',worker.Image]));
     ensure(image.Architecture === NATIVE.image, 'build-worker-native');
     fs.writeFileSync(path.join(directory,'targets.json'), JSON.stringify({schemaVersion:1,kind:'zenith-j2',createdBy:'J2-DEFAULT-JOURNEY',status:'created',containerId:node.Id,buildContainerId:worker.Id}), {mode:0o600});
-    await docker(['update','--memory','640m','--memory-swap','1g','--cpus','1',worker.Id]);
+    // 640 MiB fits the lean Mac verifier; a larger host may give J6's 4 GiB build limit room (e.g. 3g on hosted runners).
+    const memory = process.env.ZENITH_J2_BUILD_WORKER_MEMORY ?? '640m';
+    ensure(/^[1-9]\d{2,4}m$|^[1-9]g$/.test(memory), 'build-worker-memory');
+    await docker(['update','--memory',memory,'--memory-swap',memory,'--cpus','1',worker.Id]);
   }
   const api = (await runtime.compose(state, ['ps', '-q', 'api'])).trim();
   const [apiContainer] = JSON.parse(await docker(['inspect', api]));

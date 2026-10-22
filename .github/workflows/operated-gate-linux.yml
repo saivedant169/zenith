@@ -160,6 +160,8 @@ jobs:
               echo "DRV1_GVISOR_SHA256=b7e11d27cbd69370ed7addb6c0d1c33e70e57a153cee57b5fdc5344bf303c7eb"
               echo "DRV1_GVISOR_ARCHIVE=$RUNNER_TEMP/zenith/drv1/gvisor-aarch64.tar.bz2"
               echo "DRV1_CALICO_MANIFEST=$RUNNER_TEMP/zenith/drv1/calico.yaml"
+              # The 16 GB runner gives the isolated build node room for J6's 4 GiB build limit (prepare.mjs default 640m).
+              echo "ZENITH_J2_BUILD_WORKER_MEMORY=3g"
             } >> "$GITHUB_ENV"
           fi
           # D-4 export only (d4.operated.test.ts holds both D-4 cases): explicit data rehearsal with native

@@ -71,7 +71,7 @@ function localFixtureContext(onInitialApiInspect: () => void) {
   const ctx = {
     githubPort: 40443,
     stack: { state: { applicationProjectName: project, applicationInstallationId: installationId, directory: stackDirectory },
-      modules: { docker }, api: "api-container", apiUrl: "https://api.fixture.local" },
+      modules: { docker, compose: async () => "" }, api: "api-container", apiUrl: "https://api.fixture.local" },
     env: { ZENITH_LOCAL_SOURCE_BUILD_DECLARATION_FILE: path.join(root, "declaration.json") },
     config: { kind: { kubeconfigFile: path.join(root, "kubeconfig"), server: "https://127.0.0.1" }, image: "kind" },
     workspaceId: "workspace", environmentId: "environment", scratch, cleaners: [],

@@ -1114,5 +1114,8 @@ export async function runDriverCli(scenarioId: TenantExportScenario, driver: (in
     }
     ensure(flags["--receipt"] && flags["--run-id"], "driver-usage");
     return await driver({ scenarioId, env, runId: flags["--run-id"], sourceCommit: sourceBinding().head, receiptFile: flags["--receipt"] });
-  } catch { process.stderr.write("Operated rehearsal refused or failed; inspect only the sanitized receipt.\n"); return 1; }
+  } catch (error) {
+    diagnoseOperatedFailure(env, "outside-step", error);
+    process.stderr.write("Operated rehearsal refused or failed; inspect only the sanitized receipt.\n"); return 1;
+  }
 }

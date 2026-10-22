@@ -172,10 +172,14 @@ export async function runExport(input: DriverInput): Promise<number> {
       }
       ensure(!(await command("docker", ["ps", "-aq", "--filter", "label=" + label])), "tofu-cleanup-absence");
     });
+    // Provider downloads (~150 MB) stage in TMPDIR; keep them off the small tmpfs and out of the bundle.
+    const tofuTemp = path.join(ctx.scratch, "tofu-tmp");
+    mkdirSync(tofuTemp, { mode: 0o700 });
     const tofu = (args: string[]) => command("docker", ["run", "--rm", "--pull", "never", "--label", label, "--network", "container:" + ctx.stack.api,
       "--memory", "512m", "--cpus", "0.5", "--cap-drop", "ALL", "--security-opt", "no-new-privileges:true", "--read-only",
       "--tmpfs", "/tmp:rw,nosuid,size=128m", "--user", String(process.getuid!()) + ":" + String(process.getgid!()),
-      "--mount", `type=bind,source=${directory},target=/bundle`, "--workdir", "/bundle", "-e", "HOME=/tmp", "-e", "AWS_EC2_METADATA_DISABLED=true",
+      "--mount", `type=bind,source=${directory},target=/bundle`, "--mount", `type=bind,source=${tofuTemp},target=/tofu-tmp`,
+      "--workdir", "/bundle", "-e", "HOME=/tmp", "-e", "TMPDIR=/tofu-tmp", "-e", "AWS_EC2_METADATA_DISABLED=true",
       "-e", "TF_IN_AUTOMATION=1", "-e", "TF_VAR_name_prefix=" + prefix, "--entrypoint", "/usr/local/bin/tofu", workerImage, ...args], { timeout: 240_000 });
     await ctx.step("portable-plan", async () => {
       ensure(JSON.parse(await tofu(["version", "-json"])).terraform_version === "1.12.5", "pinned-tofu-version");

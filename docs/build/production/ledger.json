@@ -3704,11 +3704,11 @@
       "acceptance": [
         "Actual schema, signer, policy loading, Temporal polling, authorized operation, readiness/liveness and graceful shutdown pass with real disposable stores."
       ],
-      "state": "in_progress",
+      "state": "verified",
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "in_progress",
+      "implementationStatus": "verified_c8967b15: the composed execution worker passes on real disposable stores on native linux/amd64 and linux/arm64 at one exact source: the installed default 2 API + 2 worker stack (production installer, worker ZENITH_STORE=postgres and ZENITH_PLATFORM_DB=postgres) runs a browser-approved operation through an acknowledged Temporal start to success with kind provider readback, reports ready (temporal, store, policy, drivers ok) and alive, and stops on SIGTERM with exit 0 and returns ready (J2 20/20 per architecture); the fresh packaged worker image applies the complete source migration set, refuses missing schema, invalid secret and signer, plaintext Temporal, wrong namespace and queue, polls its owned reconcile schedule, verifies a signed grant through a real workflow, recovers from store/Temporal/SQL outages and drains an in-flight activity on SIGTERM (22/22 per architecture); exact-source CI green. Independent review: PROMOTE after three HOLD rounds. Limits: disposable kind mutation only, no live cloud, HA or Temporal Cloud namespace authorization; on the PostgreSQL stack only idle SIGTERM is proven, the in-flight drain runs with the packaged file product store; worker attribution of the composed execution rests on worker env plus the acknowledged start intent (only the execution worker runs a Temporal worker), not worker logs; the policy-assets startup failure path is not exercised.",
       "evidence": [
         {
           "level": "local_linux_arm64",
@@ -3830,6 +3830,22 @@
           "environment": "Fresh hosted runners per architecture; default installed 2 API + 2 worker stack from the production installer (worker ZENITH_STORE=postgres, ZENITH_PLATFORM_DB=postgres); disposable Supabase Auth/PostgreSQL, Temporal, zenithd and kind; exact-source CI 39772692208 success (21/8 conditional skips/0 failure)",
           "result": "J2 20/20 on both native architectures, receipts list PROD-PKG-02. worker-composed-execution: worker env selects the PostgreSQL product and platform stores and the browser-approved operation has an acknowledged, run-bound Temporal start intent after a succeeded execution with kind provider readback (REST and MCP executions also read back). worker-readiness-graceful-drain: installed worker ready (temporal, store, policy, drivers ok) and alive, docker stop SIGTERM exits 0 without OOM, restarted worker ready again.",
           "logs": "docs/build/production/evidence/PROD-PKG-02/2026-10-22-c8967b15-clean-host-j2-arm64.json"
+        },
+        {
+          "level": "contract",
+          "commit": "c8967b15ce43bd0a3ae64bc0098df1a76e2d27e9",
+          "command": "CI workflow push run 39772692208 (GitHub-hosted)",
+          "environment": "GitHub-hosted runners; exact source c8967b15",
+          "result": "Exact-source CI success: 21 success / 8 conditional operated-dispatch skips / 0 failure. Verify unit suites passed with 0 failures, including tests/acceptance/packaged-worker.test.ts (packaged harness safety, sanitizers and complete migration set), tests/ci/packaged-workers.test.ts (native check derivation) and workers/execution tests. Source from 5f289a56 to c8967b15 has no change under workers/ or the packaged harness.",
+          "logs": "https://github.com/saivedant169/zenith/actions/runs/39772692208"
+        },
+        {
+          "level": "local_linux_amd64",
+          "commit": "c8967b15ce43bd0a3ae64bc0098df1a76e2d27e9",
+          "command": "clean-host-journey.yml workflow_dispatch run 39772691346, linux/amd64 leg (ubuntu-latest)",
+          "environment": "Fresh native GitHub-hosted Linux AMD64 runner; default installed 2 API + 2 worker stack from the production installer (worker ZENITH_STORE=postgres, ZENITH_PLATFORM_DB=postgres); disposable Supabase Auth/PostgreSQL, Temporal, zenithd and kind",
+          "result": "J2 20/20 native AMD64 with receipt requirementIds including PROD-PKG-02: worker-composed-execution (PostgreSQL product/platform stores, acknowledged run-bound Temporal start for the browser-approved operation that succeeded with kind provider readback) and worker-readiness-graceful-drain (ready with temporal/store/policy/drivers ok, alive, SIGTERM stop exit 0 without OOM, restarted ready).",
+          "logs": "docs/build/production/evidence/PROD-PKG-02/2026-10-22-c8967b15-clean-host-j2-amd64.json"
         }
       ],
       "requiredEvidence": [

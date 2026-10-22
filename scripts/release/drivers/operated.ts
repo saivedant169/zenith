@@ -4,6 +4,7 @@ import postgres from "postgres";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import path from "node:path";
+import net from "node:net";
 import type { Browser, Page } from "@playwright/test";
 import { chromium } from "@playwright/test";
 import { load as yamlLoad } from "js-yaml";
@@ -637,6 +638,8 @@ export class Operated {
   browser?: Browser; a?: Page; b?: Page; stack?: SourceStack; config?: ConfigValue;
   workspaceId = ""; project?: { id: string; slug: string; name: string; connectionId?: string };
   environmentId = ""; users: string[] = []; operations: string[] = []; linked?: Awaited<ReturnType<typeof linkedAgent>>;
+  /** Loopback port of the owned GitHub emulator; private-source maps github.com hosts here so redirects cannot reach GitHub. */
+  githubPort?: number;
   deployments: string[] = []; cleaners: { id: string; run: () => Promise<void> }[] = [];
   recoveries: { id: string; run: () => Promise<void> }[] = [];
   constructor(readonly scenario: ScenarioId, readonly env: NodeJS.ProcessEnv, readonly scratch: string) {}
@@ -655,7 +658,13 @@ export class Operated {
       recordedId: targets.containerId, ports: kindNode.NetworkSettings.Ports["6443/tcp"] ?? [] });
     Object.assign(this.env, hostEnvironment(this.stack.state));
     // DNS/TLS trust remains the actual J1 CA. No browser certificate bypass.
-    this.browser = await (await import("@playwright/test")).chromium.launch({ headless: true });
+    // Playwright routes never see a server redirect's target, so private-source resolves every GitHub browser host to the
+    // owned local emulator; a redirect then cannot reach the real provider. Certificates are still verified.
+    if (this.scenario === "private-source") this.githubPort = await new Promise<number>((resolve, reject) => {
+      const probe = net.createServer().once("error", reject).listen(0, "127.0.0.1", () => { const { port } = probe.address() as net.AddressInfo; probe.close(() => resolve(port)); });
+    });
+    const resolver = this.githubPort ? ["--host-resolver-rules=" + ["github.com", "api.github.com", "codeload.github.com"].map(host => `MAP ${host} 127.0.0.1:${this.githubPort}`).join(",")] : [];
+    this.browser = await (await import("@playwright/test")).chromium.launch({ headless: true, args: resolver });
     this.a = await (await this.browser.newContext()).newPage(); this.b = await (await this.browser.newContext()).newPage();
     // Refuse browser navigation/fetch to any real provider. Private-source adds a LOCAL provider emulator route.
     const origins = new Set([this.stack.apiUrl, this.stack.supabaseUrl]);

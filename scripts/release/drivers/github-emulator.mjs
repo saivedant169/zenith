@@ -112,7 +112,8 @@ export function serve(directory) {
       let input = Buffer.alloc(0);
       for await (const bytes of request) { input = Buffer.concat([input, bytes]); if (input.length > 64 * 1024) { response.writeHead(413).end(); return; } }
       const control = JSON.parse(fs.readFileSync(directory + '/control.json'));
-      state = { ...state, challenge: control.challenge, moved: control.moved === true, revoked: control.revoked === true };
+      // The browser may reach /login/oauth/authorize here directly; keep that challenge unless the driver recorded one.
+      state = { ...state, challenge: control.challenge ?? state.challenge, moved: control.moved === true, revoked: control.revoked === true };
       const result = fixtureResponse(config, state, { url: request.url, host: request.headers.host?.split(':')[0], method: request.method,
         authorization: request.headers.authorization, body: input.length ? JSON.parse(input) : undefined });
       // Counters and flags only. No request bodies, URLs, JWTs or source bytes.

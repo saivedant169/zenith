@@ -110,7 +110,9 @@ export async function githubFixture(ctx: Operated, built?: {
   await modules.docker(["run", "-i", "--rm", "--name", name + "-seed", "--label", label, "--label", parentLabel, "--memory", "64m", "--cpus", "0.25", "--pids-limit", "64", "--network", "none", "--user", "0", "--cap-drop", "ALL", "--cap-add", "CHOWN", "--security-opt", "no-new-privileges:true",
     "--mount", "type=volume,source=" + volume + ",target=/fixture", "--entrypoint", "node", api.Image, "-e",
     "let s='';process.stdin.on('data',b=>s+=b);process.stdin.on('end',()=>{const fs=require('fs'),p=JSON.parse(s);fs.chmodSync('/fixture',0o755);for(const [n,v] of Object.entries(p.files)){fs.writeFileSync('/fixture/'+n,v,{mode:n==='ca.crt'?0o644:0o600});fs.chownSync('/fixture/'+n,p.uid,p.gid)}})"], { input: JSON.stringify({ files, uid, gid }) });
-  await modules.docker(["create", "--name", name, "--label", label, "--label", parentLabel, "--network", network, "--memory", "64m", "--cpus", "0.25", "--pids-limit", "64",
+  ensure(Number.isInteger(ctx.githubPort) && ctx.githubPort! > 1024, "github-browser-port");
+  // Loopback only: the browser reaches the emulator through its github.com host-resolver mapping.
+  await modules.docker(["create", "--name", name, "--label", label, "--label", parentLabel, "--network", network, "--publish", `127.0.0.1:${ctx.githubPort}:443`, "--memory", "64m", "--cpus", "0.25", "--pids-limit", "64",
     "--cap-drop", "ALL", "--security-opt", "no-new-privileges:true", "--read-only", "--mount", "type=volume,source=" + volume + ",target=/fixture",
     "--entrypoint", "node", api.Image, "/fixture/github-emulator.mjs"]);
   await modules.docker(["start", name]);

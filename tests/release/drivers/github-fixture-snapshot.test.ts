@@ -69,6 +69,7 @@ function localFixtureContext(onInitialApiInspect: () => void) {
     throw new Error("unexpected Docker fixture command: " + argv.join(" "));
   });
   const ctx = {
+    githubPort: 40443,
     stack: { state: { applicationProjectName: project, applicationInstallationId: installationId, directory: stackDirectory },
       modules: { docker }, api: "api-container", apiUrl: "https://api.fixture.local" },
     env: { ZENITH_LOCAL_SOURCE_BUILD_DECLARATION_FILE: path.join(root, "declaration.json") },

@@ -108,15 +108,18 @@ export async function sourceBuildFixture(ctx: Operated): Promise<{ profile: Tena
     const [image] = JSON.parse(await modules.docker(["image", "inspect", imageRef])); ensure(image.Architecture === NATIVE?.image, "native-build-toolchain");
     const tag = image.RepoTags?.[0]; ensure(tag, "toolchain-local-tag");
     const file = path.join(ctx.scratch, "toolchain.tar");
-    try { await modules.docker(["image", "save", "--output", file, tag]); await command("kind", ["load", "image-archive", "--name", "zenith-j2", file], { timeout: 120_000 }); }
-    finally { if (existsSync(file)) unlinkSync(file); }
-    for (const name of ["zenith-j2-control-plane", "zenith-j2-worker"]) {
-      await modules.docker(["exec", name, "ctr", "--namespace=k8s.io", "images", "tag", "--force", tag, imageRef]);
-      // kind load adds the archive's own digest name; CRI would report it as imageID instead of the registry digest the profile pins.
-      const repo = imageRef.slice(0, imageRef.lastIndexOf("@") + 1);
-      const extra = String(await modules.docker(["exec", name, "ctr", "--namespace=k8s.io", "images", "ls", "-q"])).split("\n").map((n: string) => n.trim()).filter((n: string) => n.startsWith(repo) && n !== imageRef);
-      if (extra.length) await modules.docker(["exec", name, "ctr", "--namespace=k8s.io", "images", "rm", ...extra]);
-    }
+    try {
+      await modules.docker(["image", "save", "--output", file, tag]);
+      for (const name of ["zenith-j2-control-plane", "zenith-j2-worker"]) {
+        // Not kind load: its --digests import adds an import-<date>@sha256 name that CRI reports as imageID before the pinned digest.
+        await modules.docker(["cp", file, `${name}:/zenith-toolchain.tar`]);
+        try { await modules.docker(["exec", name, "ctr", "--namespace=k8s.io", "images", "import", "--all-platforms", "--snapshotter=overlayfs", "/zenith-toolchain.tar"]); }
+        finally { await modules.docker(["exec", name, "rm", "-f", "/zenith-toolchain.tar"]); }
+        await modules.docker(["exec", name, "ctr", "--namespace=k8s.io", "images", "tag", "--force", tag, imageRef]);
+        const status = JSON.parse(String(await modules.docker(["exec", name, "crictl", "inspecti", "-o", "json", imageRef])));
+        ensure(JSON.stringify(status.status?.repoDigests) === JSON.stringify([imageRef]), "toolchain-pinned-digest-only");
+      }
+    } finally { if (existsSync(file)) unlinkSync(file); }
   }
   const objects = [...renderBaseline(profile.config), ...renderProxy(profile.config), ...renderBuildCustody(profile.config)];
   for (const object of objects) {

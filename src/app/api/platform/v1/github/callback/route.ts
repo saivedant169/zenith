@@ -17,7 +17,9 @@ export const runtime = "nodejs";
 const PATH = GITHUB_CALLBACK_PATH;
 const COOKIE = GITHUB_INSTALL_COOKIE;
 const HEADERS = {
-  "cache-control": "no-store", "referrer-policy": "no-referrer", "x-content-type-options": "nosniff",
+  // same-origin, not no-referrer: under no-referrer a browser sends "Origin: null" on this page's own form POST
+  // (Fetch: non-CORS POST), which the step-up origin check refuses. Cross-origin GitHub navigation still gets no referrer.
+  "cache-control": "no-store", "referrer-policy": "same-origin", "x-content-type-options": "nosniff",
   // The form's 303 navigation must be able to continue to the fixed GitHub origin.
   "content-security-policy": "default-src 'none'; form-action 'self' https://github.com; frame-ancestors 'none'; base-uri 'none'",
 };

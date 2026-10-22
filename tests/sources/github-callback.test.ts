@@ -176,7 +176,9 @@ describe("GitHub browser install callback", () => {
     const allowedFormDestinations = /form-action ([^;]+)/.exec(form.headers.get("content-security-policy") ?? "")?.[1].split(" ");
     expect(allowedFormDestinations).toContain(new URL(started.response.headers.get("location")!).origin);
     expect(started.response.headers.get("set-cookie")).toMatch(/HttpOnly/); expect(started.response.headers.get("set-cookie")).toMatch(/Secure/); expect(started.response.headers.get("set-cookie")).toMatch(/SameSite=lax/i);
-    expect(started.response.headers.get("referrer-policy")).toBe("no-referrer");
+    // The form page must let the browser send its real Origin on its own POST; GitHub still receives no referrer.
+    expect(form.headers.get("referrer-policy")).toBe("same-origin");
+    expect(started.response.headers.get("referrer-policy")).toBe("same-origin");
   });
   it("binds only after server-side OAuth and GitHub user repository verification", async () => {
     const started = await start(); const auth = await authorize(started); expect(auth.status).toBe(303);

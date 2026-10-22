@@ -28,6 +28,12 @@ describe.skipIf(process.env.ZENITH_LOCAL_DRIVER_D4 !== "1")("J15 DRV-4 actual ow
       // One process (tsx as a loader), so a signal or fatal exit of the driver is the child's own, not a wrapper's exit 1.
       const result = await defaultExec([process.execPath, "--import", "tsx", `scripts/release/drivers/${scenarioId}.ts`, "--run-id", runId, "--receipt", output],
         { cwd: process.cwd(), env, timeoutMs: 2_400_000 });
+      if (result.code !== 0 && env.ZENITH_OPERATED_DIAGNOSTICS === "1") {
+        // Shape only: line count and each line's leading word class, never content.
+        const lines = result.stderr.split("\n").filter(Boolean);
+        const heads = [...new Set(lines.map(line => (/^\s*([A-Za-z(][A-Za-z():_-]{0,30})/.exec(line)?.[1] ?? "other")))].slice(0, 25);
+        process.stderr.write(`operated outside-step failed: child-stderr-shape ${JSON.stringify({ code: result.code, lines: lines.length, heads })}\n`);
+      }
       expect(result.code, `Inspect the sanitized receipt at ${output}; raw child diagnostics are not published`).toBe(0);
       const receipt = validateOperatedReceipt(JSON.parse(readFileSync(output, "utf8")), { scenarioId, runId, sourceCommit: source.head, sourceDigest: source.contentSha256 });
       expect(receipt.checks.every(check => check.status === "passed")).toBe(true);

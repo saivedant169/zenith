@@ -262,9 +262,11 @@ jobs:
       - name: Operated receipt checks (ids and statuses only)
         if: always()
         run: |
+          # File names only (run-scoped, no values), so a missing receipt is visible.
+          find "$ZENITH_LOCAL_ROOT" -maxdepth 1 -type f -printf '%f %s bytes\n' 2>/dev/null | sort || true
           for file in "$ZENITH_LOCAL_ROOT"/*.json; do
             [ -f "$file" ] || continue
-            node -e 'const r = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); for (const c of r.checks ?? []) console.log(c.id, c.status);' "$file" || true
+            node -e 'const r = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); for (const c of r.checks ?? []) console.log(c.id, c.status);' "$file" || echo "unreadable receipt: $(basename "$file")"
           done
 
       - name: Require the exact operated case and current-source execution

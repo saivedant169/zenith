@@ -112,6 +112,11 @@ export function ok(response) {
 export async function action(page, actionId, input, scope = {}) {
   const data = ok(await browserRequest(page, '/api/actions/' + actionId, { mode: 'execute', input, scope, idempotencyKey: nonce() }));
   const result = data.result;
+  if (result?.ok !== true && DIAGNOSTICS) {
+    // Action id and the product's own summary/error sentence, elided; never input or data.
+    const elide = (text) => typeof text === 'string' ? text.replace(/\b\w+=\S+/g, '…=…').replace(/[a-z]+:\/\/\S+/gi, '…url').replace(/[A-Za-z0-9_+/=-]{24,}/g, '…').slice(0, 200) : null;
+    console.error('http-refused ' + JSON.stringify({ action: String(actionId).slice(0, 60), summary: elide(result?.summary), error: elide(result?.error) }));
+  }
   ensure(result?.ok === true, 'action-refused');
   return result.data;
 }

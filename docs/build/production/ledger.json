@@ -2695,6 +2695,14 @@
           "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, Temporal mTLS, owned kind target, Chromium; digest-pinned PostgreSQL 17, MySQL 8.4, MinIO and LocalStack 4.8.1 owned containers; native OpenTofu 1.12.5 from the pinned worker image",
           "result": "D-4 export passed with a matched current-source receipt: customer data roundtrips (PostgreSQL, MySQL over TLS, object store) through browser-approved data.export/data.import with tenant scoping; LocalStack S3 deployment through independent browser approval with provider readback; revision-bound export, unchanged after a working-copy edit; exact file readback; admin key, kubeconfig token and cookie absence; source bucket removed through a browser-approved legacy revision (deploy.apply refuses an empty system and LocalStack has no workflow teardown route, so that revision keeps one labeled simulated email resource) with independent absence readback; the exported bundle planned and applied without Zenith (bucket, versioning, AES256 encryption, public access block, security group read back) and destroyed; owned cleanup. 1 passed / 0 failed / 1 lane-gated skip (two-tenants case). Driver fixes found by this gate: teardown revision, host-backed OpenTofu TMPDIR, bounded portable bucket prefix. Limits: LocalStack and local engines on a hosted runner, not live AWS.",
           "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-22-86b37e7a-drivers-d4-export-hosted.json"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "48a5f7fa",
+          "command": "CI workflow push run 39741996515 (GitHub-hosted)",
+          "environment": "GitHub-hosted runners; exact source after the D-4 export pass",
+          "result": "Exact-source CI success: 21 success / 8 conditional operated-dispatch skips / 0 failure. The prior run 39737514864 on 86b37e7a failed supply-chain (GHSA-qxg6-89mg-rqv8, GHSA-xp26-3454-mjgp in @vitest/mocker < 4.1.12, published 2026-10-21) and platform-postgres (the epoch-0 intent case assumed the database-wide recovery epoch was 0 on a shared CI database); 48a5f7fa moves vitest to 4.1.12 and pins that case's epoch. All six hosted operated gates have now passed on current-source receipts (drift-repair 42e2c030, crash-partition 2bd1a6ac, two-tenants 38e4188a, upgrade c1883bba, restore c49904a9, export 86b37e7a); the gates were not re-run on 48a5f7fa, whose changes after 86b37e7a are a dev-dependency bump and one test. DRV-1 gates remain unrun pending owner-reviewed declarations. No promotion.",
+          "logs": "https://github.com/saivedant169/zenith/actions/runs/39741996515"
         }
       ],
       "requiredEvidence": [

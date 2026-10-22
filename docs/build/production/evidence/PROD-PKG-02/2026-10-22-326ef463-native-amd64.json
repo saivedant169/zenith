@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "lane": "packaged-worker",
+  "kind": "native-packaged-worker",
+  "status": "passed",
+  "platform": "linux/amd64",
+  "commit": "326ef463765b927b9257a99d0580be97bc5d58dc",
+  "sourceInputSha256": "d663533218a9e056574443a961fe7be1ab13f0f8a0791d8f6fb0b66440a54c0c",
+  "acceptanceHarnessSha256": "dcc18eb58c12a3554d85b3b119e73cd74d2315fdb69a5c834a094ea7e0669541",
+  "wrapperSha256": "31bd2c7df09bd836d23ad9ea3bd9f09b75a91dd419b6560d52255c6584447338",
+  "manifestSha256": "29b6c6238a0a703d41c6684f80f23a9df7d11cf011108ad64e9555f099acaa6c",
+  "workflowSha256": "b21133a30a4f5da09e214246f1ad94333f755883b79c22c60f8a3d254da09786",
+  "github": {
+    "runId": "39744570298",
+    "runAttempt": "1",
+    "runnerLabel": "ubuntu-24.04",
+    "sha": "326ef463765b927b9257a99d0580be97bc5d58dc"
+  },
+  "environment": {
+    "os": "linux",
+    "processArch": "x64",
+    "dockerOS": "linux",
+    "dockerArch": "amd64",
+    "emulated": false,
+    "node": "22.23.3",
+    "totalRamGiB": 15.61,
+    "availableRamGiB": 14.24,
+    "dockerRamGiB": 15.61,
+    "sourceFreeGiB": 85.61,
+    "temporaryFreeGiB": 85.61,
+    "dockerFreeGiB": 85.61
+  },
+  "startedAt": "2026-10-22T08:00:48.794Z",
+  "finishedAt": "2026-10-22T08:07:45.229Z",
+  "childExitCode": 0,
+  "minimumObservedFreeGiB": 79.99,
+  "checks": {
+    "native-architecture": "passed",
+    "fresh-source-image": "passed",
+    "actual-entrypoint": "passed",
+    "private-tls-custody": "passed",
+    "temporal-mtls-positive-and-negative": "passed",
+    "owned-namespace": "passed",
+    "startup-refusals": "passed",
+    "readiness-and-liveness": "passed",
+    "owned-reconcile-schedule": "passed",
+    "permitted-read-operation": "passed",
+    "packaged-assets-and-plan-retention": "passed",
+    "sql-prerequisite-outage-and-recovery": "passed",
+    "store-outage-and-recovery": "passed",
+    "temporal-outage-and-recovery": "passed",
+    "durable-temporal-restart": "passed",
+    "operator-pause-and-resume": "passed",
+    "actual-inflight-drain-and-fresh-worker": "passed",
+    "idle-drain": "passed",
+    "private-files-and-owned-services-cleanup": "passed",
+    "owned-builder-cache-cleanup": "passed",
+    "owned-context-cleanup": "passed",
+    "baseline-preserved": "passed"
+  },
+  "cleanup": {
+    "builderAbsent": true,
+    "builderContainerAbsent": true,
+    "cacheVolumeAbsent": true,
+    "baselinePreserved": true,
+    "wrapperPrivateFilesRemoved": true,
+    "ownedContextAbsent": true,
+    "privateFilesRemoved": true,
+    "allCreatedResourcesRemoved": true,
+    "resourceCount": 61,
+    "removedResourceCount": 61
+  },
+  "runtimeFilesystem": {
+    "readonlyRootfs": true,
+    "capDropAll": true,
+    "noNewPrivileges": true,
+    "user": 10001,
+    "rootWriteRefused": true,
+    "tmpWritable": true
+  },
+  "ssmDocuments": {
+    "count": 12,
+    "packagedEqualsSource": true
+  },
+  "limitations": [
+    "The permitted operation is a signed read grant with an expected missing-target refusal; cloud mutation, human browser approval and consumed write-grant recovery are unverified.",
+    "Disposable Temporal mTLS proves certificate authentication, not production namespace authorization, Temporal Cloud or HA.",
+    "A source fixture is not native runtime proof; both architecture jobs and their exact sanitized artifacts must actually complete.",
+    "Source is measured before/after the fresh image build, not an immutable context snapshot. Hosted capacity is checked, never enlarged or silently skipped."
+  ]
+}

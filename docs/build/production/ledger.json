@@ -3806,6 +3806,14 @@
             "arm64"
           ],
           "acceptanceClaim": false
+        },
+        {
+          "level": "remote_ci",
+          "commit": "326ef463765b927b9257a99d0580be97bc5d58dc",
+          "command": "packaged-workers.yml push run 39744570298 (native GitHub-hosted linux/amd64 and linux/arm64 runners)",
+          "environment": "GitHub-hosted native runners, emulated false on both; fresh-source execution-worker derivative image; real disposable platform PostgreSQL and owned Temporal with mTLS",
+          "result": "Composed packaged worker passed 22/22 checks on each architecture: startup refusals (missing schema, invalid secret, invalid signer, plaintext Temporal, missing namespace, wrong queue), readiness/liveness with policy ok, owned reconcile schedule polled, signed read grant verified through a real Temporal workflow, store/Temporal/SQL-prerequisite outage and recovery, durable Temporal restart, operator pause/resume, in-flight SIGTERM drain with a fresh worker, idle drain, 61/61 owned resources removed. Independent review: HOLD. Gaps against the acceptance wording: the product store is an isolated file fixture rather than a real disposable store; the authorized operation ends in an expected no-target refusal rather than a completed operation; the policy-assets startup failure path is not exercised (policy load is asserted only through readiness); the positive applied-migration set is not asserted. Not promoted.",
+          "logs": "docs/build/production/evidence/PROD-PKG-02/2026-10-22-326ef463-native-amd64.json"
         }
       ],
       "requiredEvidence": [

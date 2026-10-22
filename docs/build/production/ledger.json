@@ -5248,6 +5248,14 @@
           "runId": 39477790980,
           "url": "https://github.com/saivedant169/zenith/actions/runs/39477790980",
           "result": "J2 default journey 18/18 passed on a clean Linux host (ledgerEligible, native AMD64, five readbacks): real browser and Supabase Auth, a registered zenithd and an owned kind target. Covers this requirement only where the journey exercises it."
+        },
+        {
+          "level": "local_linux_arm64",
+          "commit": "42b35401",
+          "command": "clean-host-journey.yml workflow_dispatch run 39858246510 (native GitHub-hosted linux/amd64 and linux/arm64)",
+          "environment": "Default installed 2 API + 2 worker stack; disposable Supabase Auth/PostgreSQL, Temporal, real zenithd and kind; receipts docs/build/production/evidence/PROD-LIFE-01/2026-10-23-42b35401-clean-host-j2-{amd64,arm64}.json",
+          "result": "J2 21/21 on both native architectures. Native Kubernetes connection: created through the action API, verified through the UI, the API (linked credential) and the real CLI (zenith connections verify --json, exit 0); rotation staged through the UI panel and promoted through the reviewed API, with new traffic on the rotated credential after the old identity was deleted; revocation refuses later dispatch with no fallback. Customer runner: runner-mode connection created after MCP planning and a distinct admin's browser confirmation; the new runner-connection-lifecycle check verifies it, revokes it through the API with confirmation, reads it back as revoked and requires a refused re-verification. Scope recorded: local engine covers Kubernetes and the customer runner; AWS/GCP/Azure/OCI/zenith lifecycles are contract-level (tests/connections/lifecycle.test.ts); CLI create/rotate are browser handoffs by design. Not yet promoted: pending exact-source CI on the same commit and independent review.",
+          "logs": "docs/build/production/evidence/PROD-LIFE-01/2026-10-23-42b35401-clean-host-j2-arm64.json"
         }
       ],
       "requiredEvidence": [
@@ -6610,6 +6618,14 @@
           "runId": 39477790980,
           "url": "https://github.com/saivedant169/zenith/actions/runs/39477790980",
           "result": "J2 default journey 18/18 passed on a clean Linux host (ledgerEligible, native AMD64, five readbacks): real browser and Supabase Auth, a registered zenithd and an owned kind target. Covers this requirement only where the journey exercises it."
+        },
+        {
+          "level": "local_linux_arm64",
+          "commit": "42b35401",
+          "command": "clean-host-journey.yml workflow_dispatch run 39858246510 (native GitHub-hosted linux/amd64 and linux/arm64)",
+          "environment": "Default installed stack with the real kind target and zenithd; receipts docs/build/production/evidence/PROD-LIFE-01/2026-10-23-42b35401-clean-host-j2-{amd64,arm64}.json",
+          "result": "J2 21/21 on both native architectures. Through the linked agent's scoped MCP session against the real engines: metrics, logs (zenith_query_logs), provider/resource events (new zenith_search_events, events.read) and traces (new zenith_search_traces, traces.read) each return a telemetry envelope whose scope matches workspace/project/environment, with observedAt and per-source provenance where every unknown or inaccessible source states its reason; tokens are absent from every answer. Machine health keeps its J2 scope/freshness/provenance proof. Not yet promoted: pending exact-source CI on the same commit and independent review.",
+          "logs": "docs/build/production/evidence/PROD-LIFE-01/2026-10-23-42b35401-clean-host-j2-arm64.json"
         }
       ],
       "requiredEvidence": [

@@ -2687,6 +2687,14 @@
           "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, Temporal mTLS on an owned loopback port, kind target, Chromium; PostgreSQL 17 client tools (PGDG) and the SHA-pinned Temporal CLI 1.9.1",
           "result": "DRV-3 operated restore passed with a matched current-source receipt: browser-approved operation snapshotted; backup verified (platform/product, keys, Temporal over mTLS); post-snapshot consumption; damaged backup, missing keys and nonempty target refused; operator CLI route restored into a fresh database with --no-privileges and the re-applied platform SQL (RECOVERY.md 2.1); fresh restore with epoch and ledger readback; the pre-restore approval refused as recovery_epoch_stale with no resurrected execution; browser continuation with stale binding refused and the item resumed; fresh approval in the new epoch executed under a new epoch-scoped workflow and read back; owned cleanup. Product fixes found by this gate: Temporal CLI mTLS in backup/restore, recovery_epoch_stale before retained-intent recovery, epoch-scoped workflow ids for reopened operations. Limits: local disposable engines on a hosted runner, not live cloud; best-effort wake-up signals/progress still address op-<id>.",
           "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-21-c49904a9-j15-operated-restore-hosted.json"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "86b37e7af10d1d7f0180ccbb78e94003ef5a161c",
+          "command": "operated-gate-linux.yml gate=drivers-d4-export (GitHub-hosted ubuntu runner, run 39737514124)",
+          "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, Temporal mTLS, owned kind target, Chromium; digest-pinned PostgreSQL 17, MySQL 8.4, MinIO and LocalStack 4.8.1 owned containers; native OpenTofu 1.12.5 from the pinned worker image",
+          "result": "D-4 export passed with a matched current-source receipt: customer data roundtrips (PostgreSQL, MySQL over TLS, object store) through browser-approved data.export/data.import with tenant scoping; LocalStack S3 deployment through independent browser approval with provider readback; revision-bound export, unchanged after a working-copy edit; exact file readback; admin key, kubeconfig token and cookie absence; source bucket removed through a browser-approved legacy revision (deploy.apply refuses an empty system and LocalStack has no workflow teardown route, so that revision keeps one labeled simulated email resource) with independent absence readback; the exported bundle planned and applied without Zenith (bucket, versioning, AES256 encryption, public access block, security group read back) and destroyed; owned cleanup. 1 passed / 0 failed / 1 lane-gated skip (two-tenants case). Driver fixes found by this gate: teardown revision, host-backed OpenTofu TMPDIR, bounded portable bucket prefix. Limits: LocalStack and local engines on a hosted runner, not live AWS.",
+          "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-22-86b37e7a-drivers-d4-export-hosted.json"
         }
       ],
       "requiredEvidence": [
@@ -5747,6 +5755,14 @@
           "result": "MinIO R11 cross-compilation succeeded from pinned source on Darwin/ARM64 Go1.24.2 to Linux/ARM64; staged binary identity recorded. Runtime verification remains pending; R9 historical acceptance is not restored, R7 current closure observation only.",
           "artifact": "docs/build/production/evidence/PROD-LIFE-11/2026-10-11-minio-r11-cross-compile.json",
           "commit": "f32b54ca421956f483356ba7a45d95520840de0f"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "86b37e7af10d1d7f0180ccbb78e94003ef5a161c",
+          "command": "operated-gate-linux.yml gate=drivers-d4-export (GitHub-hosted ubuntu runner, run 39737514124)",
+          "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, Temporal mTLS, owned kind target, Chromium; digest-pinned PostgreSQL 17, MySQL 8.4, MinIO and LocalStack 4.8.1 owned containers; native OpenTofu 1.12.5 from the pinned worker image",
+          "result": "D-4 export passed with a matched current-source receipt: customer data roundtrips (PostgreSQL, MySQL over TLS, object store) through browser-approved data.export/data.import with tenant scoping; LocalStack S3 deployment through independent browser approval with provider readback; revision-bound export, unchanged after a working-copy edit; exact file readback; admin key, kubeconfig token and cookie absence; source bucket removed through a browser-approved legacy revision (deploy.apply refuses an empty system and LocalStack has no workflow teardown route, so that revision keeps one labeled simulated email resource) with independent absence readback; the exported bundle planned and applied without Zenith (bucket, versioning, AES256 encryption, public access block, security group read back) and destroyed; owned cleanup. 1 passed / 0 failed / 1 lane-gated skip (two-tenants case). Driver fixes found by this gate: teardown revision, host-backed OpenTofu TMPDIR, bounded portable bucket prefix. Limits: LocalStack and local engines on a hosted runner, not live AWS.",
+          "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-22-86b37e7a-drivers-d4-export-hosted.json"
         }
       ],
       "requiredEvidence": [
@@ -7761,6 +7777,14 @@
           "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, Temporal mTLS on an owned loopback port, kind target, Chromium; PostgreSQL 17 client tools (PGDG) and the SHA-pinned Temporal CLI 1.9.1",
           "result": "DRV-3 operated restore passed with a matched current-source receipt: browser-approved operation snapshotted; backup verified (platform/product, keys, Temporal over mTLS); post-snapshot consumption; damaged backup, missing keys and nonempty target refused; operator CLI route restored into a fresh database with --no-privileges and the re-applied platform SQL (RECOVERY.md 2.1); fresh restore with epoch and ledger readback; the pre-restore approval refused as recovery_epoch_stale with no resurrected execution; browser continuation with stale binding refused and the item resumed; fresh approval in the new epoch executed under a new epoch-scoped workflow and read back; owned cleanup. Product fixes found by this gate: Temporal CLI mTLS in backup/restore, recovery_epoch_stale before retained-intent recovery, epoch-scoped workflow ids for reopened operations. Limits: local disposable engines on a hosted runner, not live cloud; best-effort wake-up signals/progress still address op-<id>.",
           "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-21-c49904a9-j15-operated-restore-hosted.json"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "86b37e7af10d1d7f0180ccbb78e94003ef5a161c",
+          "command": "operated-gate-linux.yml gate=drivers-d4-export (GitHub-hosted ubuntu runner, run 39737514124)",
+          "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, Temporal mTLS, owned kind target, Chromium; digest-pinned PostgreSQL 17, MySQL 8.4, MinIO and LocalStack 4.8.1 owned containers; native OpenTofu 1.12.5 from the pinned worker image",
+          "result": "D-4 export passed with a matched current-source receipt: customer data roundtrips (PostgreSQL, MySQL over TLS, object store) through browser-approved data.export/data.import with tenant scoping; LocalStack S3 deployment through independent browser approval with provider readback; revision-bound export, unchanged after a working-copy edit; exact file readback; admin key, kubeconfig token and cookie absence; source bucket removed through a browser-approved legacy revision (deploy.apply refuses an empty system and LocalStack has no workflow teardown route, so that revision keeps one labeled simulated email resource) with independent absence readback; the exported bundle planned and applied without Zenith (bucket, versioning, AES256 encryption, public access block, security group read back) and destroyed; owned cleanup. 1 passed / 0 failed / 1 lane-gated skip (two-tenants case). Driver fixes found by this gate: teardown revision, host-backed OpenTofu TMPDIR, bounded portable bucket prefix. Limits: LocalStack and local engines on a hosted runner, not live AWS.",
+          "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-22-86b37e7a-drivers-d4-export-hosted.json"
         }
       ],
       "requiredEvidence": [

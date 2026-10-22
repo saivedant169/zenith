@@ -665,6 +665,9 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       await approve(operationId, true);
       const detail = await until(() => getDetail(operationId), value => ['succeeded', 'failed', 'uncertain'].includes(value.operation.status));
       ensure(detail.operation.status === 'succeeded', 'default-browser-execution');
+      readbacks.kind = await kindReadback(config, 1, witnessNonce);
+    });
+    await step('worker-composed-execution', async () => {
       // PROD-PKG-02: the installed worker runs on the real product and platform stores, and this
       // operation ran as an acknowledged Temporal workflow start, which only the execution worker polls.
       const [workerContainer] = JSON.parse(await docker(['inspect', stack.worker]));
@@ -673,7 +676,6 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       const intent = await psqlRead(`select coalesce((select json_build_object('phase', phase, 'runBound', run_id is not null)
         from platform.workflow_start_intents where operation_id = :'operation_id'), 'null'::json)::text`, { operation_id: operationId });
       ensure(intent?.phase === 'acknowledged' && intent.runBound === true, 'worker-temporal-execution');
-      readbacks.kind = await kindReadback(config, 1, witnessNonce);
     });
     if (UX_ENABLED) await uxCase('ux01-legacy-projection-a11y', async () => {
       uxStage = 'ui';
@@ -1333,6 +1335,19 @@ test('default operated browser, REST, MCP and customer machine journey', async (
         freshId: newRow.id, freshStatus: newRow.status, environmentId: newRow.environmentId, address: newRow.address,
         registeredAt: newRow.registeredAt, lastHeartbeatAt: newRow.lastHeartbeatAt,
         identityChanged: newRow.id !== oldRow.id, connectionOnline: joined.connection.state === 'online' });
+    });
+    await step('worker-readiness-graceful-drain', async () => {
+      // PROD-PKG-02 on the real stores: readiness and liveness, then a SIGTERM stop that must exit 0, then recovery.
+      const probe = async () => JSON.parse(await docker(['exec', stack.worker, 'node', '-e',
+        "Promise.all(['readyz','healthz'].map(p=>fetch('http://127.0.0.1:9464/'+p).then(async r=>({status:r.status,body:await r.json()})))).then(v=>console.log(JSON.stringify(v)))"]));
+      const ready = ([readyz, healthz]) => readyz?.status === 200 && readyz.body.ready === true
+        && ['temporal', 'store', 'policy', 'drivers'].every(key => readyz.body.checks?.[key] === 'ok') && healthz?.status === 200 && healthz.body.alive === true;
+      ensure(ready(await probe()), 'worker-ready-before-drain');
+      await docker(['stop', '--time', '660', stack.worker], { timeout: 700_000 });
+      const [stopped] = JSON.parse(await docker(['inspect', stack.worker]));
+      ensure(stopped.State.Running === false && stopped.State.ExitCode === 0 && stopped.State.OOMKilled === false, 'worker-graceful-sigterm-exit');
+      await docker(['start', stack.worker]);
+      await until(async () => { try { return await probe(); } catch { return null; } }, value => value !== null && ready(value));
     });
   } catch { failed = true; }
   finally {

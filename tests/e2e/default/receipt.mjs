@@ -4,10 +4,10 @@ import path from 'node:path';
 export const CHECKS = Object.freeze([
   'prerequisites', 'auth-admin-mailpit', 'two-operator-workspace', 'browser-proposal',
   'self-approval-refused', 'bearer-approval-refused', 'stale-semantics-refused',
-  'browser-kind-execution-readback', 'rest-proposal-execution-readback',
+  'browser-kind-execution-readback', 'worker-composed-execution', 'rest-proposal-execution-readback',
   'mcp-proposal-execution-readback', 'machine-browser-consent',
   'machine-independent-approval-readback', 'machine-health-provenance-readback', 'machine-fresh-token-native-rejoin', 'customer-credential-absence',
-  'connection-rotation-readback', 'connection-revocation-no-fallback', 'cleanup',
+  'connection-rotation-readback', 'connection-revocation-no-fallback', 'worker-readiness-graceful-drain', 'cleanup',
 ]);
 const STATUSES = new Set(['passed', 'failed', 'skipped', 'not_run']);
 const hash = (value, length) => typeof value === 'string' && new RegExp(`^[a-f0-9]{${length}}$`).test(value);

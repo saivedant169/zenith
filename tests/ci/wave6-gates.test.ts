@@ -29,10 +29,10 @@ describe("closed Wave 6 integration registry", () => {
     expect(J2_CHECKS).toEqual([
       "prerequisites", "auth-admin-mailpit", "two-operator-workspace", "browser-proposal",
       "self-approval-refused", "bearer-approval-refused", "stale-semantics-refused",
-      "browser-kind-execution-readback", "rest-proposal-execution-readback",
+      "browser-kind-execution-readback", "worker-composed-execution", "rest-proposal-execution-readback",
       "mcp-proposal-execution-readback", "machine-browser-consent",
       "machine-independent-approval-readback", "machine-health-provenance-readback", "machine-fresh-token-native-rejoin",
-      "customer-credential-absence", "connection-rotation-readback", "connection-revocation-no-fallback", "cleanup",
+      "customer-credential-absence", "connection-rotation-readback", "connection-revocation-no-fallback", "worker-readiness-graceful-drain", "cleanup",
     ]);
     expect(UX_IDS).toEqual([
       "ux01-operation-review-a11y", "ux01-independent-approval-a11y", "ux01-replan-reapproval-a11y",

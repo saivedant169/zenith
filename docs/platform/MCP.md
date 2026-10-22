@@ -1,6 +1,6 @@
 # MCP v3 and the platform REST SDK
 
-Zenith exposes seventeen semantic infrastructure tools at
+Zenith exposes nineteen semantic infrastructure tools at
 `<origin>/api/agent/v3/mcp`. Every read, proposal and execution uses the same
 capability broker as UI and REST. There is no unrestricted shell, cloud CLI,
 OpenTofu, kubectl, database administration or approval tool.
@@ -47,6 +47,8 @@ also require `read`. Hints describe a tool, and never confer authorization.
 | `zenith_execute_approved_operation` | operation capability | execute | `write` | F/T/T/T |
 | `zenith_query_logs` | `logs.read` | read | `logs` | T/F/T/T |
 | `zenith_query_metrics` | `metrics.read` | read | `read` | T/F/T/T |
+| `zenith_search_events` | `events.read` | read | `read` | T/F/T/T |
+| `zenith_search_traces` | `traces.read` | read | `read` | T/F/T/T |
 | `zenith_investigate_incident` | `incident.investigate` | read | `read` | T/F/T/T |
 | `zenith_restart_service` | `service.restart` | propose | `write` | F/F/T/F |
 | `zenith_scale_service` | `service.scale` | propose | `write` | F/F/T/F |

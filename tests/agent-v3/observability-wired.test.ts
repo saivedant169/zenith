@@ -97,6 +97,21 @@ describe("cloud signals through MCP HTTP", () => {
     expect(JSON.stringify(logs)).not.toContain(CANARY.password); expect(s.inside()).toBe(false);
   });
 
+  it("serves Kubernetes events and traces through their own read grants with explicit provenance", async () => {
+    const s = await setup("kubernetes");
+    const events = await call("zenith_search_events", argsFor("zenith_search_events"));
+    expect(events.ok).toBe(true); expect(events.data.telemetry.signal).toBe("event");
+    expect(events.data.telemetry.scope.workspaceId).toBe(ids.ws); expect(Date.parse(events.data.telemetry.observedAt)).toBeGreaterThan(0);
+    expect(s.api.listNamespacedEvent).toHaveBeenCalled();
+    const traces = await call("zenith_search_traces", argsFor("zenith_search_traces"));
+    expect(traces.ok).toBe(true); expect(traces.data.telemetry.signal).toBe("trace");
+    // Every source states its provenance; one that could not answer says why.
+    for (const source of [...events.data.telemetry.provenance, ...traces.data.telemetry.provenance]) {
+      if (source.state === "unknown" || source.state === "inaccessible") expect(source.reason?.length).toBeGreaterThan(0);
+    }
+    expect(s.sessionRequests.every((req) => req.purpose === "observe")).toBe(true); expect(s.inside()).toBe(false);
+  });
+
   it("returns an evidence-based investigation through the route without executing remediation", async () => {
     const s = await setup("kubernetes"); const result = await call("zenith_investigate_incident", argsFor("zenith_investigate_incident"));
     expect(result.ok).toBe(true); expect(result.data.investigated).toBe(true); expect(result.data.hypotheses.length).toBeGreaterThan(0);

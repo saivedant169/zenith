@@ -1,5 +1,5 @@
 {
-  "catalogDigest": "sha256:6a74227494d3e45e9a1d547e6e428da3b744b140c986c54362e0dec920d3bce9",
+  "catalogDigest": "sha256:1de1dd070169bedf86f2c4c6a6ea6a1dc746d15b5337673d7c3203e8423813c4",
   "tools": [
     {
       "name": "zenith_get_topology",
@@ -45,6 +45,16 @@
       "name": "zenith_query_metrics",
       "schemaVersion": 1,
       "schemaDigest": "sha256:962a93b073c9f004aedd1963d8553b171053f038a732553f896e52ed6c3e4ad8"
+    },
+    {
+      "name": "zenith_search_events",
+      "schemaVersion": 1,
+      "schemaDigest": "sha256:eb0b390e4c61f5a9f659f102f3994bad27be3ea223803be430cbb134c328ce54"
+    },
+    {
+      "name": "zenith_search_traces",
+      "schemaVersion": 1,
+      "schemaDigest": "sha256:3e83c30c6f01681e1bc45f62b1752e3364975770432b60d428fa0f176871a299"
     },
     {
       "name": "zenith_investigate_incident",

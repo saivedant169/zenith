@@ -23,7 +23,7 @@ import { assertInGrant, requirePluginTool, requireScope, type TargetLike } from 
 import type { McpPorts } from "../ports";
 import { executeApprovedOperation } from "./execute";
 import { getOperation, getOperationEvents } from "./operations";
-import { investigateIncident, queryLogs, queryMetrics } from "./observe";
+import { investigateIncident, queryLogs, queryMetrics, searchEvents, searchTraces } from "./observe";
 import { compareRevisions, estimateCost, getCapabilities, getTopology } from "./project";
 import { planChange, prepareDeploy, restartService, scaleService } from "./propose";
 import { recommendPlacementTool } from "./placement";
@@ -42,6 +42,8 @@ const HANDLERS: Record<ToolName, Handler> = {
   zenith_execute_approved_operation: executeApprovedOperation as Handler,
   zenith_query_logs: queryLogs as Handler,
   zenith_query_metrics: queryMetrics as Handler,
+  zenith_search_events: searchEvents as Handler,
+  zenith_search_traces: searchTraces as Handler,
   zenith_investigate_incident: investigateIncident as Handler,
   zenith_restart_service: restartService as Handler,
   zenith_scale_service: scaleService as Handler,

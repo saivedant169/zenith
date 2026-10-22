@@ -163,7 +163,7 @@ jobs:
           spki=$(node -e "const c=require('crypto');console.log(c.createHash('sha256').update(new c.X509Certificate(require('fs').readFileSync('$stack/tls/edge.crt')).publicKey.export({type:'spki',format:'der'})).digest('base64'))")
           mkdir -p .data-ci-lane
           env -u ZENITH_DEFAULT_STACK_PORT_OFFSET TMPDIR="$RUNNER_TEMP/zenith/tmp" ZENITH_ACCEPTANCE_DEFAULT_STACK=1 ZENITH_DEFAULT_JOURNEY=1 \
-            NODE_EXTRA_CA_CERTS="$stack/tls/ca.crt" ZENITH_JOURNEY_CHROMIUM_SPKI="$spki" \
+            NODE_EXTRA_CA_CERTS="$stack/tls/ca.crt" ZENITH_JOURNEY_CHROMIUM_SPKI="$spki" ZENITH_OPERATED_DIAGNOSTICS=1 \
             node scripts/acceptance/default-journey.mjs --config "$RUNNER_TEMP/zenith/j2/journey.json" --receipt .data-ci-lane/clean-host-journey-receipt.json
 
       - name: Journey and stack diagnostics

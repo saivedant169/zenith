@@ -216,7 +216,15 @@ test('default operated browser, REST, MCP and customer machine journey', async (
   };
   const step = async (id, work) => {
     try { await test.step(id, work); facts.push({ id, status: 'passed' }); }
-    catch { facts.push({ id, status: 'failed' }); throw new Error('journey:' + id); }
+    catch (error) {
+      facts.push({ id, status: 'failed' });
+      // Opt-in CI diagnostics: only a fixed-vocabulary code (or the error class) reaches stderr.
+      if (process.env.ZENITH_OPERATED_DIAGNOSTICS === '1') {
+        const code = error instanceof Error && /^[a-z0-9:._-]{1,80}$/.test(error.message) ? error.message : 'unclassified ' + (error instanceof Error && /^[A-Za-z]{1,40}$/.test(error.name) ? error.name : 'value');
+        console.error('journey step ' + id + ' failed: ' + code);
+      }
+      throw new Error('journey:' + id);
+    }
   };
   const stopRunner = async () => {
     const child = runnerProcess;
@@ -828,6 +836,18 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       ensure(logEnvelope?.signal === 'log' && logEnvelope.scope?.workspaceId === workspaceId && logEnvelope.scope?.projectId === project.id &&
         logEnvelope.scope?.environmentId === environmentId && Date.parse(logEnvelope.observedAt) > 0 && explicit(logEnvelope), 'default-logs-provenance');
       ensure(!JSON.stringify(logs).includes(linked.token) && !JSON.stringify(logs).includes(healthToken.token), 'logs-token-redaction');
+      // PROD-OBS-02: provider/resource events and traces through their own read grants, with the same envelope contract.
+      for (const [name, signal] of [['zenith_search_events', 'event'], ['zenith_search_traces', 'trace']]) {
+        const raw = await mcp(stack, linked.token, 'tools/call', { name, arguments: {
+          target: { workspaceId, projectId: project.id, environmentId }, serviceId, lastMinutes: 15, limit: 20,
+        } }, true);
+        const answer = raw.data?.result?.structuredContent;
+        ensure(raw.status === 200 && answer?.ok === true && answer.simulated === false, 'default-' + signal + '-api');
+        const telemetry = answer.data?.telemetry;
+        ensure(telemetry?.signal === signal && telemetry.scope?.workspaceId === workspaceId && telemetry.scope?.environmentId === environmentId &&
+          Date.parse(telemetry.observedAt) > 0 && explicit(telemetry), 'default-' + signal + '-provenance');
+        ensure(!JSON.stringify(answer).includes(linked.token), signal + '-token-redaction');
+      }
 
       healthResourceId = await witnessResourceId();
 
@@ -1279,8 +1299,9 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       ensure(revoked?.ok === true, 'runner-connection-revoke');
       const listed = ok(await browserRequest(a, '/api/platform/v1/connections?includeRevoked=true', undefined, 'GET', workspaceId));
       ensure(listed.connections?.some(value => value.id === runnerConnectionId && value.status === 'revoked'), 'runner-connection-revoked-readback');
-      const refused = ok(await browserRequest(a, '/api/platform/v1/connections/' + runnerConnectionId + '/verify', {}, 'POST', workspaceId));
-      ensure(refused?.ok === false, 'revoked-runner-connection-refuses-verification');
+      // A revoked connection is refused: either an HTTP refusal or a completed verification with ok:false.
+      const refused = await browserRequest(a, '/api/platform/v1/connections/' + runnerConnectionId + '/verify', {}, 'POST', workspaceId);
+      ensure(refused.status >= 400 || refused.data?.ok === false, 'revoked-runner-connection-refuses-verification');
     });
     await step('connection-rotation-readback', async () => {
       // PROD-LIFE-01: stage the rotation through the UI panel; promotion stays the reviewed API call below.

@@ -49,6 +49,8 @@ export const TOOL_NAMES = [
   "zenith_execute_approved_operation",
   "zenith_query_logs",
   "zenith_query_metrics",
+  "zenith_search_events",
+  "zenith_search_traces",
   "zenith_investigate_incident",
   "zenith_restart_service",
   "zenith_scale_service",

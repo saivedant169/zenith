@@ -22,7 +22,7 @@ import { addressesForService, authorizeReadOrThrow, graphFor, pickManifest, requ
 import type { ToolOutput } from "../envelope";
 import { McpToolError } from "../errors";
 import { assertInGrant } from "../principal";
-import type { InvestigateIncidentArgs, QueryLogsArgs, QueryMetricsArgs } from "../schemas";
+import type { InvestigateIncidentArgs, QueryLogsArgs, QueryMetricsArgs, SearchEventsArgs, SearchTracesArgs } from "../schemas";
 
 const LOG_LIMIT_DEFAULT = 100;
 
@@ -74,6 +74,54 @@ export async function queryLogs(args: QueryLogsArgs, ctx: ToolContext): Promise<
   return {
     data: { count: result.items.length, limit, range, sources: result.sources, ...(result.telemetry ? { telemetry: result.telemetry } : {}) },
     untrusted: { logs: result.items },
+    simulated: result.simulated,
+    unavailable: result.unavailable,
+    truncated: result.truncated,
+    notes: result.notes ?? [],
+  };
+}
+
+/* ------------------------- search_events / search_traces ------------------------- */
+
+/** Provider and resource events (e.g. k8s.pod.backoff, deployment.rollout) under the events.read grant. */
+export async function searchEvents(args: SearchEventsArgs, ctx: ToolContext): Promise<ToolOutput> {
+  const { target } = args;
+  const range = resolveRange(args, ctx.ports.now());
+  const { auth, environment, graph, addresses } = await prepare(ctx, "events.read", target, args.serviceId);
+  const limit = args.limit ?? LOG_LIMIT_DEFAULT;
+  let result;
+  try {
+    result = await ctx.ports.observability.withFabric({ workspaceId: target.workspaceId, environment, graph, grant: auth.claims }, (fabric) =>
+      fabric.searchEvents({ scope: { workspaceId: target.workspaceId, projectId: target.projectId, environmentId: target.environmentId, ...(addresses ? { addresses } : {}) }, range, limit }, ctx.signal));
+  } catch (error) {
+    asInvalidInput(error);
+  }
+  return {
+    data: { count: result.items.length, limit, range, sources: result.sources, ...(result.telemetry ? { telemetry: result.telemetry } : {}) },
+    untrusted: { events: result.items },
+    simulated: result.simulated,
+    unavailable: result.unavailable,
+    truncated: result.truncated,
+    notes: result.notes ?? [],
+  };
+}
+
+/** Trace summaries under the traces.read grant; a backend without traces answers unavailable, never a guess. */
+export async function searchTraces(args: SearchTracesArgs, ctx: ToolContext): Promise<ToolOutput> {
+  const { target } = args;
+  const range = resolveRange(args, ctx.ports.now());
+  const { auth, environment, graph, addresses } = await prepare(ctx, "traces.read", target, args.serviceId);
+  const limit = args.limit ?? LOG_LIMIT_DEFAULT;
+  let result;
+  try {
+    result = await ctx.ports.observability.withFabric({ workspaceId: target.workspaceId, environment, graph, grant: auth.claims }, (fabric) =>
+      fabric.searchTraces({ scope: { workspaceId: target.workspaceId, projectId: target.projectId, environmentId: target.environmentId, ...(addresses ? { addresses } : {}) }, range, limit }, ctx.signal));
+  } catch (error) {
+    asInvalidInput(error);
+  }
+  return {
+    data: { count: result.items.length, limit, range, sources: result.sources, ...(result.telemetry ? { telemetry: result.telemetry } : {}) },
+    untrusted: { traces: result.items },
     simulated: result.simulated,
     unavailable: result.unavailable,
     truncated: result.truncated,

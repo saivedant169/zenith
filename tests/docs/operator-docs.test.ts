@@ -1004,7 +1004,7 @@ describe("operator claims match current wiring", () => {
     expect(awsSetup).not.toContain("absent from default composition");
   });
 
-  it("CLI entry points and all sixteen MCP tools are documented", () => {
+  it("CLI entry points and all nineteen MCP tools are documented", () => {
     const pkg = JSON.parse(source("package.json")) as { scripts: Record<string, string>; bin: Record<string, string> };
     expect(pkg.scripts.cli).toBe("tsx src/cli/bin.ts");
     expect(pkg.bin.zenith).toBe("src/cli/bin.ts");
@@ -1013,9 +1013,9 @@ describe("operator claims match current wiring", () => {
     const names = [...new Set([...catalog.matchAll(/\bzenith_[a-z_]+\b/g)].map((m) => m[0]))].sort();
     const mcp = source("docs/platform/MCP.md");
     const listed = [...mcp.matchAll(/^\| `(zenith_[a-z_]+)` \|/gm)].map((m) => m[1]).sort();
-    expect(names).toHaveLength(17);
+    expect(names).toHaveLength(19);
     expect(listed).toEqual(names);
-    expect(mcp).toContain("seventeen");
+    expect(mcp).toContain("nineteen");
     expect(guide("README.md")).toContain("CLI.md");
   });
 

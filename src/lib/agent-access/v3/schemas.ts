@@ -111,6 +111,19 @@ export const QueryLogsInput = z.strictObject({
   limit: z.number().int().min(1).max(200).optional().describe("Maximum log lines (default 100)."),
 });
 
+/** Provider and resource events, and trace summaries, read through the same scoped fabric session as logs. */
+export const SearchEventsInput = z.strictObject({
+  target: EnvTarget,
+  serviceId: Id.optional().describe("Restrict to one service or resource id from get_topology."),
+  lastMinutes: LastMinutes.optional(),
+  from: Iso.optional(),
+  to: Iso.optional(),
+  limit: z.number().int().min(1).max(200).optional().describe("Maximum events (default 100)."),
+});
+export const SearchTracesInput = SearchEventsInput.extend({
+  limit: z.number().int().min(1).max(200).optional().describe("Maximum trace summaries (default 100)."),
+});
+
 export const QueryMetricsInput = z.strictObject({
   target: EnvTarget,
   serviceId: Id.optional().describe("Restrict to one service or resource id from get_topology."),
@@ -204,6 +217,8 @@ export type PrepareDeployArgs = z.infer<typeof PrepareDeployInput>;
 export type ExecuteApprovedOperationArgs = z.infer<typeof ExecuteApprovedOperationInput>;
 export type QueryLogsArgs = z.infer<typeof QueryLogsInput>;
 export type QueryMetricsArgs = z.infer<typeof QueryMetricsInput>;
+export type SearchEventsArgs = z.infer<typeof SearchEventsInput>;
+export type SearchTracesArgs = z.infer<typeof SearchTracesInput>;
 export type InvestigateIncidentArgs = z.infer<typeof InvestigateIncidentInput>;
 export type RestartServiceArgs = z.infer<typeof RestartServiceInput>;
 export type ScaleServiceArgs = z.infer<typeof ScaleServiceInput>;

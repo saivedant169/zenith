@@ -209,7 +209,7 @@ export function validateUxReceipt(value) {
 
 function validateCompletedJourney(value) {
   if (!exactKeys(value, ['schemaVersion', 'requirementIds', 'kind', 'status', 'productionReady', 'ledgerEligible', 'commit', 'sourceDigest', 'dirty', 'environment', 'counts', 'checks', 'readbacks', 'evidence']) ||
-      value.schemaVersion !== 1 || JSON.stringify(value.requirementIds) !== JSON.stringify(['PROD-PKG-05', 'PROD-DUR-03', 'PROD-DUR-04', 'PROD-LIFE-01', 'PROD-MACH-05', 'PROD-OBS-02', 'PROD-MACH-04']) ||
+      value.schemaVersion !== 1 || JSON.stringify(value.requirementIds) !== JSON.stringify(['PROD-PKG-05', 'PROD-DUR-03', 'PROD-DUR-04', 'PROD-LIFE-01', 'PROD-MACH-05', 'PROD-OBS-02', 'PROD-MACH-04', 'PROD-PKG-02']) ||
       value.kind !== 'local_engine' || value.status !== 'passed' || value.productionReady !== false || value.ledgerEligible !== true || value.dirty !== false ||
       !HEX40.test(value.commit ?? '') || !HEX64.test(value.sourceDigest ?? '') ||
       !exactKeys(value.environment, ['host', 'architectureEvidence', 'node', 'docker', 'profile', 'scope']) ||

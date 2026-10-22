@@ -665,6 +665,14 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       await approve(operationId, true);
       const detail = await until(() => getDetail(operationId), value => ['succeeded', 'failed', 'uncertain'].includes(value.operation.status));
       ensure(detail.operation.status === 'succeeded', 'default-browser-execution');
+      // PROD-PKG-02: the installed worker runs on the real product and platform stores, and this
+      // operation ran as an acknowledged Temporal workflow start, which only the execution worker polls.
+      const [workerContainer] = JSON.parse(await docker(['inspect', stack.worker]));
+      const stores = new Set(workerContainer.Config.Env.filter(entry => /^ZENITH_(?:STORE|PLATFORM_DB)=/.test(entry)));
+      ensure(stores.size === 2 && stores.has('ZENITH_STORE=postgres') && stores.has('ZENITH_PLATFORM_DB=postgres'), 'worker-real-stores');
+      const intent = await psqlRead(`select coalesce((select json_build_object('phase', phase, 'runBound', run_id is not null)
+        from platform.workflow_start_intents where operation_id = :'operation_id'), 'null'::json)::text`, { operation_id: operationId });
+      ensure(intent?.phase === 'acknowledged' && intent.runBound === true, 'worker-temporal-execution');
       readbacks.kind = await kindReadback(config, 1, witnessNonce);
     });
     if (UX_ENABLED) await uxCase('ux01-legacy-projection-a11y', async () => {

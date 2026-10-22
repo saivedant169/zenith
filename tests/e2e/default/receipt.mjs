@@ -41,7 +41,7 @@ export function receipt(input = {}) {
   // A dirty tree can be rehearsed, but is never coherent-commit ledger evidence.
   const ledgerEligible = status === 'passed' && input.dirty === false;
   return {
-    schemaVersion: 1, requirementIds: ['PROD-PKG-05', 'PROD-DUR-03', 'PROD-DUR-04', 'PROD-LIFE-01', 'PROD-MACH-05', 'PROD-OBS-02', 'PROD-MACH-04'],
+    schemaVersion: 1, requirementIds: ['PROD-PKG-05', 'PROD-DUR-03', 'PROD-DUR-04', 'PROD-LIFE-01', 'PROD-MACH-05', 'PROD-OBS-02', 'PROD-MACH-04', 'PROD-PKG-02'],
     kind: 'local_engine', status, productionReady: false, ledgerEligible,
     commit: hash(input.commit, 40) ? input.commit : null,
     sourceDigest: hash(input.sourceDigest, 64) ? input.sourceDigest : null,

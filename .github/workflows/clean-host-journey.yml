@@ -16,13 +16,27 @@ concurrency:
 
 jobs:
   journey:
-    runs-on: ubuntu-latest
+    # Native per-architecture legs; PROD-PKG-02 requires both linux/amd64 and linux/arm64.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+            supabase_sha256: e5597462f865d5ac72af0453358e37ecb0d85962ad6914a114a53de847303bde
+            kind_sha256: aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            supabase_sha256: b551c2f8e03715be428d2592765200a9e371168fc36ec2646a84ecc530d3120e
+            kind_sha256: 20022bee6cfcd5086cb7234d218e3454e6090022f2a8f55d1fa7fcf42c3867a2
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 150
     env:
       SUPABASE_CLI_VERSION: 2.75.0
-      SUPABASE_CLI_SHA256: e5597462f865d5ac72af0453358e37ecb0d85962ad6914a114a53de847303bde
+      SUPABASE_CLI_SHA256: ${{ matrix.supabase_sha256 }}
       KIND_VERSION: v0.33.0
-      KIND_SHA256: aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d
+      KIND_SHA256: ${{ matrix.kind_sha256 }}
+      ARCH: ${{ matrix.arch }}
       KIND_NODE_IMAGE: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
       GO_BUILDER_IMAGE: golang:1.27-alpine@sha256:8a5910f31396cd4d89662f56c68b3ae31d374308270a1c3bd96672ee5ed43414
       DISTROLESS_IMAGE: gcr.io/distroless/static-debian12:nonroot@sha256:afa5c872c891853ca7fcf1f12c3edb23f7eeef36189728842dd51042ff57f7ab
@@ -61,10 +75,10 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/bin"
-          curl -fsSL -o "$RUNNER_TEMP/supabase.tar.gz" "https://github.com/supabase/cli/releases/download/v${SUPABASE_CLI_VERSION}/supabase_linux_amd64.tar.gz"
+          curl -fsSL -o "$RUNNER_TEMP/supabase.tar.gz" "https://github.com/supabase/cli/releases/download/v${SUPABASE_CLI_VERSION}/supabase_linux_${ARCH}.tar.gz"
           echo "${SUPABASE_CLI_SHA256}  $RUNNER_TEMP/supabase.tar.gz" | sha256sum -c -
           tar -xzf "$RUNNER_TEMP/supabase.tar.gz" -C "$RUNNER_TEMP/bin" supabase
-          curl -fsSL -o "$RUNNER_TEMP/bin/kind" "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64"
+          curl -fsSL -o "$RUNNER_TEMP/bin/kind" "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-${ARCH}"
           echo "${KIND_SHA256}  $RUNNER_TEMP/bin/kind" | sha256sum -c -
           chmod +x "$RUNNER_TEMP/bin/kind"
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
@@ -113,7 +127,7 @@ jobs:
         run: |
           set -euo pipefail
           tag="localhost:5000/zenith-j2-witness:${GITHUB_SHA}"
-          DOCKER_BUILDKIT=1 docker build -q --platform linux/amd64 -f tests/e2e/default/zenithd.Dockerfile \
+          DOCKER_BUILDKIT=1 docker build -q --platform "linux/${ARCH}" -f tests/e2e/default/zenithd.Dockerfile \
             --build-arg GO_BUILDER_IMAGE="$GO_BUILDER_IMAGE" --build-arg DISTROLESS_IMAGE="$DISTROLESS_IMAGE" \
             --label org.zenith.acceptance.owner=PKG-04-J2 --label "org.zenith.acceptance.source-head=${GITHUB_SHA}" -t "$tag" .
           docker push -q "$tag"
@@ -173,7 +187,7 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
-          name: clean-host-journey
+          name: clean-host-journey-${{ matrix.arch }}
           path: .data-ci-lane/clean-host-journey-receipt.json
           if-no-files-found: warn
           retention-days: 30

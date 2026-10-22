@@ -812,7 +812,7 @@ async function runSourceOperated(id: ScenarioId, receiptFile: string, env: NodeJ
   const source = sourceBinding(); let failed = false, code = 1;
   const step: Step = async (check, fn) => {
     try { await fn(); facts.push({ id: check, status: "passed" }); }
-    catch { facts.push({ id: check, status: "failed" }); throw new Error("Operated check failed"); }
+    catch (error) { facts.push({ id: check, status: "failed" }); diagnoseOperatedFailure(env, "step " + check, error); throw new Error("Operated check failed"); }
   };
   try {
     await step("preconditions", async () => {

@@ -723,8 +723,16 @@ export class Operated {
     await this.action("deploy.approve", { deploymentId: out.deploymentId }, this.b!);
     const reviewed = await until(() => this.detail(out.operationId), (d: Awaited<ReturnType<Operated["detail"]>>) =>
       (d.operation.status === "awaiting_approval" && d.operation.approvalRound > 0) || TERMINAL.includes(d.operation.status));
-    ensure(reviewed.operation.status === "awaiting_approval" && /^[a-f0-9]{64}$/.test(reviewed.operation.planDigest)
-      && /^[a-f0-9]{64}$/.test(reviewed.planReview?.semantics?.digest ?? ""), "immutable-plan-review");
+    const planned = reviewed.operation.status === "awaiting_approval" && /^[a-f0-9]{64}$/.test(reviewed.operation.planDigest)
+      && /^[a-f0-9]{64}$/.test(reviewed.planReview?.semantics?.digest ?? "");
+    if (!planned && this.env.ZENITH_OPERATED_DIAGNOSTICS === "1") {
+      // Status shape only; the product's error sentence with key=value pairs, URLs, paths and long tokens elided.
+      const raw = reviewed.operation.error;
+      const error = typeof raw === "string" ? raw.replace(/\b\w+=\S+/g, "…=…").replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/(?:\/[^\s/]+){2,}/g, "…path").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 240) : null;
+      process.stderr.write(`operated outside-step failed: journey:immutable-plan-review ${JSON.stringify({ status: reviewed.operation.status, round: reviewed.operation.approvalRound ?? null,
+        plan: /^[a-f0-9]{64}$/.test(reviewed.operation.planDigest ?? ""), semantics: /^[a-f0-9]{64}$/.test(reviewed.planReview?.semantics?.digest ?? ""), error })}\n`);
+    }
+    ensure(planned, "immutable-plan-review");
     return out;
   }
   async settle(id: string) {

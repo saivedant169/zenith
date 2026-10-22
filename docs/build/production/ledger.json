@@ -6390,6 +6390,14 @@
           "runId": 39477790980,
           "url": "https://github.com/saivedant169/zenith/actions/runs/39477790980",
           "result": "J2 default journey 18/18 passed on a clean Linux host (ledgerEligible, native AMD64, five readbacks): real browser and Supabase Auth, a registered zenithd and an owned kind target. Covers this requirement only where the journey exercises it."
+        },
+        {
+          "level": "local_linux_arm64",
+          "commit": "c8967b15ce43bd0a3ae64bc0098df1a76e2d27e9",
+          "command": "clean-host-journey.yml workflow_dispatch run 39772691346 (native GitHub-hosted linux/amd64 and linux/arm64)",
+          "environment": "Default installed 2 API + 2 worker stack, disposable Supabase Auth/PostgreSQL, Temporal, zenithd and kind; exact-source CI 39772692208 success",
+          "result": "J2 20/20 on both native architectures with PROD-MACH-05 in the receipt requirement ids (machine consent, independent approval readback, health provenance, fresh-token native rejoin, customer credential absence, connection rotation and revocation without fallback). Independent review: HOLD. Gaps: no job is dispatched through the runner-mode Kubernetes connection; no dispatch is attempted after revoking the runner-mode binding or on the revoked zenithd; the machine credential canary is checked on one MCP response only, not on metrics or operation reads; whether federated runner mode falls under 'keep credentials local' is an open scope question. Contract level: runner custody refusal of revoked bindings is proven; result redaction is best-effort for unknown shapes by design. Not promoted.",
+          "logs": "docs/build/production/evidence/PROD-PKG-02/2026-10-22-c8967b15-clean-host-j2-arm64.json"
         }
       ],
       "requiredEvidence": [

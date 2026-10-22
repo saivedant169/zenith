@@ -93,11 +93,16 @@ export async function sourceBuildFixture(ctx: Operated): Promise<{ profile: Tena
   await admin(["get", "runtimeclass", profile.config.runtimeClass]); // Actual operator-installed runtime, never a substitute.
   // Protect the tenant allocation before admitting any build job. J6 probes verify the physical runtime/profile independently.
   allocated = true;
+  // Kubelet and CNI updates move the node's resourceVersion during setup; re-read just before the guarded patch.
+  const current = JSON.parse(await admin(["get", "node", node.metadata.name, "-o", "json"]));
+  ensure(current.metadata.uid === node.metadata.uid && !current.metadata.labels[BUILD_NODE_LABEL] && !current.metadata.labels[BUILD_PROFILE_LABEL]
+    && !(current.spec.taints ?? []).some((t: { key: string }) => t.key === BUILD_TAINT), "unallocated-build-node");
   await admin(["patch", "node", node.metadata.name, "--type=json", "-p", JSON.stringify([
-    { op: "test", path: "/metadata/resourceVersion", value: node.metadata.resourceVersion },
+    { op: "test", path: "/metadata/uid", value: node.metadata.uid },
+    { op: "test", path: "/metadata/resourceVersion", value: current.metadata.resourceVersion },
     { op: "add", path: "/metadata/labels/" + BUILD_NODE_LABEL.replaceAll("/", "~1"), value: key },
     { op: "add", path: "/metadata/labels/" + BUILD_PROFILE_LABEL.replaceAll("/", "~1"), value: profile.config.nodeIsolation.profileDigest.slice(0, 63) },
-    { op: "add", path: "/spec/taints", value: [...(node.spec.taints ?? []), ...["NoSchedule", "NoExecute"].map(effect => ({ key: BUILD_TAINT, value: key, effect }))] },
+    { op: "add", path: "/spec/taints", value: [...(current.spec.taints ?? []), ...["NoSchedule", "NoExecute"].map(effect => ({ key: BUILD_TAINT, value: key, effect }))] },
   ])]);
   for (const imageRef of [profile.config.builderImage, profile.config.proxy.image]) {
     const [image] = JSON.parse(await modules.docker(["image", "inspect", imageRef])); ensure(image.Architecture === NATIVE?.image, "native-build-toolchain");

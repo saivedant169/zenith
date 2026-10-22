@@ -159,7 +159,8 @@ export async function run(receipt: string, env = process.env) {
 async function snapshotRows(ctx: Operated, operationId: string) {
   return until(() => ctx.sql<{ snapshot: unknown; snapshot_digest: string }>(
     "select snapshot,snapshot_digest from platform.approved_source_snapshots where workspace_id=$1 and project_id=$2 and environment_id=$3 and operation_id=$4",
-    [ctx.workspaceId, ctx.project!.id, ctx.environmentId, operationId]), (rows: { snapshot: unknown; snapshot_digest: string }[]) => rows.length === 1);
+    [ctx.workspaceId, ctx.project!.id, ctx.environmentId, operationId]), (rows: { snapshot: unknown; snapshot_digest: string }[]) => rows.length === 1)
+    .catch((error: unknown) => { throw error instanceof Error && error.message === "journey:readback-timeout" ? new Error("journey:source-snapshot-timeout") : error; });
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve("scripts/release/drivers/private-source.ts"))
   void driverCli(run, process.argv.slice(2)).then(code => { process.exitCode = code; });

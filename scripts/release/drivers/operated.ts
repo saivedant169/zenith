@@ -738,7 +738,17 @@ export class Operated {
     await this.approve(out.operationId);
     await this.action("deploy.approve", { deploymentId: out.deploymentId }, this.b!);
     const reviewed = await until(() => this.detail(out.operationId), (d: Awaited<ReturnType<Operated["detail"]>>) =>
-      (d.operation.status === "awaiting_approval" && d.operation.approvalRound > 0) || TERMINAL.includes(d.operation.status));
+      (d.operation.status === "awaiting_approval" && d.operation.approvalRound > 0) || TERMINAL.includes(d.operation.status))
+      .catch(async (error: unknown) => {
+        if (error instanceof Error && error.message === "journey:readback-timeout" && this.env.ZENITH_OPERATED_DIAGNOSTICS === "1") {
+          const d = await this.detail(out.operationId).catch(() => undefined);
+          const raw = d?.operation.error;
+          const text = typeof raw === "string" ? raw.replace(/\b\w+=\S+/g, "…=…").replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/(?:\/[^\s/]+){2,}/g, "…path").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 240) : null;
+          process.stderr.write(`operated outside-step failed: journey:plan-review-timeout ${JSON.stringify({ status: d?.operation.status ?? null, round: d?.operation.approvalRound ?? null,
+            plan: /^[a-f0-9]{64}$/.test(d?.operation.planDigest ?? ""), phase: (d as { authority?: { phase?: string } } | undefined)?.authority?.phase ?? null, error: text })}\n`);
+        }
+        throw error;
+      });
     const planned = reviewed.operation.status === "awaiting_approval" && /^[a-f0-9]{64}$/.test(reviewed.operation.planDigest)
       && /^[a-f0-9]{64}$/.test(reviewed.planReview?.semantics?.digest ?? "");
     if (!planned && this.env.ZENITH_OPERATED_DIAGNOSTICS === "1") {

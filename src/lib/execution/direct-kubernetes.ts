@@ -138,6 +138,34 @@ interface DirectStage {
 }
 
 /** Dry-run the rendered objects against the cluster and fold the result into a normalized plan. */
+/**
+ * The Kubernetes NormalizedPlan. Like the OpenTofu normalizer, an approved private source binds its
+ * executable source digest into the plan digest and the plan, so the reviewed PlanView can show it.
+ */
+export function kubernetesPlan(input: { graphDigest: string; objects: unknown[]; resourceChanges: { address: string; action: string; changes: unknown[] }[]; notes: string[]; createdAt: string; executableSourceDigest?: string }): NormalizedPlan {
+  const { resourceChanges } = input;
+  if (input.executableSourceDigest !== undefined && !/^[a-f0-9]{64}$/.test(input.executableSourceDigest)) throw new StepFailedError("Executable source identity is invalid.");
+  const count = (a: string) => resourceChanges.filter((r) => r.action === a).length;
+  const summary = { create: count("create"), update: count("update"), delete: 0, replace: 0, noop: count("no-op") };
+  // The digest binds what would be sent (the rendered bytes) and what it would do to this cluster now.
+  const planDigest = digest({ engine: "kubernetes-apply/K1", graphDigest: input.graphDigest, objects: input.objects, actions: resourceChanges.map((r) => [r.address, r.action, r.changes]),
+    ...(input.executableSourceDigest ? { executableSourceDigest: input.executableSourceDigest } : {}) });
+  return {
+    tofuVersion: "kubernetes-apply/K1",
+    formatVersion: "K1",
+    configDigest: input.graphDigest,
+    lockDigest: digest({ provider: "kubernetes", contract: "K1" }),
+    planDigest,
+    resourceChanges,
+    outputChanges: [],
+    summary,
+    empty: summary.create === 0 && summary.update === 0,
+    diagnostics: input.notes.slice(0, 10).map((n) => ({ severity: "warning" as const, summary: safeText(n, 300), detail: "" })),
+    createdAt: input.createdAt,
+    ...(input.executableSourceDigest ? { executableSourceDigest: input.executableSourceDigest } : {}),
+  } as unknown as NormalizedPlan;
+}
+
 /** Server-side apply changes in place; an immutable field is refused as a conflict, never replaced. The plan review requires the flag. */
 export const kubernetesPlanChanges = (paths: readonly string[]) => paths.slice(0, 50).map((path) => ({ path, forcesReplacement: false }));
 
@@ -163,23 +191,8 @@ async function dryRun(rt: Runtime, ec: ExecContext, graph: ResourceGraph, sessio
       destroysData: false,
     };
   });
-  const count = (a: string) => resourceChanges.filter((r) => r.action === a).length;
-  const summary = { create: count("create"), update: count("update"), delete: 0, replace: 0, noop: count("no-op") };
-  // The digest binds what would be sent (the rendered bytes) and what it would do to this cluster now.
-  const planDigest = digest({ engine: "kubernetes-apply/K1", graphDigest: graph.graphDigest, objects: rendered.objects, actions: resourceChanges.map((r) => [r.address, r.action, r.changes]) });
-  const plan = {
-    tofuVersion: "kubernetes-apply/K1",
-    formatVersion: "K1",
-    configDigest: graph.graphDigest,
-    lockDigest: digest({ provider: "kubernetes", contract: "K1" }),
-    planDigest,
-    resourceChanges,
-    outputChanges: [],
-    summary,
-    empty: summary.create === 0 && summary.update === 0,
-    diagnostics: rendered.notes.slice(0, 10).map((n) => ({ severity: "warning" as const, summary: safeText(n, 300), detail: "" })),
-    createdAt: rt.now().toISOString(),
-  } as unknown as NormalizedPlan;
+  const plan = kubernetesPlan({ graphDigest: graph.graphDigest, objects: rendered.objects, resourceChanges, notes: rendered.notes, createdAt: rt.now().toISOString(),
+    ...(ec.executableSourceDigest ? { executableSourceDigest: ec.executableSourceDigest } : {}) });
   const facts: PlanFacts = {
     ...extractPlanFacts(plan),
     statefulDeletes: [],

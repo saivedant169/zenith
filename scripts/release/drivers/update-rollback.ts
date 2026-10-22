@@ -121,15 +121,25 @@ export async function run(receipt: string, env = process.env) {
     });
     await step("failed-rollout-readback", async () => {
       // Real failure: J2 witness refuses an empty nonce and the new pod crashes. Existing ready pods remain available.
-      failure = await ctx.deploy(phases[2].marker);
+      // Named waits: a timeout reports which phase stalled; diagnostics add status shapes only.
+      const named = (code: string, shape?: () => Promise<unknown>) => async (error: unknown): Promise<never> => {
+        if (!(error instanceof Error && error.message === "journey:readback-timeout")) throw error;
+        if (ctx.env.ZENITH_OPERATED_DIAGNOSTICS === "1") process.stderr.write(`operated outside-step failed: journey:${code} ${JSON.stringify(shape ? await shape().catch(() => null) : null)}\n`);
+        throw new Error("journey:" + code);
+      };
+      failure = await ctx.deploy(phases[2].marker).catch(named("failed-rollout-settle-timeout"));
       ensure(failure.terminal.operation.status === "failed" && /steady|rollout|progress/i.test(failure.terminal.operation.error ?? ""), "confirmed-rollout-failure");
       const deployment = JSON.parse(await ctx.kubectl(["get", "deployment", "witness", "-o", "json"]));
       const selector = Object.entries(deployment.spec.selector.matchLabels).map(([key, value]) => key + "=" + value).join(",");
+      const podShape = async () => (JSON.parse(await ctx.kubectl(["get", "pods", "-l", selector, "-o", "json"])).items as { spec: { containers: { env?: { name: string; value?: string }[] }[] }; status?: { phase?: string; containerStatuses?: { ready?: boolean; restartCount: number; state?: Record<string, { reason?: string }> }[] } }[])
+        .map(p => ({ emptyNonce: p.spec.containers[0]?.env?.some(e => e.name === "WITNESS_NONCE" && e.value === "") ?? false, phase: p.status?.phase ?? null,
+          containers: (p.status?.containerStatuses ?? []).map(c => ({ ready: c.ready ?? null, restarts: c.restartCount, state: Object.keys(c.state ?? {})[0] ?? null, reason: Object.values(c.state ?? {})[0]?.reason ?? null })) }));
       await until(async () => JSON.parse(await ctx.kubectl(["get", "pods", "-l", selector, "-o", "json"])),
         (pods: { items: { spec: { containers: { env?: { name: string; value?: string }[] }[] }; status?: { containerStatuses?: { restartCount: number; state?: { waiting?: { reason?: string } } }[] } }[] }) => pods.items.some(p =>
         p.spec.containers[0]?.env?.some(e => e.name === "WITNESS_NONCE" && e.value === "")
-        && p.status?.containerStatuses?.some(s => s.restartCount > 0 && s.state?.waiting?.reason === "CrashLoopBackOff")), 30_000);
-      ensure(await readback(ctx, phases[1].marker, updateImage, false) === uid, "failed-update-preserves-serving-version");
+        && p.status?.containerStatuses?.some(s => s.restartCount > 0 && s.state?.waiting?.reason === "CrashLoopBackOff")), 30_000)
+        .catch(named("crashloop-observation-timeout", podShape));
+      ensure(await readback(ctx, phases[1].marker, updateImage, false).catch(named("serving-readback-timeout", podShape)) === uid, "failed-update-preserves-serving-version");
     });
     await step("browser-rollback-readback", async () => {
       rollback = await ctx.propose(baseline.revisionId); await ctx.approve(rollback.operationId);

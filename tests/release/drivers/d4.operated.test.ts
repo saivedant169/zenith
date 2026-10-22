@@ -25,7 +25,8 @@ describe.skipIf(process.env.ZENITH_LOCAL_DRIVER_D4 !== "1")("J15 DRV-4 actual ow
         ZENITH_LOCAL_DRIVER_D4: "1", ZENITH_LOCAL_TARGETS: "1", ZENITH_LOCAL_JOINED_DRIVERS: "1", ZENITH_DEFAULT_JOURNEY: "1", ZENITH_ACCEPTANCE_DEFAULT_STACK: "1",
         ZENITH_LOCAL_RUN_ID: runId, ZENITH_LOCAL_ROOT: root, ZENITH_LOCAL_JOURNEY_CONFIG_FILE: file, ZENITH_ACCEPTANCE_DEFAULT_STACK_DIR: config.stackDirectory };
       // Start a fresh Node process so NODE_EXTRA_CA_CERTS is effective before Auth TLS traffic.
-      const result = await defaultExec([process.execPath, "node_modules/tsx/dist/cli.mjs", `scripts/release/drivers/${scenarioId}.ts`, "--run-id", runId, "--receipt", output],
+      // One process (tsx as a loader), so a signal or fatal exit of the driver is the child's own, not a wrapper's exit 1.
+      const result = await defaultExec([process.execPath, "--import", "tsx", `scripts/release/drivers/${scenarioId}.ts`, "--run-id", runId, "--receipt", output],
         { cwd: process.cwd(), env, timeoutMs: 2_400_000 });
       expect(result.code, `Inspect the sanitized receipt at ${output}; raw child diagnostics are not published`).toBe(0);
       const receipt = validateOperatedReceipt(JSON.parse(readFileSync(output, "utf8")), { scenarioId, runId, sourceCommit: source.head, sourceDigest: source.contentSha256 });

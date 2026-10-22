@@ -70,7 +70,12 @@ export const defaultExec: Exec = (argv, options) => new Promise((resolve) => {
     const lines = pending.split("\n"); pending = lines.pop() ?? "";
     forwardOperatedDiagnostics(env, lines.join("\n"));
   });
-  child.on("close", (code) => { clearTimeout(timer); resolve({ code: code ?? 1, stdout, stderr }); });
+  child.on("close", (code, signal) => {
+    clearTimeout(timer);
+    // Diagnostics only: a signal-terminated child (no exit code) is otherwise indistinguishable from exit 1.
+    if (code === null && env.ZENITH_OPERATED_DIAGNOSTICS === "1") process.stderr.write(`child-exit signal=${signal ?? "unknown"}\n`);
+    resolve({ code: code ?? 1, stdout, stderr });
+  });
   child.on("error", () => { clearTimeout(timer); resolve({ code: 127, stdout, stderr: `${stderr}\ncould not start ${argv[0]}` }); });
 });
 
@@ -82,6 +87,8 @@ export function forwardOperatedDiagnostics(env: Readonly<Record<string, string |
     // An uncaught error bypasses the driver's own diagnosis: relay only its class and Node code, never message or stack.
     const uncaught = /^\s*(?:Uncaught )?([A-Z][A-Za-z]{0,40}Error)(?: \[([A-Z0-9_]{1,60})\])?:/.exec(line);
     if (uncaught) write(`child-uncaught ${uncaught[1]}${uncaught[2] ? " " + uncaught[2] : ""}\n`);
+    // V8's fatal lines are fixed runtime text (e.g. "Reached heap limit Allocation failed - JavaScript heap out of memory").
+    else if (/^FATAL ERROR: [A-Za-z ,.-]{1,120}$/.test(line)) write(`child-fatal ${line.slice(13, 133)}\n`);
   }
 }
 

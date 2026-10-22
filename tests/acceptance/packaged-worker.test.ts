@@ -7,7 +7,7 @@ import { chmod, link, lstat, mkdir, mkdtemp, readdir, realpath, rm, symlink, wri
 import os from "node:os";
 import path from "node:path";
 import { runInNewContext } from "node:vm";
-import { assertOwnedPackagedBuilder, assertPackagedSourceUnchanged, cleanupOwnedImage, cleanupOwnedResource, command, createPrivateScratch, inFlightSchemaObserverSql, packagedPrivateTransferPayload, packagedPrivateTransferSource, packagedShutdownAuthoritySql, packagedSourceDigest, packagedTemporalControlSource, packagedTemporalSessionRequest, packagedVolumeCustodySource, PackagedCommandError, parsePackagedArgs, preparePackagedPrivateTransfer, prepareTemporalTls, PRIVATE_TRANSFER_LIMIT_BYTES, privateTemporaryBase, redactDiagnosticLogs, refusalFailureCategory, renderTemporalServerConfiguration, sanitizeClientEvidence, sanitizeContainerState, sanitizeImageId, sanitizeLockedDependencies, sanitizeRuntimeFilesystemEvidence, runtimeFilesystemProbeSource, ssmDocumentsDigest, sanitizePackagedCommandFailure, sanitizePackagedInFlightFailure, sanitizePackagedReadiness, sanitizePackagedSweepEvidence, sanitizePackagedTemporalSessionFrame, sanitizePgWaiterEvidence, sanitizeShutdownAuthorityEvidence, sanitizeTemporalControlEvidence, schemaOutageObserverSql, TEMPORAL_ADMIN_IMAGE, TEMPORAL_CONFIG_DIR, TEMPORAL_IMAGE, waitForPackagedReadiness, waitForRefusalExit, workerFailureCategory } from "../../scripts/acceptance/packaged-worker.mjs";
+import { assertCompleteMigrationSet, assertOwnedPackagedBuilder, assertPackagedSourceUnchanged, cleanupOwnedImage, cleanupOwnedResource, command, createPrivateScratch, inFlightSchemaObserverSql, packagedPrivateTransferPayload, packagedPrivateTransferSource, packagedShutdownAuthoritySql, packagedSourceDigest, packagedTemporalControlSource, packagedTemporalSessionRequest, packagedVolumeCustodySource, PackagedCommandError, parsePackagedArgs, preparePackagedPrivateTransfer, prepareTemporalTls, PRIVATE_TRANSFER_LIMIT_BYTES, privateTemporaryBase, redactDiagnosticLogs, refusalFailureCategory, renderTemporalServerConfiguration, sanitizeClientEvidence, sanitizeContainerState, sanitizeImageId, sanitizeLockedDependencies, sanitizeRuntimeFilesystemEvidence, runtimeFilesystemProbeSource, ssmDocumentsDigest, sanitizePackagedCommandFailure, sanitizePackagedInFlightFailure, sanitizePackagedReadiness, sanitizePackagedSweepEvidence, sanitizePackagedTemporalSessionFrame, sanitizePgWaiterEvidence, sanitizeShutdownAuthorityEvidence, sanitizeTemporalControlEvidence, schemaOutageObserverSql, TEMPORAL_ADMIN_IMAGE, TEMPORAL_CONFIG_DIR, TEMPORAL_IMAGE, waitForPackagedReadiness, waitForRefusalExit, workerFailureCategory } from "../../scripts/acceptance/packaged-worker.mjs";
 import { assertPackagedAcceptanceTarget } from "../../workers/execution/packaged-target";
 import { EXECUTION_FAILURE_CATEGORIES } from "../../workers/execution/startup";
 import { digest as controlDigest } from "../../src/lib/controlplane/digest";
@@ -82,6 +82,17 @@ function volumeCustodyModel() {
     console: { log: (value: unknown) => { output.push(value); } },
   }, { timeout: 1000 }), exits: () => exits };
 }
+
+describe("packaged schema completeness", () => {
+  it("requires the fresh database to apply exactly the contiguous source migration set", async () => {
+    const files = (await readdir("src/lib/controlplane/db/migrations")).filter(file => /^\d{4}_[a-z0-9_]+\.ts$/.test(file));
+    const all = files.map((_, index) => index + 1);
+    expect(await assertCompleteMigrationSet(all)).toBe(files.length);
+    await expect(assertCompleteMigrationSet(all.slice(0, -1))).rejects.toThrow("complete source migration set");
+    await expect(assertCompleteMigrationSet([...all, all.length + 1])).rejects.toThrow("complete source migration set");
+    await expect(assertCompleteMigrationSet([2, ...all.slice(1)])).rejects.toThrow("complete source migration set");
+  });
+});
 
 describe("private volume initializer [exact program; filesystem permission models]", () => {
   it("sets private modes while owned, then transfers each retained inode with CHOWN only", () => {

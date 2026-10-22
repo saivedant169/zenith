@@ -811,6 +811,14 @@ export function sanitizeClientEvidence(action, value) {
 /** Same suffix order as ZENITH_SSM_DOCUMENTS in src/lib/machines/transports/aws-ssm-docs.ts. */
 const SSM_DOCUMENT_SUFFIXES = ["MachineInspect", "ProcessList", "ServiceStatus", "ServiceRestart", "ContainerList", "ContainerInspect",
   "ContainerLogs", "FileRead", "PortCheck", "DnsCheck", "SystemMetrics", "SystemLogs"];
+/** A fresh platform database must apply exactly the source migration set, contiguous from 1. */
+export async function assertCompleteMigrationSet(applied, root = process.cwd()) {
+  const expected = (await readdir(path.join(root, "src/lib/controlplane/db/migrations")))
+    .filter((file) => /^\d{4}_[a-z0-9_]+\.ts$/.test(file)).map((file) => Number(file.slice(0, 4))).sort((a, b) => a - b);
+  if (expected.length === 0 || expected.some((version, index) => version !== index + 1)
+    || JSON.stringify(applied) !== JSON.stringify(expected)) throw new Error("Packaged schema did not apply the complete source migration set.");
+  return expected.length;
+}
 /** Host mirror of workers/execution/packaged-client.ts: sha256 of JSON.stringify over the same ordered documents. */
 export async function ssmDocumentsDigest(root = process.cwd()) {
   const documents = {};
@@ -1647,6 +1655,7 @@ export async function packagedWorkerMain(args = process.argv.slice(2), env = pro
     }
     phase = "prepare-real-stores";
     evidence.preparation = await client("prepare");
+    await assertCompleteMigrationSet(evidence.preparation.appliedVersions);
     phase = "actual-worker-entrypoint";
     await docker([...isolated(worker), "-d", image], phase);
     const ready = await waitForPackagedReadiness(() => probe("readyz"));

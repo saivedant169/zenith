@@ -138,6 +138,9 @@ interface DirectStage {
 }
 
 /** Dry-run the rendered objects against the cluster and fold the result into a normalized plan. */
+/** Server-side apply changes in place; an immutable field is refused as a conflict, never replaced. The plan review requires the flag. */
+export const kubernetesPlanChanges = (paths: readonly string[]) => paths.slice(0, 50).map((path) => ({ path, forcesReplacement: false }));
+
 async function dryRun(rt: Runtime, ec: ExecContext, graph: ResourceGraph, session: KubernetesSession, signal: AbortSignal): Promise<Omit<DirectStage, "cost" | "graph" | "connection">> {
   const rendered = await render(ec, graph, session, signal);
   const changes = await diff(rendered.objects, session, { environmentId: ec.environmentId, signal });
@@ -156,7 +159,7 @@ async function dryRun(rt: Runtime, ec: ExecContext, graph: ResourceGraph, sessio
       type: o.kind,
       providerName: "kubernetes",
       action,
-      changes: (c?.changedPaths ?? []).slice(0, 50).map((path) => ({ path })),
+      changes: kubernetesPlanChanges(c?.changedPaths ?? []),
       destroysData: false,
     };
   });

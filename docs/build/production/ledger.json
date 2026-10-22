@@ -5384,7 +5384,16 @@
         "PROD-CI-09"
       ],
       "implementationStatus": "implementation_complete_verification_pending",
-      "evidence": [],
+      "evidence": [
+        {
+          "level": "local_engine",
+          "commit": "62b70671",
+          "command": "npx vitest run tests/providers/azure tests/tofu tests/platform tests/connections tests/execution",
+          "environment": "Mac mini native arm64, Node 22.23.3",
+          "result": "153 files passed / 18 skipped; 3375 tests passed, 0 failed, 270 skipped (live and gated cases skip by design). Covers the Azure cloud abstraction (public/usgov/china), data-plane RBAC role catalog, sovereign endpoint tables and ACR build wiring at contract level. Sovereign clouds remain contract-level from published tables; no live Azure run. Not promoted.",
+          "logs": "docs/build/production/verify/PROD-LIFE-04.md"
+        }
+      ],
       "requiredEvidence": [
         "contract",
         "local_engine"
@@ -5819,6 +5828,14 @@
           "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, Temporal mTLS, owned kind target, Chromium; digest-pinned PostgreSQL 17, MySQL 8.4, MinIO and LocalStack 4.8.1 owned containers; native OpenTofu 1.12.5 from the pinned worker image",
           "result": "D-4 export passed with a matched current-source receipt: customer data roundtrips (PostgreSQL, MySQL over TLS, object store) through browser-approved data.export/data.import with tenant scoping; LocalStack S3 deployment through independent browser approval with provider readback; revision-bound export, unchanged after a working-copy edit; exact file readback; admin key, kubeconfig token and cookie absence; source bucket removed through a browser-approved legacy revision (deploy.apply refuses an empty system and LocalStack has no workflow teardown route, so that revision keeps one labeled simulated email resource) with independent absence readback; the exported bundle planned and applied without Zenith (bucket, versioning, AES256 encryption, public access block, security group read back) and destroyed; owned cleanup. 1 passed / 0 failed / 1 lane-gated skip (two-tenants case). Driver fixes found by this gate: teardown revision, host-backed OpenTofu TMPDIR, bounded portable bucket prefix. Limits: LocalStack and local engines on a hosted runner, not live AWS.",
           "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-22-86b37e7a-drivers-d4-export-hosted.json"
+        },
+        {
+          "level": "local_engine",
+          "commit": "62b70671",
+          "command": "ZENITH_TEST_MYSQL_DNS_TLS_URL=mysql://<root>@localhost:<port>/scratch ZENITH_MYSQL_CA_FILE=<ca> npx vitest run tests/portability/mysql-inprocess.test.ts",
+          "environment": "Mac mini native arm64; disposable pinned mysql:8.4@sha256:0f51e63e (require_secure_transport=ON) on loopback with a throwaway CA and a DNS:localhost server certificate, removed afterwards",
+          "result": "21/21 including the real-server case 'exports, restores into a second empty database and verifies by readback through the in-process path' over TLS by DNS hostname (without the env the file is 20 passed / 1 skipped). Closes the MySQL DNS TLS item. Independent review of LIFE-11 holds on adoption and ownership-safe decommission, which have only fake-port tests; tenant backup is data.export only. Not promoted.",
+          "logs": "tests/portability/mysql-inprocess.test.ts"
         }
       ],
       "requiredEvidence": [

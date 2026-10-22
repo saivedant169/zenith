@@ -143,7 +143,7 @@ describe("DRV-1 immutable source and release readback", () => {
   it("requires successful independent digest readbacks plus a confirmed failed release and exact rollback target", () => {
     const expected = { baseline: "one", update: "two", failure: "bad", rollback: "back", baselineRevision: "r1", baseDigest: "sha256:" + "a".repeat(64), updateDigest: "sha256:" + "b".repeat(64) };
     const rows = ["one", "two", "bad", "back"].map(operation_id => ({ operation_id, revision_id: operation_id === "back" ? "r1" : "r-" + operation_id,
-      kind: operation_id === "back" ? "rollback" : "deploy", state: operation_id === "bad" ? "failed" : "readback_verified",
+      kind: operation_id === "back" ? "rollback" : "deploy", state: operation_id === "bad" ? "failed" : operation_id === "two" ? "rolled_back" : "readback_verified",
       image_digest: ["one", "back"].includes(operation_id) ? expected.baseDigest : expected.updateDigest,
       readback: { status: "verified", observedDigest: ["one", "back"].includes(operation_id) ? expected.baseDigest : expected.updateDigest } }));
     expect(() => assertReleaseRecords(rows, expected)).not.toThrow();
@@ -151,6 +151,8 @@ describe("DRV-1 immutable source and release readback", () => {
       expect(() => assertReleaseRecords(rows.map(r => r.operation_id === "back" ? { ...r, ...mutation } : r), expected)).toThrow();
     expect(() => assertReleaseRecords(rows.filter(r => r.operation_id !== "bad"), expected)).toThrow();
     expect(() => assertReleaseRecords([...rows, rows[0]!], expected)).toThrow();
+    // The superseded update must be rolled back, not still the verified serving release.
+    expect(() => assertReleaseRecords(rows.map(r => r.operation_id === "two" ? { ...r, state: "readback_verified" } : r), expected)).toThrow();
   });
   it("rejects altered source bytes, digest, commit or tenancy even when a row exists", () => {
     const dockerfile = "FROM scratch\n", expected = { workspaceId: "ws", projectId: "proj", environmentId: "env", operationId: "op", commit: "a".repeat(40), archive: hash(sourceArchive(dockerfile)), dockerfile };

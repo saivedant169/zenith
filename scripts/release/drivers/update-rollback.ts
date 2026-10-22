@@ -75,9 +75,11 @@ async function variant(ctx: Operated) {
 export function assertReleaseRecords(rows: { operation_id: string; revision_id: string; image_digest: string; kind: string; state: string; readback: unknown }[],
   expected: { baseline: string; update: string; failure: string; rollback: string; baselineRevision: string; baseDigest: string; updateDigest: string }) {
   const one = (id: string) => { const hits = rows.filter(row => row.operation_id === id); ensure(hits.length === 1, "one-release-per-operation"); return hits[0]!; };
-  for (const [id, digest] of [[expected.baseline, expected.baseDigest], [expected.update, expected.updateDigest], [expected.rollback, expected.baseDigest]]) {
+  // The browser-approved rollback supersedes the serving update release: it moves readback_verified -> rolled_back (migration 0023)
+  // and keeps the update's verified readback.
+  for (const [id, digest, state] of [[expected.baseline, expected.baseDigest, "readback_verified"], [expected.update, expected.updateDigest, "rolled_back"], [expected.rollback, expected.baseDigest, "readback_verified"]]) {
     const row = one(id!);
-    ensure(row.state === "readback_verified" && row.image_digest === digest
+    ensure(row.state === state && row.image_digest === digest
       && (row.readback as { status?: string; observedDigest?: string })?.status === "verified"
       && (row.readback as { observedDigest?: string }).observedDigest === digest, "release-verified-digest");
   }

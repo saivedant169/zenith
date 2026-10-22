@@ -13,9 +13,9 @@ describe("approved dependency remediation", () => {
   it("preserves the supported runtime and pins both major migrations", () => {
     expect(pkg.engines.node).toBe(">=22.22.2 <23");
     expect(lock.packages[""].engines.node).toBe(pkg.engines.node);
-    expect(pkg.dependencies.nodemailer).toBe("10.0.9");
+    expect(pkg.dependencies.nodemailer).toBe("10.0.10");
     expect(pkg.devDependencies.vitest).toBe("4.1.12");
-    expect(require("nodemailer/package.json").version).toBe("10.0.9");
+    expect(require("nodemailer/package.json").version).toBe("10.0.10");
     expect(require("vitest/package.json").version).toBe("4.1.12");
     expect(require("@vitest/mocker/package.json").version).toBe("4.1.12");
   });

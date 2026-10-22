@@ -330,6 +330,7 @@ jobs:
           umask 077
           mkdir -p "$RUNNER_TEMP/applogs"
           # Follow every api/worker container by ID, including ones a driver recreates later (e.g. DRV-1's source overlay).
+          # shellcheck disable=SC2016 # the loop is expanded by the child bash, not here
           nohup bash -c 'while true; do
             for row in $(docker ps --format "{{.ID}}:{{.Names}}" | grep -E -- "-(api|execution-worker)-[0-9]+$" || true); do
               id=${row%%:*}; name=${row#*:}; file="$RUNNER_TEMP/applogs/$name-$id.log"
@@ -378,7 +379,7 @@ jobs:
             [ -f "$file" ] || continue
             echo "== $(basename "$file" .log)"
             node -e '
-              const lines = require("fs").readFileSync(0, "utf8").split("\n");
+              const lines = require("fs").readFileSync(process.argv[1], "utf8").split("\n");
               const seen = new Map();
               for (const line of lines) {
                 let e; try { e = JSON.parse(line); } catch { continue; }
@@ -389,14 +390,14 @@ jobs:
                 // An unhandled request error: its logger-redacted message and first stack frame, elided.
                 const unhandled = e.msg === "unhandled error in request" && typeof e.error?.message === "string"
                   ? [e.error.message.replace(/[a-z]+:\/\/\S+/gi, "<url>").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 200),
-                     String(e.error.stack ?? "").split("\n").find(l => /^\s+at /.test(l))?.trim().replace(/\(?\/[^)]*\/([^/]+:\d+:\d+)\)?/, "$1").slice(0, 160)] : [];
+                     String(e.error.stack ?? "").split("\n").find(l => /^\s+at /.test(l))?.trim().replace(/\(?\/[^)]*\/([^/]+:\d+:\d+)\)?/, (_whole, frame) => frame).slice(0, 160)] : [];
                 const key = [e.level, e.msg, e.error?.name, e.error?.code ?? e.code, ...startup, ...unhandled].filter(Boolean).join(" | ");
                 seen.set(key, (seen.get(key) ?? 0) + 1);
               }
               for (const [key, count] of seen) console.log(count + "x " + key);
               // Where a worker was last: its final message keys (level and msg only).
               const tail = lines.map(line => { try { return JSON.parse(line); } catch { return null; } }).filter(e => e && e.msg).slice(-12);
-              if (process.argv[1].includes("execution-worker")) for (const e of tail) console.log("  last: " + [e.level, e.msg].join(" | "));' "$file" < "$file" || true
+              if (process.argv[1].includes("execution-worker")) for (const e of tail) console.log("  last: " + [e.level, e.msg].join(" | "));' "$file" || true
           done
 
       - name: Stack and runner diagnostics

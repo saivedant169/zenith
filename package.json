@@ -119,8 +119,8 @@
     "lucide-react": "^0.511.0",
     "meshoptimizer": "^1.2.0",
     "mysql2": "^3.24.5",
-    "next": "15.5.27",
-    "nodemailer": "10.0.9",
+    "next": "15.5.28",
+    "nodemailer": "10.0.10",
     "opa-wasm-yaml": "npm:yaml@1.10.3",
     "postgres": "^3.4.7",
     "react": "19.1.0",
@@ -175,6 +175,7 @@
     },
     "vitest": {
       "vite": "$vite"
-    }
+    },
+    "ip-address": "10.7.4"
   }
 }

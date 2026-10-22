@@ -39,6 +39,8 @@ export async function run(receipt: string, env = process.env) {
         }
         throw error;
       });
+      // The callback's result page is CSP default-src 'none' (no fetch); read the binding from an application page.
+      await ctx.a!.goto(ctx.stack!.apiUrl + "/platform");
       const binding = ok(await ctx.request("/api/platform/v1/github/binding"));
       ensure(binding.binding?.state === "connected" && binding.binding.owner + "/" + binding.binding.repo === fixture.fixture.repository, "source-binding-readback");
     });

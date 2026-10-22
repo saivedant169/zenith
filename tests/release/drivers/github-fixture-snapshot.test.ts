@@ -51,11 +51,13 @@ function localFixtureContext(onInitialApiInspect: () => void) {
   const docker = vi.fn(async (argv: string[], options?: { input?: string }) => {
     if (argv[0] === "run" && options?.input) {
       const files = JSON.parse(options.input).files as Record<string, string>;
-      seededFixture = JSON.parse(files["fixture.json"]!) as Record<string, unknown>;
+      // The worker's seed carries only its key, client secret and CA.
+      if (files["fixture.json"]) seededFixture = JSON.parse(files["fixture.json"]) as Record<string, unknown>;
       return "";
     }
     if (argv[0] === "inspect" && argv[1] === "api-container") { onInitialApiInspect(); return JSON.stringify([api]); }
     if (argv[0] === "exec" && argv[1] === api.Id) return "1000";
+    if (argv[0] === "exec" && argv[1] === "worker-container") return "10001";
     if (argv[0] === "container" && argv[1] === "ls") return "";
     if (argv[0] === "volume" && argv[1] === "create") return argv.at(-1)!;
     if (argv[0] === "create") return "owned-container-id";
@@ -71,7 +73,7 @@ function localFixtureContext(onInitialApiInspect: () => void) {
   const ctx = {
     githubPort: 40443,
     stack: { state: { applicationProjectName: project, applicationInstallationId: installationId, directory: stackDirectory },
-      modules: { docker, compose: async () => "" }, api: "api-container", apiUrl: "https://api.fixture.local" },
+      modules: { docker, compose: async () => "" }, api: "api-container", worker: "worker-container", apiUrl: "https://api.fixture.local" },
     env: { ZENITH_LOCAL_SOURCE_BUILD_DECLARATION_FILE: path.join(root, "declaration.json") },
     config: { kind: { kubeconfigFile: path.join(root, "kubeconfig"), server: "https://127.0.0.1" }, image: "kind" },
     workspaceId: "workspace", environmentId: "environment", scratch, cleaners: [],

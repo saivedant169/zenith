@@ -7708,6 +7708,14 @@
           "level": "contract",
           "commit": "f69965600bc47e5f2935e19bdb10a2225d595fc5",
           "result": "Dated official-source catalog and placement completeness code integrated; targeted213 passed. Estimates only, not actual cloud spend or a hard spending cap; full acceptance remains open."
+        },
+        {
+          "level": "local_engine",
+          "commit": "08890406",
+          "command": "npx vitest run tests/cost tests/placement tests/docs/operator-docs.test.ts tests/middleware/platform-bearer.test.ts tests/capabilities/routes.test.ts tests/agent-v3 tests/controlplane/tenancy.test.ts tests/security/controlplane-sql-scoping.test.ts tests/controlplane/migrations.test.ts; PostgreSQL 16 lane of tests/cost/actual-spend-store.test.ts and tests/controlplane/tenancy.test.ts; offline cost:catalog apply/age smoke",
+          "environment": "Mac mini native arm64, Node 22.23.3; disposable PostgreSQL 16 with Supabase stand-in roles",
+          "result": "62 files passed / 6 skipped; 1058 tests passed, 0 failed, 35 skipped (live billing and live-gated cases skip by design). Real PostgreSQL lane 18/0/0, including the actual-spend store. Offline catalog tooling writes a reviewable refreshed catalog from the fixture snapshots, flags unresolved components, and the age check reports the bundled catalog 2026-10-05.2 as 10 days old. Gap unchanged: the bundled catalog has not been refreshed from official provider price files (no inter-AZ, storage I/O or cross-region backup prices yet), and actual spend is exercised only on recorded responses. Not promoted.",
+          "logs": "docs/build/production/verify/PROD-COST-01-02.md"
         }
       ],
       "requiredEvidence": [
@@ -7738,6 +7746,14 @@
           "level": "contract",
           "commit": "f69965600bc47e5f2935e19bdb10a2225d595fc5",
           "result": "Dated official-source catalog and placement completeness code integrated; targeted213 passed. Estimates only, not actual cloud spend or a hard spending cap; full acceptance remains open."
+        },
+        {
+          "level": "local_engine",
+          "commit": "08890406",
+          "command": "npx vitest run tests/cost tests/placement tests/docs/operator-docs.test.ts tests/middleware/platform-bearer.test.ts tests/capabilities/routes.test.ts tests/agent-v3 tests/controlplane/tenancy.test.ts tests/security/controlplane-sql-scoping.test.ts tests/controlplane/migrations.test.ts; PostgreSQL 16 lane of tests/cost/actual-spend-store.test.ts and tests/controlplane/tenancy.test.ts; offline cost:catalog apply/age smoke",
+          "environment": "Mac mini native arm64, Node 22.23.3; disposable PostgreSQL 16 with Supabase stand-in roles",
+          "result": "62 files passed / 6 skipped; 1058 tests passed, 0 failed, 35 skipped (live billing and live-gated cases skip by design). Real PostgreSQL lane 18/0/0, including the actual-spend store. Offline catalog tooling writes a reviewable refreshed catalog from the fixture snapshots, flags unresolved components, and the age check reports the bundled catalog 2026-10-05.2 as 10 days old. Gap unchanged: the bundled catalog has not been refreshed from official provider price files (no inter-AZ, storage I/O or cross-region backup prices yet), and actual spend is exercised only on recorded responses. Not promoted.",
+          "logs": "docs/build/production/verify/PROD-COST-01-02.md"
         }
       ],
       "requiredEvidence": [

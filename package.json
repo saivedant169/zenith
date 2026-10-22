@@ -155,7 +155,7 @@
     "tailwindcss": "^4.1.7",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",
-    "vitest": "4.1.11"
+    "vitest": "4.1.12"
   },
   "bin": {
     "zenith": "src/cli/bin.ts"

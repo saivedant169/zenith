@@ -57,6 +57,8 @@ describe.each(kinds)("workflow start intents [%s]",kind=>{
     expect(prepared.binding.recoveryEpoch).toBe(3);
     expect((await intents.get(f.db2,f.h.ids.wsA,f.op.id))?.binding.workflowId).toBe(`op-${f.op.id}-e3`);
     const plain=await fixture(kind);
+    // The column defaults to the database-wide current epoch, which concurrent recovery suites may advance.
+    await plain.db.query("update platform.operations set recovery_epoch=0 where workspace_id=$1 and id=$2",[plain.h.ids.wsA,plain.op.id]);
     expect((await plain.store.prepare(plain.db,plain.request)).binding.workflowId).toBe(`op-${plain.op.id}`);
   });
   it("rebinds an alternative broker store to the actual locked SQL authority rather than trusting another approval ledger",async()=>{

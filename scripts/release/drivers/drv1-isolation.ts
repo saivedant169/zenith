@@ -61,7 +61,10 @@ export function prepareIsolation(env: NodeJS.ProcessEnv, exec: Run = run): { nod
     const arch = exec("docker", ["exec", name, "uname", "-m"]).trim();
     validateArchiveMembers(exec("docker", ["exec", "-i", name, ...uncompressedTarArgs(["tar", "-tjf", "-"])], tar.stdout).trim().split("\n"));
     ensure(exec("docker", ["exec", "-i", name, ...uncompressedTarArgs(["tar", "-tvjf", "-"])], tar.stdout).split("\n").filter(Boolean).every(line => /^[d-]/.test(line)), "gvisor-archive-special-files");
-    const config = runtimeConfig(exec("docker", ["exec", name, "containerd", "config", "dump"]), dir);
+    // Extend kind's own config file: a full `config dump` drops its certs.d registry config_path, which the source registry needs.
+    const original = exec("docker", ["exec", name, "cat", "/etc/containerd/config.toml"]);
+    ensure(original.includes("/etc/containerd/certs.d"), "kind-registry-hosts-directory");
+    const config = runtimeConfig(original, dir);
     exec("docker", ["exec", name, "mkdir", "-p", dir]);
     exec("docker", ["exec", "-i", name, ...uncompressedTarArgs(["tar", "-xjf", "-", "--no-same-owner", "-C", dir])], tar.stdout);
     assertRuntimeArchitecture(arch, exec("docker", ["exec", name, "od", "-An", "-t", "u1", "-N", "20", `${dir}/runsc`]));

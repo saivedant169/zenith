@@ -81,7 +81,7 @@ export function run(command, args, options = {}) {
       if (diagnose && code !== 0) {
         const verb = args.filter(a => /^[a-z][a-z-]{1,20}$/.test(a)).slice(0, 2).join(' ');
         const lines = diagnosticTail.split('\n').map(line => line.trim()).filter(Boolean);
-        const first = lines.find(line => /^(?:[│|]\s*)?Error\b/i.test(line));
+        const first = lines.find(line => /^(?:[│|]\s*)?[A-Za-z]*Error\b/.test(line));
         const tail = [...new Set([first, ...lines.slice(-3)].filter(Boolean))]
           .map(line => line.replace(/\b\w+=\S+/g, '…=…').replace(/[a-z]+:\/\/\S+/gi, '…url').replace(/(?:\/[^\s/]+){2,}/g, '…path').replace(/[A-Za-z0-9_+/=-]{24,}/g, '…').slice(0, 160));
         console.error('command-failed', path.basename(command), verb, 'exit=' + code, JSON.stringify(tail));

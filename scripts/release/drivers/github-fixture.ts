@@ -107,7 +107,7 @@ export async function githubFixture(ctx: Operated, built?: {
     "github-emulator.mjs": readFileSync(path.resolve("scripts/release/drivers/github-emulator.mjs"), "utf8"),
   };
   // Secret material travels only over stdin into an owned private volume, with API uid custody.
-  await modules.docker(["run", "--rm", "--name", name + "-seed", "--label", label, "--label", parentLabel, "--memory", "64m", "--cpus", "0.25", "--pids-limit", "64", "--network", "none", "--user", "0", "--cap-drop", "ALL", "--cap-add", "CHOWN", "--security-opt", "no-new-privileges:true",
+  await modules.docker(["run", "-i", "--rm", "--name", name + "-seed", "--label", label, "--label", parentLabel, "--memory", "64m", "--cpus", "0.25", "--pids-limit", "64", "--network", "none", "--user", "0", "--cap-drop", "ALL", "--cap-add", "CHOWN", "--security-opt", "no-new-privileges:true",
     "--mount", "type=volume,source=" + volume + ",target=/fixture", "--entrypoint", "node", api.Image, "-e",
     "let s='';process.stdin.on('data',b=>s+=b);process.stdin.on('end',()=>{const fs=require('fs'),p=JSON.parse(s);fs.chmodSync('/fixture',0o755);for(const [n,v] of Object.entries(p.files)){fs.writeFileSync('/fixture/'+n,v,{mode:n==='ca.crt'?0o644:0o600});fs.chownSync('/fixture/'+n,p.uid,p.gid)}})"], { input: JSON.stringify({ files, uid, gid }) });
   await modules.docker(["create", "--name", name, "--label", label, "--label", parentLabel, "--network", network, "--memory", "64m", "--cpus", "0.25", "--pids-limit", "64",

@@ -34,7 +34,8 @@ export async function run(receipt: string, env = process.env) {
           const texts = async (role: "heading" | "alert") => (await page.getByRole(role).allInnerTexts().catch(() => [] as string[]))
             .map(t => t.replace(/\s+/g, " ").replace(/[a-z]+:\/\/\S+/gi, "<url>").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 160)).slice(0, 6);
           process.stderr.write(`operated outside-step failed: journey:source-binding-page ${JSON.stringify({ host: url.hostname === "github.com" ? "github.com" : url.origin === new URL(ctx.stack!.apiUrl).origin ? "api" : "other",
-            path: url.pathname.replace(/[A-Za-z0-9_-]{20,}/g, "…"), headings: await texts("heading"), alerts: await texts("alert") })}\n`);
+            path: url.pathname.replace(/[A-Za-z0-9_-]{20,}/g, "…"), query: [...url.searchParams.keys()].sort(), headings: await texts("heading"), alerts: await texts("alert"),
+            body: (await page.locator("body").innerText().catch(() => "")).replace(/\s+/g, " ").replace(/[a-z]+:\/\/\S+/gi, "<url>").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 200) })}\n`);
         }
         throw error;
       });

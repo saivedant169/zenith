@@ -86,7 +86,9 @@ export function assertBuildRules(rules: { apiGroups?: string[]; resources?: stri
         group === "" && resource === "configmaps" && !build && read ||
         group === "" && resource === "services" && !build && read ||
         group === "apps" && resource === "deployments" && !build && read ||
-        group === "networking.k8s.io" && resource === "networkpolicies" && read;
+        group === "networking.k8s.io" && resource === "networkpolicies" && read ||
+        // Stock Kubernetes grants every service account ClusterTrustBundle reads (public CA bundles only).
+        group === "certificates.k8s.io" && resource === "clustertrustbundles" && read;
       if (!allowed) throw new StepFailedError("The tenant build controller has authority outside its reviewed build role; deployment credentials are refused.");
     }
   }
@@ -170,7 +172,9 @@ async function assertAccess(writer: KubernetesSession, verifier: KubernetesSessi
     }
     for (const rule of result.status.nonResourceRules ?? []) {
       if (rule.verbs.some(v => v !== "get") || (rule.nonResourceURLs ?? []).some(url =>
-          !["/api", "/api/*", "/apis", "/apis/*", "/healthz", "/livez", "/readyz", "/version", "/version/", "/openapi", "/openapi/*"].includes(url))) {
+          !["/api", "/api/*", "/apis", "/apis/*", "/healthz", "/livez", "/readyz", "/version", "/version/", "/openapi", "/openapi/*",
+            // Stock service-account issuer discovery (OIDC metadata and public signing keys).
+            "/.well-known/openid-configuration", "/.well-known/openid-configuration/", "/openid/v1/jwks", "/openid/v1/jwks/"].includes(url))) {
         throw new StepFailedError("Build credentials have unreviewed non-resource authority.");
       }
     }

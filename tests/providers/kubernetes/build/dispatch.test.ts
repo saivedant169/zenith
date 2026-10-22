@@ -56,6 +56,8 @@ class Script {
   wrongIdentity = false;
   extraGroup = false;
   deniedBuildAccess = false;
+  stockRules: ObjectRow[] = [];
+  stockUrls: string[] = [];
   node: ObjectRow;
   proxyPod: ObjectRow;
   client: K8sClient;
@@ -100,8 +102,8 @@ class Script {
     const api = {
       createSelfSubjectReview: async () => ({ status: { userInfo: { groups: ["system:authenticated", "system:serviceaccounts", "system:serviceaccounts:" + (verifier ? c.proxy.namespace : c.namespace), ...(this.extraGroup ? ["system:masters"] : [])], username: this.wrongIdentity ? "system:serviceaccount:workloads:deployment" : "system:serviceaccount:" + (verifier ? c.proxy.namespace + ":zenith-build-verifier" : c.namespace + ":zenith-build-controller") } } }),
       createSelfSubjectRulesReview: async ({ body }: { body: { spec: { namespace: string } } }) => ({ status: { incomplete: false, resourceRules:
-        renderBuildCustody(c).filter(object => object.kind === "Role" && object.metadata.namespace === body.spec.namespace && object.metadata.name === (body.spec.namespace === c.namespace ? "zenith-build-controller" : "zenith-build-read")).flatMap(object => object.rules as ObjectRow[]),
-        nonResourceRules: [] } }),
+        renderBuildCustody(c).filter(object => object.kind === "Role" && object.metadata.namespace === body.spec.namespace && object.metadata.name === (body.spec.namespace === c.namespace ? "zenith-build-controller" : "zenith-build-read")).flatMap(object => object.rules as ObjectRow[]).concat(this.stockRules),
+        nonResourceRules: this.stockUrls.length ? [{ verbs: ["get"], nonResourceURLs: this.stockUrls }] : [] } }),
       createSelfSubjectAccessReview: async ({ body }: { body: { spec: { resourceAttributes: { verb: string; resource: string; namespace?: string } } } }) => {
         const a = body.spec.resourceAttributes;
         return { status: { allowed: verifier ? a.verb === "list" && ["nodes", "pods"].includes(a.resource) :
@@ -199,11 +201,20 @@ describe("default build dispatch and custody [scripted contract]", () => {
       s.put({ apiVersion: "rbac.authorization.k8s.io/v1", kind: "ClusterRoleBinding", metadata: { name }, subjects: [{ kind: "Group", name: "system:serviceaccounts" }], roleRef: { kind: "ClusterRole", name } });
       s.put({ apiVersion: "rbac.authorization.k8s.io/v1", kind: "ClusterRole", metadata: { name }, rules });
     }
+    // The live rules review reports the stock grants the bindings give every service account.
+    s.stockRules = [{ apiGroups: ["certificates.k8s.io"], resources: ["clustertrustbundles"], verbs: trustVerbs }];
+    s.stockUrls = oidcUrls;
   };
   it("admits the stock service-account issuer and ClusterTrustBundle discovery bindings", async () => {
     const { s, ctx } = setup("kubernetes"); stockDiscovery(s);
     const archive = Buffer.from("source"), sha256 = createHash("sha256").update(archive).digest("hex");
     await expect(createIsolatedSourceStore().upload(ctx, { archive, sha256, bytes: archive.length })).resolves.toBeTruthy();
+  });
+  it("refuses an unreviewed non-resource URL in the live rules review", async () => {
+    const { s, ctx } = setup("kubernetes"); stockDiscovery(s); s.stockUrls = [...s.stockUrls, "/metrics"];
+    const archive = Buffer.from("source"), sha256 = createHash("sha256").update(archive).digest("hex");
+    await expect(createIsolatedSourceStore().upload(ctx, { archive, sha256, bytes: archive.length })).rejects.toThrow(/unreviewed non-resource authority/);
+    expect(s.launches).toHaveLength(0);
   });
   it.each([
     ["a writable ClusterTrustBundle role", ["get", "list", "watch", "create"], undefined],

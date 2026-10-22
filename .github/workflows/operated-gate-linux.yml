@@ -381,7 +381,10 @@ jobs:
               for (const line of lines) {
                 let e; try { e = JSON.parse(line); } catch { continue; }
                 if (!["warn", "error", "fatal"].includes(e.level)) continue;
-                const key = [e.level, e.msg, e.error?.name, e.error?.code ?? e.code].filter(Boolean).join(" | ");
+                // A worker startup failure carries its category and a fixed product sentence (elided).
+                const startup = e.msg === "execution worker failed" && typeof e.error === "string"
+                  ? [e.failureCategory, e.error.replace(/[a-z]+:\/\/\S+/gi, "<url>").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 200)] : [];
+                const key = [e.level, e.msg, e.error?.name, e.error?.code ?? e.code, ...startup].filter(Boolean).join(" | ");
                 seen.set(key, (seen.get(key) ?? 0) + 1);
               }
               for (const [key, count] of seen) console.log(count + "x " + key);

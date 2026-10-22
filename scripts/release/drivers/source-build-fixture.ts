@@ -110,7 +110,13 @@ export async function sourceBuildFixture(ctx: Operated): Promise<{ profile: Tena
     const file = path.join(ctx.scratch, "toolchain.tar");
     try { await modules.docker(["image", "save", "--output", file, tag]); await command("kind", ["load", "image-archive", "--name", "zenith-j2", file], { timeout: 120_000 }); }
     finally { if (existsSync(file)) unlinkSync(file); }
-    for (const name of ["zenith-j2-control-plane", "zenith-j2-worker"]) await modules.docker(["exec", name, "ctr", "--namespace=k8s.io", "images", "tag", "--force", tag, imageRef]);
+    for (const name of ["zenith-j2-control-plane", "zenith-j2-worker"]) {
+      await modules.docker(["exec", name, "ctr", "--namespace=k8s.io", "images", "tag", "--force", tag, imageRef]);
+      // kind load adds the archive's own digest name; CRI would report it as imageID instead of the registry digest the profile pins.
+      const repo = imageRef.slice(0, imageRef.lastIndexOf("@") + 1);
+      const extra = String(await modules.docker(["exec", name, "ctr", "--namespace=k8s.io", "images", "ls", "-q"])).split("\n").map((n: string) => n.trim()).filter((n: string) => n.startsWith(repo) && n !== imageRef);
+      if (extra.length) await modules.docker(["exec", name, "ctr", "--namespace=k8s.io", "images", "rm", ...extra]);
+    }
   }
   const objects = [...renderBaseline(profile.config), ...renderProxy(profile.config), ...renderBuildCustody(profile.config)];
   for (const object of objects) {

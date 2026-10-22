@@ -27,7 +27,17 @@ export async function run(receipt: string, env = process.env) {
       await ctx.a!.goto(ctx.stack!.apiUrl + "/api/platform/v1/github/callback");
       await ctx.a!.getByLabel("Repository (owner/name)").fill(fixture.fixture.repository);
       await ctx.a!.getByRole("button", { name: "Install and bind repository", exact: true }).click();
-      await ctx.a!.getByRole("heading", { name: "GitHub source connected", exact: true }).waitFor();
+      await ctx.a!.getByRole("heading", { name: "GitHub source connected", exact: true }).waitFor().catch(async (error: unknown) => {
+        if (ctx.env.ZENITH_OPERATED_DIAGNOSTICS === "1") {
+          // Static UI only: the page path (no query) plus visible headings and alerts, elided.
+          const page = ctx.a!, url = new URL(page.url());
+          const texts = async (role: "heading" | "alert") => (await page.getByRole(role).allInnerTexts().catch(() => [] as string[]))
+            .map(t => t.replace(/\s+/g, " ").replace(/[a-z]+:\/\/\S+/gi, "<url>").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 160)).slice(0, 6);
+          process.stderr.write(`operated outside-step failed: journey:source-binding-page ${JSON.stringify({ host: url.hostname === "github.com" ? "github.com" : url.origin === new URL(ctx.stack!.apiUrl).origin ? "api" : "other",
+            path: url.pathname.replace(/[A-Za-z0-9_-]{20,}/g, "…"), headings: await texts("heading"), alerts: await texts("alert") })}\n`);
+        }
+        throw error;
+      });
       const binding = ok(await ctx.request("/api/platform/v1/github/binding"));
       ensure(binding.binding?.state === "connected" && binding.binding.owner + "/" + binding.binding.repo === fixture.fixture.repository, "source-binding-readback");
     });

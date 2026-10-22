@@ -121,9 +121,11 @@ async function assertCustodyBindings(verifier: KubernetesSession, c: IsolatedBui
     const wanted = expected.find(object => object.kind === binding.kind && object.metadata.name === dig(binding, "metadata", "name") &&
       object.metadata.namespace === dig(binding, "metadata", "namespace"));
     if (!wanted) {
-      // Built-in authenticated discovery/self-review only. Check the live role's entire rule set.
+      // Built-in authenticated discovery/self-review only. Check the live role's entire rule set. Kubernetes binds the
+      // service-account issuer (OIDC) and ClusterTrustBundle discovery roles to every service account by default.
       const roleName = dig(binding, "roleRef", "name");
-      if (binding.kind !== "ClusterRoleBinding" || !["system:basic-user", "system:discovery", "system:public-info-viewer"].includes(String(roleName))) {
+      if (binding.kind !== "ClusterRoleBinding" || !["system:basic-user", "system:discovery", "system:public-info-viewer",
+        "system:service-account-issuer-discovery", "system:cluster-trust-bundle-discovery"].includes(String(roleName))) {
         throw new StepFailedError("A build custody identity has an additional role binding; source execution is refused.");
       }
       const role = await readObject(client, { apiVersion: "rbac.authorization.k8s.io/v1", kind: "ClusterRole", name: String(roleName) });
@@ -132,7 +134,14 @@ async function assertCustodyBindings(verifier: KubernetesSession, c: IsolatedBui
         if (!isRecord(rule)) throw new StepFailedError("Invalid discovery authority.");
         if (rule.nonResourceURLs) {
           if (!Array.isArray(rule.verbs) || rule.verbs.some(v => v !== "get") || !Array.isArray(rule.nonResourceURLs) ||
-            (rule.nonResourceURLs ?? []).some(url => typeof url !== "string" || !/^\/(api|apis|healthz|livez|readyz|version|openapi)(\/\*|\/)?$/.test(url))) {
+            (rule.nonResourceURLs ?? []).some(url => typeof url !== "string" || !/^\/(api|apis|healthz|livez|readyz|version|openapi)(\/\*|\/)?$/.test(url)
+              && !/^\/(\.well-known\/openid-configuration|openid\/v1\/jwks)\/?$/.test(url))) {
+            throw new StepFailedError("Unreviewed discovery authority.");
+          }
+        } else if (roleName === "system:cluster-trust-bundle-discovery") {
+          // Public CA bundles only: exactly ClusterTrustBundle reads, nothing else.
+          if (JSON.stringify(rule.apiGroups) !== JSON.stringify(["certificates.k8s.io"]) || JSON.stringify(rule.resources) !== JSON.stringify(["clustertrustbundles"])
+            || rule.resourceNames !== undefined || !Array.isArray(rule.verbs) || rule.verbs.some(v => !["get", "list", "watch"].includes(String(v)))) {
             throw new StepFailedError("Unreviewed discovery authority.");
           }
         } else assertBuildRules([rule], c.namespace, c);

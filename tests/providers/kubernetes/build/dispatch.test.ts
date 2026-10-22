@@ -190,6 +190,30 @@ describe("default build dispatch and custody [scripted contract]", () => {
     await expect(createIsolatedSourceStore().upload(ctx, { archive, sha256, bytes: archive.length })).rejects.toThrow(/additional role binding/);
     expect(s.launches).toHaveLength(0);
   });
+  // Stock Kubernetes (kind v1.37) binds these two discovery roles to every service account.
+  const stockDiscovery = (s: ReturnType<typeof setup>["s"], trustVerbs = ["get", "list", "watch"], oidcUrls = ["/.well-known/openid-configuration", "/.well-known/openid-configuration/", "/openid/v1/jwks", "/openid/v1/jwks/"]) => {
+    for (const [name, rules] of [
+      ["system:service-account-issuer-discovery", [{ nonResourceURLs: oidcUrls, verbs: ["get"] }]],
+      ["system:cluster-trust-bundle-discovery", [{ apiGroups: ["certificates.k8s.io"], resources: ["clustertrustbundles"], verbs: trustVerbs }]],
+    ] as const) {
+      s.put({ apiVersion: "rbac.authorization.k8s.io/v1", kind: "ClusterRoleBinding", metadata: { name }, subjects: [{ kind: "Group", name: "system:serviceaccounts" }], roleRef: { kind: "ClusterRole", name } });
+      s.put({ apiVersion: "rbac.authorization.k8s.io/v1", kind: "ClusterRole", metadata: { name }, rules });
+    }
+  };
+  it("admits the stock service-account issuer and ClusterTrustBundle discovery bindings", async () => {
+    const { s, ctx } = setup("kubernetes"); stockDiscovery(s);
+    const archive = Buffer.from("source"), sha256 = createHash("sha256").update(archive).digest("hex");
+    await expect(createIsolatedSourceStore().upload(ctx, { archive, sha256, bytes: archive.length })).resolves.toBeTruthy();
+  });
+  it.each([
+    ["a writable ClusterTrustBundle role", ["get", "list", "watch", "create"], undefined],
+    ["an extra non-resource URL on the issuer role", undefined, ["/.well-known/openid-configuration", "/metrics"]],
+  ] as const)("refuses %s before source custody", async (_case, trustVerbs, oidcUrls) => {
+    const { s, ctx } = setup("kubernetes"); stockDiscovery(s, trustVerbs ? [...trustVerbs] : undefined, oidcUrls ? [...oidcUrls] : undefined);
+    const archive = Buffer.from("source"), sha256 = createHash("sha256").update(archive).digest("hex");
+    await expect(createIsolatedSourceStore().upload(ctx, { archive, sha256, bytes: archive.length })).rejects.toThrow(/Unreviewed discovery authority/);
+    expect(s.launches).toHaveLength(0);
+  });
   it("refuses changed reviewed custody before reading credentials or launching any Job", async () => {
     const { s, ctx, input, ports } = setup("kubernetes");
     ctx.reviewedBuildProfileDigest = "0".repeat(64);

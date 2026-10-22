@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "requirementIds": [
+    "PROD-PKG-05",
+    "PROD-DUR-03",
+    "PROD-DUR-04",
+    "PROD-LIFE-01",
+    "PROD-MACH-05",
+    "PROD-OBS-02",
+    "PROD-MACH-04",
+    "PROD-PKG-02"
+  ],
+  "kind": "local_engine",
+  "status": "passed",
+  "productionReady": false,
+  "ledgerEligible": true,
+  "commit": "17be86aded4ef2bc0d1a75f490f257871861e3e6",
+  "sourceDigest": "6ab0b09acc8b84b487b05a286804f312d34318bd7417ddb702c1248e2928d62b",
+  "dirty": false,
+  "environment": {
+    "host": "Linux AMD64",
+    "architectureEvidence": "native",
+    "node": "22.23.3",
+    "docker": "28.0.4",
+    "profile": "default",
+    "scope": "disposable local Supabase Auth, Mailpit, PostgreSQL, Temporal, zenithd and kind"
+  },
+  "counts": {
+    "passed": 18,
+    "failed": 0,
+    "skipped": 0,
+    "not_run": 0
+  },
+  "checks": [
+    {
+      "id": "prerequisites",
+      "status": "passed"
+    },
+    {
+      "id": "auth-admin-mailpit",
+      "status": "passed"
+    },
+    {
+      "id": "two-operator-workspace",
+      "status": "passed"
+    },
+    {
+      "id": "browser-proposal",
+      "status": "passed"
+    },
+    {
+      "id": "self-approval-refused",
+      "status": "passed"
+    },
+    {
+      "id": "bearer-approval-refused",
+      "status": "passed"
+    },
+    {
+      "id": "stale-semantics-refused",
+      "status": "passed"
+    },
+    {
+      "id": "browser-kind-execution-readback",
+      "status": "passed"
+    },
+    {
+      "id": "rest-proposal-execution-readback",
+      "status": "passed"
+    },
+    {
+      "id": "mcp-proposal-execution-readback",
+      "status": "passed"
+    },
+    {
+      "id": "machine-browser-consent",
+      "status": "passed"
+    },
+    {
+      "id": "machine-independent-approval-readback",
+      "status": "passed"
+    },
+    {
+      "id": "machine-health-provenance-readback",
+      "status": "passed"
+    },
+    {
+      "id": "machine-fresh-token-native-rejoin",
+      "status": "passed"
+    },
+    {
+      "id": "customer-credential-absence",
+      "status": "passed"
+    },
+    {
+      "id": "connection-rotation-readback",
+      "status": "passed"
+    },
+    {
+      "id": "connection-revocation-no-fallback",
+      "status": "passed"
+    },
+    {
+      "id": "cleanup",
+      "status": "passed"
+    }
+  ],
+  "readbacks": [
+    {
+      "target": "kind",
+      "sha256": "612f83b9aca46bf77db7c1315f0e6fe7e1318890a01807efd9d42e2e45809f0c"
+    },
+    {
+      "target": "machine",
+      "sha256": "c8931498c6ab252e961a8b93bf93c47d4190af27b424f9f43acca73e7361453d"
+    },
+    {
+      "target": "rotatedKind",
+      "sha256": "64f3ce1cc469cc5525380a635ad5a9f378307c31da04cdf374da647b34328317"
+    },
+    {
+      "target": "obs02",
+      "sha256": "1974a6f084bbdfdbffeef5ba199d79531ce95c277d4169980ab74452c93b013e"
+    },
+    {
+      "target": "machineRejoin",
+      "sha256": "facf49a67b7cfb3c2a283b6f421d16b2336f12b2a4abe12560b2ce1d0b56bca5"
+    }
+  ],
+  "evidence": {
+    "level": "local_engine",
+    "commit": "17be86aded4ef2bc0d1a75f490f257871861e3e6",
+    "command": "ZENITH_DEFAULT_JOURNEY=1 node scripts/acceptance/default-journey.mjs --config <private-config> --receipt <evidence-file>",
+    "environment": "Linux AMD64; native AMD64 Docker 28.0.4; Node 22.23.3; default; disposable local installation",
+    "result": "18 passed /0 failed /0 skipped /0 not run",
+    "logs": "docs/build/production/evidence/PROD-PKG-05/default-journey.json"
+  }
+}

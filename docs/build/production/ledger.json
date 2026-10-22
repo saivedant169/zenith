@@ -3814,6 +3814,22 @@
           "environment": "GitHub-hosted native runners, emulated false on both; fresh-source execution-worker derivative image; real disposable platform PostgreSQL and owned Temporal with mTLS",
           "result": "Composed packaged worker passed 22/22 checks on each architecture: startup refusals (missing schema, invalid secret, invalid signer, plaintext Temporal, missing namespace, wrong queue), readiness/liveness with policy ok, owned reconcile schedule polled, signed read grant verified through a real Temporal workflow, store/Temporal/SQL-prerequisite outage and recovery, durable Temporal restart, operator pause/resume, in-flight SIGTERM drain with a fresh worker, idle drain, 61/61 owned resources removed. Independent review: HOLD. Gaps against the acceptance wording: the product store is an isolated file fixture rather than a real disposable store; the authorized operation ends in an expected no-target refusal rather than a completed operation; the policy-assets startup failure path is not exercised (policy load is asserted only through readiness); the positive applied-migration set is not asserted. Not promoted.",
           "logs": "docs/build/production/evidence/PROD-PKG-02/2026-10-22-326ef463-native-amd64.json"
+        },
+        {
+          "level": "local_linux_amd64",
+          "commit": "5f289a56",
+          "command": "packaged-workers.yml push run 39765448686 (native GitHub-hosted linux/amd64 and linux/arm64)",
+          "environment": "Native GitHub-hosted runners, emulated false; fresh-source packaged worker image; real disposable platform PostgreSQL and owned Temporal mTLS; packaged product store is the documented file store",
+          "result": "22/22 checks per architecture, now including assertCompleteMigrationSet (fresh platform database applies exactly the contiguous source migration set). Startup refusals (missing schema, invalid secret, invalid signer, plaintext Temporal, missing namespace, wrong queue), readiness/liveness with policy ok, owned reconcile schedule polling, signed read grant through a real Temporal workflow (expected no-target refusal), store/Temporal/SQL outage recovery, durable Temporal restart, operator pause/resume, in-flight SIGTERM drain with a fresh worker, idle drain, 61/61 owned resources removed.",
+          "logs": "docs/build/production/evidence/PROD-PKG-02/2026-10-22-5f289a56-native-amd64.json"
+        },
+        {
+          "level": "local_linux_arm64",
+          "commit": "c8967b15ce43bd0a3ae64bc0098df1a76e2d27e9",
+          "command": "clean-host-journey.yml workflow_dispatch run 39772691346 (native GitHub-hosted linux/amd64 ubuntu-latest and linux/arm64 ubuntu-24.04-arm)",
+          "environment": "Fresh hosted runners per architecture; default installed 2 API + 2 worker stack from the production installer (worker ZENITH_STORE=postgres, ZENITH_PLATFORM_DB=postgres); disposable Supabase Auth/PostgreSQL, Temporal, zenithd and kind; exact-source CI 39772692208 success (21/8 conditional skips/0 failure)",
+          "result": "J2 20/20 on both native architectures, receipts list PROD-PKG-02. worker-composed-execution: worker env selects the PostgreSQL product and platform stores and the browser-approved operation has an acknowledged, run-bound Temporal start intent after a succeeded execution with kind provider readback (REST and MCP executions also read back). worker-readiness-graceful-drain: installed worker ready (temporal, store, policy, drivers ok) and alive, docker stop SIGTERM exits 0 without OOM, restarted worker ready again.",
+          "logs": "docs/build/production/evidence/PROD-PKG-02/2026-10-22-c8967b15-clean-host-j2-arm64.json"
         }
       ],
       "requiredEvidence": [

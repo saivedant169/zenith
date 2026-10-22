@@ -18,6 +18,8 @@ on:
           - j15-operated-upgrade
           - j15-operated-restore
           - drivers-d4-export
+          - drv1-update-rollback
+          - drv1-private-source
         default: drv2-drift-repair
 
 permissions:
@@ -29,10 +31,12 @@ concurrency:
 
 jobs:
   operated-gate:
-    runs-on: ubuntu-latest
+    # DRV-1 runs on native arm64 with AppArmor (owner decision 2026-10-22, verify/DRV-1-DECLARATIONS.md).
+    runs-on: ${{ startsWith(inputs.gate, 'drv1-') && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     timeout-minutes: 150
     env:
       GATE: ${{ inputs.gate }}
+      ARCH: ${{ startsWith(inputs.gate, 'drv1-') && 'arm64' || 'amd64' }}
       ZENITH_DATA: ${{ github.workspace }}/.data-ci-operated-gate-linux
       ZENITH_TEST_DRV2_OPERATED: "1"
       ZENITH_LOCAL_DRIVER_D4: "1"
@@ -74,8 +78,10 @@ jobs:
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/bin"
           cd "$RUNNER_TEMP"
-          curl --fail --silent --show-error --location --retry 3 --connect-timeout 15 --max-time 120 --output supabase.tar.gz https://github.com/supabase/cli/releases/download/v2.75.0/supabase_linux_amd64.tar.gz
-          printf '%s  %s\n' 'e5597462f865d5ac72af0453358e37ecb0d85962ad6914a114a53de847303bde' 'supabase.tar.gz' | sha256sum --check --strict
+          curl --fail --silent --show-error --location --retry 3 --connect-timeout 15 --max-time 120 --output supabase.tar.gz "https://github.com/supabase/cli/releases/download/v2.75.0/supabase_linux_${ARCH}.tar.gz"
+          # Official supabase_2.75.0_checksums.txt.
+          sum=$([ "$ARCH" = arm64 ] && echo b551c2f8e03715be428d2592765200a9e371168fc36ec2646a84ecc530d3120e || echo e5597462f865d5ac72af0453358e37ecb0d85962ad6914a114a53de847303bde)
+          printf '%s  %s\n' "$sum" 'supabase.tar.gz' | sha256sum --check --strict
           tar -xzf supabase.tar.gz -C "$RUNNER_TEMP/bin" supabase
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
 
@@ -84,8 +90,10 @@ jobs:
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/bin"
           cd "$RUNNER_TEMP"
-          curl --fail --silent --show-error --location --retry 3 --connect-timeout 15 --max-time 120 --output kind https://github.com/kubernetes-sigs/kind/releases/download/v0.33.0/kind-linux-amd64
-          printf '%s  %s\n' 'aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d' 'kind' | sha256sum --check --strict
+          curl --fail --silent --show-error --location --retry 3 --connect-timeout 15 --max-time 120 --output kind "https://github.com/kubernetes-sigs/kind/releases/download/v0.33.0/kind-linux-${ARCH}"
+          # Official kind-linux-<arch>.sha256sum.
+          sum=$([ "$ARCH" = arm64 ] && echo 20022bee6cfcd5086cb7234d218e3454e6090022f2a8f55d1fa7fcf42c3867a2 || echo aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d)
+          printf '%s  %s\n' "$sum" 'kind' | sha256sum --check --strict
           install -m 0755 kind "$RUNNER_TEMP/bin/kind"
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
 
@@ -176,7 +184,7 @@ jobs:
         run: |
           set -euo pipefail
           tag="localhost:5000/zenith-j2-witness:${GITHUB_SHA}"
-          DOCKER_BUILDKIT=1 docker build -q --platform linux/amd64 -f tests/e2e/default/zenithd.Dockerfile \
+          DOCKER_BUILDKIT=1 docker build -q --platform "linux/${ARCH}" -f tests/e2e/default/zenithd.Dockerfile \
             --build-arg GO_BUILDER_IMAGE="$GO_BUILDER_IMAGE" --build-arg DISTROLESS_IMAGE="$DISTROLESS_IMAGE" \
             --label org.zenith.acceptance.owner=PKG-04-J2 --label "org.zenith.acceptance.source-head=${GITHUB_SHA}" -t "$tag" .
           docker push -q "$tag"

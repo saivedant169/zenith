@@ -1,6 +1,6 @@
-# DRV-1 owner declarations: compiler pin and J6 build declaration (DRAFT)
+# DRV-1 owner declarations: compiler pin and J6 build declaration
 
-**Status: draft for owner review. Not approved, not applied, nothing run against kind.**
+**Status: APPROVED by the owner on 2026-10-22, including running DRV-1 on hosted `ubuntu-24.04-arm` with Calico. Not yet run against kind.**
 Prepared 2026-10-22 on the fork `saivedant169/zenith`. It covers the two inputs that
 [DRV-1](DRV-1.md) needs from the owner: `DRV1_COMPILER_IMAGE` and the J6 build
 declaration in `ZENITH_LOCAL_SOURCE_BUILD_DECLARATION_FILE`. The other DRV-1 inputs

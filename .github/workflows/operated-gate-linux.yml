@@ -327,10 +327,15 @@ jobs:
         run: |
           umask 077
           mkdir -p "$RUNNER_TEMP/applogs"
-          for name in $(docker ps --format '{{.Names}}' | grep -E -- '-(api|execution-worker)-[0-9]+$' || true); do
-            nohup docker logs -f "$name" > "$RUNNER_TEMP/applogs/$name.log" 2>&1 &
-          done
-          ls "$RUNNER_TEMP/applogs"
+          # Follow every api/worker container by ID, including ones a driver recreates later (e.g. DRV-1's source overlay).
+          nohup bash -c 'while true; do
+            for row in $(docker ps --format "{{.ID}}:{{.Names}}" | grep -E -- "-(api|execution-worker)-[0-9]+$" || true); do
+              id=${row%%:*}; name=${row#*:}; file="$RUNNER_TEMP/applogs/$name-$id.log"
+              [ -e "$file" ] || { : > "$file"; nohup docker logs -f "$id" >> "$file" 2>&1 & }
+            done
+            sleep 10
+          done' > /dev/null 2>&1 &
+          sleep 2; ls "$RUNNER_TEMP/applogs"
 
       - name: Run the operated gate
         env:
@@ -379,7 +384,10 @@ jobs:
                 const key = [e.level, e.msg, e.error?.name, e.error?.code ?? e.code].filter(Boolean).join(" | ");
                 seen.set(key, (seen.get(key) ?? 0) + 1);
               }
-              for (const [key, count] of seen) console.log(count + "x " + key);' < "$file" || true
+              for (const [key, count] of seen) console.log(count + "x " + key);
+              // Where a worker was last: its final message keys (level and msg only).
+              const tail = lines.map(line => { try { return JSON.parse(line); } catch { return null; } }).filter(e => e && e.msg).slice(-12);
+              if (process.argv[1].includes("execution-worker")) for (const e of tail) console.log("  last: " + [e.level, e.msg].join(" | "));' "$file" < "$file" || true
           done
 
       - name: Stack and runner diagnostics

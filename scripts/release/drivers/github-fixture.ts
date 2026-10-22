@@ -131,7 +131,9 @@ export async function githubFixture(ctx: Operated, built?: {
   writeFileSync(overlay, JSON.stringify({ services, volumes: { [volume]: { external: true, name: volume } } }), { mode: 0o600, flag: "wx" });
   overlayAttempted = true;
   await compose(["up", "-d", "--no-deps", "--force-recreate", "api", "execution-worker"]);
-  await until(() => ctx.request("/api/platform/v1/github/binding"), (r: Awaited<ReturnType<Operated["request"]>>) => r.status === 200 && r.data.appConfigured === true);
+  // The recreated API refuses connections until it listens; an in-page fetch then throws rather than returning a status.
+  await until(() => ctx.request("/api/platform/v1/github/binding").catch(() => null),
+    (r: Awaited<ReturnType<Operated["request"]>> | null) => r?.status === 200 && r.data.appConfigured === true);
   // The provider browser surface is modeled locally; no interception of any Zenith approval endpoint.
   let browserState = { minted: 0, authenticated: 0, refused: 0, moved: false, revoked: false };
   await ctx.a!.route("https://github.com/**", async route => {

@@ -256,9 +256,10 @@ export async function applyDirectKubernetes(rt: Runtime, ec: ExecContext, lease:
         const current = await loadExecContext(rt, ec.op.id);
         const currentGraph = requireExecutable(rt, current).graph;
         if (currentGraph.graphDigest !== graph.graphDigest) throw new StepFailedError("The reviewed desired state changed; a new review is required.");
+        // Re-prove the approved sources on the fresh context first: they bind the executable source digest into its plan.
+        await approvedSources(rt, current, currentGraph, lease, false, signal);
         const fresh = await dryRun(rt, current, currentGraph, session, signal);
         if (fresh.plan.planDigest !== planDigest) throw new TofuPlanChangedError(planDigest, fresh.plan.planDigest);
-        await approvedSources(rt, current, currentGraph, lease, false, signal);
         const currentConnection = await resolveConnection(rt, current);
         await assertApprovedSemantics(rt, current, { graph: currentGraph, connection: currentConnection, ws: kubernetesSemanticsWorkspace(current, currentGraph, currentConnection), planDigest, engineVersion: "kubernetes-apply/K1" }, "kubernetes apply dispatch");
         const authority = await rt.d.broker.approvalStatus(ec.op.id);

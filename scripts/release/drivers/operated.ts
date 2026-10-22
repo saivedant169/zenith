@@ -21,6 +21,9 @@ import { ports } from "../../acceptance/default-stack/config.mjs";
 import { hostEnvironment } from "../../acceptance/default-stack/env.mjs";
 import { seededEpoch } from "../../acceptance/maintenance/preconditions";
 import { openPlatformDb } from "@/lib/controlplane/db";
+import { ReviewFactsSchema, ViewSchema } from "@/lib/controlplane/db/repos/operation-review";
+import { containsRawPlanMaterial } from "@/lib/security/raw-plan-material";
+import { readExecutableSemantics } from "@/lib/execution/semantics/digest";
 import type { PlatformDb } from "@/lib/controlplane/types";
 import type { OperationDetail } from "@/lib/capabilities/operations";
 import type { OperationProjection } from "@/lib/controlplane/authority";
@@ -731,6 +734,17 @@ export class Operated {
       const error = typeof raw === "string" ? raw.replace(/\b\w+=\S+/g, "…=…").replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/(?:\/[^\s/]+){2,}/g, "…path").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 240) : null;
       process.stderr.write(`operated outside-step failed: journey:immutable-plan-review ${JSON.stringify({ status: reviewed.operation.status, round: reviewed.operation.approvalRound ?? null,
         plan: /^[a-f0-9]{64}$/.test(reviewed.operation.planDigest ?? ""), semantics: /^[a-f0-9]{64}$/.test(reviewed.planReview?.semantics?.digest ?? ""), error })}\n`);
+      // Which plan-review projection check refuses the stored plan evidence: check names and schema paths only, never values.
+      const rows = await this.sql<{ stage: string | null; summary: Record<string, unknown> }>("select summary->>'stage' as stage, summary from platform.evidence where workspace_id=$1 and operation_id=$2 and kind='tofu_plan' and digest=$3 and simulated=false order by created_at, id",
+        [this.workspaceId, out.operationId, reviewed.operation.planDigest ?? ""]).catch(() => []);
+      const summary = rows.find(row => row.stage === "plan")?.summary;
+      const paths = (result: { success: boolean; error?: { issues: { path: PropertyKey[]; code: string }[] } }) => result.success ? [] : (result.error?.issues ?? []).slice(0, 8).map(issue => issue.path.map(String).join(".") + ":" + issue.code);
+      process.stderr.write(`operated outside-step failed: journey:plan-review-projection ${JSON.stringify(summary ? {
+        rows: rows.length, stages: rows.map(row => row.stage), digestMatch: summary.planDigest === reviewed.operation.planDigest, raw: containsRawPlanMaterial(summary),
+        view: paths(ViewSchema.safeParse(summary.view)), facts: paths(ReviewFactsSchema.safeParse(summary.facts)),
+        sourceDigestMatch: (summary.view as { executableSourceDigest?: unknown } | undefined)?.executableSourceDigest === summary.executableSourceDigest,
+        viewBytes: Buffer.byteLength(JSON.stringify(summary.view ?? null)), semanticsPresent: summary.semantics !== undefined,
+        semanticsReadable: summary.semantics === undefined ? null : !!readExecutableSemantics(summary.semantics) } : { rows: rows.length, stages: rows.map(row => row.stage) })}\n`);
     }
     ensure(planned, "immutable-plan-review");
     return out;

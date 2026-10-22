@@ -25,7 +25,7 @@ export const ReviewFactsSchema = z.object({
   unresolved: z.array(factText).max(10_000).optional(),
 }).strict();
 const action = z.enum(["create", "update", "delete", "replace", "no-op", "read"]);
-const ViewSchema = z.object({
+export const ViewSchema = z.object({
   executableSourceDigest:z.string().regex(/^[a-f0-9]{64}$/).optional(),
   approvedSources:z.array(z.object({service:z.string().regex(/^(container_service|scheduled_job)\/[A-Za-z0-9_-][A-Za-z0-9_.-]{0,127}$/),commit:z.string().regex(/^[a-f0-9]{40}$/),
     dockerfileDigest:z.string().regex(/^[a-f0-9]{64}$/),recipeDigest:z.string().regex(/^[a-f0-9]{64}$/),archiveDigest:z.string().regex(/^[a-f0-9]{64}$/),archiveFormat:z.enum(["zip","tar.gz"])}).strict()).min(1).max(64).optional(),

@@ -150,7 +150,10 @@ export async function runExport(input: DriverInput): Promise<number> {
       ensure(cookies.filter(cookie => cookie.value.length >= 16).every(cookie => !JSON.stringify(bundle).includes(cookie.value)), "export-cookie-absence");
     });
     await ctx.step("browser-approved-teardown", async () => {
-      await action(tenant.owner, "project.updateManifest", { projectId: tenant.project.id, manifest: { version: 1, services: [], resources: [], routes: [], bindings: [] } });
+      // deploy.apply refuses an empty system and LocalStack has no workflow teardown route, so the bucket is
+      // dropped beside a labeled simulated resource: the legacy plan deletes it and makes no LocalStack call for email.
+      const remaining = { id: "export-teardown-marker", name: "drv4-marker-" + input.runId, kind: "email", config: {}, size: "small", ownership: "managed" };
+      await action(tenant.owner, "project.updateManifest", { projectId: tenant.project.id, manifest: { ...manifest, resources: [remaining] } });
       // Only this driver's owned, independently confirmed empty bucket is eligible for deletion.
       await action(tenant.owner, "env.updatePolicies", { environmentId: tenant.environmentId, allowStatefulDeletion: true });
       await deployLegacy(ctx, tenant);

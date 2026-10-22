@@ -2698,7 +2698,8 @@
       "testPaths": [],
       "pausedFrom": "in_progress",
       "pausedAt": "2026-10-02T07:32:03.553814+00:00",
-      "resumedAt": "2026-10-02T18:33:14.347788+00:00"
+      "resumedAt": "2026-10-02T18:33:14.347788+00:00",
+      "implementationNote": " 2026-10-22 hosted Linux operated gates (operated-gate-linux.yml, GitHub-hosted runners): PASSED with matched current-source receipts - drv2-drift-repair (42e2c030), drv2-crash-partition (2bd1a6ac; the rejoined worker missed its 240s readiness wait in 2 of 4 earlier runs), j15-operated-upgrade (c1883bba), j15-operated-restore (c49904a9), drivers-d4-two-tenants (38e4188a). OPEN: drivers-d4-export - every data leg (PostgreSQL, MySQL, object store, tenant scoping) and deployment/provider-readback/revision-export/divergence/file-readback/credential-absence pass on f753d770; browser-approved-teardown is stale against the product: deploy.apply now refuses an empty system and teardown is env.reviewTeardown -> env.teardown -> independent browser approval -> workflow destroy, while the fixture LocalStack shares the API network namespace and is unreachable from the worker that runs platform destroy. Resume: put LocalStack on the installation network reachable by the worker (connection endpoint), drive the platform teardown review/approval, then rerun. drv1-private-source and drv1-update-rollback are not on hosted Linux: DRV-1.md requires owner-reviewed compiler pin and J6 build declaration (isolated kind CNI + gVisor RuntimeClass). Not promoted."
     },
     {
       "id": "PROD-CI-09",

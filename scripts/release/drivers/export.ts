@@ -162,7 +162,7 @@ export async function runExport(input: DriverInput): Promise<number> {
     const worker = JSON.parse(await command("docker", ["inspect", ctx.stack.worker]));
     const workerImage: string = worker[0].Config.Image;
     ensure(/@sha256:[a-f0-9]{64}$/.test(workerImage) && JSON.parse(await command("docker", ["image", "inspect", workerImage]))[0].Architecture === NATIVE?.image, "native-pinned-tofu-runner");
-    const label = "io.zenith.drv4-tofu=" + nonce(), prefix = "drv4-portable-" + nonce();
+    const label = "io.zenith.drv4-tofu=" + nonce(), prefix = "drv4p-" + nonce().slice(0, 8); // S3 caps names at 63: prefix 14 + "-" + name <= 31 + "-" + suffix 6 = 53.
     ctx.cleanup.add(async () => {
       const ids = (await command("docker", ["ps", "-aq", "--filter", "label=" + label])).split(/\s+/).filter(Boolean);
       for (const id of ids) {

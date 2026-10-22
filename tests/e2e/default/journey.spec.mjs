@@ -453,6 +453,13 @@ test('default operated browser, REST, MCP and customer machine journey', async (
         connectionId: project.connectionId, approvalRequired: true });
       environmentId = env.environmentId;
       linked = await linkedAgent(a, stack, project, workspaceId);
+      // PROD-LIFE-01: the same verification through the API (linked credential) and the real CLI.
+      const apiVerified = ok(await jsonRequest(stack.apiUrl + '/api/platform/v1/connections/' + project.connectionId + '/verify', {
+        method: 'POST', headers: { authorization: 'Bearer ' + linked.token, 'x-zenith-workspace': workspaceId }, body: {} }));
+      ensure(apiVerified?.ok === true, 'connection-api-verification');
+      const cliVerified = JSON.parse(await command('node', ['--import', 'tsx', path.resolve('src/cli/bin.ts'), 'connections', 'verify', project.connectionId, '--json'],
+        { timeout: 120_000, env: { ZENITH_URL: stack.apiUrl, ZENITH_WORKSPACE: workspaceId, ZENITH_TOKEN: linked.token } }));
+      ensure(cliVerified?.ok === true, 'connection-cli-verification');
       if (UX_ENABLED) {
         uxBrowser = await chromium.launch({ executablePath: process.env.ZENITH_UX01_CHROME, headless: true });
         uxA = await uxBrowser.newContext({ storageState: await a.context().storageState() }).then(context => context.newPage());
@@ -807,6 +814,20 @@ test('default operated browser, REST, MCP and customer machine journey', async (
         envelope.scope?.addresses?.includes(witnessAddress) && Date.parse(envelope.observedAt) > 0 &&
         ['fresh', 'stale', 'empty', 'unknown', 'inaccessible'].includes(envelope.state), 'default-metrics-provenance');
       ensure(!JSON.stringify(metrics).includes(linked.token) && !JSON.stringify(metrics).includes(healthToken.token), 'metrics-token-redaction');
+      // PROD-OBS-02: every source states its provenance, and an unanswered source says why (explicit unknown/inaccessible).
+      const explicit = value => Array.isArray(value?.provenance) && value.provenance.length > 0 && value.provenance.every(source =>
+        typeof source.source === 'string' && typeof source.provider === 'string' && ['fresh', 'stale', 'empty', 'unknown', 'inaccessible'].includes(source.state)
+        && (!['unknown', 'inaccessible'].includes(source.state) || (typeof source.reason === 'string' && source.reason.length > 0)));
+      ensure(explicit(envelope), 'default-metrics-provenance-explicit');
+      const logsRaw = await mcp(stack, linked.token, 'tools/call', { name: 'zenith_query_logs', arguments: {
+        target: { workspaceId, projectId: project.id, environmentId }, serviceId, lastMinutes: 5, limit: 20,
+      } }, true);
+      const logs = logsRaw.data?.result?.structuredContent;
+      ensure(logsRaw.status === 200 && logs?.ok === true && logs.simulated === false, 'default-logs-api');
+      const logEnvelope = logs.data?.telemetry;
+      ensure(logEnvelope?.signal === 'log' && logEnvelope.scope?.workspaceId === workspaceId && logEnvelope.scope?.projectId === project.id &&
+        logEnvelope.scope?.environmentId === environmentId && Date.parse(logEnvelope.observedAt) > 0 && explicit(logEnvelope), 'default-logs-provenance');
+      ensure(!JSON.stringify(logs).includes(linked.token) && !JSON.stringify(logs).includes(healthToken.token), 'logs-token-redaction');
 
       healthResourceId = await witnessResourceId();
 
@@ -1247,10 +1268,31 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       uxStage = 'complete';
 
     });
+    await step('runner-connection-lifecycle', async () => {
+      // PROD-LIFE-01: the customer-runner connection's own verify and revoke, as a receipt check rather than cleanup.
+      ensure(runnerConnectionId, 'runner-connection-created');
+      const verified = ok(await browserRequest(a, '/api/platform/v1/connections/' + runnerConnectionId + '/verify', {}, 'POST', workspaceId));
+      ensure(verified?.ok === true, 'runner-connection-verification');
+      const revoked = ok(await jsonRequest(stack.apiUrl + '/api/platform/v1/connections/' + runnerConnectionId + '/revoke', {
+        method: 'POST', headers: { authorization: 'Bearer ' + linked.token, 'x-zenith-workspace': workspaceId },
+        body: { confirm: runnerConnectionId, reason: 'J2 runner lifecycle' } }));
+      ensure(revoked?.ok === true, 'runner-connection-revoke');
+      const listed = ok(await browserRequest(a, '/api/platform/v1/connections?includeRevoked=true', undefined, 'GET', workspaceId));
+      ensure(listed.connections?.some(value => value.id === runnerConnectionId && value.status === 'revoked'), 'runner-connection-revoked-readback');
+      const refused = ok(await browserRequest(a, '/api/platform/v1/connections/' + runnerConnectionId + '/verify', {}, 'POST', workspaceId));
+      ensure(refused?.ok === false, 'revoked-runner-connection-refuses-verification');
+    });
     await step('connection-rotation-readback', async () => {
-      const rotated = ok(await browserRequest(b, '/api/platform/v1/connections/' + project.connectionId + '/rotate',
-        { patch: { credentialRef: 'vault:J2_NEW_KUBE' }, promote: false }, 'POST', workspaceId));
-      ensure(rotated.ok && rotated.data?.status === 'verified' && rotated.data?.verified === true, 'rotation-candidate-verification');
+      // PROD-LIFE-01: stage the rotation through the UI panel; promotion stays the reviewed API call below.
+      await b.goto(stack.apiUrl + '/platform/connections');
+      const card = b.getByRole('listitem').filter({ hasText: 'J2 kind ' + runId });
+      await card.getByRole('button', { name: 'Rotate access', exact: true }).click();
+      await card.getByLabel(/^New vault reference/).fill('vault:J2_NEW_KUBE');
+      const rotateResponse = b.waitForResponse(value => value.url().endsWith('/connections/' + project.connectionId + '/rotate') && value.request().method() === 'POST');
+      await card.getByRole('button', { name: 'Stage and verify', exact: true }).click();
+      const rotatedHttp = await rotateResponse;
+      const rotated = await rotatedHttp.json();
+      ensure(rotatedHttp.ok() && rotated.ok && rotated.data?.status === 'verified' && rotated.data?.verified === true && rotated.data?.promoted !== true, 'rotation-candidate-verification');
       const rotationId = rotated.data.rotationId;
       ok(await browserRequest(b, '/api/platform/v1/connections/' + project.connectionId + '/rotation/promote',
         { rotationId }, 'POST', workspaceId));
@@ -1362,6 +1404,8 @@ test('default operated browser, REST, MCP and customer machine journey', async (
           if (!runnerCaseSucceeded) throw new Error('journey:runner-setup-or-case-retained');
         }
         if (runnerConnectionId && b && workspaceId) await attempt('runner-connection-revoke', async () => {
+          const listed = ok(await browserRequest(b, '/api/platform/v1/connections?includeRevoked=true', undefined, 'GET', workspaceId));
+          if (listed.connections?.some(value => value.id === runnerConnectionId && value.status === 'revoked')) return; // revoked by its lifecycle step
           const result = ok(await browserRequest(b, '/api/platform/v1/connections/' + runnerConnectionId + '/revoke',
             { confirm: runnerConnectionId, reason: 'J2 journey cleanup' }, 'POST', workspaceId));
           ensure(result.ok === true, 'runner-connection-revoke');

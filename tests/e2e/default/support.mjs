@@ -44,10 +44,11 @@ export const Config = z.object({
   machine: z.object({ image: digestImage }).strict(),
 }).strict();
 
-export async function command(binary, args, { input, timeout = 60_000, maxBytes = 8 * 1024 * 1024 } = {}) {
+export async function command(binary, args, { input, timeout = 60_000, maxBytes = 8 * 1024 * 1024, env } = {}) {
   return new Promise((resolve, reject) => {
     let bytes = 0, output = '';
-    const child = spawn(binary, args, { stdio: ['pipe', 'pipe', 'pipe'], env: process.env });
+    // Extra variables (e.g. a CLI's credential) go through the environment, never argv.
+    const child = spawn(binary, args, { stdio: ['pipe', 'pipe', 'pipe'], env: env ? { ...process.env, ...env } : process.env });
     const timer = setTimeout(() => { child.kill('SIGKILL'); reject(new Error('journey:command-timeout')); }, timeout);
     child.once('error', () => { clearTimeout(timer); reject(new Error('journey:command-start')); });
     child.stdout.on('data', data => {

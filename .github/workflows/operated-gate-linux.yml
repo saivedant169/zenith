@@ -147,6 +147,21 @@ jobs:
             echo "ZENITH_LOCAL_TWO_TENANTS_CONFIG_FILE=$RUNNER_TEMP/zenith/j2/journey.json"
             echo "ZENITH_LOCAL_UPGRADE_IMAGES_FILE=${root}/upgrade-images.json"
           } >> "$GITHUB_ENV"
+          # DRV-1 private-source: owner-approved inputs (verify/DRV-1-DECLARATIONS.md), private files outside the checkout.
+          if [ "$GATE" = "drv1-private-source" ]; then
+            mkdir -m 700 "$RUNNER_TEMP/zenith/drv1"
+            {
+              echo "DRV1_PRIVATE=$RUNNER_TEMP/zenith/drv1"
+              echo "DRV1_TARGETS_DIR=$RUNNER_TEMP/zenith/j2"
+              echo "ZENITH_LOCAL_SOURCE_BINARY_FILE=$RUNNER_TEMP/zenith/drv1/app"
+              echo "ZENITH_LOCAL_SOURCE_BUILD_DECLARATION_FILE=$RUNNER_TEMP/zenith/drv1/build-declaration.json"
+              echo "ZENITH_LOCAL_SOURCE_REGISTRY_IMAGE=$REGISTRY_IMAGE"
+              echo "DRV1_GVISOR_RELEASE=20260928.0"
+              echo "DRV1_GVISOR_SHA256=b7e11d27cbd69370ed7addb6c0d1c33e70e57a153cee57b5fdc5344bf303c7eb"
+              echo "DRV1_GVISOR_ARCHIVE=$RUNNER_TEMP/zenith/drv1/gvisor-aarch64.tar.bz2"
+              echo "DRV1_CALICO_MANIFEST=$RUNNER_TEMP/zenith/drv1/calico.yaml"
+            } >> "$GITHUB_ENV"
+          fi
           # D-4 export only (d4.operated.test.ts holds both D-4 cases): explicit data rehearsal with native
           # fixture engines pinned by digest. MinIO's own images are no longer publicly pullable; Chainguard
           # publishes upstream MinIO (same server command and health endpoint).
@@ -190,6 +205,57 @@ jobs:
           docker push -q "$tag"
           echo "WITNESS_IMAGE=$(docker image inspect "$tag" --format '{{index .RepoDigests 0}}')" >> "$GITHUB_ENV"
 
+      - name: DRV-1 isolated build inputs (drv1-private-source only)
+        if: inputs.gate == 'drv1-private-source'
+        # Owner-approved 2026-10-22 (verify/DRV-1-DECLARATIONS.md). Pins only; no credential is created here.
+        run: |
+          set -euo pipefail
+          umask 077
+          cd "$DRV1_PRIVATE"
+          curl --fail --silent --show-error --location --retry 3 --max-time 300 --output gvisor-aarch64.tar.bz2 \
+            "https://github.com/google/gvisor/releases/download/release-${DRV1_GVISOR_RELEASE}/gvisor-aarch64.tar.bz2"
+          printf '%s  %s\n' "$DRV1_GVISOR_SHA256" gvisor-aarch64.tar.bz2 | sha256sum --check --strict
+          # drv1-isolation.ts refuses any manifest other than the reviewed upstream bytes.
+          curl --fail --silent --show-error --location --retry 3 --max-time 120 --output calico.yaml \
+            https://raw.githubusercontent.com/projectcalico/calico/v3.33.0/manifests/calico.yaml
+          cd "$GITHUB_WORKSPACE"
+          # Kernel-global AppArmor profile; kind nodes share this kernel.
+          sudo apparmor_parser -r -W deploy/zenith-managed/build/profiles/zenith-build.apparmor
+          sudo grep -q '^zenith-build ' /sys/kernel/security/apparmor/profiles
+          # Static ARM64 fixture with the approved compiler, no network (DRV-1.md compile step).
+          compiler='rust:1.99.0-alpine3.22@sha256:ba511babd167c72f478edbfa2461f5499a7e9639e9793705e8b8090382731198'
+          docker pull -q "$compiler" >/dev/null
+          id="drv1-${GITHUB_RUN_ID}"
+          docker build -q --network=none --pull=false --platform linux/arm64 --label "io.zenith.drv1.compiler=$id" \
+            --build-arg COMPILER_IMAGE="$compiler" --target compile -f deploy/zenith-managed/build/Dockerfile.fixture -t "zenith-drv1-compiler:$id" . >/dev/null
+          docker create --name "zenith-drv1-extract-$id" --network none "zenith-drv1-compiler:$id" >/dev/null
+          docker cp "zenith-drv1-extract-$id:/app" "$ZENITH_LOCAL_SOURCE_BINARY_FILE"
+          docker rm "zenith-drv1-extract-$id" >/dev/null && docker image rm "zenith-drv1-compiler:$id" >/dev/null
+          chmod 600 "$ZENITH_LOCAL_SOURCE_BINARY_FILE"
+          # Builder and proxy from the approved pinned inputs, published to J1's local registry for digest references.
+          docker build -q --platform linux/arm64 -f deploy/zenith-managed/build/Dockerfile.builder \
+            --build-arg GO_IMAGE=golang:1.27-alpine@sha256:8a5910f31396cd4d89662f56c68b3ae31d374308270a1c3bd96672ee5ed43414 \
+            --build-arg BUILDKIT_IMAGE=moby/buildkit:v0.34.0-rootless@sha256:a9c380801728257d27bada887d70b1237622398f0fe2c24f4aa5ffdd36188613 \
+            -t "localhost:5000/zenith-drv1-builder:${GITHUB_SHA}" . >/dev/null
+          docker build -q --platform linux/arm64 -f deploy/zenith-managed/build/Dockerfile.proxy \
+            --build-arg PYTHON_IMAGE=python:3.13-alpine3.22@sha256:a9b1e8cb5d25a3c62c0a248913331c9031fc0a45d97975aafe459d41bdfef36d \
+            -t "localhost:5000/zenith-drv1-proxy:${GITHUB_SHA}" . >/dev/null
+          docker push -q "localhost:5000/zenith-drv1-builder:${GITHUB_SHA}" >/dev/null
+          docker push -q "localhost:5000/zenith-drv1-proxy:${GITHUB_SHA}" >/dev/null
+          builder=$(docker image inspect "localhost:5000/zenith-drv1-builder:${GITHUB_SHA}" --format '{{index .RepoDigests 0}}')
+          proxy=$(docker image inspect "localhost:5000/zenith-drv1-proxy:${GITHUB_SHA}" --format '{{index .RepoDigests 0}}')
+          BUILDER="$builder" PROXY="$proxy" node -e '
+            const fs = require("fs");
+            const declaration = { registryRepositoryRoot: "localhost:5000/zenith-drv1-build", config: {
+              namespace: "zb-replaced-by-driver", builderImage: process.env.BUILDER, runtimeClass: "zenith-build-gvisor",
+              seccompProfile: "zenith-build.json", appArmorProfile: "zenith-build",
+              nodeIsolation: { tenant: "replaced-by-driver", profileDigest: "897374eb4b9c19774a93cd50f56b07603968e066051bc3c8dc1b8097fe88db6e", systemDaemonSets: ["kube-proxy", "calico-node"] },
+              proxy: { namespace: "zp-replaced-by-driver", ip: "10.96.200.10", port: 3128, image: process.env.PROXY,
+                destinations: [{ host: "replaced-by-driver", ip: "172.18.0.250", port: 5000, tls: false }] },
+              timeoutSec: 1800 } };
+            fs.writeFileSync(process.env.ZENITH_LOCAL_SOURCE_BUILD_DECLARATION_FILE, JSON.stringify(declaration), { mode: 0o600, flag: "wx" });'
+          printf 'kind: Cluster\napiVersion: kind.x-k8s.io/v1alpha4\nnetworking:\n  apiServerAddress: 127.0.0.1\n  disableDefaultCNI: true\n  podSubnet: 10.244.0.0/16\nnodes:\n- role: control-plane\n- role: worker\n' > "$DRV1_PRIVATE/isolated-kind.yaml"
+
       - name: Restore tools (j15-operated-restore only)
         if: inputs.gate == 'j15-operated-restore'
         # pg_dump/pg_restore must match the stack's PostgreSQL 17; the Temporal CLI is the pin ci.yml uses.
@@ -226,7 +292,12 @@ jobs:
           env TMPDIR="$RUNNER_TEMP/zenith/tmp" ZENITH_ACCEPTANCE_DEFAULT_STACK=1 ZENITH_DEFAULT_JOURNEY=1 \
             NODE_EXTRA_CA_CERTS="$stack/tls/ca.crt" \
             node tests/e2e/default/prepare.mjs --directory "$RUNNER_TEMP/zenith/j2" --stack "$stack" \
-              --node-image "$KIND_NODE_IMAGE" --witness-image "$WITNESS_IMAGE" --mailpit-url "$mail"
+              --node-image "$KIND_NODE_IMAGE" --witness-image "$WITNESS_IMAGE" --mailpit-url "$mail" \
+              ${DRV1_PRIVATE:+--isolated-kind-config "$DRV1_PRIVATE/isolated-kind.yaml"}
+
+      - name: DRV-1 cluster isolation (drv1-private-source only)
+        if: inputs.gate == 'drv1-private-source'
+        run: npx tsx scripts/release/drivers/drv1-isolation.ts
 
       - name: Trust the disposable J1 CA in Chromium's NSS database
         # drv2 launches Chromium with no certificate bypass (operated.ts). On Linux that

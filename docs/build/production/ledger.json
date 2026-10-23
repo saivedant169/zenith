@@ -6565,11 +6565,11 @@
       "acceptance": [
         "Logs/metrics/traces/provider events/resource events/machine health use scoped sessions, timestamps/provenance and explicit unknown/inaccessible results."
       ],
-      "state": "in_progress",
+      "state": "verified",
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "contract_verified_ec18bb9c_default_local_engine_blocked; wave3_gap_fixes_pending_verification",
+      "implementationStatus": "verified_cc6092ae: logs, metrics, events, traces and machine health each return a telemetry envelope with explicit per-source provenance, observedAt, workspace/project/environment scope and a scoped session descriptor: the broker's per-read Kubernetes session for fabric signals (non-reversible ref) and the single-operation machine grant for health (fingerprint, never the JWS). Unanswered sources are explicit: unknown or inaccessible with a reason, never silent and never healthy. On the real two-architecture J2 stack (CI and J2 on one commit): metric unknown and trace unknown (no metrics or trace backend configured, each with its reason), log empty, Kubernetes events fresh; machine health fresh on a live zenithd, unknown when the machine is silent past the heartbeat threshold, inaccessible when revoked, with refused reads dispatching nothing and opening no session. Real store/dispatcher/driver contract proof that a revoked machine read is denied and queues nothing. Independent review: PROMOTE after two HOLD rounds (rounds found and fixed: no engine-level negatives, silent store of revoked health reads, all-revoked bindings misread as ambiguous, unasserted sessions, mutating refusal relabel, ineligible-receipt gap, overstated ledger wording). Limits: only the Kubernetes event source is exercised (provider and resource events share one fabric path; AWS and other cloud event sources are never queried here); no metric or trace backend was read, so fresh metrics/traces are unproven; machine-health scope has no project for refused reads (no grant issued); live cloud observability is a later level.",
       "evidence": [
         {
           "level": "contract",

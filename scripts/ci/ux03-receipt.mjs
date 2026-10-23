@@ -43,8 +43,10 @@ try {
   run("postgres", [node, "node_modules/vitest/vitest.mjs", "run", "tests/plugins/launch-integration.test.ts", "tests/plugins/service.test.ts", "--no-file-parallelism", "--maxWorkers=2", "--reporter=default", "--reporter=json", "--outputFile", path.join(out, "postgres.json")],
     { ZENITH_TEST_PLATFORM_PG_URL: pgUrl });
   pgProof = { image: img, tablesBeforeTests: Number(tablesBefore), tablesAfterTests: Number(tables()), pluginTables: psql("select string_agg(table_schema||'.'||table_name, ',' order by 1) from information_schema.tables where table_name like '%plugin%'") };
-  sh("docker", ["pull", "-q", "--platform", "linux/arm64", "node:22.23.3-bookworm-slim"]);
-  const sandbox = sh("docker", ["image", "inspect", "node:22.23.3-bookworm-slim", "--format", "{{index .RepoDigests 0}}"]);
+  // Pinned sandbox image (multi-arch index digest); a different resolved digest fails the receipt.
+  const sandbox = "node@sha256:3ed98443660ff48413b5af19ecefce3b9d50845a901a43420d47cc63a9fddbe9";
+  sh("docker", ["pull", "-q", "node:22.23.3-bookworm-slim@" + sandbox.slice(5)]);
+  if (!JSON.parse(sh("docker", ["image", "inspect", "node:22.23.3-bookworm-slim@" + sandbox.slice(5), "--format", "{{json .RepoDigests}}"])).includes(sandbox)) throw new Error("sandbox image digest mismatch");
   pgProof.pluginSandboxImage = sandbox;
   fs.writeFileSync(path.join(tls, "openssl.cnf"), "[req]\nprompt = no\ndistinguished_name = dn\nx509_extensions = v3\n[dn]\nCN = host.docker.internal\n[v3]\nsubjectAltName = DNS:host.docker.internal,IP:127.0.0.1\nbasicConstraints = critical,CA:TRUE\nkeyUsage = critical,digitalSignature,keyEncipherment,keyCertSign\n");
   spawnSync("openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1", "-config", path.join(tls, "openssl.cnf"), "-keyout", path.join(tls, "server.key"), "-out", path.join(tls, "server.crt")]);

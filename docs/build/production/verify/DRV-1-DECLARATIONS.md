@@ -128,7 +128,7 @@ Not verified:
 - Builder and proxy builds.
 - Any J6 probe.
 
-## Still needed for DRV-1 (not in this draft)
+## Still needed for DRV-1 (not in this draft; superseded for the hosted lane by the 2026-10-23 section below)
 
 - **`DRV1_KIND_IMAGE`:** a kind node image with `runsc` (J14 `setup-kind.ts`), the seccomp file at
   `/var/lib/kubelet/seccomp/zenith-build.json` and the AppArmor profile loaded. Alternatively, a run-time install step

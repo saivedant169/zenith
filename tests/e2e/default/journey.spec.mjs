@@ -39,7 +39,9 @@ async function auditUx(page, pageId, axeSource, scans) {
  * press (tag, type, role, name, label, id, href and occurrence), not a DOM marker: polling pages re-render and replace
  * nodes mid-scan, which would drop a marker without any control becoming unreachable.
  * - reached: Tab alone reaches it; controls rendered during the scan are required too (final re-scan).
- * - focusVisible: when Tab focuses it, a visible indicator is drawn (outline or box-shadow; WCAG 2.4.7).
+ * - focusVisible: when Tab focuses it, a visible indicator appears on it or on one of its three nearest ancestors (a
+ *   wrapper ring drawn with :focus-within counts): outline, box-shadow or border colour differs between focused and
+ *   unfocused (WCAG 2.4.7). A static shadow that does not change never counts.
  * - nonNative: focusable elements that act as controls (role button/link/checkbox/...) but are not native elements, so
  *   Enter/Space activation is not guaranteed by the platform. Native buttons, links and inputs get it from the browser.
  */
@@ -60,13 +62,22 @@ const CONTROL_KEYS = () => {
   const ACTIONS = new Set(['button', 'link', 'checkbox', 'radio', 'switch', 'menuitem', 'tab', 'option']);
   const nonNative = controls.filter(element => !NATIVE.has(element.tagName) && ACTIONS.has(element.getAttribute('role') ?? '')).map(element => keys.get(element));
   const active = document.activeElement;
-  let indicator = null;
-  if (active && keys.has(active)) {
-    const style = getComputedStyle(active);
-    indicator = (style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0) || (style.boxShadow !== '' && style.boxShadow !== 'none');
-  }
-  return { keys: [...new Set(keys.values())], active: keys.get(active) ?? null, indicator, nonNative,
+  return { keys: [...new Set(keys.values())], active: keys.get(active) ?? null, nonNative,
     shapes: Object.fromEntries([...keys].map(([element, key]) => [key, shape(element)])) };
+};
+/** True when focusing the active element visibly changes it or a near ancestor; focus is restored afterwards. */
+const FOCUS_INDICATOR = () => {
+  const element = document.activeElement;
+  if (!(element instanceof HTMLElement)) return false;
+  const chain = [element];
+  for (let parent = element.parentElement; parent && chain.length < 4; parent = parent.parentElement) chain.push(parent);
+  const snap = () => chain.map(node => { const s = getComputedStyle(node);
+    return [s.outlineStyle === 'none' || parseFloat(s.outlineWidth) === 0 ? 'none' : s.outlineStyle + s.outlineWidth + s.outlineColor, s.boxShadow, s.borderTopColor, s.borderBottomColor].join('|'); });
+  const focused = snap();
+  element.blur();
+  const plain = snap();
+  element.focus({ focusVisible: true });
+  return document.activeElement === element && focused.some((value, index) => value !== plain[index]);
 };
 async function keyboardReach(page) {
   const initial = await page.evaluate(CONTROL_KEYS);
@@ -76,7 +87,7 @@ async function keyboardReach(page) {
   for (let press = 0; press < expected.size * 2 + 10 && reached.size < expected.size && repeats < 3; press++) {
     await page.keyboard.press('Tab');
     const now = await page.evaluate(CONTROL_KEYS);
-    if (now.active !== null) { reached.add(now.active); if (now.indicator) indicated.add(now.active); }
+    if (now.active !== null) { reached.add(now.active); if (await page.evaluate(FOCUS_INDICATOR)) indicated.add(now.active); }
     repeats = now.active !== null && now.active === previous ? repeats + 1 : 0; previous = now.active;
   }
   // Controls that appeared while scanning are required too; anything still present and never reached is a miss.

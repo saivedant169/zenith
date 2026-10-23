@@ -46,6 +46,8 @@ export function prepareIsolation(env: NodeJS.ProcessEnv, exec: Run = run): { nod
   const runtime = env.DRV1_RUNTIME ?? "gvisor";
   ensure(runtime === "gvisor" || runtime === "runc", "runtime");
   const gvisor = runtime === "gvisor";
+  // runc is approved only on an ephemeral GitHub-hosted runner VM, never a persistent self-hosted machine.
+  ensure(gvisor || (env.GITHUB_ACTIONS === "true" && env.RUNNER_ENVIRONMENT === "github-hosted"), "runc-requires-github-hosted-runner");
   const targets = env.DRV1_TARGETS_DIR, archiveFile = env.DRV1_GVISOR_ARCHIVE, sha256 = env.DRV1_GVISOR_SHA256 ?? "", release = gvisor ? env.DRV1_GVISOR_RELEASE ?? "" : "runc";
   ensure(targets && path.isAbsolute(targets) && env.DRV1_CALICO_MANIFEST && (!gvisor || archiveFile && /^[a-f0-9]{64}$/.test(sha256) && /^\d{8}\.\d+$/.test(release)), "usage");
   const journal = JSON.parse(readFileSync(path.join(targets!, "targets.json"), "utf8"));
@@ -90,7 +92,9 @@ export function prepareIsolation(env: NodeJS.ProcessEnv, exec: Run = run): { nod
     exec("docker", ["exec", name, "systemctl", "restart", "containerd"]);
     exec("docker", ["exec", name, "systemctl", "restart", "kubelet"]);
     exec("docker", ["exec", name, "mkdir", "-p", "/var/lib/kubelet/seccomp"]);
-    exec("docker", ["exec", "-i", name, "tee", "/var/lib/kubelet/seccomp/zenith-build.json"], readFileSync(path.join(PROFILES, "zenith-build-seccomp.json")));
+    const seccomp = readFileSync(path.join(PROFILES, "zenith-build-seccomp.json"));
+    exec("docker", ["exec", "-i", name, "tee", "/var/lib/kubelet/seccomp/zenith-build.json"], seccomp);
+    ensure(exec("docker", ["exec", name, "sha256sum", "/var/lib/kubelet/seccomp/zenith-build.json"]).startsWith(createHash("sha256").update(seccomp).digest("hex") + " "), "seccomp-profile-installed");
     // Preload the digest-pinned CNI images so kubelet never resolves a tag.
     for (const [image, digest] of Object.entries(CALICO_IMAGES)) exec("docker", ["exec", name, "ctr", "--namespace=k8s.io", "images", "pull", "--platform", `linux/${arch === "aarch64" ? "arm64" : "amd64"}`, `${image}@${digest}`]);
   }

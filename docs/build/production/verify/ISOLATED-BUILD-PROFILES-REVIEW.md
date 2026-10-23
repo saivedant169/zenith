@@ -51,7 +51,7 @@ Reply "approve", or name changes (for example a syscall to add or remove, the gV
 ## Tested after approval
 1. `review-profile.ts` on the final bytes; existing profile tests and the J6 build contract tests.
 2. On a Linux node with AppArmor (not this Mac): `apparmor_parser -Q` on the profile, load the seccomp file through kubelet, apply the RuntimeClass.
-3. J6 steps in PROD-LIFE-09: the 14-check isolation probe, then a real source build, plus negative probes that a build step cannot call `ptrace`/`bpf`/`keyctl`, open raw sockets or write `/proc/sys`.
+3. J6 steps in PROD-LIFE-09: the isolation probe (16 checks since 2026-10-23), then a real source build, plus negative probes that a build step cannot call `ptrace`/`bpf`/`keyctl`, open raw sockets or write `/proc/sys`.
 4. Revoke one precondition at a time and confirm the refusal.
 
 ## Open questions
@@ -89,7 +89,8 @@ What changes:
 
 What does not change: rootless BuildKit; `hostUsers: false`; the `zenith-build` seccomp profile and AppArmor profile
 (loaded into the runner kernel); default-deny NetworkPolicy with the pinned egress proxy as the only route; resource
-limits; `privileged: false`; the admission checks; every negative isolation probe. The build container keeps the
+limits; `privileged: false`; the admission checks; the pod-level isolation probe (16 checks). The separate negative
+system-call probes listed for J6 (`ptrace`, `bpf`, `keyctl`, raw sockets, `/proc/sys` writes) do not run in this lane. The build container keeps the
 capabilities the 2026-10-21 approval already allows for rootless BuildKit and nothing more: all dropped, then
 `SETUID` and `SETGID` added for the UID helpers, `allowPrivilegeEscalation: true` (setuid helpers inside the pod user
 namespace), `procMount: Unmasked`, and `sys_admin` allowed by the AppArmor profile for mounts inside the nested
@@ -118,7 +119,14 @@ Residual risk accepted for this scope:
   (`source-build-fixture.ts`). An escape could reach that disposable stack. It holds no cloud credentials, customer
   workload or reusable secret, and is destroyed with the VM.
 - Runner single-tenancy and destruction are GitHub-hosted runner properties, not something this repository verifies.
-Execution is therefore limited to a fresh GitHub-hosted runner VM created for the run and destroyed afterwards.
+- Only pod egress is restricted (Calico default-deny plus the pinned proxy). The runner VM itself, and the kind node
+  containers on it, keep normal internet egress.
+- The seccomp check compares the default action and the set of allowed system-call names with the reviewed file;
+  argument conditions on individual rules are not compared. The node copy of the profile is hash-checked at install.
+Execution is therefore limited to a fresh GitHub-hosted runner VM created for the run and destroyed afterwards, and the
+driver enforces it: `DRV1_RUNTIME=runc` is refused unless `GITHUB_ACTIONS=true` and `RUNNER_ENVIRONMENT=github-hosted`.
+The self-hosted `drv1-private-source` job in `ci.yml` (off unless the `ZENITH_LOCAL_DRV1` repository variable is `1`;
+no repository variables are set) stays on gVisor and cannot select runc.
 
 Required before execution: an independent security review of this change (recorded below). Production build isolation
 needs its own demonstrated security acceptance.

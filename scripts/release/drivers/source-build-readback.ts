@@ -1,5 +1,6 @@
 /** Independent observers; never manufacture provenance or build results. */
 import { createPublicKey } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { ensure, NATIVE } from "../../../tests/e2e/default/support.mjs";
 import { verifyBuildProvenance } from "@/lib/execution/build-provenance";
 import type { ApprovedSourceSnapshot } from "@/lib/execution/source-snapshot";
@@ -107,7 +108,11 @@ async function assertNodeRuntimeSpec(ctx: Operated, pod: { status: { containerSt
   const inspected = JSON.parse(await ctx.stack!.modules.docker(["exec", "zenith-j2-worker", "crictl", "inspect", id!]));
   const spec = inspected?.info?.runtimeSpec;
   ensure(spec?.process?.apparmorProfile === profile.config.appArmorProfile, "runtime-spec-apparmor");
-  ensure(spec?.linux?.seccomp?.defaultAction === "SCMP_ACT_ERRNO" && Array.isArray(spec.linux.seccomp.syscalls) && spec.linux.seccomp.syscalls.length > 0, "runtime-spec-seccomp");
-  ensure(spec?.process?.capabilities?.bounding?.every((c: string) => c === "CAP_SETUID" || c === "CAP_SETGID") === true, "runtime-spec-capabilities");
+  // The reviewed filter itself, not just "some filter": same default action and the same allowed system calls.
+  const reviewed = JSON.parse(readFileSync("deploy/zenith-managed/build/profiles/zenith-build-seccomp.json", "utf8")) as { defaultAction: string; syscalls: { names: string[]; action: string }[] };
+  const allowed = (rules: { names?: string[]; action?: string }[] | undefined) => [...new Set((rules ?? []).filter(r => r.action === "SCMP_ACT_ALLOW").flatMap(r => r.names ?? []))].sort().join(",");
+  ensure(spec?.linux?.seccomp?.defaultAction === reviewed.defaultAction && allowed(spec.linux.seccomp.syscalls) === allowed(reviewed.syscalls) && allowed(reviewed.syscalls) !== "", "runtime-spec-seccomp");
+  const bounding = spec?.process?.capabilities?.bounding;
+  ensure(Array.isArray(bounding) && bounding.length > 0 && bounding.every((c: string) => c === "CAP_SETUID" || c === "CAP_SETGID"), "runtime-spec-capabilities");
   ensure(Array.isArray(spec?.linux?.uidMappings) && spec.linux.uidMappings.length > 0 && spec.linux.uidMappings.every((m: { hostID: number }) => m.hostID !== 0), "runtime-spec-user-namespace");
 }

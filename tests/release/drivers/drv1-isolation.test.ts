@@ -30,7 +30,7 @@ describe("DRV-1 runc build runtime (owner-approved 2026-10-23, disposable verifi
       if (args.includes("/sys/kernel/security/apparmor/profiles")) return "zenith-build (enforce)\n";
       return "";
     };
-    return { env: { DRV1_RUNTIME: "runc", DRV1_TARGETS_DIR: dir, DRV1_CALICO_MANIFEST: calico } as unknown as NodeJS.ProcessEnv, exec, calls };
+    return { env: { DRV1_RUNTIME: "runc", DRV1_TARGETS_DIR: dir, DRV1_CALICO_MANIFEST: calico, GITHUB_ACTIONS: "true", RUNNER_ENVIRONMENT: "github-hosted" } as unknown as NodeJS.ProcessEnv, exec, calls };
   }
   it("needs no gVisor input and refuses an unknown runtime", () => {
     const { env, exec } = fixture();
@@ -38,5 +38,10 @@ describe("DRV-1 runc build runtime (owner-approved 2026-10-23, disposable verifi
     expect(() => prepareIsolation(env, exec)).toThrow("drv1-isolation:calico-manifest-digest");
     expect(() => prepareIsolation({ ...env, DRV1_RUNTIME: "kata" }, exec)).toThrow("drv1-isolation:runtime");
     expect(() => prepareIsolation({ ...env, DRV1_RUNTIME: "gvisor" }, exec)).toThrow("drv1-isolation:usage");
+  });
+  it("refuses runc anywhere but a GitHub-hosted runner (a persistent self-hosted machine never runs it)", () => {
+    const { env, exec } = fixture();
+    expect(() => prepareIsolation({ ...env, RUNNER_ENVIRONMENT: "self-hosted" }, exec)).toThrow("drv1-isolation:runc-requires-github-hosted-runner");
+    expect(() => prepareIsolation({ ...env, GITHUB_ACTIONS: undefined }, exec)).toThrow("drv1-isolation:runc-requires-github-hosted-runner");
   });
 });

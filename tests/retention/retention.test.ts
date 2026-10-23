@@ -30,8 +30,13 @@ const APPLY_ENV = { ZENITH_RETENTION_APPLY: "1" };
 let db: PlatformDbHandle;
 let dir: string;
 let target: FilesystemTarget;
+// PGlite always; real PostgreSQL (legal holds, archive watermarks and bounded pruning on the production engine) only
+// with ZENITH_TEST_RETENTION_PG=1 and an owned, freshly migrated disposable database.
+const nativePostgres = process.env.ZENITH_TEST_RETENTION_PG === "1";
 beforeAll(async () => {
-  db = await openPlatformDb({ kind: "pglite" });
+  const pgUrl = process.env.ZENITH_TEST_PLATFORM_PG_URL;
+  if (nativePostgres && !pgUrl) throw new Error("Explicit retention PostgreSQL gate requires an owned disposable ZENITH_TEST_PLATFORM_PG_URL.");
+  db = await openPlatformDb(nativePostgres ? { kind: "postgres", url: pgUrl!, max: 2 } : { kind: "pglite" });
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "zenith-retention-"));
   target = new FilesystemTarget(dir);
 }, 60_000);

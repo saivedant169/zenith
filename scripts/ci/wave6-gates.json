@@ -204,6 +204,7 @@
     "tests/release/status.test.ts",
     "tests/resources/function-manifest.test.ts",
     "tests/retention/admin-routes.test.ts",
+    "tests/retention/archive-s3.engine.test.ts",
     "tests/retention/key-purpose.test.ts",
     "tests/retention/restore-destination.test.ts",
     "tests/retention/retention.test.ts",
@@ -4853,6 +4854,23 @@
       "prerequisites": [
         "KUBECONFIG"
       ]
+    },
+    {
+      "file": "tests/retention/archive-s3.engine.test.ts",
+      "suite": "retention archive on a real S3-compatible store (ZENITH_TEST_RETENTION_S3=1)",
+      "test": "archives sealed objects to the bucket, verifies and restores them, and prunes only archived rows",
+      "fullName": "retention archive on a real S3-compatible store (ZENITH_TEST_RETENTION_S3=1) archives sealed objects to the bucket, verifies and restores them, and prunes only archived rows",
+      "id": "wave6-81ffca3fe5514c3d",
+      "lane": "engine",
+      "gates": [
+        "ZENITH_TEST_RETENTION_S3"
+      ],
+      "prerequisites": [
+        "ZENITH_TEST_RETENTION_S3_ENDPOINT",
+        "ZENITH_TEST_RETENTION_S3_BUCKET",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY"
+      ]
     }
   ],
   "requirements": {
@@ -7367,6 +7385,7 @@
       "tests/supply-chain/sbom.test.ts"
     ],
     "PROD-OPS-07": [
+      "tests/retention/archive-s3.engine.test.ts",
       "tests/retention/key-purpose.test.ts",
       "tests/retention/restore-destination.test.ts",
       "tests/retention/retention.test.ts"

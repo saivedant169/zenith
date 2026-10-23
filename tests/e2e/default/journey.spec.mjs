@@ -28,7 +28,8 @@ async function auditUx(page, pageId, axeSource, scans) {
     const keyboard = viewport === UX_VIEWPORTS[0] ? await keyboardReach(page) : undefined;
     scans.push({ pageId, viewport: `${viewport.width}x${viewport.height}`, ...result, ...(keyboard ? { keyboard } : {}) });
     ensure(result.violations.length === 0 && !result.horizontalOverflow, 'ux01-a11y-scan');
-    ensure(!keyboard || keyboard.reached === keyboard.total, 'ux01-keyboard-reach');
+    // A fixed-vocabulary code names the first unreachable control's element and role (no text or attributes).
+    ensure(!keyboard || keyboard.reached === keyboard.total, 'ux01-keyboard-reach' + (keyboard?.missing ? '-' + keyboard.missing : ''));
   }
 }
 
@@ -42,7 +43,7 @@ async function keyboardReach(page) {
     return controls.length;
   });
   const reached = new Set();
-  let previous = null, repeats = 0;
+  let previous = null, repeats = 0, missing;
   try {
     for (let press = 0; press < total * 2 + 10 && reached.size < total && repeats < 3; press++) {
       await page.keyboard.press('Tab');
@@ -50,8 +51,13 @@ async function keyboardReach(page) {
       if (key !== null) reached.add(key);
       repeats = key !== null && key === previous ? repeats + 1 : 0; previous = key;
     }
+    if (reached.size < total) missing = await page.evaluate(keys => {
+      const element = [...document.querySelectorAll('[data-ux01-key]')].find(value => !keys.includes(value.getAttribute('data-ux01-key')));
+      const clean = value => String(value ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 20);
+      return element ? [clean(element.tagName), clean(element.getAttribute('role')), clean(element.getAttribute('type'))].filter(Boolean).join('-') : 'unknown';
+    }, [...reached]);
   } finally { await page.evaluate(() => document.querySelectorAll('[data-ux01-key]').forEach(element => element.removeAttribute('data-ux01-key'))); }
-  return { total, reached: reached.size };
+  return { total, reached: reached.size, ...(missing ? { missing } : {}) };
 }
 
 const canonicalJson = value => {
@@ -538,10 +544,10 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       if (UX_ENABLED) {
         uxBrowser = await chromium.launch({ executablePath: process.env.ZENITH_UX01_CHROME, headless: true });
         // The receipt names the browser that actually ran: its brand and version, measured, not configured.
-        const brandPage = await uxBrowser.newPage();
-        const brands = await brandPage.evaluate(() => (navigator.userAgentData?.brands ?? []).map(value => value.brand));
-        await brandPage.close();
-        uxBrowserLabel = `${brands.includes('Google Chrome') ? 'Google Chrome' : 'Chromium'} ${uxBrowser.version()} via Playwright`;
+        // Headless Chrome does not report its brand to pages; ask the launched executable itself.
+        const product = (await command(process.env.ZENITH_UX01_CHROME, ['--version'], { timeout: 30_000 })).trim();
+        ensure(product.includes(uxBrowser.version()), 'ux01-browser-version-mismatch');
+        uxBrowserLabel = `${/^Google Chrome\b/.test(product) ? 'Google Chrome' : 'Chromium'} ${uxBrowser.version()} via Playwright`;
         uxA = await uxBrowser.newContext({ storageState: await a.context().storageState() }).then(context => context.newPage());
         uxB = await uxBrowser.newContext({ storageState: await b.context().storageState() }).then(context => context.newPage());
       }

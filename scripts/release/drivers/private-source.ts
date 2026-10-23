@@ -80,7 +80,10 @@ export async function run(receipt: string, env = process.env) {
         const events = async (namespace: string) => {
           const list = await command("kubectl", ["--kubeconfig", ctx.config!.kind.observerKubeconfigFile, "--context", ctx.config!.kind.context, "-n", namespace, "get", "events", "-o", "json"]).catch(() => "");
           const items = (list ? JSON.parse(list).items : []) as { type?: string; reason?: string; message?: string; count?: number }[];
-          return items.filter(e => e.type === "Warning").slice(-6).map(e => ({ reason: e.reason ?? null, count: e.count ?? null, message: e.message?.slice(0, 300) ?? null }));
+          // Distinct messages only; sandbox failures repeat with new ids, and the cause is at the end of the message.
+          const seen = new Set<string>();
+          return items.filter(e => e.type === "Warning").map(e => ({ reason: e.reason ?? null, count: e.count ?? null, message: e.message?.replace(/[0-9a-f]{64}/g, "<id>").slice(0, 1500) ?? null }))
+            .filter(e => !seen.has(e.reason + "|" + e.message) && seen.add(e.reason + "|" + e.message)).slice(-4);
         };
         process.stderr.write(`operated outside-step failed: journey:private-build-terminal ${JSON.stringify({ status: settled.operation.status, error,
           buildWarnings: await events(build.profile.config.namespace),

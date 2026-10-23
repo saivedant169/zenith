@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createHash, createPrivateKey, generateKeyPairSync, randomBytes } from 'node:crypto';
+import { createHash, createPrivateKey, createPublicKey, generateKeyPairSync, randomBytes } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { load } from 'js-yaml';
 import { stagedComposition, stagingArguments } from './private-staging.mjs';
@@ -57,6 +57,13 @@ function databaseUrl(value, field, tls) {
   return parsed;
 }
 
+/** Canonical base64 of 32 bytes that imports as an Ed25519 public key (SPKI prefix 302a300506032b6570032100).
+ * @param {string} text */
+function ed25519PublicKey(text) {
+  const raw = Buffer.from(text, 'base64');
+  if (raw.length !== 32 || raw.toString('base64') !== text) return false;
+  try { return createPublicKey({ key: Buffer.concat([Buffer.from('302a300506032b6570032100', 'hex'), raw]), format: 'der', type: 'spki' }).asymmetricKeyType === 'ed25519'; } catch { return false; }
+}
 /** Public verify keys only (docs/platform/operations/DEPLOYING.md); the web app parses the same shape at runtime.
  * @param {string} value */
 function trustedPublishers(value) {
@@ -67,7 +74,7 @@ function trustedPublishers(value) {
     if (!Array.isArray(keys) || !keys.length || keys.length > 10) refuse(field);
     for (const key of keys) {
       if (!key || typeof key !== 'object' || Object.keys(key).sort().join() !== 'keyId,publicKey' || !/^[A-Za-z0-9_.-]{1,64}$/.test(key.keyId)
-        || typeof key.publicKey !== 'string' || Buffer.from(key.publicKey, 'base64').length !== 32) refuse(field);
+        || typeof key.publicKey !== 'string' || !ed25519PublicKey(key.publicKey)) refuse(field);
     }
   }
 }

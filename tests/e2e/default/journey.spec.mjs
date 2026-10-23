@@ -24,19 +24,24 @@ async function auditUx(page, pageId, axeSource, scans) {
       return { violations: scan.violations.map(({ id, impact }) => ({ id, impact })),
         horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth };
     }, UX_TAGS);
-    // Desktop also proves keyboard-only reachability: Tab alone reaches every visible, enabled control.
-    const keyboard = viewport === UX_VIEWPORTS[0] ? await keyboardReach(page) : undefined;
-    scans.push({ pageId, viewport: `${viewport.width}x${viewport.height}`, ...result, ...(keyboard ? { keyboard } : {}) });
+    // Every viewport proves keyboard operability: Tab reaches every visible control, each shows a focus indicator, and
+    // every control is a native element (platform Enter/Space activation).
+    const keyboard = await keyboardReach(page);
+    scans.push({ pageId, viewport: `${viewport.width}x${viewport.height}`, ...result, keyboard: { total: keyboard.total, reached: keyboard.reached, focusVisible: keyboard.focusVisible, nonNative: keyboard.nonNative } });
     ensure(result.violations.length === 0 && !result.horizontalOverflow, 'ux01-a11y-scan');
-    // A fixed-vocabulary code names the first unreachable control's element and role (no text or attributes).
-    ensure(!keyboard || keyboard.reached === keyboard.total, 'ux01-keyboard-reach' + (keyboard?.missing ? '-' + keyboard.missing : ''));
+    // A fixed-vocabulary code names the first failing control's element and role (no text or attributes).
+    ensure(keyboard.reached === keyboard.total && keyboard.focusVisible === keyboard.reached && keyboard.nonNative === 0, 'ux01-keyboard' + (keyboard.missing ? '-' + keyboard.missing : ''));
   }
 }
 
 /**
- * Tab-reachability of every visible focusable control. Controls are keyed by a stable descriptor recomputed on each
- * press (tag, type, role, name, label, id, href and occurrence), not a DOM marker: polling pages re-render and
- * replace nodes mid-scan, which would drop a marker without any control becoming unreachable.
+ * Keyboard operability of every visible focusable control. Controls are keyed by a stable descriptor recomputed on each
+ * press (tag, type, role, name, label, id, href and occurrence), not a DOM marker: polling pages re-render and replace
+ * nodes mid-scan, which would drop a marker without any control becoming unreachable.
+ * - reached: Tab alone reaches it; controls rendered during the scan are required too (final re-scan).
+ * - focusVisible: when Tab focuses it, a visible indicator is drawn (outline or box-shadow; WCAG 2.4.7).
+ * - nonNative: focusable elements that act as controls (role button/link/checkbox/...) but are not native elements, so
+ *   Enter/Space activation is not guaranteed by the platform. Native buttons, links and inputs get it from the browser.
  */
 const CONTROL_KEYS = () => {
   const visible = element => element.getClientRects().length > 0 && getComputedStyle(element).visibility !== 'hidden';
@@ -51,21 +56,39 @@ const CONTROL_KEYS = () => {
     const n = seen.get(base) ?? 0; seen.set(base, n + 1); keys.set(element, base + '#' + n);
   }
   const shape = element => [element.tagName, element.getAttribute('role'), element.getAttribute('type')].map(value => String(value ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 20)).filter(Boolean).join('-');
-  return { keys: [...new Set(keys.values())], active: keys.get(document.activeElement) ?? null, shapes: Object.fromEntries([...keys].map(([element, key]) => [key, shape(element)])) };
+  const NATIVE = new Set(['A', 'BUTTON', 'INPUT', 'SELECT', 'TEXTAREA', 'SUMMARY']);
+  const ACTIONS = new Set(['button', 'link', 'checkbox', 'radio', 'switch', 'menuitem', 'tab', 'option']);
+  const nonNative = controls.filter(element => !NATIVE.has(element.tagName) && ACTIONS.has(element.getAttribute('role') ?? '')).map(element => keys.get(element));
+  const active = document.activeElement;
+  let indicator = null;
+  if (active && keys.has(active)) {
+    const style = getComputedStyle(active);
+    indicator = (style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0) || (style.boxShadow !== '' && style.boxShadow !== 'none');
+  }
+  return { keys: [...new Set(keys.values())], active: keys.get(active) ?? null, indicator, nonNative,
+    shapes: Object.fromEntries([...keys].map(([element, key]) => [key, shape(element)])) };
 };
 async function keyboardReach(page) {
   const initial = await page.evaluate(CONTROL_KEYS);
   await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); });
-  const expected = new Set(initial.keys), total = expected.size, reached = new Set();
+  const expected = new Set(initial.keys), reached = new Set(), indicated = new Set();
   let previous = null, repeats = 0;
-  for (let press = 0; press < total * 2 + 10 && reached.size < total && repeats < 3; press++) {
+  for (let press = 0; press < expected.size * 2 + 10 && reached.size < expected.size && repeats < 3; press++) {
     await page.keyboard.press('Tab');
-    const { active } = await page.evaluate(CONTROL_KEYS);
-    if (active !== null && expected.has(active)) reached.add(active);
-    repeats = active !== null && active === previous ? repeats + 1 : 0; previous = active;
+    const now = await page.evaluate(CONTROL_KEYS);
+    if (now.active !== null) { reached.add(now.active); if (now.indicator) indicated.add(now.active); }
+    repeats = now.active !== null && now.active === previous ? repeats + 1 : 0; previous = now.active;
   }
-  const missingKey = initial.keys.find(key => !reached.has(key));
-  return { total, reached: reached.size, ...(missingKey ? { missing: initial.shapes[missingKey] || 'unknown' } : {}) };
+  // Controls that appeared while scanning are required too; anything still present and never reached is a miss.
+  const final = await page.evaluate(CONTROL_KEYS);
+  for (const key of final.keys) expected.add(key);
+  const shapes = { ...initial.shapes, ...final.shapes };
+  const nonNative = [...new Set([...initial.nonNative, ...final.nonNative])];
+  const reachedExpected = [...expected].filter(key => reached.has(key));
+  const missingKey = [...expected].find(key => !reached.has(key));
+  const unindicated = reachedExpected.find(key => !indicated.has(key));
+  return { total: expected.size, reached: reachedExpected.length, focusVisible: reachedExpected.filter(key => indicated.has(key)).length, nonNative: nonNative.length,
+    ...(missingKey ? { missing: shapes[missingKey] || 'unknown' } : unindicated ? { missing: 'focus-' + (shapes[unindicated] || 'unknown') } : nonNative.length ? { missing: 'nonnative-' + (shapes[nonNative[0]] || 'unknown') } : {}) };
 }
 
 const canonicalJson = value => {
@@ -713,6 +736,12 @@ test('default operated browser, REST, MCP and customer machine journey', async (
         await uxA.getByRole('listitem').filter({ hasText: 'J2 MCP runner ' + runId }).first().waitFor();
         ensure(await uxA.getByRole('button', { name: 'Verify', exact: true }).count() > 0, 'ux01-connection-admin-actions');
         await auditUx(uxA, 'connection-admin', axeSource, uxCases.find(row => row.id === 'ux01-connection-admin-a11y').scans);
+      });
+      // Onboarding a new cloud: the keyless AWS connection flow (identifiers only; nothing is submitted here).
+      if (UX_ENABLED) await uxCase('ux01-aws-onboarding-a11y', async () => {
+        await uxA.goto(stack.apiUrl + '/platform/connections/aws');
+        await uxA.getByRole('heading', { name: 'Connect AWS', exact: true }).waitFor();
+        await auditUx(uxA, 'connection-aws-onboarding', axeSource, uxCases.find(row => row.id === 'ux01-aws-onboarding-a11y').scans);
       });
       });
     });

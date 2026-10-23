@@ -43,6 +43,7 @@ describe('supported installation structural preflight', () => {
     { id: 'Temporal TLS disabled', change: v => { v.environment.ZENITH_TEMPORAL_TLS = 'false'; }, failure: 'ZENITH_TEMPORAL_TLS' },
     { id: 'unpaired OAuth config', change: v => { v.environment.ZENITH_AGENT_OAUTH_ISSUER = 'https://oauth.unit.invalid'; }, failure: 'ZENITH_AGENT_OAUTH_JWKS' },
     { id: 'malformed plugin publisher trust', change: v => { v.environment.ZENITH_PLUGIN_TRUSTED_PUBLISHERS = '{"acme":[{"keyId":"k1","publicKey":"c2hvcnQ="}]}'; }, failure: 'ZENITH_PLUGIN_TRUSTED_PUBLISHERS' },
+    { id: 'non-canonical plugin publisher key', change: v => { v.environment.ZENITH_PLUGIN_TRUSTED_PUBLISHERS = JSON.stringify({ acme: [{ keyId: 'k1', publicKey: randomBytes(32).toString('base64').replace(/=$/, '') }] }); }, failure: 'ZENITH_PLUGIN_TRUSTED_PUBLISHERS' },
     { id: 'non-JSON plugin publisher trust', change: v => { v.environment.ZENITH_PLUGIN_TRUSTED_PUBLISHERS = 'acme=k1'; }, failure: 'ZENITH_PLUGIN_TRUSTED_PUBLISHERS' },
     { id: 'floating image', change: v => { v.images.worker = 'zenith/worker:latest'; }, failure: 'images.worker' },
     { id: 'out-of-range port', change: v => { v.apiPort = 80; }, failure: 'apiPort' },

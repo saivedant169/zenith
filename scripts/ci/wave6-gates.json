@@ -7452,7 +7452,8 @@
       "tests/plugins/launch-integration.test.ts",
       "tests/plugins/manifest.test.ts",
       "tests/plugins/mcp-boundary.test.ts",
-      "tests/plugins/service.test.ts"
+      "tests/plugins/service.test.ts",
+      "tests/screens/legacy-cancel-axe.test.tsx"
     ],
     "PROD-UX-02": [
       "tests/agent-v3/oauth-issuer-fixture.test.ts",

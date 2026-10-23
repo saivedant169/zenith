@@ -18,9 +18,13 @@ export const UX_CASES_V2 = Object.freeze([
   { id: 'ux01-uncertainty-a11y', pages: ['operation-uncertain'] },
 ]);
 /** Schema 3 adds connection onboarding and administration. */
-export const UX_CASES = Object.freeze([...UX_CASES_V2,
+export const UX_CASES_V3 = Object.freeze([...UX_CASES_V2,
   { id: 'ux01-connection-onboarding-a11y', pages: ['connection-change-review'] },
   { id: 'ux01-connection-admin-a11y', pages: ['connection-admin'] },
+]);
+/** Schema 4 adds the AWS onboarding flow, and keyboard operability (reach, focus indicator, native controls) on every viewport. */
+export const UX_CASES = Object.freeze([...UX_CASES_V3,
+  { id: 'ux01-aws-onboarding-a11y', pages: ['connection-aws-onboarding'] },
 ]);
 /** The measured executable, e.g. "Google Chrome 141.0.7390.54 via Playwright". */
 const BROWSER_RE = /^(?:Google Chrome|Chromium) \d+(?:\.\d+){1,3} via Playwright$/;
@@ -51,7 +55,7 @@ function projectSource(source) {
 /**
  * @typedef {'passed' | 'failed' | 'not_run'} UxInputStatus
  * @typedef {{id: string, impact?: string | null}} UxInputViolation
- * @typedef {{pageId: string, viewport: string, violations: UxInputViolation[], horizontalOverflow: boolean, keyboard?: {total: number, reached: number}}} UxInputScan
+ * @typedef {{pageId: string, viewport: string, violations: UxInputViolation[], horizontalOverflow: boolean, keyboard?: {total: number, reached: number, focusVisible: number, nonNative: number}}} UxInputScan
  * @typedef {{id: string, status: UxInputStatus, scans: UxInputScan[]}} UxInputCase
  * @typedef {{commit?: string, sourceDigest?: string, dirty?: boolean}} UxInputSource
  * @typedef {{source?: UxInputSource, cases?: UxInputCase[], uncertainty?: unknown, browser?: string}} UxReceiptInput
@@ -73,13 +77,13 @@ export function makeUxReceipt(input = {}) {
       viewport: scan?.viewport,
       violations: Array.isArray(scan?.violations) ? scan.violations.map(value => ({ id: value?.id, ...(value?.impact === undefined ? {} : { impact: value.impact }) })) : scan?.violations,
       horizontalOverflow: scan?.horizontalOverflow,
-      ...(scan?.keyboard === undefined ? {} : { keyboard: { total: scan.keyboard?.total, reached: scan.keyboard?.reached } }),
+      ...(scan?.keyboard === undefined ? {} : { keyboard: { total: scan.keyboard?.total, reached: scan.keyboard?.reached, focusVisible: scan.keyboard?.focusVisible, nonNative: scan.keyboard?.nonNative } }),
     })) };
   });
   if (seen.size !== UX_CASES.length) invalid();
   const counts = Object.fromEntries(['passed', 'failed', 'not_run'].map(status => [status, rows.filter(row => row.status === status).length]));
   const receipt = {
-    schemaVersion: 3,
+    schemaVersion: 4,
     requirementId: 'PROD-UX-01',
     kind: 'actual_browser',
     browser,
@@ -170,11 +174,11 @@ function validateUncertainty(value, receiptSource) {
 }
 
 function validateReceipt(value, schemaVersion) {
-  const old = schemaVersion === 1, v3 = schemaVersion === 3;
-  const list = v3 ? UX_CASES : UX_CASES_V2, ids = list.map(item => item.id), CASE_IDS = new Set(ids);
+  const old = schemaVersion === 1, v3 = schemaVersion === 3, v4 = schemaVersion === 4;
+  const list = v4 ? UX_CASES : v3 ? UX_CASES_V3 : UX_CASES_V2, ids = list.map(item => item.id), CASE_IDS = new Set(ids);
   const topKeys = ['schemaVersion', 'requirementId', 'kind', 'browser', 'viewports', 'axeTags', 'source', 'counts', 'result', 'cases', ...(old ? [] : ['uncertainty'])];
   if (!exactKeys(value, topKeys) || value.schemaVersion !== schemaVersion || value.requirementId !== 'PROD-UX-01' || value.kind !== 'actual_browser' ||
-      !(v3 ? typeof value.browser === 'string' && BROWSER_RE.test(value.browser) : value.browser === 'Google Chrome via Playwright') || JSON.stringify(value.viewports) !== JSON.stringify(UX_VIEWPORT_LABELS) ||
+      !(v3 || v4 ? typeof value.browser === 'string' && BROWSER_RE.test(value.browser) : value.browser === 'Google Chrome via Playwright') || JSON.stringify(value.viewports) !== JSON.stringify(UX_VIEWPORT_LABELS) ||
       JSON.stringify(value.axeTags) !== JSON.stringify(UX_TAGS) || !exactKeys(value.source, ['commit', 'sourceDigest', 'dirty']) ||
       !(value.source.commit === null || (typeof value.source.commit === 'string' && HEX40.test(value.source.commit))) ||
       !(value.source.sourceDigest === null || (typeof value.source.sourceDigest === 'string' && HEX64.test(value.source.sourceDigest))) ||
@@ -192,11 +196,13 @@ function validateReceipt(value, schemaVersion) {
     if (row.scans.length > expected.length || (row.status === 'passed' && row.scans.length !== expected.length)) invalid();
     row.scans.forEach((scan, scanIndex) => {
       const pair = expected[scanIndex];
-      // Schema 3: the desktop scan also records keyboard-only reachability of every visible control.
-      const keyboard = v3 && pair?.viewport === DESKTOP;
+      // Schema 3: the desktop scan records keyboard reachability. Schema 4: every scan records reachability, the
+      // focus indicator count and non-native controls.
+      const keyboard = v4 || (v3 && pair?.viewport === DESKTOP);
+      const fields = v4 ? ['total', 'reached', 'focusVisible', 'nonNative'] : ['total', 'reached'];
       if (!pair || !exactKeys(scan, ['pageId', 'viewport', 'violations', 'horizontalOverflow', ...(keyboard ? ['keyboard'] : [])]) ||
-          (keyboard && (!exactKeys(scan.keyboard, ['total', 'reached']) || !Number.isInteger(scan.keyboard.total) || !Number.isInteger(scan.keyboard.reached) ||
-            scan.keyboard.total < 1 || scan.keyboard.reached < 0 || scan.keyboard.reached > scan.keyboard.total)) ||
+          (keyboard && (!exactKeys(scan.keyboard, fields) || fields.some(field => !Number.isInteger(scan.keyboard[field]) || scan.keyboard[field] < 0) ||
+            scan.keyboard.total < 1 || scan.keyboard.reached > scan.keyboard.total || (v4 && scan.keyboard.focusVisible > scan.keyboard.reached))) ||
           scan.pageId !== pair.pageId || scan.viewport !== pair.viewport || !Array.isArray(scan.violations) ||
           typeof scan.horizontalOverflow !== 'boolean') invalid();
       for (const violation of scan.violations) {
@@ -204,7 +210,8 @@ function validateReceipt(value, schemaVersion) {
             !['id', 'id,impact'].includes(Object.keys(violation).sort().join(',')) || typeof violation.id !== 'string' ||
             (violation.impact !== undefined && violation.impact !== null && typeof violation.impact !== 'string')) invalid();
       }
-      if (row.status === 'passed' && (scan.violations.length !== 0 || scan.horizontalOverflow || (keyboard && scan.keyboard.reached !== scan.keyboard.total))) invalid();
+      if (row.status === 'passed' && (scan.violations.length !== 0 || scan.horizontalOverflow || (keyboard && scan.keyboard.reached !== scan.keyboard.total) ||
+          (v4 && (scan.keyboard.focusVisible !== scan.keyboard.reached || scan.keyboard.nonNative !== 0)))) invalid();
     });
   }
   if (seen.size !== list.length) invalid();
@@ -226,6 +233,7 @@ export function validateUxReceipt(value) {
   if (value?.schemaVersion === 1) return validateReceipt(value, 1);
   if (value?.schemaVersion === 2) return validateReceipt(value, 2);
   if (value?.schemaVersion === 3) return validateReceipt(value, 3);
+  if (value?.schemaVersion === 4) return validateReceipt(value, 4);
   invalid();
 }
 
@@ -257,11 +265,11 @@ export function validateCompletedJourney(value) {
   if (JSON.stringify(projected) !== JSON.stringify(value)) invalid();
 }
 
-/** Requires all eight audited UX groups and their closed uncertainty provenance. */
+/** Requires every audited UX group (schema 4) and the closed uncertainty provenance. */
 export function assertUxAcceptance(ux, journey) {
   validateUxReceipt(ux);
   validateCompletedJourney(journey);
-  if (ux.schemaVersion !== 3 || ux.result !== 'passed' || ux.counts.passed !== UX_CASES.length || ux.counts.failed !== 0 || ux.counts.not_run !== 0 ||
+  if (ux.schemaVersion !== 4 || ux.result !== 'passed' || ux.counts.passed !== UX_CASES.length || ux.counts.failed !== 0 || ux.counts.not_run !== 0 ||
       ux.source.commit !== journey.commit || ux.source.sourceDigest !== journey.sourceDigest || ux.source.dirty !== false || ux.source.commit === null ||
       ux.source.sourceDigest === null || ux.cases.filter(row => row.status === 'passed').length !== UX_CASES.length || ux.uncertainty === null) invalid();
   return true;

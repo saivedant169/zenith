@@ -17,8 +17,17 @@ export function containsExpected(actual: unknown, expected: unknown): boolean {
   return actual === expected;
 }
 
+// DefaultTolerationSeconds admission appends these to every pod; they only delay eviction from a failed node.
+const ADMISSION_TOLERATIONS = ["node.kubernetes.io/not-ready", "node.kubernetes.io/unreachable"];
+function withoutAdmissionTolerations(actual: unknown, expected: unknown): unknown {
+  const live = dig(actual, "tolerations"), wanted = dig(expected, "tolerations");
+  if (!isRecord(actual) || !Array.isArray(live) || !Array.isArray(wanted)) return actual;
+  return { ...actual, tolerations: live.filter(t => !(isRecord(t) && Object.keys(t).length === 4 && ADMISSION_TOLERATIONS.includes(t.key as string) && t.operator === "Exists"
+    && t.effect === "NoExecute" && Number.isInteger(t.tolerationSeconds) && (t.tolerationSeconds as number) > 0 && !wanted.some(w => isRecord(w) && w.key === t.key))) };
+}
+
 export function assertPod(actual: unknown, expected: unknown): void {
-  if (!containsExpected(actual, expected)) throw new StepFailedError("The executed pod differs from its isolated build request.");
+  if (!containsExpected(withoutAdmissionTolerations(actual, expected), expected)) throw new StepFailedError("The executed pod differs from its isolated build request.");
   const p = actual;
   for (const field of ["hostNetwork", "hostPID", "hostIPC", "shareProcessNamespace"]) if (dig(p, field) === true) throw new StepFailedError("Host namespaces are forbidden for isolated execution.");
   for (const field of ["initContainers", "ephemeralContainers", "hostAliases"]) {

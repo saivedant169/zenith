@@ -151,4 +151,13 @@ describe("published OCI provenance (contract)",()=>{
     for (const o of [...renderBaseline(config), ...renderProxy(config), renderJob(config, request), renderJob(config, request, true, "node-a")]) walk(o, o.kind + "/" + o.metadata.name);
     expect(dropped).toEqual([]);
   });
+  it("admits only the exact DefaultTolerationSeconds tolerations admission adds to the executed pod", () => {
+    const expected = dig(renderJob(config, request), "spec", "template", "spec") as { tolerations: Record<string, unknown>[] };
+    const admitted = (extra: Record<string, unknown>[]) => ({ ...clone(expected) as Record<string, unknown>, tolerations: [...clone(expected.tolerations) as Record<string, unknown>[], ...extra] });
+    const defaults = ["node.kubernetes.io/not-ready", "node.kubernetes.io/unreachable"].map(key => ({ key, operator: "Exists", effect: "NoExecute", tolerationSeconds: 300 }));
+    expect(() => assertPod(admitted(defaults), expected)).not.toThrow();
+    for (const extra of [{ operator: "Exists" }, { ...defaults[0], effect: "NoSchedule" }, { ...defaults[0], tolerationSeconds: undefined }, { ...defaults[1], value: "x" }, { key: "zenith.dev/build-tenant", operator: "Exists" }])
+      expect(() => assertPod(admitted([JSON.parse(JSON.stringify(extra))]), expected)).toThrow(/differs/);
+  });
 });
+

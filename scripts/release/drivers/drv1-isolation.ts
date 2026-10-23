@@ -73,7 +73,12 @@ export function prepareIsolation(env: NodeJS.ProcessEnv, exec: Run = run): { nod
     ensure(exec("docker", ["exec", name, `${dir}/runsc`, "--version"]).includes(release), "gvisor-release");
     exec("docker", ["exec", "-i", name, "tee", `${dir}/runsc.toml`], `binary_name = "${dir}/runsc"\n[runsc_config]\n  platform = "systrap"\n  systemd-cgroup = "true"\n`);
     exec("docker", ["exec", "-i", name, "tee", "/etc/containerd/config.toml"], config);
+    // kind nodes do not mount securityfs, so kubelet and containerd see AppArmor as disabled and refuse the Localhost profile.
+    // Both cache that host check at start; mount first, then restart both.
+    exec("docker", ["exec", name, "sh", "-c", "mountpoint -q /sys/kernel/security || mount -t securityfs securityfs /sys/kernel/security"]);
+    ensure(/^zenith-build \(enforce\)$/m.test(exec("docker", ["exec", name, "cat", "/sys/kernel/security/apparmor/profiles"])), "apparmor-profile-visible");
     exec("docker", ["exec", name, "systemctl", "restart", "containerd"]);
+    exec("docker", ["exec", name, "systemctl", "restart", "kubelet"]);
     exec("docker", ["exec", name, "mkdir", "-p", "/var/lib/kubelet/seccomp"]);
     exec("docker", ["exec", "-i", name, "tee", "/var/lib/kubelet/seccomp/zenith-build.json"], readFileSync(path.join(PROFILES, "zenith-build-seccomp.json")));
     // Preload the digest-pinned CNI images so kubelet never resolves a tag.

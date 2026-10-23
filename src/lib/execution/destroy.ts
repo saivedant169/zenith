@@ -5,6 +5,7 @@
  * and apply. Missing proves absence; inaccessible/unknown/simulated never does.
  * Cloud execution is unverified live; tests exercise contracts and local tofu.
  */
+import { log } from "@/lib/log";
 import { digest } from "@/lib/controlplane/digest";
 import type { ProviderSession } from "@/lib/credentials/types";
 import { PORTABLE_KINDS, type ResourceGraph, type ResourceNode } from "@/lib/resources/types";
@@ -447,6 +448,8 @@ export function createDestroyActivities(rt: Runtime, ports: DestroyProviderPorts
             summary: { engine: "provider-teardown", destroy: true, planDigest, matchesReviewed: result.deleted.every((ref) => reviewedAddresses.includes(ref)), ...result }, simulated: false }, { critical: true });
           return { deleted: result.deleted.length };
         } catch (error) {
+          // The operation keeps a fixed sentence; the operator log keeps the cause (redacted by log).
+          log.warn("provider teardown outcome unconfirmed", { scope: "destroy", operationId, error });
           if (effects && effect) await uncertainCleanupEffect(effects, effect, "Provider teardown outcome is unconfirmed; partial deletion is possible.");
           await rt.d.ops.markUncertain({ workspaceId: ec.workspaceId, operationId, reason: "Provider teardown outcome is unconfirmed; partial deletion is possible." }).catch(() => undefined);
           if (error instanceof LeaseLostError) throw error;

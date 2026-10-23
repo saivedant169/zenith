@@ -6,7 +6,11 @@ import { NextRequest } from "next/server";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
+import { execFile } from "node:child_process";
+import { readFile } from "node:fs/promises";
+import { createServer as createHttpsServer, request as httpsRequest } from "node:https";
+import type { AddressInfo } from "node:net";
 import { openLaunchPlatform, seedLaunchParent } from "./launch-platform";
 import { archive, launchFixture, FakeContainerRuntime } from "./launcher-support";
 import { signManifest } from "./support";
@@ -58,6 +62,8 @@ import { runCli, HELP } from "@/cli/main";
 import { tokenDigest } from "@/cli/plugins/authority";
 import { handleMcp } from "@/lib/agent-access/v3/server";
 import type { McpRuntime } from "@/lib/agent-access/v3/runtime";
+import { DockerRuntime } from "@/cli/plugins/runtime";
+import { signedPortion } from "@/lib/plugins/manifest";
 
 let platform: Awaited<ReturnType<typeof openLaunchPlatform>>;
 let f: ReturnType<typeof launchFixture>;
@@ -66,7 +72,8 @@ let registration: repos.plugins.PluginRegistration;
 let directory: string;
 let manifestPath: string;
 const workspaces: string[] = [];
-const origin = "https://zenith.example.test";
+// The Docker join reassigns this to its reachable HTTPS origin and restores it.
+let origin = "https://zenith.example.test";
 const routeContext = { params: Promise.resolve({}) };
 const body = () => ({ registrationId: registration.id, manifestDigest: registration.manifestDigest,
   credentialId: parent.id, projectIds: ["proj-a"], environmentIds: ["env-a"], minutes: 60 });
@@ -324,4 +331,80 @@ describe("main CLI dispatch and real revocation joining the supervisor", () => {
     const unknown = `za_${randomBytes(32).toString("base64url")}`;
     expect((await revokeToken(revokeRequest(unknown), revokeDeps())).status).toBe(200);
   });
+});
+
+// Registered owner-run case: fails as skipped (never green) unless a networked PostgreSQL server is configured.
+describe.skipIf(!process.env.ZENITH_TEST_PLATFORM_PG_URL)("plugin launch authority on native PostgreSQL [postgres; postgres needs ZENITH_TEST_PLATFORM_PG_URL]", () => {
+  it("issues, checks and revokes a launch child against a networked PostgreSQL server, not PGlite", async () => {
+    const [server] = await platform.db.query<{ networked: boolean }>("select inet_server_addr() is not null as networked");
+    expect(server.networked).toBe(true);
+    const child = await issued(); expect((await launchCheck(checkRequest(child.token))).status).toBe(200);
+    expect((await revokeToken(revokeRequest(child.token), revokeDeps())).status).toBe(200);
+    expect((await launchCheck(checkRequest(child.token))).status).toBe(401);
+  });
+});
+
+/** Real routes over real PostgreSQL joined to the actual Docker sandbox: the server-side
+ * revocation decision, not a fixture flag, must stop and remove the running containers. */
+const dockerJoin = process.env.ZENITH_TEST_PLUGIN_DOCKER === "1" && Boolean(process.env.ZENITH_TEST_PLATFORM_PG_URL);
+describe.skipIf(!dockerJoin)("real revocation stopping a real Docker sandbox [docker; needs ZENITH_TEST_PLUGIN_DOCKER=1, ZENITH_TEST_PLATFORM_PG_URL, pinned Node22 image, generated TLS files]", () => {
+  it("PostgreSQL-backed RFC revocation of the launched child stops and removes the actual sandbox", async () => {
+    const image = process.env.ZENITH_PLUGIN_SANDBOX_IMAGE, certFile = process.env.ZENITH_PLUGIN_TEST_TLS_CERT_FILE, keyFile = process.env.ZENITH_PLUGIN_TEST_TLS_KEY_FILE;
+    if (!image || !certFile || !keyFile) throw new Error("The Docker join requires the sandbox image digest and generated TLS cert/key files; see PROD-UX-03.md");
+    const [cert, key] = await Promise.all([readFile(certFile), readFile(keyFile)]);
+    const docker = (args: string[]) => new Promise<string>((done, reject) => execFile("docker", args, { timeout: 15_000 }, (error, out) => error ? reject(error) : done(out.trim())));
+    const owned = async (kind: "ps" | "volume") => (await docker(kind === "ps" ? ["ps", "-aq", "--filter", "label=zenith.plugin.launch"] : ["volume", "ls", "-q", "--filter", "label=zenith.plugin.launch"])).split(/\s+/).filter(Boolean);
+    expect(await owned("ps")).toEqual([]);
+    const bytes = archive([{ name: "main.mjs", content: "process.on('SIGTERM', () => {}); setInterval(() => {}, 1000);" }]);
+    let served: (path: string, request: NextRequest) => Response | Promise<Response> = () => new Response("{}", { status: 404 });
+    const server = createHttpsServer({ cert, key }, async (req, res) => {
+      const chunks: Buffer[] = []; for await (const chunk of req) chunks.push(Buffer.from(chunk));
+      const headers = new Headers(); for (const [name, value] of Object.entries(req.headers)) if (typeof value === "string") headers.set(name, value);
+      const response = await served(req.url ?? "", new NextRequest(`${origin}${req.url}`, { method: req.method, headers, body: chunks.length ? Buffer.concat(chunks) : undefined }));
+      res.writeHead(response.status, { "content-type": response.headers.get("content-type") ?? "application/json" }); res.end(Buffer.from(await response.arrayBuffer()));
+    });
+    await new Promise<void>((done) => server.listen(0, "0.0.0.0", done));
+    const saved = origin;
+    origin = `https://host.docker.internal:${(server.address() as AddressInfo).port}`; vi.stubEnv("ZENITH_AGENT_ORIGIN", origin);
+    try {
+      const unsigned = signedPortion(f.manifest);
+      unsigned.artifact = { format: "tar.gz", url: `${origin}/archive.tgz`, digest: `sha256:${createHash("sha256").update(bytes).digest("hex")}` };
+      f.manifest = signManifest({ ...unsigned, version: "1.0.2" }, f.publisher.privateKey);
+      const pending = await registerPlugin(state.deps!, { workspaceId: currentWorkspace, manifest: f.manifest, requestedBy: "bob" });
+      registration = await reviewPlugin(state.deps!, { workspaceId: currentWorkspace, registrationId: pending.id, manifestDigest: pending.manifestDigest,
+        decision: "approve", tools: ["zenith_get_topology"], scopes: ["read"], reviewedBy: "bob" });
+      await writeFile(manifestPath, JSON.stringify(f.manifest));
+      const child = await issued();
+      served = (path, request) => path === "/archive.tgz" ? new Response(new Uint8Array(bytes)) :
+        path === "/api/integrations/plugins/launch/check" ? launchCheck(request) :
+        path === "/api/agent/oauth/revoke" ? revokeToken(request, revokeDeps()) : new Response("{}", { status: 404 });
+      // Host side reaches the same server on loopback with the generated certificate's name.
+      const fetcher: typeof fetch = (input, init) => new Promise<Response>((done, reject) => {
+        const body = typeof init?.body === "string" ? init.body : init?.body instanceof URLSearchParams ? init.body.toString() : undefined;
+        const req = httpsRequest(new URL(String(input)), { hostname: "127.0.0.1", servername: "host.docker.internal", ca: cert, method: init?.method,
+          headers: Object.fromEntries(new Headers(init?.headers)), signal: init?.signal ?? undefined }, (res) => {
+          const parts: Buffer[] = []; res.on("data", (part: Buffer) => parts.push(part));
+          res.on("end", () => done(new Response(Buffer.concat(parts), { status: res.statusCode, headers: { "content-type": String(res.headers["content-type"] ?? "application/octet-stream") } })));
+        });
+        req.on("error", reject); req.end(body);
+      });
+      const keys = f.publisher.publishers.get("acme")!;
+      const env = { ZENITH_PLUGIN_TRUSTED_PUBLISHERS: JSON.stringify({ acme: keys.map((k) => ({ keyId: k.keyId, publicKey: k.key.export({ format: "der", type: "spki" }).subarray(-32).toString("base64") })) }) };
+      const common = ["--url", origin, "--workspace", currentWorkspace, "--json"];
+      const stdout = vi.fn(); const stderr = vi.fn();
+      const running = runCli(["plugin", "run", ...common, "--manifest", manifestPath, "--digest", registration.manifestDigest, "--registration", registration.id,
+        "--image", image, "--server", "zenith", "--ca-file", certFile], { env, fetch: fetcher, stdout, stderr, pluginRuntime: new DockerRuntime(), stdin: stdin(child.token) });
+      await vi.waitFor(async () => expect(await docker(["ps", "-q", "--filter", "label=zenith.plugin.launch"])).toMatch(/\S+\s+\S+/), { timeout: 60_000, interval: 500 });
+      expect(await runCli(["plugin", "revoke", ...common, "--registration", registration.id, "--digest", registration.manifestDigest, "--token-stdin"],
+        { env, fetch: fetcher, stdout, stderr, stdin: stdin(child.token) })).toBe(0);
+      expect(await running).toBe(3);
+      await vi.waitFor(async () => { expect(await owned("ps")).toEqual([]); expect(await owned("volume")).toEqual([]); }, { timeout: 30_000, interval: 500 });
+      const [grant] = await platform.db.query<{ revoked: boolean }>("select revoked_at is not null as revoked from platform.plugin_grants where id=$1", [child.grantId]);
+      expect(grant.revoked).toBe(true);
+      expect((await launchCheck(checkRequest(child.token))).status).toBe(401);
+      expect(stdout.mock.calls.join() + stderr.mock.calls.join()).not.toContain(child.token);
+    } finally {
+      origin = saved; server.closeAllConnections(); await new Promise<void>((done) => server.close(() => done()));
+    }
+  }, 120_000);
 });

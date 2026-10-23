@@ -3,8 +3,9 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { gzipSync, gunzipSync } from "node:zlib";
+import { createHash } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { unpack } from "../../deploy/plugin-sandbox/runner.mjs";
+import { checkBootstrap, unpack } from "../../deploy/plugin-sandbox/runner.mjs";
 import { allowRpc, gatewayHandler, sameLease } from "../../deploy/plugin-sandbox/gateway.mjs";
 import { socketFetch } from "../../deploy/plugin-sandbox/transport.mjs";
 import { archive, launchFixture } from "../plugins/launcher-support";
@@ -101,4 +102,14 @@ it("the Node fetch adapter reaches only the MCP socket and drops caller credenti
     await expect(adapter(f.binding.audience, { method: "GET" })).rejects.toThrow("plugin_transport_refused");
     expect(seen).toHaveLength(1);
   } finally { server.closeAllConnections(); await new Promise<void>((done) => server.close(() => done())); }
+});
+
+describe("plugin runner bootstrap", () => {
+  it("refuses a plugin bootstrap that carries any token and accepts the gateway-free form", () => {
+    const bytes = Buffer.from("artifact"); const artifactDigest = createHash("sha256").update(bytes).digest("hex");
+    const input = { binding: { credentialDigest: "0".repeat(64) }, artifactDigest };
+    expect(() => checkBootstrap(input, bytes)).not.toThrow();
+    for (const token of [`za_${"a".repeat(43)}`, "", undefined]) expect(() => checkBootstrap({ ...input, token }, bytes)).toThrow("invalid_bootstrap");
+    expect(() => checkBootstrap({ ...input, artifactDigest: "1".repeat(64) }, bytes)).toThrow("invalid_bootstrap");
+  });
 });

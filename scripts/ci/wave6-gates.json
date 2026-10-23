@@ -1208,10 +1208,7 @@
       "prerequisites": [
         "ZENITH_PLUGIN_SANDBOX_IMAGE",
         "ZENITH_PLUGIN_TEST_TLS_CERT_FILE",
-        "ZENITH_PLUGIN_TEST_TLS_KEY_FILE",
-        "ZENITH_TOKEN",
-        "ZENITH_MCP_SOCKET",
-        "ZENITH_MCP_PATH"
+        "ZENITH_PLUGIN_TEST_TLS_KEY_FILE"
       ]
     },
     {
@@ -1227,10 +1224,7 @@
       "prerequisites": [
         "ZENITH_PLUGIN_SANDBOX_IMAGE",
         "ZENITH_PLUGIN_TEST_TLS_CERT_FILE",
-        "ZENITH_PLUGIN_TEST_TLS_KEY_FILE",
-        "ZENITH_TOKEN",
-        "ZENITH_MCP_SOCKET",
-        "ZENITH_MCP_PATH"
+        "ZENITH_PLUGIN_TEST_TLS_KEY_FILE"
       ]
     },
     {
@@ -1246,10 +1240,53 @@
       "prerequisites": [
         "ZENITH_PLUGIN_SANDBOX_IMAGE",
         "ZENITH_PLUGIN_TEST_TLS_CERT_FILE",
+        "ZENITH_PLUGIN_TEST_TLS_KEY_FILE"
+      ]
+    },
+    {
+      "file": "tests/plugins/service.test.ts",
+      "suite": "plugin service on native PostgreSQL [postgres; postgres needs ZENITH_TEST_PLATFORM_PG_URL]",
+      "test": "persists review, issuance and grant revocation in a networked PostgreSQL server, not PGlite",
+      "fullName": "plugin service on native PostgreSQL [postgres; postgres needs ZENITH_TEST_PLATFORM_PG_URL] persists review, issuance and grant revocation in a networked PostgreSQL server, not PGlite",
+      "id": "wave6-133824cc8cbd87d4",
+      "lane": "postgres",
+      "gates": [
+        "ZENITH_TEST_PLATFORM_PG_URL"
+      ],
+      "prerequisites": [
+        "ZENITH_TEST_PLATFORM_PG_URL"
+      ]
+    },
+    {
+      "file": "tests/plugins/launch-integration.test.ts",
+      "suite": "plugin launch authority on native PostgreSQL [postgres; postgres needs ZENITH_TEST_PLATFORM_PG_URL]",
+      "test": "issues, checks and revokes a launch child against a networked PostgreSQL server, not PGlite",
+      "fullName": "plugin launch authority on native PostgreSQL [postgres; postgres needs ZENITH_TEST_PLATFORM_PG_URL] issues, checks and revokes a launch child against a networked PostgreSQL server, not PGlite",
+      "id": "wave6-4f4f1f7601a66aa9",
+      "lane": "postgres",
+      "gates": [
+        "ZENITH_TEST_PLATFORM_PG_URL"
+      ],
+      "prerequisites": [
+        "ZENITH_TEST_PLATFORM_PG_URL"
+      ]
+    },
+    {
+      "file": "tests/plugins/launch-integration.test.ts",
+      "suite": "real revocation stopping a real Docker sandbox [docker; needs ZENITH_TEST_PLUGIN_DOCKER=1, ZENITH_TEST_PLATFORM_PG_URL, pinned Node22 image, generated TLS files]",
+      "test": "PostgreSQL-backed RFC revocation of the launched child stops and removes the actual sandbox",
+      "fullName": "real revocation stopping a real Docker sandbox [docker; needs ZENITH_TEST_PLUGIN_DOCKER=1, ZENITH_TEST_PLATFORM_PG_URL, pinned Node22 image, generated TLS files] PostgreSQL-backed RFC revocation of the launched child stops and removes the actual sandbox",
+      "id": "wave6-f6024a096cc38daa",
+      "lane": "docker",
+      "gates": [
+        "ZENITH_TEST_PLUGIN_DOCKER",
+        "ZENITH_TEST_PLATFORM_PG_URL"
+      ],
+      "prerequisites": [
+        "ZENITH_PLUGIN_SANDBOX_IMAGE",
+        "ZENITH_PLUGIN_TEST_TLS_CERT_FILE",
         "ZENITH_PLUGIN_TEST_TLS_KEY_FILE",
-        "ZENITH_TOKEN",
-        "ZENITH_MCP_SOCKET",
-        "ZENITH_MCP_PATH"
+        "ZENITH_TEST_PLATFORM_PG_URL"
       ]
     },
     {

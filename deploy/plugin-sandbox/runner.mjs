@@ -62,13 +62,17 @@ export async function bootstrapInput(stream = process.stdin) {
   return JSON.parse(input);
 }
 
+/** The gateway alone holds the child token; a plugin bootstrap that carries any token is refused. */
+export function checkBootstrap(input, bytes) {
+  if (!input || typeof input !== "object" || "token" in input || typeof input.binding?.credentialDigest !== "string" ||
+      createHash("sha256").update(bytes).digest("hex") !== input.artifactDigest) throw new Error("invalid_bootstrap");
+}
+
 async function main() {
   if (!process.versions.node.startsWith("22.")) throw new Error("node22_required");
   const input = await bootstrapInput();
   const bytes = await readFile("/zenith/artifact.tgz");
-  // The gateway alone holds the child token; a plugin bootstrap that carries any token is refused.
-  if ("token" in input || typeof input.binding?.credentialDigest !== "string" ||
-      createHash("sha256").update(bytes).digest("hex") !== input.artifactDigest) throw new Error("invalid_bootstrap");
+  checkBootstrap(input, bytes);
   await unpack(bytes, "/work/plugin");
   const args = input.args.map((arg) => arg.replaceAll("${CLAUDE_PLUGIN_ROOT}", "/work/plugin"));
   const entry = resolve(args[0]);

@@ -301,3 +301,18 @@ describe("MCP authentication path (real service, real SQL)", () => {
     expect(principal.plugin?.registrationId).toBe(reg.id);
   });
 });
+
+// Registered owner-run case: fails as skipped (never green) unless a networked PostgreSQL server is configured.
+describe.skipIf(!PG_URL)("plugin service on native PostgreSQL [postgres; postgres needs ZENITH_TEST_PLATFORM_PG_URL]", () => {
+  it("persists review, issuance and grant revocation in a networked PostgreSQL server, not PGlite", async () => {
+    const [server] = await database.query<{ networked: boolean }>("select inet_server_addr() is not null as networked");
+    expect(server.networked).toBe(true);
+    const h = await harness(); const reg = await approved(h); const { token, grant } = await issue(h, reg.id);
+    expect((await authenticatePluginToken(h.deps, token, AUD)).plugin?.grantId).toBe(grant.id);
+    await revokePluginGrant(h.deps, { workspaceId: h.ws, grantId: grant.id, revokedBy: "bob" });
+    const [row] = await database.query<{ revoked: boolean; hashed: boolean }>(
+      "select revoked_at is not null as revoked, token_hash <> $2 as hashed from platform.plugin_grants where id=$1", [grant.id, token]);
+    expect(row).toEqual({ revoked: true, hashed: true });
+    expect(await failsWith(authenticatePluginToken(h.deps, token, AUD))).toBe("plugin_grant_invalid");
+  });
+});

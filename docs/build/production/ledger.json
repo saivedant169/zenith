@@ -7588,7 +7588,7 @@
         "PROD-CI-09"
       ],
       "implementationStatus": "implementation_complete_verification_pending",
-      "implementationNote": "J3 adds TOTP screens, fail-closed AAL2 guard, migration 57 workspace-owned MFA controls with transactional audit, admin API/UI, audited legacy cancellation and local Auth enablement. Targeted checks are recorded in verify/PROD-UX-01.md; the shared event sentence-map typecheck join, operated PostgreSQL/browser/axe/NVDA and assembled joins remain pending.",
+      "implementationNote": "2026-10-23: hosted two-architecture UX (receipt schema 3: ten audited groups including connection onboarding and administration, axe WCAG 2.1 A/AA at two viewports, keyboard-only reachability, measured browser), real-browser MFA enrollment/step-up/workspace controls against fresh real-UI admins, and local MFA PostgreSQL lanes. See verify/PROD-UX-01.md 'Hosted acceptance, 2026-10-23'. Earlier pending notes are superseded.",
       "evidence": [
         {
           "level": "contract",

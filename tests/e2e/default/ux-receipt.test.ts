@@ -4,14 +4,14 @@ import path from 'node:path';
 import { createHash, randomBytes } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { CHECKS, receipt as projectJourneyReceipt } from './receipt.mjs';
-import { assertUxAcceptance, makeUxReceipt, writeUxReceipt, UX_CASES, UX_TAGS, UX_VIEWPORT_LABELS, validateCompletedJourney, validateUxReceipt } from './ux-receipt.mjs';
+import { assertUxAcceptance, makeUxReceipt, writeUxReceipt, UX_CASES, UX_CASES_V2, UX_TAGS, UX_VIEWPORT_LABELS, validateCompletedJourney, validateUxReceipt } from './ux-receipt.mjs';
 
 const source = { commit: 'a'.repeat(40), sourceDigest: 'b'.repeat(64), dirty: false };
 type UxCaseStatus = 'passed' | 'failed' | 'not_run';
 type UxInputCase = {
   id: string;
   status: UxCaseStatus;
-  scans: { pageId: string; viewport: string; violations: { id: string; impact?: string | null }[]; horizontalOverflow: boolean }[];
+  scans: { pageId: string; viewport: string; violations: { id: string; impact?: string | null }[]; horizontalOverflow: boolean; keyboard?: { total: number; reached: number } }[];
 };
 type UxReceiptCase = {
   id: string;
@@ -32,7 +32,10 @@ type UxUncertaintyEvidence = {
   ui: { operationId: string; persistedStatus: string; uncertainState: boolean; callout: string; nextSteps: string[] };
   closeout: { runStatus: string; stepStatus: string; brokerStatus: string; machineId: string; machineStatus: string; containerId: string; containerRunLabel: string; containerRunning: boolean; requestCount: number; authorizationCount: number; observed: number };
 };
-type UxInput = { source: typeof source; cases: UxInputCase[]; uncertainty: UxUncertaintyEvidence | null };
+type UxInput = { source: typeof source; cases: UxInputCase[]; uncertainty: UxUncertaintyEvidence | null; browser: string };
+const BROWSER = 'Google Chrome 141.0.7390.54 via Playwright';
+const scan = (pageId: string, viewport: string) => ({ pageId, viewport, violations: [], horizontalOverflow: false,
+  ...(viewport === '1280x900' ? { keyboard: { total: 4, reached: 4 } } : {}) });
 const uncertaintyEvidence = (): UxUncertaintyEvidence => {
   const runId = '11111111-1111-4111-8111-111111111111';
   const machineId = 'machine_test';
@@ -65,18 +68,16 @@ const uncertaintyEvidence = (): UxUncertaintyEvidence => {
       containerId: '4'.repeat(64), containerRunLabel: `${fixtureRunId}-obs`, containerRunning: false, requestCount: 1, authorizationCount: 1, observed: 7 },
   };
 };
-const uxInput = (): UxInput => ({ source, uncertainty: null, cases: UX_CASES.map(spec => {
+const uxInput = (): UxInput => ({ source, uncertainty: null, browser: BROWSER, cases: UX_CASES.map(spec => {
   const status: UxCaseStatus = spec.id === 'ux01-uncertainty-a11y' ? 'not_run' : 'passed';
-  return { id: spec.id, status, scans: status === 'not_run' ? [] : spec.pages.flatMap(pageId => UX_VIEWPORT_LABELS.map(viewport => ({
-    pageId, viewport, violations: [], horizontalOverflow: false,
-  }))) };
+  return { id: spec.id, status, scans: status === 'not_run' ? [] : spec.pages.flatMap(pageId => UX_VIEWPORT_LABELS.map(viewport => scan(pageId, viewport))) };
 }) });
 const completeUxInput = (): UxInput => {
   const input = uxInput();
   const uncertaintyCase = input.cases.find(row => row.id === 'ux01-uncertainty-a11y');
   if (!uncertaintyCase) throw new Error('UX input is missing the uncertainty case.');
   uncertaintyCase.status = 'passed';
-  uncertaintyCase.scans = UX_VIEWPORT_LABELS.map(viewport => ({ pageId: 'operation-uncertain', viewport, violations: [], horizontalOverflow: false }));
+  uncertaintyCase.scans = UX_VIEWPORT_LABELS.map(viewport => scan('operation-uncertain', viewport));
   input.uncertainty = uncertaintyEvidence();
   return input;
 };
@@ -105,7 +106,7 @@ describe('PROD-UX-01 actual-browser receipt contract', () => {
   it('preserves the existing scan shape and makes the unimplemented uncertainty case incomplete', () => {
     const receipt = makeUxReceipt(uxInput());
     expect(receipt).toMatchObject({ requirementId: 'PROD-UX-01', kind: 'actual_browser', result: 'incomplete',
-      counts: { passed: 7, failed: 0, not_run: 1 }, axeTags: [...UX_TAGS], viewports: [...UX_VIEWPORT_LABELS] });
+      counts: { passed: UX_CASES.length - 1, failed: 0, not_run: 1 }, browser: BROWSER, axeTags: [...UX_TAGS], viewports: [...UX_VIEWPORT_LABELS] });
     const uncertainty = receipt.cases.find((row: UxReceiptCase) => row.id === 'ux01-uncertainty-a11y');
     if (!uncertainty) throw new Error('UX receipt is missing the uncertainty case.');
     expect(uncertainty).toMatchObject({ status: 'not_run', scans: [] });
@@ -114,7 +115,7 @@ describe('PROD-UX-01 actual-browser receipt contract', () => {
     const firstScan = operationReview.scans[0];
     if (!firstScan) throw new Error('UX operation review case is missing its first viewport scan.');
     expect(firstScan).toEqual({
-      pageId: 'operation-requester-review', viewport: '1280x900', violations: [], horizontalOverflow: false,
+      pageId: 'operation-requester-review', viewport: '1280x900', violations: [], horizontalOverflow: false, keyboard: { total: 4, reached: 4 },
     });
     expect(validateUxReceipt(receipt)).toBe(receipt);
   });
@@ -147,13 +148,15 @@ describe('PROD-UX-01 actual-browser receipt contract', () => {
 
   it('requires a closed, joined uncertainty proof and both uncertainty viewport scans to pass', () => {
     const complete = makeUxReceipt(completeUxInput());
-    expect(complete).toMatchObject({ schemaVersion: 2, result: 'passed', counts: { passed: 8, failed: 0, not_run: 0 }, uncertainty: { marker: { nonceMatch: true } } });
+    expect(complete).toMatchObject({ schemaVersion: 3, result: 'passed', counts: { passed: UX_CASES.length, failed: 0, not_run: 0 }, uncertainty: { marker: { nonceMatch: true } } });
     expect(complete.cases.find((row: UxReceiptCase) => row.id === 'ux01-uncertainty-a11y')?.scans).toHaveLength(2);
     expect(assertUxAcceptance(complete, journey())).toBe(true);
 
-    const { uncertainty: legacyProof, ...legacyFields } = makeUxReceipt(uxInput());
-    expect(legacyProof).toBeNull();
-    const oldSevenScreen = { ...legacyFields, schemaVersion: 1 };
+    // A historical schema-1 receipt: eight groups, fixed browser label, no keyboard field, uncertainty not run.
+    const legacyCases = UX_CASES_V2.map((spec, index) => index === UX_CASES_V2.length - 1 ? { id: spec.id, status: 'not_run', scans: [] }
+      : { id: spec.id, status: 'passed', scans: spec.pages.flatMap(pageId => UX_VIEWPORT_LABELS.map(viewport => ({ pageId, viewport, violations: [], horizontalOverflow: false }))) });
+    const oldSevenScreen = { schemaVersion: 1, requirementId: 'PROD-UX-01', kind: 'actual_browser', browser: 'Google Chrome via Playwright',
+      viewports: [...UX_VIEWPORT_LABELS], axeTags: [...UX_TAGS], source, counts: { passed: 7, failed: 0, not_run: 1 }, result: 'incomplete', cases: legacyCases };
     expect(validateUxReceipt(oldSevenScreen)).toBe(oldSevenScreen);
     expect(() => assertUxAcceptance(oldSevenScreen, journey())).toThrow('ux01:receipt-invalid');
 
@@ -249,10 +252,10 @@ describe('PROD-UX-01 actual-browser receipt contract', () => {
     if (!failedCase) throw new Error('UX input is missing the uncertainty case.');
     failedCase.status = 'failed';
     failedCase.scans = [{ pageId: 'operation-uncertain', viewport: '1280x900',
-      violations: [{ id: 'color-contrast', impact: 'serious' }], horizontalOverflow: false }];
+      violations: [{ id: 'color-contrast', impact: 'serious' }], horizontalOverflow: false, keyboard: { total: 4, reached: 3 } }];
     failedPartial.uncertainty = null;
     const retainedFailure = makeUxReceipt(failedPartial);
-    expect(retainedFailure).toMatchObject({ result: 'failed', counts: { passed: 7, failed: 1, not_run: 0 } });
+    expect(retainedFailure).toMatchObject({ result: 'failed', counts: { passed: UX_CASES.length - 1, failed: 1, not_run: 0 } });
     expect(retainedFailure.cases.find((row: UxReceiptCase) => row.id === 'ux01-uncertainty-a11y')).toMatchObject({
       status: 'failed', scans: [{ pageId: 'operation-uncertain', viewport: '1280x900', violations: [{ id: 'color-contrast', impact: 'serious' }] }],
     });
@@ -264,6 +267,17 @@ describe('PROD-UX-01 actual-browser receipt contract', () => {
       expect(() => validateCompletedJourney({ ...journey, telemetryStates: { ...journey.telemetryStates, metric: "not-a-state" } })).toThrow(/receipt-invalid/);
       expect(() => validateCompletedJourney({ ...journey, environment: { ...journey.environment, host: "Windows AMD64" } })).toThrow(/receipt-invalid/);
     }
+  });
+  it("schema 3: refuses an unmeasured browser label and a passed page whose controls Tab cannot reach", () => {
+    const complete = completeUxInput();
+    expect(() => makeUxReceipt({ ...complete, browser: "Google Chrome via Playwright" })).toThrow(/receipt-invalid/);
+    const unreachable = completeUxInput();
+    unreachable.cases[0].scans[0] = { ...unreachable.cases[0].scans[0], keyboard: { total: 5, reached: 4 } };
+    expect(() => makeUxReceipt(unreachable)).toThrow(/receipt-invalid/);
+    const missing = completeUxInput();
+    const { keyboard: _dropped, ...withoutKeyboard } = missing.cases[0].scans[0];
+    missing.cases[0].scans[0] = withoutKeyboard;
+    expect(() => makeUxReceipt(missing)).toThrow(/receipt-invalid/);
   });
 });
 

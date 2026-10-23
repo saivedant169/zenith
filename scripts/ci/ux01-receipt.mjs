@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
  * PROD-UX-01 owner-run receipt for the lanes that run on this machine, on one frozen commit:
- * contract batches, the receipt gate against hosted UX + J2 receipts, the MFA PostgreSQL cases and the
- * Keycloak DCR cases. The hosted J2 + UX + MFA-browser run is recorded by its run id.
+ * contract batches, the receipt gate against hosted UX + J2 receipts and the MFA PostgreSQL cases.
+ * The hosted J2 + UX + MFA-browser run is recorded by its run id.
  *
  *   node scripts/ci/ux01-receipt.mjs <new-output-dir> <hosted-run-id> <downloaded-artifacts-dir>
  *
- * Starts a disposable PostgreSQL and a disposable pinned Keycloak (fixed loopback port 8443) and removes both.
+ * Starts a disposable PostgreSQL and removes it.
  */
 import { execFileSync, spawnSync } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
@@ -64,36 +64,18 @@ try {
     lanes.push({ name: c.id, verifyOf: "mfa-postgres", exit: v.status, output: v.stdout.trim() || v.stderr.trim() });
   }
 } finally { spawnSync("docker", ["rm", "--force", pg]); }
-// Keycloak DCR cases on a disposable pinned issuer.
-const interop = fs.mkdtempSync(path.join(os.tmpdir(), "zenith-interop-")); fs.rmSync(interop, { recursive: true });
-const project = "zenith-interop-" + randomBytes(4).toString("hex");
-sh(node, ["deploy/acceptance/oauth-issuer/prepare.mjs", "--dir", interop, "--zenith-origin", "https://127.0.0.1:3443", "--subject", "interop-member-1"]);
-const compose = ["compose", "-p", project, "--env-file", path.join(interop, "compose.env"), "-f", "deploy/acceptance/oauth-issuer/compose.yaml"];
-try {
-  sh("docker", [...compose, "up", "-d"]);
-  for (let i = 0; i < 90; i++) {
-    if (spawnSync("curl", ["-sf", "--cacert", path.join(interop, "tls/ca.crt"), "https://localhost:8443/realms/zenith-interop/.well-known/openid-configuration", "-o", "/dev/null"]).status === 0) break;
-    await new Promise(r => setTimeout(r, 2000));
-  }
-  const report = path.join(out, "oauth-dcr.json");
-  run("oauth-dcr", [node, "node_modules/vitest/vitest.mjs", "run", "tests/agent-v3/oauth-issuer-live.test.ts", "--no-file-parallelism", "--maxWorkers=2", "--reporter=default", "--reporter=json", "--outputFile", report],
-    { ZENITH_TEST_OAUTH_ISSUER: "1", ZENITH_INTEROP_DIR: interop, NODE_EXTRA_CA_CERTS: path.join(interop, "tls/ca.crt") });
-  for (const c of plan.commands.filter(c => c.gates?.includes("ZENITH_TEST_OAUTH_ISSUER"))) {
-    const v = spawnSync(node, ["scripts/ci/wave6-gates.mjs", "--case", c.id, "--report", report], { encoding: "utf8" });
-    lanes.push({ name: c.id, verifyOf: "oauth-dcr", exit: v.status, output: v.stdout.trim() || v.stderr.trim() });
-  }
-} finally { spawnSync("docker", [...compose, "down", "-v"]); fs.rmSync(interop, { recursive: true, force: true }); }
-const leftovers = { postgres: sh("docker", ["ps", "-aq", "--filter", "name=" + pg]), keycloak: sh("docker", ["ps", "-aq", "--filter", "name=" + project]) };
+const leftovers = { postgres: sh("docker", ["ps", "-aq", "--filter", "name=" + pg]) };
 const after = freeze();
-const notRun = plan.commands.filter(c => c.id && !c.gates?.some(g => ["ZENITH_MFA_PG", "ZENITH_TEST_OAUTH_ISSUER"].includes(g)) && c.id !== "wave6-03be46338cbeb148")
+const notRun = plan.commands.filter(c => c.id && !c.gates?.includes("ZENITH_MFA_PG") && c.id !== "wave6-03be46338cbeb148")
   .map(c => ({ id: c.id, gates: c.gates, ranHere: false }));
 const receipt = { schemaVersion: 1, requirement: "PROD-UX-01", recordedAt: new Date().toISOString(),
   sourceFreeze: { before, after, unchanged: JSON.stringify(before) === JSON.stringify(after) },
   hostedRun: { runId: Number(runId), url: `https://github.com/saivedant169/zenith/actions/runs/${runId}`, receipts: hosted },
+  runner: { file: "scripts/ci/ux01-receipt.mjs", sha256: sha(fs.readFileSync(new URL(import.meta.url))) },
   environment: { host: `${os.type()} ${os.arch()}`, node: process.version, docker: sh("docker", ["version", "--format", "{{.Server.Version}}"]), postgresImage: img },
   lanes, notRunHere: notRun,
   reportSha256: Object.fromEntries(fs.readdirSync(out).filter(f => f.endsWith(".json")).map(f => [f, sha(fs.readFileSync(path.join(out, f)))])),
-  cleanup: { ...leftovers, clean: !leftovers.postgres && !leftovers.keycloak, privateCopiesRemoved: !fs.existsSync(priv), interopRemoved: !fs.existsSync(interop) } };
+  cleanup: { ...leftovers, clean: !leftovers.postgres, privateCopiesRemoved: !fs.existsSync(priv) } };
 const body = JSON.stringify(receipt, null, 2) + "\n";
 fs.writeFileSync(path.join(out, "receipt.json"), body); fs.writeFileSync(path.join(out, "receipt.json.sha256"), sha(body) + "\n");
 console.log(JSON.stringify({ unchanged: receipt.sourceFreeze.unchanged, cleanup: receipt.cleanup.clean, failed: lanes.filter(l => l.exit !== 0 || (l.verify && l.verify.exit !== 0)).map(l => l.name) }));

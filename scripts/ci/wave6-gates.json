@@ -4802,7 +4802,7 @@
         "ZENITH_UX01_BROWSER=1"
       ],
       "prerequisites": [
-        "ZENITH_UX01_CHROME (actual Google Chrome executable)",
+        "ZENITH_UX01_CHROME (Chromium-based browser executable; the UX receipt records the measured brand and version)",
         "ZENITH_UX01_RECEIPT (new absolute owner-private UX receipt in an owner-only mode-0700 directory, file mode 0600, outside checkout)",
         "ZENITH_JOURNEY_RECEIPT (matching absolute owner-private J2 receipt in that same mode-0700 directory, file mode 0600, outside checkout)",
         "Fresh owned J1/J2 browser stack, kind, Mailpit and trusted Chromium CA"
@@ -7374,7 +7374,6 @@
       "tests/agent-v3/envelope.test.ts",
       "tests/agent-v3/execute.test.ts",
       "tests/agent-v3/oauth-issuer-fixture.test.ts",
-      "tests/agent-v3/oauth-issuer-live.test.ts",
       "tests/agent-v3/oauth-metadata.test.ts",
       "tests/agent-v3/oauth-revoke.test.ts",
       "tests/agent-v3/observability-wired.test.ts",
@@ -7420,7 +7419,6 @@
       "tests/cli/follow.test.ts",
       "tests/cli/plugin-launcher-docker.test.ts",
       "tests/cli/plugin-launcher.test.ts",
-      "tests/cli/plugin-platform-live.test.ts",
       "tests/cli/plugin-runtime.test.ts",
       "tests/cli/plugin-sandbox.test.ts",
       "tests/e2e/default/journey.spec.mjs",

@@ -336,3 +336,22 @@ This prints the exact argv for each contract batch and required engine case, its
 Wave 6 maps `tests/e2e/default/ux-receipt.test.ts` and `tests/e2e/default/ux-receipt-gated.test.ts` to `PROD-UX-01`; the actual-browser receipt gate is `wave6-03be46338cbeb148`. The contract test checks the closed receipt schema. The gated test validates the private UX receipt against the completed, source-bound J2 journey receipt and actual Wave 6 report.
 
 This evidence records seven audited screens at the defined desktop and mobile viewports. The planned uncertainty scenario remains `not_run`, so the UX receipt result is `incomplete`; this mapping does not establish full UX acceptance.
+
+## Hosted acceptance, 2026-10-23 (supersedes "pending" statements above)
+- The UX cases run on GitHub-hosted native linux/amd64 and linux/arm64 through `clean-host-journey.yml`
+  (`workflow_dispatch` input `ux`). `scripts/acceptance/ux01-window.mjs` writes the exclusive window from the
+  owned installation's own state. The browser is real Google Chrome where the runner has it (amd64) and
+  Playwright's Chromium on arm64 (Google publishes no Linux ARM64 Chrome); receipt schema 3 records the
+  measured brand and version instead of a fixed label.
+- Schema 3 adds two groups, connection onboarding (`connection-change-review`, the runner-connection review
+  page before the human confirms) and connection administration (`connection-admin`), and a keyboard-only
+  check on every audited page: Tab alone must reach every visible, enabled control (`keyboard` on each
+  desktop scan). Manual screen-reader passes remain outside the automated evidence.
+- MFA: `tests/e2e/default/mfa-fixtures.mjs` creates two fresh admins through the real UI on the same stack;
+  the two registered browser cases (AAL1 refusal, real TOTP enrollment, workspace control save, later
+  step-up) run in the same hosted job. Workspace MFA persistence runs on PostgreSQL.
+- `scripts/ci/ux01-receipt.mjs` runs the local lanes (contract batches, receipt gate per architecture, MFA
+  PostgreSQL) on the same commit.
+- Registry: `oauth-issuer-live.test.ts` belongs to PROD-UX-02 (client OAuth issuer and audience) and
+  `plugin-platform-live.test.ts` to PROD-UX-03's operated level; neither is in UX-01's acceptance text, so
+  both were removed from UX-01's inventory (each remains registered under its owner).

@@ -24,9 +24,34 @@ async function auditUx(page, pageId, axeSource, scans) {
       return { violations: scan.violations.map(({ id, impact }) => ({ id, impact })),
         horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth };
     }, UX_TAGS);
-    scans.push({ pageId, viewport: `${viewport.width}x${viewport.height}`, ...result });
+    // Desktop also proves keyboard-only reachability: Tab alone reaches every visible, enabled control.
+    const keyboard = viewport === UX_VIEWPORTS[0] ? await keyboardReach(page) : undefined;
+    scans.push({ pageId, viewport: `${viewport.width}x${viewport.height}`, ...result, ...(keyboard ? { keyboard } : {}) });
     ensure(result.violations.length === 0 && !result.horizontalOverflow, 'ux01-a11y-scan');
+    ensure(!keyboard || keyboard.reached === keyboard.total, 'ux01-keyboard-reach');
   }
+}
+
+async function keyboardReach(page) {
+  const total = await page.evaluate(() => {
+    const visible = element => element.getClientRects().length > 0 && getComputedStyle(element).visibility !== 'hidden';
+    const controls = [...document.querySelectorAll('a[href],button,input,select,textarea,summary,[tabindex]')]
+      .filter(element => !element.disabled && element.tabIndex >= 0 && element.type !== 'hidden' && visible(element));
+    controls.forEach((element, index) => element.setAttribute('data-ux01-key', String(index)));
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    return controls.length;
+  });
+  const reached = new Set();
+  let previous = null, repeats = 0;
+  try {
+    for (let press = 0; press < total * 2 + 10 && reached.size < total && repeats < 3; press++) {
+      await page.keyboard.press('Tab');
+      const key = await page.evaluate(() => document.activeElement?.getAttribute('data-ux01-key') ?? null);
+      if (key !== null) reached.add(key);
+      repeats = key !== null && key === previous ? repeats + 1 : 0; previous = key;
+    }
+  } finally { await page.evaluate(() => document.querySelectorAll('[data-ux01-key]').forEach(element => element.removeAttribute('data-ux01-key'))); }
+  return { total, reached: reached.size };
 }
 
 const canonicalJson = value => {
@@ -113,7 +138,7 @@ const HEALTH_EVIDENCE_SQL = "select coalesce(json_agg(json_build_object('id',e.i
 
 test('default operated browser, REST, MCP and customer machine journey', async ({ browser }) => {
   let source = {}, stack, config, a, b, machine, healthMachine, linked, runnerProcess, runnerId, runnerName, runnerServiceAccount, runnerConnectionId, runnerDir, runnerCustodyMarker, runnerCaseSucceeded = false, runnerSpawned = false, runnerSpawnError = false, runnerExited = false, runnerClosed = false, workspaceId, project, environmentId, healthResourceId;
-  let uxBrowser, uxA, uxB, axeSource, uxApprovalRecorded = false, uxUncertaintyEvidence, uxOriginalWindow, uxStage = 'not-started', uxOuterCleanupComplete = false, uxFailureStage;
+  let uxBrowserLabel, uxBrowser, uxA, uxB, axeSource, uxApprovalRecorded = false, uxUncertaintyEvidence, uxOriginalWindow, uxStage = 'not-started', uxOuterCleanupComplete = false, uxFailureStage;
   const uxPrivateObservations = [];
   let uxPrivateObservationBytes = 0;
   const captureUxObservation = (name, value) => {
@@ -512,6 +537,11 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       ensure(cliVerified?.ok === true, 'connection-cli-verification');
       if (UX_ENABLED) {
         uxBrowser = await chromium.launch({ executablePath: process.env.ZENITH_UX01_CHROME, headless: true });
+        // The receipt names the browser that actually ran: its brand and version, measured, not configured.
+        const brandPage = await uxBrowser.newPage();
+        const brands = await brandPage.evaluate(() => (navigator.userAgentData?.brands ?? []).map(value => value.brand));
+        await brandPage.close();
+        uxBrowserLabel = `${brands.includes('Google Chrome') ? 'Google Chrome' : 'Chromium'} ${uxBrowser.version()} via Playwright`;
         uxA = await uxBrowser.newContext({ storageState: await a.context().storageState() }).then(context => context.newPage());
         uxB = await uxBrowser.newContext({ storageState: await b.context().storageState() }).then(context => context.newPage());
       }
@@ -640,6 +670,13 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       const review = b.getByRole('checkbox', { name: /I reviewed these exact identifiers/ });
       const confirm = b.getByRole('button', { name: 'Confirm create runner connection', exact: true });
       ensure(!(await review.isChecked()) && await confirm.isDisabled(), 'human-review-default-closed');
+      // PROD-UX-01 onboarding: the same review page, audited in the measured UX browser before the human confirms.
+      if (UX_ENABLED) await uxCase('ux01-connection-onboarding-a11y', async () => {
+        await uxB.goto(draft.data.browserUrl);
+        await uxB.getByRole('heading', { name: 'Review connection change', exact: true }).waitFor();
+        await uxB.getByRole('heading', { name: 'Create runner connection', exact: true }).waitFor();
+        await auditUx(uxB, 'connection-change-review', axeSource, uxCases.find(row => row.id === 'ux01-connection-onboarding-a11y').scans);
+      });
       await review.check();
       const createdResponse = b.waitForResponse(value => value.url().endsWith('/api/platform/v1/connections') &&
         value.request().method() === 'POST');
@@ -655,6 +692,13 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       ensure(after.connections?.some(value => value.id === runnerConnectionId && value.mode === 'runner' &&
         value.provider === 'kubernetes' && value.runnerId === runnerId), 'independent-runner-connection-readback');
       runnerCaseSucceeded = true;
+      // PROD-UX-01 connection administration: both connections listed, audited with axe and keyboard reach.
+      if (UX_ENABLED) await uxCase('ux01-connection-admin-a11y', async () => {
+        await uxA.goto(stack.apiUrl + '/platform/connections');
+        await uxA.getByRole('listitem').filter({ hasText: 'J2 kind ' + runId }).first().waitFor();
+        ensure(await uxA.getByRole('button', { name: 'Verify', exact: true }).count() > 0, 'ux01-connection-admin-actions');
+        await auditUx(uxA, 'connection-admin', axeSource, uxCases.find(row => row.id === 'ux01-connection-admin-a11y').scans);
+      });
       });
     });
     let operationId, deploymentId;
@@ -1607,7 +1651,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
     // Separate UX receipt: the existing 16-id J2 receipt vocabulary is unchanged.
     if (UX_ENABLED) {
       const uxInput = { source: { commit: source.commit, sourceDigest: source.sourceDigest, dirty: source.dirty },
-        cases: uxCases, uncertainty: uxUncertaintyEvidence ?? null };
+        cases: uxCases, uncertainty: uxUncertaintyEvidence ?? null, browser: uxBrowserLabel };
       try { writeUxReceipt(process.env.ZENITH_UX01_RECEIPT, uxInput); }
       catch (error) {
         // A refused receipt keeps its own input beside it (owner-private, never a receipt) so the refusal can be replayed.

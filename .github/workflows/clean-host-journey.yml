@@ -170,7 +170,8 @@ jobs:
             --receipt .data-ci-lane/clean-host-journey-receipt.json --out "$RUNNER_TEMP/ux/window.json" --id "j2-ux-${GITHUB_RUN_ID}-${{ matrix.arch }}"
           {
             echo "ZENITH_UX01_BROWSER=1"
-            echo "ZENITH_UX01_CHROME=$(node -e "console.log(require('@playwright/test').chromium.executablePath())")"
+            # Real Google Chrome where the runner image has it (amd64); Playwright's Chromium otherwise (no Linux ARM64 Chrome).
+            echo "ZENITH_UX01_CHROME=$(command -v google-chrome || node -e "console.log(require('@playwright/test').chromium.executablePath())")"
             echo "ZENITH_UX01_RECEIPT=$RUNNER_TEMP/ux/ux-receipt.json"
             echo "ZENITH_UX01_EXCLUSIVE_WINDOW_FILE=$RUNNER_TEMP/ux/window.json"
             echo "ZENITH_UX01_EXCLUSIVE_WINDOW_ID=j2-ux-${GITHUB_RUN_ID}-${{ matrix.arch }}"

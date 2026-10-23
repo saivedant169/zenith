@@ -33,37 +33,39 @@ async function auditUx(page, pageId, axeSource, scans) {
   }
 }
 
-async function keyboardReach(page) {
-  const total = await page.evaluate(() => {
-    const visible = element => element.getClientRects().length > 0 && getComputedStyle(element).visibility !== 'hidden';
-    const controls = [...document.querySelectorAll('a[href],button,input,select,textarea,summary,[tabindex]')]
-      .filter(element => !element.disabled && element.tabIndex >= 0 && element.type !== 'hidden' && visible(element));
+/**
+ * Tab-reachability of every visible focusable control. Controls are keyed by a stable descriptor recomputed on each
+ * press (tag, type, role, name, label, id, href and occurrence), not a DOM marker: polling pages re-render and
+ * replace nodes mid-scan, which would drop a marker without any control becoming unreachable.
+ */
+const CONTROL_KEYS = () => {
+  const visible = element => element.getClientRects().length > 0 && getComputedStyle(element).visibility !== 'hidden';
+  const controls = [...document.querySelectorAll('a[href],button,input,select,textarea,summary,[tabindex]')]
+    .filter(element => !element.disabled && element.tabIndex >= 0 && element.type !== 'hidden' && visible(element));
+  const seen = new Map(), keys = new Map();
+  for (const element of controls) {
     // A named radio group is one Tab stop by platform convention (arrow keys move within it), so it is one control.
-    const keys = new Map();
-    controls.forEach((element, index) => {
-      const group = element.type === 'radio' && element.name ? 'radio:' + (element.form ? 'f' : 'd') + ':' + element.name : null;
-      if (group && !keys.has(group)) keys.set(group, String(index));
-      element.setAttribute('data-ux01-key', group ? keys.get(group) : String(index));
-    });
-    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
-    return new Set(controls.map(element => element.getAttribute('data-ux01-key'))).size;
-  });
-  const reached = new Set();
-  let previous = null, repeats = 0, missing;
-  try {
-    for (let press = 0; press < total * 2 + 10 && reached.size < total && repeats < 3; press++) {
-      await page.keyboard.press('Tab');
-      const key = await page.evaluate(() => document.activeElement?.getAttribute('data-ux01-key') ?? null);
-      if (key !== null) reached.add(key);
-      repeats = key !== null && key === previous ? repeats + 1 : 0; previous = key;
-    }
-    if (reached.size < total) missing = await page.evaluate(keys => {
-      const element = [...document.querySelectorAll('[data-ux01-key]')].find(value => !keys.includes(value.getAttribute('data-ux01-key')));
-      const clean = value => String(value ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 20);
-      return element ? [clean(element.tagName), clean(element.getAttribute('role')), clean(element.getAttribute('type'))].filter(Boolean).join('-') : 'unknown';
-    }, [...reached]);
-  } finally { await page.evaluate(() => document.querySelectorAll('[data-ux01-key]').forEach(element => element.removeAttribute('data-ux01-key'))); }
-  return { total, reached: reached.size, ...(missing ? { missing } : {}) };
+    const base = element.type === 'radio' && element.name ? 'radio|' + element.name : [element.tagName, element.type ?? '', element.getAttribute('role') ?? '',
+      element.getAttribute('name') ?? '', element.getAttribute('aria-label') ?? '', element.id, element.getAttribute('href') ?? ''].join('|');
+    if (base.startsWith('radio|') && [...keys.values()].includes(base + '#0')) { keys.set(element, base + '#0'); continue; }
+    const n = seen.get(base) ?? 0; seen.set(base, n + 1); keys.set(element, base + '#' + n);
+  }
+  const shape = element => [element.tagName, element.getAttribute('role'), element.getAttribute('type')].map(value => String(value ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 20)).filter(Boolean).join('-');
+  return { keys: [...new Set(keys.values())], active: keys.get(document.activeElement) ?? null, shapes: Object.fromEntries([...keys].map(([element, key]) => [key, shape(element)])) };
+};
+async function keyboardReach(page) {
+  const initial = await page.evaluate(CONTROL_KEYS);
+  await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); });
+  const expected = new Set(initial.keys), total = expected.size, reached = new Set();
+  let previous = null, repeats = 0;
+  for (let press = 0; press < total * 2 + 10 && reached.size < total && repeats < 3; press++) {
+    await page.keyboard.press('Tab');
+    const { active } = await page.evaluate(CONTROL_KEYS);
+    if (active !== null && expected.has(active)) reached.add(active);
+    repeats = active !== null && active === previous ? repeats + 1 : 0; previous = active;
+  }
+  const missingKey = initial.keys.find(key => !reached.has(key));
+  return { total, reached: reached.size, ...(missingKey ? { missing: initial.shapes[missingKey] || 'unknown' } : {}) };
 }
 
 const canonicalJson = value => {

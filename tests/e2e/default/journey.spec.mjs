@@ -277,6 +277,8 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       // Other errors keep only their class and first line, without query strings or long opaque tokens.
       const firstLine = message.split('\n')[0].replace(/\?[^\s]*/g, '?…').replace(/[A-Za-z0-9_-]{32,}/g, '…').slice(0, 160);
       console.error('ux01-case-failure', id, /^journey:[A-Za-z0-9_.-]+$/.test(message) ? message : `${error?.name ?? 'Error'}: ${firstLine}`);
+      // The runner forwards only fixed-vocabulary lines; name the error class in that vocabulary (no message text).
+      if (!/^journey:/.test(message)) console.error('ux01-case-failure', id, 'journey:error-' + String(error?.name ?? 'error').toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 40));
       row.status = 'failed'; if (id === 'ux01-uncertainty-a11y') markUxFailure(); throw new Error('journey:' + id);
     }
   };
@@ -863,10 +865,11 @@ test('default operated browser, REST, MCP and customer machine journey', async (
     if (UX_ENABLED) await uxCase('ux01-legacy-cancel-a11y', async () => {
       const fixtureId = 'dep_ux01_legacy_' + runId;
       const scans = uxCases.find(row => row.id === 'ux01-legacy-cancel-a11y').scans;
-      const inserted = await psqlRead(`insert into public.deployments (id, workspace_id, project_id, environment_id, revision_id, status, created_at, data)
+      // A SELECT around the insert: psql -At prints a command tag after a bare INSERT, which is not JSON.
+      const inserted = await psqlRead(`with ins as (insert into public.deployments (id, workspace_id, project_id, environment_id, revision_id, status, created_at, data)
         select :'fixture_id', workspace_id, project_id, environment_id, revision_id, 'awaiting_approval', now(),
           (data - 'executor' - 'operationId' - 'workflowStartedAt') || jsonb_build_object('id', :'fixture_id', 'status', 'awaiting_approval', 'changeSummary', 'UX-01 legacy-cancel accessibility fixture')
-        from public.deployments where id = :'deployment_id' returning json_build_object('id', id)::text`, { fixture_id: fixtureId, deployment_id: deploymentId });
+        from public.deployments where id = :'deployment_id' returning id) select json_build_object('id', (select id from ins))::text`, { fixture_id: fixtureId, deployment_id: deploymentId });
       ensure(inserted?.id === fixtureId, 'ux01-legacy-fixture');
       let viewer;
       try {

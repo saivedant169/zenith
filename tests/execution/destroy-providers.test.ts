@@ -139,6 +139,16 @@ describe("kubernetes C1 destroy of an adopted data service (PROD-LIFE-11)", () =
     await s.activities.planDestroyInfrastructure({ operationId: OP, lease: s.lease });
     expect(s.calls[0].adopted).toEqual([{ kind: "StatefulSet", namespace: "zenith-ns", name: "legacy-db" }]);
   });
+  it("lets the claim stand in for a deletion policy: deletes adopted data only when the environment allows stateful deletion", async () => {
+    const off = await adopted("manage_and_destroy");
+    off.w.product.base.environment.policies.allowStatefulDeletion = false;
+    await off.activities.planDestroyInfrastructure({ operationId: OP, lease: off.lease });
+    expect(off.calls[0].retainStateful).toBe(true);
+    const on = await adopted("manage_and_destroy");
+    on.w.product.base.environment.policies.allowStatefulDeletion = true;
+    await on.activities.planDestroyInfrastructure({ operationId: OP, lease: on.lease });
+    expect(on.calls[0]).toMatchObject({ retainStateful: false, adopted: [{ kind: "StatefulSet", namespace: "zenith-ns", name: "legacy-db" }] });
+  });
   it("refuses teardown of an adopted data service whose claim forbids destruction, before any provider call", async () => {
     const s = await adopted("manage");
     await expect(s.activities.planDestroyInfrastructure({ operationId: OP, lease: s.lease })).rejects.toThrow(/was adopted, not created by Zenith/);

@@ -99,10 +99,23 @@ async function teardown(ports: DestroyProviderPorts, provider: string, input: Te
   return result;
 }
 
-function retainStateful(ec: ExecContext, graph: ResourceGraph): boolean {
+/**
+ * Stateful data is retained unless the environment allows stateful deletion AND every managed stateful node allows it.
+ * An adopted node has no Zenith deletion policy of its own; its active manage_and_destroy claim is the person's
+ * per-resource consent (PROD-LIFE-11), so it counts as allowed. The environment switch is still required.
+ */
+function retainStateful(ec: ExecContext, graph: ResourceGraph, destroyable: ReadonlySet<string> = new Set()): boolean {
   return !ec.product.environment.policies.allowStatefulDeletion || graph.nodes.some((node) =>
     node.ownership === "managed" && ["postgres", "mysql", "redis", "object_store", "queue", "pubsub", "volume", "secret"].includes(node.kind) &&
-    node.spec.deletionPolicy !== "allow" && node.spec.deletionPolicy !== "approval");
+    !destroyable.has(node.address) && node.spec.deletionPolicy !== "allow" && node.spec.deletionPolicy !== "approval");
+}
+
+/** Addresses of managed (adopted) nodes whose ACTIVE adoption claim allows destruction. */
+async function destroyableAdopted(rt: Runtime, ec: ExecContext, graph: ResourceGraph): Promise<Set<string>> {
+  if (!rt.d.portability) return new Set();
+  const facts = await rt.d.portability.adoptionFacts(ec.workspaceId, ec.environmentId);
+  return new Set(facts.filter((fact) => fact.status === "active" && fact.lifecycle === "manage_and_destroy"
+    && graph.nodes.some((node) => node.address === fact.address && node.ownership === "managed")).map((fact) => fact.address));
 }
 
 /**
@@ -154,9 +167,10 @@ async function adoptedTeardownRefs(rt: Runtime, ec: ExecContext, graph: Resource
 
 async function directCall(rt: Runtime, ec: ExecContext, graph: ResourceGraph, lease: LeaseRef, ports: DestroyProviderPorts, dryRun: boolean, approved: boolean): Promise<TeardownResult> {
   const adopted = await adoptedTeardownRefs(rt, ec, graph);
+  const destroyable = await destroyableAdopted(rt, ec, graph);
   return withKeepAlive(rt, { lease, detail: dryRun ? "provider destroy review" : "provider teardown", operation: { workspaceId: ec.workspaceId, operationId: ec.op.id } }, async (signal) => {
     const invoke = (session: unknown) => teardown(ports, ec.product.environment.provider,
-      { workspaceId: ec.workspaceId, environmentId: ec.environmentId, session, retainStateful: retainStateful(ec, graph), ...(adopted.length ? { adopted } : {}), dryRun, signal });
+      { workspaceId: ec.workspaceId, environmentId: ec.environmentId, session, retainStateful: retainStateful(ec, graph, destroyable), ...(adopted.length ? { adopted } : {}), dryRun, signal });
     if (ec.product.environment.provider === "zenith") {
       const inventory = (await zenithDatabaseInventory(rt, ec, graph)).map((db) => ({ ...db, approved }));
       const invokeManaged = (session: unknown) => invoke(typeof session === "object" && session !== null ? { ...session, teardown: { databases: inventory } } : session);
@@ -183,12 +197,13 @@ async function directCall(rt: Runtime, ec: ExecContext, graph: ResourceGraph, le
   });
 }
 
-function directPlan(rt: Runtime, ec: ExecContext, graph: ResourceGraph, result: TeardownResult): NormalizedPlan {
+async function directPlan(rt: Runtime, ec: ExecContext, graph: ResourceGraph, result: TeardownResult): Promise<NormalizedPlan> {
+  const destroyable = await destroyableAdopted(rt, ec, graph);
   const provider = ec.product.environment.provider;
   const stateful = (ref: string) => /^(PersistentVolumeClaim|PersistentVolume|StatefulSet|VolumeSnapshot|Secret|Postgres|Database|ManagedDatabase)\//i.test(ref);
   return { tofuVersion: "provider-teardown/C1", formatVersion: "C1", configDigest: graph.graphDigest,
     lockDigest: digest({ provider, contract: "C1" }),
-    planDigest: digest({ provider, graphDigest: graph.graphDigest, retainStateful: retainStateful(ec, graph), ...result }),
+    planDigest: digest({ provider, graphDigest: graph.graphDigest, retainStateful: retainStateful(ec, graph, destroyable), ...result }),
     resourceChanges: result.deleted.map((address) => ({ address, type: address.split("/")[0], providerName: provider, action: "delete", changes: [], destroysData: stateful(address) })),
     outputChanges: [], summary: { create: 0, update: 0, delete: result.deleted.length, replace: 0, noop: 0 },
     empty: result.deleted.length === 0, diagnostics: [], createdAt: rt.now().toISOString() };
@@ -205,7 +220,7 @@ async function directPlanStage(rt: Runtime, ec: ExecContext, graph: ResourceGrap
   const result = await directCall(rt, ec, graph, lease, ports, true, true);
   await rt.d.leases.assertFence(lease.scope, lease.fenceToken);
   if (result.uncertain.length || blockingSkips(result.skipped).length) throw new StepFailedError("The provider could not completely review teardown; skipped or uncertain objects require investigation.");
-  const plan = directPlan(rt, ec, graph, result), facts = extractPlanFacts(plan);
+  const plan = await directPlan(rt, ec, graph, result), facts = extractPlanFacts(plan);
   const evidence = planEvidence({ plan, facts, cost: {}, graphDigest: graph.graphDigest, stage: approvedDigest ? "final_plan" : "plan", approvedDigest });
   await rt.evidence(ec.scope, { kind: "tofu_plan", digest: plan.planDigest, key: `destroy:${evidence.key}`, simulated: false,
     summary: { ...evidence.summary, engine: "provider-teardown", destroy: true, destroyAddresses: result.deleted, retained: result.retained, statefulDeletes: facts.destroyedStatefulAddresses } }, { critical: false });

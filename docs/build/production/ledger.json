@@ -6662,6 +6662,24 @@
           "runId": 39896904543,
           "url": "https://github.com/saivedant169/zenith/actions/runs/39896904543",
           "result": "J2 21/21, 0 failed, 0 skipped, 0 not run on both native architectures. Through the linked agent's scoped MCP session against the real engines: metrics, logs (zenith_query_logs), events (zenith_search_events) and traces (zenith_search_traces) each return a telemetry envelope with explicit provenance; metrics and logs assert workspace/project/environment scope, events and traces only workspace/environment (corrected after independent review). Same commit as the CI contract run 39888081660. The earlier review finding on machine-health negative states is not re-proven by this run. Not promoted; independent review pending."
+        },
+        {
+          "level": "contract",
+          "commit": "00aad5838b49de1ec274703e4665afa1d325d2dd",
+          "command": "CI workflow (.github/workflows/ci.yml) push run 39905193758",
+          "environment": "GitHub-hosted runners; repository-pinned Node 22.23.3",
+          "runId": 39905193758,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39905193758",
+          "result": "CI success on 00aad5838b49de1ec274703e4665afa1d325d2dd: 21 jobs succeeded, 8 dispatch-only operated-gate jobs skipped by workflow condition. The verify unit lane runs the OBS-02 contract files: tests/observability/telemetry.test.ts, tests/machines/telemetry.test.ts (zenithd revoked -> inaccessible, silent/unregistered -> unknown, through readMachineHealth with the real zenithd driver), tests/execution/machines.test.ts (revoked or silent bound zenithd stores an explicit health envelope, dispatches nothing), tests/platform/machine-composition.test.ts (all-revoked bindings read as revoked), tests/e2e/default/receipt.test.ts. Same commit as the J2 local_engine receipts. Not promoted; independent review pending."
+        },
+        {
+          "level": "local_engine",
+          "commit": "00aad5838b49de1ec274703e4665afa1d325d2dd",
+          "command": "clean-host-journey.yml workflow_dispatch run 39905193588 (native GitHub-hosted linux/amd64 and linux/arm64)",
+          "environment": "Default installed 2 API + 2 worker stack; disposable Supabase Auth/PostgreSQL, Temporal, real zenithd and kind; receipts docs/build/production/evidence/PROD-OBS-02/2026-10-23-00aad583-clean-host-j2-{amd64,arm64}.json",
+          "runId": 39905193588,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39905193588",
+          "result": "J2 21/21, 0 failed/skipped/not run on both native architectures (ledgerEligible, clean source). Through the linked agent's scoped MCP session against the real engines, metrics, logs, events and traces each return a telemetry envelope with explicit provenance and workspace/project/environment scope; recorded states: metric unknown and trace unknown (no metrics/trace backend configured in J2, each with a stated reason), log empty, event fresh. Machine health on the real zenithd: fresh on a live read; unknown after the machine is paused past the heartbeat threshold; inaccessible after the machine is revoked; each stored as an observation with machines.zenithd provenance and a reason, and the unavailable reads dispatch nothing. Same commit as CI run 39905193758. Not promoted; independent review pending."
         }
       ],
       "requiredEvidence": [

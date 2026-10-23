@@ -5721,7 +5721,7 @@
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "MinIO_R11_crossCompile_exit0_LinuxARM64_runtime_pending; R9_historical_refusal_permanent_no_adoption; R7_currentClosureObservationOnly; wider_backup_adoption_decommission_acceptance_and_mysql_dns_tls_support_open",
+      "implementationStatus": "MinIO_R11_crossCompile_exit0_LinuxARM64_runtime_pending; R9_historical_refusal_permanent_no_adoption; R7_currentClosureObservationOnly; mysql_dns_tls_closed_62b70671; adopted_object_teardown_kind_verified_45af29ee; tenant_backup_beyond_export_and_operated_adopt_release_journey_open",
       "evidence": [
         {
           "level": "local_engine",

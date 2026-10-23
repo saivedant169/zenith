@@ -21,8 +21,10 @@ Evidence:
   cluster: retain, dry-run plan of exactly three objects, delete, unrelated StatefulSet and claims survive, clean
   repeat. Passed on the Mac kind node and on a fresh GitHub-hosted runner (`clean-host-kind-adoption.yml`).
 
-Still open for this requirement: tenant backup beyond data export, MinIO Linux/ARM64 runtime, MySQL DNS/TLS, and the
-adopt/release journey through the product API on an operated stack.
+Still open for this requirement: tenant backup beyond data export, MinIO Linux/ARM64 runtime (hosted arm64 D-4 export
+run dispatched 2026-10-23), and the adopt/release journey through the product API on an operated stack. MySQL DNS/TLS is
+closed: `62b70671` passed 21/21 including the real-server export/restore/readback over TLS by DNS hostname, and the
+hosted D-4 export on `86b37e7a` carried MySQL over TLS.
 
 ## MinIO R11 cross-compile checkpoint, 11 October 2026
 

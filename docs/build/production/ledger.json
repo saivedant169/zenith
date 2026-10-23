@@ -2698,7 +2698,7 @@
         },
         {
           "level": "remote_ci",
-          "commit": "48a5f7fa",
+          "commit": "48a5f7fa994542170c49888dd814d460447ee1f4",
           "command": "CI workflow push run 39741996515 (GitHub-hosted)",
           "environment": "GitHub-hosted runners; exact source after the D-4 export pass",
           "result": "Exact-source CI success: 21 success / 8 conditional operated-dispatch skips / 0 failure. The prior run 39737514864 on 86b37e7a failed supply-chain (GHSA-qxg6-89mg-rqv8, GHSA-xp26-3454-mjgp in @vitest/mocker < 4.1.12, published 2026-10-21) and platform-postgres (the epoch-0 intent case assumed the database-wide recovery epoch was 0 on a shared CI database); 48a5f7fa moves vitest to 4.1.12 and pins that case's epoch. All six hosted operated gates have now passed on current-source receipts (drift-repair 42e2c030, crash-partition 2bd1a6ac, two-tenants 38e4188a, upgrade c1883bba, restore c49904a9, export 86b37e7a); the gates were not re-run on 48a5f7fa, whose changes after 86b37e7a are a dev-dependency bump and one test. DRV-1 gates remain unrun pending owner-reviewed declarations. No promotion.",
@@ -3825,7 +3825,7 @@
         },
         {
           "level": "local_linux_amd64",
-          "commit": "5f289a56",
+          "commit": "5f289a565f34d2141e34f564d67708842d0ea61c",
           "command": "packaged-workers.yml push run 39765448686 (native GitHub-hosted linux/amd64 and linux/arm64)",
           "environment": "Native GitHub-hosted runners, emulated false; fresh-source packaged worker image; real disposable platform PostgreSQL and owned Temporal mTLS; packaged product store is the documented file store",
           "result": "22/22 checks per architecture, now including assertCompleteMigrationSet (fresh platform database applies exactly the contiguous source migration set). Startup refusals (missing schema, invalid secret, invalid signer, plaintext Temporal, missing namespace, wrong queue), readiness/liveness with policy ok, owned reconcile schedule polling, signed read grant through a real Temporal workflow (expected no-target refusal), store/Temporal/SQL outage recovery, durable Temporal restart, operator pause/resume, in-flight SIGTERM drain with a fresh worker, idle drain, 61/61 owned resources removed.",
@@ -4013,7 +4013,7 @@
         },
         {
           "level": "local_engine",
-          "commit": "0090d271",
+          "commit": "0090d2713b47999e4f40800c2e94b3e47cc2e312",
           "command": "wave6 manifest argv for wave6-55718f085353604a and wave6-72ab835f34c19371 with wave6-gates.mjs --case",
           "environment": "Native Darwin ARM64, Node 22.23.3, Docker Desktop; owned disposable stacks at port offset 1000; protected Supabase/Kong services stayed running (11 before and after).",
           "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-0090d271-j4-wave6-identities.json",
@@ -4206,7 +4206,7 @@
         },
         {
           "level": "local_engine",
-          "commit": "0090d271",
+          "commit": "0090d2713b47999e4f40800c2e94b3e47cc2e312",
           "command": "wave6 manifest argv for wave6-55718f085353604a and wave6-72ab835f34c19371 with wave6-gates.mjs --case",
           "environment": "Native Darwin ARM64, Node 22.23.3, Docker Desktop; owned disposable stacks at port offset 1000; protected Supabase/Kong services stayed running (11 before and after).",
           "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-0090d271-j4-wave6-identities.json",
@@ -4454,7 +4454,7 @@
       "evidence": [
         {
           "level": "local_engine",
-          "commit": "1650e6c4",
+          "commit": "1650e6c43182720f3b2a390927b2f42f1bfcfa99",
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-1650e6c4-postgres-halves.json",
           "artifactSha256": "b0a81178930178ee289668ad7c457b76415ce448dda04981c8f85fa1a206100e",
           "result": "Real-PostgreSQL lanes of durable-intent-authority (22), k8s-guest-bindings (7), state-backend-recovery (13), cleanup-writer-barriers (100) and late-effect-receipts (40) passed 182/182 on clean 1650e6c4; these are ungated, recorded as additional evidence. Still missing: a Temporal-lane start-recovery case for idempotent start/signal, and platform/runner authority crash-window cases. Not promoted (independent review, 2026-10-20)."
@@ -4467,7 +4467,7 @@
         },
         {
           "level": "local_engine",
-          "commit": "d3047a0a",
+          "commit": "d3047a0ac8e6245a722a4df0b0f8d8aa0a5a9cfd",
           "command": "ZENITH_TEST_PLATFORM_PG_URL=<owned> ZENITH_CONTRACT_POSTGRES=1 SUPABASE_DB_URL=<owned> ZENITH_FAST=1 vitest run <7 files> --no-file-parallelism --maxWorkers=1",
           "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable PostgreSQL 16 with Supabase stand-in roles; removed after the run.",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-d3047a0a-dur01-02-05-postgres.json",
@@ -4532,14 +4532,14 @@
         },
         {
           "level": "local_engine",
-          "commit": "1650e6c4",
+          "commit": "1650e6c43182720f3b2a390927b2f42f1bfcfa99",
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-1650e6c4-postgres-halves.json",
           "artifactSha256": "b0a81178930178ee289668ad7c457b76415ce448dda04981c8f85fa1a206100e",
           "result": "Real-PostgreSQL lanes of durable-intent-authority (22), k8s-guest-bindings (7), state-backend-recovery (13), cleanup-writer-barriers (100) and late-effect-receipts (40) passed 182/182 on clean 1650e6c4; these are ungated, recorded as additional evidence. Still missing: real-PostgreSQL product projection persistence and an independent-workers case. Not promoted (independent review, 2026-10-20)."
         },
         {
           "level": "local_engine",
-          "commit": "d3047a0a",
+          "commit": "d3047a0ac8e6245a722a4df0b0f8d8aa0a5a9cfd",
           "command": "ZENITH_TEST_PLATFORM_PG_URL=<owned> ZENITH_CONTRACT_POSTGRES=1 SUPABASE_DB_URL=<owned> ZENITH_FAST=1 vitest run <7 files> --no-file-parallelism --maxWorkers=1",
           "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable PostgreSQL 16 with Supabase stand-in roles; removed after the run.",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-d3047a0a-dur01-02-05-postgres.json",
@@ -4631,7 +4631,7 @@
         },
         {
           "level": "contract",
-          "commit": "ac8e6c87",
+          "commit": "ac8e6c87bd1e91cb8b8b963008272eeb27befc6f",
           "command": "ZENITH_TEST_PLATFORM_PG_URL=<owned> ZENITH_CONTRACT_POSTGRES=1 SUPABASE_DB_URL=<owned> ZENITH_FAST=1 vitest run <21 files> --no-file-parallelism --maxWorkers=1",
           "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable PostgreSQL 16 (pinned ZENITH_LOCAL_POSTGRES_IMAGE) on 127.0.0.1:55433 with Supabase stand-in roles; removed after the run.",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-ac8e6c87-dur-life06-postgres.json",
@@ -4639,7 +4639,7 @@
         },
         {
           "level": "local_engine",
-          "commit": "ac8e6c87",
+          "commit": "ac8e6c87bd1e91cb8b8b963008272eeb27befc6f",
           "command": "ZENITH_TEST_PLATFORM_PG_URL=<owned> ZENITH_CONTRACT_POSTGRES=1 SUPABASE_DB_URL=<owned> ZENITH_FAST=1 vitest run <21 files> --no-file-parallelism --maxWorkers=1",
           "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable PostgreSQL 16 (pinned ZENITH_LOCAL_POSTGRES_IMAGE) on 127.0.0.1:55433 with Supabase stand-in roles; removed after the run.",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-ac8e6c87-dur-life06-postgres.json",
@@ -4760,7 +4760,7 @@
         },
         {
           "level": "contract",
-          "commit": "ac8e6c87",
+          "commit": "ac8e6c87bd1e91cb8b8b963008272eeb27befc6f",
           "command": "ZENITH_TEST_PLATFORM_PG_URL=<owned> ZENITH_CONTRACT_POSTGRES=1 SUPABASE_DB_URL=<owned> ZENITH_FAST=1 vitest run <21 files> --no-file-parallelism --maxWorkers=1",
           "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable PostgreSQL 16 (pinned ZENITH_LOCAL_POSTGRES_IMAGE) on 127.0.0.1:55433 with Supabase stand-in roles; removed after the run.",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-ac8e6c87-dur-life06-postgres.json",
@@ -4768,7 +4768,7 @@
         },
         {
           "level": "local_engine",
-          "commit": "ac8e6c87",
+          "commit": "ac8e6c87bd1e91cb8b8b963008272eeb27befc6f",
           "command": "ZENITH_TEST_PLATFORM_PG_URL=<owned> ZENITH_CONTRACT_POSTGRES=1 SUPABASE_DB_URL=<owned> ZENITH_FAST=1 vitest run <21 files> --no-file-parallelism --maxWorkers=1",
           "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable PostgreSQL 16 (pinned ZENITH_LOCAL_POSTGRES_IMAGE) on 127.0.0.1:55433 with Supabase stand-in roles; removed after the run.",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-ac8e6c87-dur-life06-postgres.json",
@@ -4824,7 +4824,7 @@
         },
         {
           "level": "contract",
-          "commit": "23a873a0",
+          "commit": "23a873a00dfc32ba3372b1f640a0928478e33e85",
           "command": "node policy/build.mjs --check (opa 1.19.1)",
           "environment": "Native Darwin ARM64; opa 1.19.1",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-6a82de21-dur-combined.json",
@@ -4877,14 +4877,14 @@
         },
         {
           "level": "local_engine",
-          "commit": "1650e6c4",
+          "commit": "1650e6c43182720f3b2a390927b2f42f1bfcfa99",
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-1650e6c4-postgres-halves.json",
           "artifactSha256": "b0a81178930178ee289668ad7c457b76415ce448dda04981c8f85fa1a206100e",
           "result": "Real-PostgreSQL lanes of durable-intent-authority (22), k8s-guest-bindings (7), state-backend-recovery (13), cleanup-writer-barriers (100) and late-effect-receipts (40) passed 182/182 on clean 1650e6c4; these are ungated, recorded as additional evidence. Still missing: engine cases for plan-artifact encryption, tenant access, integrity, expiry, PlanView/raw split and independent workers. Not promoted (independent review, 2026-10-20)."
         },
         {
           "level": "local_engine",
-          "commit": "d3047a0a",
+          "commit": "d3047a0ac8e6245a722a4df0b0f8d8aa0a5a9cfd",
           "command": "ZENITH_TEST_PLATFORM_PG_URL=<owned> ZENITH_CONTRACT_POSTGRES=1 SUPABASE_DB_URL=<owned> ZENITH_FAST=1 vitest run <7 files> --no-file-parallelism --maxWorkers=1",
           "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable PostgreSQL 16 with Supabase stand-in roles; removed after the run.",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-d3047a0a-dur01-02-05-postgres.json",
@@ -4961,7 +4961,7 @@
         },
         {
           "level": "local_engine",
-          "commit": "1650e6c4",
+          "commit": "1650e6c43182720f3b2a390927b2f42f1bfcfa99",
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-1650e6c4-postgres-halves.json",
           "artifactSha256": "b0a81178930178ee289668ad7c457b76415ce448dda04981c8f85fa1a206100e",
           "result": "Real-PostgreSQL lanes of durable-intent-authority (22), k8s-guest-bindings (7), state-backend-recovery (13), cleanup-writer-barriers (100) and late-effect-receipts (40) passed 182/182 on clean 1650e6c4; these are ungated, recorded as additional evidence. Real-PostgreSQL janitor writer/unlink race now covered (cleanup-writer-barriers 100/100). Still missing: locking, encryption, versioning and restore on a real storage backend (state-backend-recovery covers these on PostgreSQL, not real S3). Not promoted (independent review, 2026-10-20)."
@@ -5040,14 +5040,14 @@
         },
         {
           "level": "local_engine",
-          "commit": "1650e6c4",
+          "commit": "1650e6c43182720f3b2a390927b2f42f1bfcfa99",
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-1650e6c4-postgres-halves.json",
           "artifactSha256": "b0a81178930178ee289668ad7c457b76415ce448dda04981c8f85fa1a206100e",
           "result": "Real-PostgreSQL lanes of durable-intent-authority (22), k8s-guest-bindings (7), state-backend-recovery (13), cleanup-writer-barriers (100) and late-effect-receipts (40) passed 182/182 on clean 1650e6c4; these are ungated, recorded as additional evidence. Still missing: partition/delayed-call, renewal/revocation tombstone, provider receipt/readback and operator-resolution engine cases. Not promoted (independent review, 2026-10-20)."
         },
         {
           "level": "contract",
-          "commit": "ac8e6c87",
+          "commit": "ac8e6c87bd1e91cb8b8b963008272eeb27befc6f",
           "command": "ZENITH_TEST_PLATFORM_PG_URL=<owned> ZENITH_CONTRACT_POSTGRES=1 SUPABASE_DB_URL=<owned> ZENITH_FAST=1 vitest run <21 files> --no-file-parallelism --maxWorkers=1",
           "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable PostgreSQL 16 (pinned ZENITH_LOCAL_POSTGRES_IMAGE) on 127.0.0.1:55433 with Supabase stand-in roles; removed after the run.",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-ac8e6c87-dur-life06-postgres.json",
@@ -5055,7 +5055,7 @@
         },
         {
           "level": "local_engine",
-          "commit": "ac8e6c87",
+          "commit": "ac8e6c87bd1e91cb8b8b963008272eeb27befc6f",
           "command": "ZENITH_TEST_PLATFORM_PG_URL=<owned> ZENITH_CONTRACT_POSTGRES=1 SUPABASE_DB_URL=<owned> ZENITH_FAST=1 vitest run <21 files> --no-file-parallelism --maxWorkers=1",
           "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable PostgreSQL 16 (pinned ZENITH_LOCAL_POSTGRES_IMAGE) on 127.0.0.1:55433 with Supabase stand-in roles; removed after the run.",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-ac8e6c87-dur-life06-postgres.json",
@@ -5130,14 +5130,14 @@
         },
         {
           "level": "local_engine",
-          "commit": "1650e6c4",
+          "commit": "1650e6c43182720f3b2a390927b2f42f1bfcfa99",
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-1650e6c4-postgres-halves.json",
           "artifactSha256": "b0a81178930178ee289668ad7c457b76415ce448dda04981c8f85fa1a206100e",
           "result": "Real-PostgreSQL lanes of durable-intent-authority (22), k8s-guest-bindings (7), state-backend-recovery (13), cleanup-writer-barriers (100) and late-effect-receipts (40) passed 182/182 on clean 1650e6c4; these are ungated, recorded as additional evidence. Still missing: build-launch and broker-binding engine cases on a clean commit. Not promoted (independent review, 2026-10-20)."
         },
         {
           "level": "contract",
-          "commit": "ac8e6c87",
+          "commit": "ac8e6c87bd1e91cb8b8b963008272eeb27befc6f",
           "command": "ZENITH_TEST_PLATFORM_PG_URL=<owned> ZENITH_CONTRACT_POSTGRES=1 SUPABASE_DB_URL=<owned> ZENITH_FAST=1 vitest run <21 files> --no-file-parallelism --maxWorkers=1",
           "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable PostgreSQL 16 (pinned ZENITH_LOCAL_POSTGRES_IMAGE) on 127.0.0.1:55433 with Supabase stand-in roles; removed after the run.",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-ac8e6c87-dur-life06-postgres.json",
@@ -5145,7 +5145,7 @@
         },
         {
           "level": "local_engine",
-          "commit": "ac8e6c87",
+          "commit": "ac8e6c87bd1e91cb8b8b963008272eeb27befc6f",
           "command": "ZENITH_TEST_PLATFORM_PG_URL=<owned> ZENITH_CONTRACT_POSTGRES=1 SUPABASE_DB_URL=<owned> ZENITH_FAST=1 vitest run <21 files> --no-file-parallelism --maxWorkers=1",
           "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable PostgreSQL 16 (pinned ZENITH_LOCAL_POSTGRES_IMAGE) on 127.0.0.1:55433 with Supabase stand-in roles; removed after the run.",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-ac8e6c87-dur-life06-postgres.json",
@@ -5251,7 +5251,7 @@
         },
         {
           "level": "local_linux_arm64",
-          "commit": "42b35401",
+          "commit": "42b3540178d4cb0663cbd46b6d6af10761c5e708",
           "command": "clean-host-journey.yml workflow_dispatch run 39858246510 (native GitHub-hosted linux/amd64 and linux/arm64)",
           "environment": "Default installed 2 API + 2 worker stack; disposable Supabase Auth/PostgreSQL, Temporal, real zenithd and kind; receipts docs/build/production/evidence/PROD-LIFE-01/2026-10-23-42b35401-clean-host-j2-{amd64,arm64}.json",
           "result": "J2 21/21 on both native architectures. Native Kubernetes connection: created through the action API, verified through the UI, the API (linked credential) and the real CLI (zenith connections verify --json, exit 0); rotation staged through the UI panel and promoted through the reviewed API, with new traffic on the rotated credential after the old identity was deleted; revocation refuses later dispatch with no fallback. Customer runner: runner-mode connection created after MCP planning and a distinct admin's browser confirmation; the new runner-connection-lifecycle check verifies it, revokes it through the API with confirmation, reads it back as revoked and requires a refused re-verification. Scope recorded: local engine covers Kubernetes and the customer runner; AWS/GCP/Azure/OCI/zenith lifecycles are contract-level (tests/connections/lifecycle.test.ts); CLI create/rotate are browser handoffs by design. Not yet promoted: pending exact-source CI on the same commit and independent review.",
@@ -5413,7 +5413,7 @@
       "evidence": [
         {
           "level": "local_engine",
-          "commit": "62b70671",
+          "commit": "62b7067126e3462686a86a4c16e2d72cb489dbd0",
           "command": "npx vitest run tests/providers/azure tests/tofu tests/platform tests/connections tests/execution",
           "environment": "Mac mini native arm64, Node 22.23.3",
           "result": "153 files passed / 18 skipped; 3375 tests passed, 0 failed, 270 skipped (live and gated cases skip by design). Covers the Azure cloud abstraction (public/usgov/china), data-plane RBAC role catalog, sovereign endpoint tables and ACR build wiring at contract level. Sovereign clouds remain contract-level from published tables; no live Azure run. Not promoted.",
@@ -5480,7 +5480,7 @@
         },
         {
           "level": "contract",
-          "commit": "ac8e6c87",
+          "commit": "ac8e6c87bd1e91cb8b8b963008272eeb27befc6f",
           "command": "ZENITH_TEST_PLATFORM_PG_URL=<owned> ZENITH_CONTRACT_POSTGRES=1 SUPABASE_DB_URL=<owned> ZENITH_FAST=1 vitest run <21 files> --no-file-parallelism --maxWorkers=1",
           "environment": "Native Darwin ARM64, Node 22.23.3; owned disposable PostgreSQL 16 (pinned ZENITH_LOCAL_POSTGRES_IMAGE) on 127.0.0.1:55433 with Supabase stand-in roles; removed after the run.",
           "logs": "docs/build/production/evidence/engine-acceptance/2026-10-21-ac8e6c87-dur-life06-postgres.json",
@@ -5488,7 +5488,7 @@
         },
         {
           "level": "contract",
-          "commit": "02c76116",
+          "commit": "02c76116c41aefc8a9b1b4ab3c6ccd82a21ea390",
           "command": "vitest run --config scripts/acceptance/live/dns/vitest.config.ts scripts/acceptance/live/dns/offline.test.ts ; vitest run tests/providers/dns-teardown-proof.test.ts tests/providers/{azure,oci,gcp}/dns-ownership.test.ts tests/acceptance/non-aws-dns-live.test.ts",
           "environment": "Native Darwin ARM64, Node 22.23.3; clean tree",
           "logs": "docs/build/production/evidence/PROD-LIFE-06/2026-10-21-02c76116-dns-contracts.json",
@@ -5496,7 +5496,7 @@
         },
         {
           "level": "local_engine",
-          "commit": "a465d834",
+          "commit": "a465d834b12316966d2a62e376da0988113ca05a",
           "command": "ZENITH_TEST_TOFU_NETWORK=1 ZENITH_TEST_DELETION_GUARDS_TOFU=1 npx vitest run tests/execution/deletion-guards-real.test.ts tests/providers/gcp/tofu-validate.test.ts tests/providers/azure/validate.test.ts tests/providers/oci/validate.test.ts tests/providers/dns-teardown-proof.test.ts",
           "environment": "Mac mini native arm64; real OpenTofu 1.12.5 with providers from the public registry (no cloud account or credentials)",
           "result": "5 files, 51 tests passed, 0 failed, 0 skipped: real OpenTofu validates the emitted GCP, Azure and OCI bundles (including their DNS resources), the deletion guard refuses unapproved stateful removal and applies the exact approved deletion, and the DNS teardown proof contracts pass. This is the local real-OpenTofu rerun; ownership and teardown against real GCP/Azure/OCI DNS remain live-only. Not promoted.",
@@ -5651,7 +5651,7 @@
         },
         {
           "level": "remote_ci",
-          "commit": "8e95ceac",
+          "commit": "8e95ceac41f1cddee21c2197d0bd9d4a7e552703",
           "command": ".github/workflows/build-profiles-linux.yml",
           "environment": "GitHub-hosted ubuntu-latest; apparmor_restrict_unprivileged_userns=1",
           "runId": 39489617442,
@@ -5865,7 +5865,7 @@
         },
         {
           "level": "local_engine",
-          "commit": "62b70671",
+          "commit": "62b7067126e3462686a86a4c16e2d72cb489dbd0",
           "command": "ZENITH_TEST_MYSQL_DNS_TLS_URL=mysql://<root>@localhost:<port>/scratch ZENITH_MYSQL_CA_FILE=<ca> npx vitest run tests/portability/mysql-inprocess.test.ts",
           "environment": "Mac mini native arm64; disposable pinned mysql:8.4@sha256:0f51e63e (require_secure_transport=ON) on loopback with a throwaway CA and a DNS:localhost server certificate, removed afterwards",
           "result": "21/21 including the real-server case 'exports, restores into a second empty database and verifies by readback through the in-process path' over TLS by DNS hostname (without the env the file is 20 passed / 1 skipped). Closes the MySQL DNS TLS item. Independent review of LIFE-11 holds on adoption and ownership-safe decommission, which have only fake-port tests; tenant backup is data.export only. Not promoted.",
@@ -6173,7 +6173,7 @@
         },
         {
           "level": "local_engine",
-          "commit": "1650e6c4",
+          "commit": "1650e6c43182720f3b2a390927b2f42f1bfcfa99",
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-1650e6c4-postgres-halves.json",
           "artifactSha256": "b0a81178930178ee289668ad7c457b76415ce448dda04981c8f85fa1a206100e",
           "result": "Real-PostgreSQL lanes of durable-intent-authority (22), k8s-guest-bindings (7), state-backend-recovery (13), cleanup-writer-barriers (100) and late-effect-receipts (40) passed 182/182 on clean 1650e6c4; these are ungated, recorded as additional evidence. late-effect-receipts real-PG lane 40/40. Still missing: gated kind guest-scoped and k8s-guest-binding cluster evidence on a clean commit (never falls back to higher privilege, revocation on ServiceAccount deletion). Not promoted (independent review, 2026-10-20)."
@@ -6487,7 +6487,7 @@
       "evidence": [
         {
           "level": "local_engine",
-          "commit": "1650e6c4",
+          "commit": "1650e6c43182720f3b2a390927b2f42f1bfcfa99",
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-1650e6c4-postgres-halves.json",
           "artifactSha256": "b0a81178930178ee289668ad7c457b76415ce448dda04981c8f85fa1a206100e",
           "result": "Real-PostgreSQL lanes of durable-intent-authority (22), k8s-guest-bindings (7), state-backend-recovery (13), cleanup-writer-barriers (100) and late-effect-receipts (40) passed 182/182 on clean 1650e6c4; these are ungated, recorded as additional evidence. late-effect-receipts real-PG lane 40/40. Still missing: coding-agent store on PostgreSQL, coding-agent workflow on Temporal, a real deploy journey from analysis and a live eval. Not promoted (independent review, 2026-10-20)."
@@ -6649,7 +6649,7 @@
         },
         {
           "level": "local_linux_arm64",
-          "commit": "42b35401",
+          "commit": "42b3540178d4cb0663cbd46b6d6af10761c5e708",
           "command": "clean-host-journey.yml workflow_dispatch run 39858246510 (native GitHub-hosted linux/amd64 and linux/arm64)",
           "environment": "Default installed stack with the real kind target and zenithd; receipts docs/build/production/evidence/PROD-LIFE-01/2026-10-23-42b35401-clean-host-j2-{amd64,arm64}.json",
           "result": "J2 21/21 on both native architectures. Through the linked agent's scoped MCP session against the real engines: metrics, logs (zenith_query_logs), provider/resource events (new zenith_search_events, events.read) and traces (new zenith_search_traces, traces.read) each return a telemetry envelope whose scope matches workspace/project/environment, with observedAt and per-source provenance where every unknown or inaccessible source states its reason; tokens are absent from every answer. Machine health keeps its J2 scope/freshness/provenance proof. Not yet promoted: pending exact-source CI on the same commit and independent review.",
@@ -6993,7 +6993,7 @@
         },
         {
           "level": "local_engine",
-          "commit": "0090d271",
+          "commit": "0090d2713b47999e4f40800c2e94b3e47cc2e312",
           "command": "wave6 manifest argv for wave6-55718f085353604a and wave6-72ab835f34c19371 with wave6-gates.mjs --case",
           "environment": "Native Darwin ARM64, Node 22.23.3, Docker Desktop; owned disposable stacks at port offset 1000; protected Supabase/Kong services stayed running (11 before and after).",
           "logs": "docs/build/production/evidence/PROD-PKG-04/2026-10-20-0090d271-j4-wave6-identities.json",
@@ -7130,7 +7130,7 @@
         },
         {
           "level": "local_engine",
-          "commit": "3e188e18",
+          "commit": "3e188e18e7b536000946830ba4148e20f01a08d5",
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
           "artifactSha256": "6a9c253eab6743c6089b9e0b12f1f093a968e5d78318e545a75caa89e85e442f",
           "receipt": "docs/build/production/evidence/PROD-MAN-04/2026-10-20-3e188e18-j14-isolation-evidence.json",
@@ -7182,7 +7182,7 @@
         },
         {
           "level": "local_engine",
-          "commit": "3e188e18",
+          "commit": "3e188e18e7b536000946830ba4148e20f01a08d5",
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
           "artifactSha256": "6a9c253eab6743c6089b9e0b12f1f093a968e5d78318e545a75caa89e85e442f",
           "receipt": "docs/build/production/evidence/PROD-MAN-04/2026-10-20-3e188e18-j14-isolation-evidence.json",
@@ -7255,7 +7255,7 @@
         },
         {
           "level": "local_engine",
-          "commit": "3e188e18",
+          "commit": "3e188e18e7b536000946830ba4148e20f01a08d5",
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
           "artifactSha256": "6a9c253eab6743c6089b9e0b12f1f093a968e5d78318e545a75caa89e85e442f",
           "receipt": "docs/build/production/evidence/PROD-MAN-04/2026-10-20-3e188e18-j14-isolation-evidence.json",
@@ -7635,7 +7635,7 @@
         },
         {
           "level": "local_engine",
-          "commit": "29072e06",
+          "commit": "29072e06ca09c2c8de0d4bf83752856f0c49fda9",
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
           "artifactSha256": "57fe8d01c0fd78ee8ed9d47905c464a02a56ee535fe0b019329b2dbb6064c84f",
           "receipt": "docs/build/production/evidence/PROD-UX-01/2026-10-20-29072e06-ux01-actual-browser-receipt.json",
@@ -7970,7 +7970,7 @@
         },
         {
           "level": "local_engine",
-          "commit": "08890406",
+          "commit": "08890406c37f367cfabdf11e26bcfc54acf63dc3",
           "command": "npx vitest run tests/cost tests/placement tests/docs/operator-docs.test.ts tests/middleware/platform-bearer.test.ts tests/capabilities/routes.test.ts tests/agent-v3 tests/controlplane/tenancy.test.ts tests/security/controlplane-sql-scoping.test.ts tests/controlplane/migrations.test.ts; PostgreSQL 16 lane of tests/cost/actual-spend-store.test.ts and tests/controlplane/tenancy.test.ts; offline cost:catalog apply/age smoke",
           "environment": "Mac mini native arm64, Node 22.23.3; disposable PostgreSQL 16 with Supabase stand-in roles",
           "result": "62 files passed / 6 skipped; 1058 tests passed, 0 failed, 35 skipped (live billing and live-gated cases skip by design). Real PostgreSQL lane 18/0/0, including the actual-spend store. Offline catalog tooling writes a reviewable refreshed catalog from the fixture snapshots, flags unresolved components, and the age check reports the bundled catalog 2026-10-05.2 as 10 days old. Gap unchanged: the bundled catalog has not been refreshed from official provider price files (no inter-AZ, storage I/O or cross-region backup prices yet), and actual spend is exercised only on recorded responses. Not promoted.",
@@ -8008,7 +8008,7 @@
         },
         {
           "level": "local_engine",
-          "commit": "08890406",
+          "commit": "08890406c37f367cfabdf11e26bcfc54acf63dc3",
           "command": "npx vitest run tests/cost tests/placement tests/docs/operator-docs.test.ts tests/middleware/platform-bearer.test.ts tests/capabilities/routes.test.ts tests/agent-v3 tests/controlplane/tenancy.test.ts tests/security/controlplane-sql-scoping.test.ts tests/controlplane/migrations.test.ts; PostgreSQL 16 lane of tests/cost/actual-spend-store.test.ts and tests/controlplane/tenancy.test.ts; offline cost:catalog apply/age smoke",
           "environment": "Mac mini native arm64, Node 22.23.3; disposable PostgreSQL 16 with Supabase stand-in roles",
           "result": "62 files passed / 6 skipped; 1058 tests passed, 0 failed, 35 skipped (live billing and live-gated cases skip by design). Real PostgreSQL lane 18/0/0, including the actual-spend store. Offline catalog tooling writes a reviewable refreshed catalog from the fixture snapshots, flags unresolved components, and the age check reports the bundled catalog 2026-10-05.2 as 10 days old. Gap unchanged: the bundled catalog has not been refreshed from official provider price files (no inter-AZ, storage I/O or cross-region backup prices yet), and actual spend is exercised only on recorded responses. Not promoted.",

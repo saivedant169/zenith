@@ -24,6 +24,8 @@ import type {
 import { flattenObject, humanizeToken, isSecretishPath, isSecretReference, sameValue, truncate } from "./text";
 
 export interface ResourceStateRow {
+  /** the stored resource's id: what a capability proposal names as `scope.resourceId` */
+  id?: string;
   node: ResourceNode;
   /** absent until something has read the resource */
   observation?: Observation;

@@ -7,6 +7,7 @@ import { load as loadYaml } from "js-yaml";
 import { browserRequest, ok, action, nonce, until, command, ensure, sha256, privateFile, NATIVE } from "../../../tests/e2e/default/support.mjs";
 import { runOperated, createTenant, runDriverCli, type DriverInput, type OperatedContext, type Tenant } from "./operated";
 import { operatedDataRoundtrips } from "./export-data";
+import { operatedAdoption } from "./adopt-kind";
 
 const Bundle = z.object({
   provider: z.literal("localstack"), readme: z.string().min(1),
@@ -104,6 +105,7 @@ export async function runExport(input: DriverInput): Promise<number> {
     // Settle data engines before starting the independent infrastructure leg,
     // keeping the peak fixture footprint bounded on the lean verifier.
     await operatedDataRoundtrips(ctx);
+    await operatedAdoption(ctx);
     const target = await localstack(ctx);
     let tenant!: Tenant, deployed!: { deploymentId: string; revisionId: string }, bucket = "";
     const resourceName = "drv4-assets-" + input.runId;

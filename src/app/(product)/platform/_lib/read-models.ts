@@ -106,7 +106,7 @@ export async function readResources(caller: ReadCaller, environmentId: string, l
         repos.observations.getRuntime(sql, caller.workspaceId, id),
       ]);
       const safeNode: ResourceNode = { ...publicData({ ...node, spec: {}, labels: {}, origin: [], dependsOn: [] }), spec: publicData(node.spec), labels: publicData(node.labels), origin: publicData(node.origin), dependsOn: publicData(node.dependsOn) };
-      return { node: safeNode, observation: observationView(observation), runtime: runtime ? publicData(runtime) : undefined };
+      return { id, node: safeNode, observation: observationView(observation), runtime: runtime ? publicData(runtime) : undefined };
     })));
   }
   return boundedView({ environmentId, rows, evidence: "contract", ...(records.length > limit ? { nextCursor: Buffer.from(records[limit - 1].node.address).toString("base64url") } : {}) });

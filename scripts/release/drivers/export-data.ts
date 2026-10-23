@@ -207,7 +207,7 @@ async function view(tenant: Tenant): Promise<PortabilityView> {
   ensure(data.environmentId === tenant.environmentId && !data.truncated, "complete-portability-readback");
   return data as PortabilityView;
 }
-async function operation(ctx: OperatedContext, tenant: Tenant, resourceId: string, capability: "data.export" | "data.import", input: Record<string, unknown>, expected: "succeeded" | "failed" = "succeeded"): Promise<string> {
+async function operation(ctx: OperatedContext, tenant: Tenant, resourceId: string, capability: "data.export" | "data.import" | "resource.adopt" | "resource.release", input: Record<string, unknown>, expected: "succeeded" | "failed" = "succeeded"): Promise<string> {
   const result = ok(await browserRequest(tenant.owner, "/api/platform/v1/capabilities/propose", { capability,
     scope: { workspaceId: tenant.workspaceId, projectId: tenant.project.id, environmentId: tenant.environmentId, resourceId }, input, idempotencyKey: nonce() }, "POST", tenant.workspaceId));
   ensure(result.operation?.status === "awaiting_approval", "data-human-gate");
@@ -242,6 +242,9 @@ async function operation(ctx: OperatedContext, tenant: Tenant, resourceId: strin
   ensure(done.operation.status === expected, "data-operation-terminal");
   return id;
 }
+
+/** The same proposal, browser approval and durable start, for LIFE-11 adoption. */
+export const capabilityOperation = operation;
 
 export async function operatedDataRoundtrips(ctx: OperatedContext): Promise<void> {
   const cleanup = new OwnedCleanup(ctx.cleanupBlocked); ctx.cleanup.add(async () => { ensure(await cleanup.settle(), "data-owned-cleanup"); });

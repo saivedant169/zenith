@@ -5,10 +5,10 @@ import { DATA_KINDS, DataProofSchema } from "./export-data-plan";
 export const OPERATED_LABEL = "local_operated_rehearsal";
 export const DRIVER_CHECKS = {
   "two-tenants": ["preconditions", "independent-tenants", "browser-approved-deployments", "provider-readback", "browser-read-isolation", "browser-write-isolation", "mcp-isolation", "foreign-approval-refused", "no-cross-tenant-effects", "source-stable", "owned-cleanup"],
-  export: ["preconditions", "browser-approved-deployment", "provider-readback", "revision-export", "working-copy-divergence", "export-file-readback", "credential-absence", "browser-approved-teardown", "portable-plan", "portable-apply-readback", "data-preconditions", "postgres-data-roundtrip", "mysql-data-roundtrip", "object-store-data-roundtrip", "data-tenant-scoping", "source-stable", "owned-cleanup"],
+  export: ["preconditions", "browser-approved-deployment", "provider-readback", "revision-export", "working-copy-divergence", "export-file-readback", "credential-absence", "browser-approved-teardown", "portable-plan", "portable-apply-readback", "data-preconditions", "postgres-data-roundtrip", "mysql-data-roundtrip", "object-store-data-roundtrip", "data-tenant-scoping", "adopt-release-retains", "adopt-destroy-teardown", "source-stable", "owned-cleanup"],
 } as const;
 export type DriverScenario = keyof typeof DRIVER_CHECKS;
-const READBACKS: Record<DriverScenario, readonly string[]> = { "two-tenants": ["tenant-a", "tenant-b"], export: ["source", "bundle", "portable-plan", "portable"] };
+const READBACKS: Record<DriverScenario, readonly string[]> = { "two-tenants": ["tenant-a", "tenant-b"], export: ["source", "bundle", "portable-plan", "portable", "adoption"] };
 export type CheckStatus = "passed" | "failed" | "skipped";
 export const DRIVER_LIMITS = {
   "two-tenants": [
@@ -22,6 +22,7 @@ export const DRIVER_LIMITS = {
     "LIFE-11 aws descriptors select the SQL/S3 compatibility engines for owned local containers. No AWS resource provisioning or real cloud-provider observation is claimed; a second real cloud provider remains live-deferred.",
     "J1 lean; database pairs run sequentially with two MinIO fixtures, settled before the 512 MiB LocalStack leg. Resource limits are plans, not measured host fitness; no production HA claim.",
     "The exported AWS~5/random~3 provider constraints are preserved; init needs the verifier's provider cache or registry downloads. No real cloud API is used.",
+    "LIFE-11 adoption uses zero-replica out-of-band StatefulSets and claims in the shared kind namespace; it proves claim, release and teardown ownership, not database contents or cloud adoption.",
   ],
 } as const satisfies Record<DriverScenario, readonly string[]>;
 export type TenantExportReceiptBinding = { scenarioId: DriverScenario; runId: string; sourceCommit: string; sourceDigest: string };

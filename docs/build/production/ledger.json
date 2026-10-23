@@ -6669,7 +6669,14 @@
         "local_engine"
       ],
       "owner": null,
-      "testPaths": []
+      "testPaths": [
+        "tests/observability/telemetry.test.ts",
+        "tests/machines/telemetry.test.ts",
+        "tests/execution/machines.test.ts",
+        "tests/platform/machine-composition.test.ts",
+        "tests/e2e/default/journey.spec.mjs",
+        "tests/e2e/default/receipt.test.ts"
+      ]
     },
     {
       "id": "PROD-OBS-03",

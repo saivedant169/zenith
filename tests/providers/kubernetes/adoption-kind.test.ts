@@ -74,6 +74,11 @@ describe.skipIf(!enabled)("Kubernetes adopted-object teardown against a disposab
     for (const ref of [sts("legacy-db"), pvc("data-legacy-db-0"), pvc("data-legacy-db-1")]) expect(await gone(ref)).toBe(true);
     for (const ref of [sts("kept-db"), pvc("data-kept-db-0"), pvc("data-legacy-db-x"), pvc("unrelated")]) expect(await exists(ref)).toBe(true);
 
+    // Verification after deletion: a dry run reports nothing left and no gap for the now-absent adopted names.
+    const verified = await teardown({ retainStateful: false, dryRun: true });
+    expect(verified).toMatchObject({ deleted: [], uncertain: [] });
+    expect(verified.skipped.filter((ref) => !/^(Certificate|DNSEndpoint|HTTPRoute)\/[^/]+\/\*$/.test(ref))).toEqual([]);
+
     const again = await teardown({ retainStateful: false });
     expect(again.uncertain).toEqual([]);
     for (const ref of [sts("kept-db"), pvc("unrelated")]) expect(await exists(ref)).toBe(true);

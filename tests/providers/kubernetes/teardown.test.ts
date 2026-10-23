@@ -167,6 +167,12 @@ describe("teardownKubernetesEnvironment (contract)", () => {
       expect(fake.get("PersistentVolumeClaim", NS, "adopted-data")).toBeDefined();
     });
 
+    it("reports nothing for an adopted object already absent in a dry run, so verification after deletion can pass", async () => {
+      const report = await teardown({ retainStateful: false, dryRun: true, adopted: [{ kind: "StatefulSet", namespace: NS, name: "legacy-db" }, ...claim("adopted-data")] });
+      expect(JSON.stringify(report)).not.toMatch(/legacy-db|adopted-data/);
+      expect(report.uncertain).toEqual([]);
+    });
+
     it("reports a malformed adopted reference as uncertain and deletes nothing for it", async () => {
       fake.seed(adoptedPvc("adopted-data"));
       const report = await teardown({ retainStateful: false, adopted: [{ kind: "PersistentVolumeClaim", namespace: NS, name: "Bad/Name" }] });

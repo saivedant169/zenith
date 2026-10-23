@@ -103,7 +103,7 @@ async function confirmedAbsent(client: K8sClient, kind: SupportedKind | "VolumeS
 }
 
 /** Read, guard, delete once, then confirm absence. Never return provider text. */
-async function deleteCandidate(client: K8sClient, ref: ObjectRef, environmentId: string, dryRun: boolean, adopted = false, confirmWaitMs = 15_000): Promise<Outcome> {
+async function deleteCandidate(client: K8sClient, ref: ObjectRef, environmentId: string, dryRun: boolean, adopted = false, confirmWaitMs = 15_000): Promise<Outcome | "absent"> {
   let live;
   try {
     if (ref.namespace) await client.guard.assert(ref.namespace);
@@ -111,7 +111,8 @@ async function deleteCandidate(client: K8sClient, ref: ObjectRef, environmentId:
   } catch {
     return "uncertain";
   }
-  if (!live) return dryRun ? "skipped" : "deleted";
+  // An adopted object is named by its claim, not discovered: in a dry run its absence is the goal, not a gap.
+  if (!live) return dryRun ? (adopted ? "absent" : "skipped") : "deleted";
   // An adopted object is unlabeled by design; one that another Zenith environment labels as its own is never ours to delete.
   if (adopted ? dig(live, "metadata", "labels", LABEL.managedBy) === MANAGED_BY_VALUE && !ownedBy(live, environmentId).owned : !ownedBy(live, environmentId).owned) return "skipped";
   if (dig(live, "metadata", "deletionTimestamp")) return "uncertain";
@@ -251,7 +252,8 @@ export async function teardownKubernetesEnvironment(input: KubernetesTeardownInp
   const order: readonly string[] = [...APPLY_ORDER].reverse();
   const ordered = [...candidates.values()].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind) || key(a).localeCompare(key(b)));
   for (const ref of ordered) {
-    record(ref, input.signal?.aborted ? "skipped" : await deleteCandidate(client, ref, input.environmentId, dryRun, adoptedKeys.has(key(ref)), input.confirmWaitMs));
+    const outcome = input.signal?.aborted ? "skipped" : await deleteCandidate(client, ref, input.environmentId, dryRun, adoptedKeys.has(key(ref)), input.confirmWaitMs);
+    if (outcome !== "absent") record(ref, outcome);
   }
 
   // Prune omits already-terminating objects. Reconcile its plan with what remains

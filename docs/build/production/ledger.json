@@ -5870,6 +5870,16 @@
           "environment": "Mac mini native arm64; disposable pinned mysql:8.4@sha256:0f51e63e (require_secure_transport=ON) on loopback with a throwaway CA and a DNS:localhost server certificate, removed afterwards",
           "result": "21/21 including the real-server case 'exports, restores into a second empty database and verifies by readback through the in-process path' over TLS by DNS hostname (without the env the file is 20 passed / 1 skipped). Closes the MySQL DNS TLS item. Independent review of LIFE-11 holds on adoption and ownership-safe decommission, which have only fake-port tests; tenant backup is data.export only. Not promoted.",
           "logs": "tests/portability/mysql-inprocess.test.ts"
+        },
+        {
+          "level": "local_engine",
+          "commit": "45af29ee68de75a375fdaa7180c684efae655ff9",
+          "command": "clean-host-kind-adoption.yml: ZENITH_TEST_KIND=1 ZENITH_TEST_KIND_ADOPTION=1 vitest run tests/providers/kubernetes/adoption-kind.test.ts; node scripts/ci/wave6-gates.mjs --case wave6-63ad274188ce3c88",
+          "environment": "GitHub-hosted ubuntu-latest, kind v0.33.0, kindest/node v1.37.0 (pinned digest), Node 22.23.3",
+          "runId": 39946208786,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39946208786",
+          "logs": "docs/build/production/evidence/PROD-LIFE-11/2026-10-23-kind-adoption-45af29ee/clean-host-kind-adoption-vitest.json",
+          "result": "Adopted-object decommissioning on a disposable kind cluster: 1 passed/0 failed/0 skipped; registered case verified on the runner (1/0). Retained while stateful data is retained, dry run planned exactly the adopted StatefulSet and its two template claims, deletion removed them, unrelated StatefulSet and claims survived, repeat teardown clean. Engine-level teardown only; the adopt/release journey through the product API, tenant backup, MinIO ARM64 runtime and MySQL DNS/TLS remain open. Not a promotion."
         }
       ],
       "requiredEvidence": [
@@ -7670,6 +7680,14 @@
           "url": "https://github.com/saivedant169/zenith/actions/runs/39937008092",
           "result": "Hosted on both architectures: J2 21/21 (ledgerEligible); UX receipt schema 3, 10/10 groups with zero axe WCAG 2.1 A/AA violations and no horizontal overflow at 1280x900 and 375x900, and keyboard-only reach of every visible enabled control on all twelve audited pages (operation review, independent approval before/after, reapproval, pending cancel, cancelled, legacy projection, runbook approval, readiness, uncertainty, connection-change review for runner onboarding, connection administration); both registered real-browser MFA cases (AAL1 refusal, real TOTP enrollment, workspace control save, later step-up) pass against fresh real-UI admins. Local on the same commit: UX receipt gate for both architectures, workspace MFA persistence/API 46/46 on PostgreSQL with all 20 registered cases verified, and the six plugin sandbox/PostgreSQL cases. OAuth issuer and operated plugin-platform lanes moved to UX-02/UX-03.",
           "logs": "docs/build/production/evidence/PROD-UX-01/2026-10-23-ede2827a/"
+        },
+        {
+          "level": "local_engine",
+          "commit": "3da7177fef5fdf21cdaf444962ab4bd2e5fadd06",
+          "command": "node --import tsx scripts/ci/ux01-plugin-platform.mjs run <private dir> <stack> <out> (J1 lean stack: up.mjs --plugin-platform)",
+          "environment": "Mac mini Darwin arm64, Docker Desktop 29.8.2, Node 22.23.3, Playwright Chromium 141.0.7390.37, sandbox node@sha256:3ed98443660ff48413b5af19ecefce3b9d50845a901a43420d47cc63a9fddbe9; J1 lean stack source dirty=false at 3da7177f",
+          "logs": "docs/build/production/evidence/PROD-UX-01/2026-10-23-plugin-platform-3da7177f/receipt.json",
+          "result": "Operated plugin-platform case wave6-546689f4b22fdb85: 1 passed/0 failed/0 skipped, registry check 1/0. Real J1 API at https://host.docker.internal:37443 behind its pass-through TLS edge, real browser AAL2 operator, signed fixture plugin approved through the browser review route, real Docker sandbox started, MCP discovery scoped to the one approved read tool, then both RFC token revocation and browser registration revocation stopped the sandbox and the launch check and MCP refused the child (401). Source unchanged across the run; no plugin containers left; private dir removed; operator deleted. Execution worker and Temporal stopped for memory (not used by the case). Not a promotion: independent review pending."
         }
       ],
       "requiredEvidence": [

@@ -361,3 +361,29 @@ This evidence records seven audited screens at the defined desktop and mobile vi
   are step-up-protected privileged routes, so the operated plugin platform case (`wave6-546689f4b22fdb85`,
   real browser AAL2 consent) is part of UX-01 step-up evidence and runs on the Mac (its gateway reaches the
   API through Docker Desktop's host mapping, which Linux runners do not provide).
+
+## Operated plugin-platform step-up case, 2026-10-23
+
+`wave6-546689f4b22fdb85` passed on the Mac against a real J1 lean stack built from `3da7177f` (source binding
+`dirty: false`). Receipt: `evidence/PROD-UX-01/2026-10-23-plugin-platform-3da7177f/receipt.json`.
+
+- Stack: `up.mjs --plugin-platform <file>` serves the API at `https://host.docker.internal:37443` through a
+  pass-through TLS edge (`scripts/acceptance/default-stack/api-edge.mjs`) signed by the stack CA. The Host header is
+  unchanged, so the API's configured-origin check still decides. Trusted publishers reach the API env file only.
+- Product fix found on the way: self-hosted installations rejected `ZENITH_PLUGIN_TRUSTED_PUBLISHERS` as an unknown
+  field, so no plugin could be trusted there. It is now accepted as public Ed25519 verify keys only.
+- Runner: `scripts/ci/ux01-plugin-platform.mjs`. One Mailpit-confirmed operator signs in through the browser,
+  creates a workspace, enrols TOTP (AAL2), creates a project, links a parent credential through the browser
+  consent route, and the browser cookie drives registration, review and launch-token issue. The signed fixture
+  plugin's artifact is served over HTTPS from the stack's CA-signed certificate; the launcher verifies its digest.
+- Host resolution: the Mac does not resolve `host.docker.internal`. A test-process preload
+  (`scripts/acceptance/loopback-docker-host.mjs`) maps only that name to loopback, as an `/etc/hosts` line would;
+  TLS is still verified against the name. Chromium uses `--host-resolver-rules` and SPKI pins for the two stack
+  edge certificates (no verification disabled).
+- Outcome: sandbox started, MCP discovery returned exactly the one approved read tool, token revocation (RFC
+  route) and registration revocation (browser route) each stopped the sandbox, then the launch check and MCP
+  answered 401. Cleanup: no plugin containers, private dir removed, operator deleted, stack torn down (0 owned
+  resources left).
+- Execution worker and Temporal were stopped for memory; the case does not use them.
+- Debug runs before the evidence run (not evidence): artifact fetch refused while the runner blocked on the case
+  (fixed: async spawn), and `/api/bootstrap` 404 before workspace creation (fixed: mfa-fixtures order).

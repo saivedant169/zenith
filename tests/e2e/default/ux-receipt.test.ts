@@ -4,7 +4,7 @@ import path from 'node:path';
 import { createHash, randomBytes } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { CHECKS, receipt as projectJourneyReceipt } from './receipt.mjs';
-import { assertUxAcceptance, makeUxReceipt, writeUxReceipt, UX_CASES, UX_TAGS, UX_VIEWPORT_LABELS, validateUxReceipt } from './ux-receipt.mjs';
+import { assertUxAcceptance, makeUxReceipt, writeUxReceipt, UX_CASES, UX_TAGS, UX_VIEWPORT_LABELS, validateCompletedJourney, validateUxReceipt } from './ux-receipt.mjs';
 
 const source = { commit: 'a'.repeat(40), sourceDigest: 'b'.repeat(64), dirty: false };
 type UxCaseStatus = 'passed' | 'failed' | 'not_run';
@@ -256,4 +256,13 @@ describe('PROD-UX-01 actual-browser receipt contract', () => {
       status: 'failed', scans: [{ pageId: 'operation-uncertain', viewport: '1280x900', violations: [{ id: 'color-contrast', impact: 'serious' }] }],
     });
   });
+  it("joins a real two-architecture Linux J2 receipt, including its recorded telemetry states", () => {
+    for (const arch of ["amd64", "arm64"]) {
+      const journey = JSON.parse(fs.readFileSync(`docs/build/production/evidence/PROD-OBS-02/2026-10-23-00aad583-clean-host-j2-${arch}.json`, "utf8"));
+      expect(() => validateCompletedJourney(journey)).not.toThrow();
+      expect(() => validateCompletedJourney({ ...journey, telemetryStates: { ...journey.telemetryStates, metric: "not-a-state" } })).toThrow(/receipt-invalid/);
+      expect(() => validateCompletedJourney({ ...journey, environment: { ...journey.environment, host: "Windows AMD64" } })).toThrow(/receipt-invalid/);
+    }
+  });
 });
+

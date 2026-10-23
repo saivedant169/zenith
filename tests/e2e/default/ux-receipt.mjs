@@ -20,6 +20,12 @@ export const UX_IDS = Object.freeze(UX_CASES.map(value => value.id));
 const CASE_IDS = new Set(UX_IDS);
 const LEGACY_UX_CASES = Object.freeze(UX_CASES.map((item, index) => index === UX_CASES.length - 1 ? { ...item, pages: [] } : item));
 const STATUSES = new Set(['passed', 'failed', 'not_run']);
+// The J2 receipt's native hosts, mapped back to the projection inputs that produced them.
+const HOSTS = Object.freeze({
+  'macOS ARM64': { platform: 'darwin', arch: 'arm64', dockerArch: 'aarch64' },
+  'Linux AMD64': { platform: 'linux', arch: 'x64', dockerArch: 'x86_64' },
+  'Linux ARM64': { platform: 'linux', arch: 'arm64', dockerArch: 'aarch64' },
+});
 const HEX40 = /^[a-f0-9]{40}$/;
 const HEX64 = /^[a-f0-9]{64}$/;
 const invalid = () => { throw new Error('ux01:receipt-invalid'); };
@@ -207,13 +213,13 @@ export function validateUxReceipt(value) {
   invalid();
 }
 
-function validateCompletedJourney(value) {
+export function validateCompletedJourney(value) {
   if (!exactKeys(value, ['schemaVersion', 'requirementIds', 'kind', 'status', 'productionReady', 'ledgerEligible', 'commit', 'sourceDigest', 'dirty', 'environment', 'counts', 'checks', 'readbacks', 'telemetryStates', 'evidence']) ||
       value.schemaVersion !== 1 || JSON.stringify(value.requirementIds) !== JSON.stringify(['PROD-PKG-05', 'PROD-DUR-03', 'PROD-DUR-04', 'PROD-LIFE-01', 'PROD-MACH-05', 'PROD-OBS-02', 'PROD-MACH-04', 'PROD-PKG-02']) ||
       value.kind !== 'local_engine' || value.status !== 'passed' || value.productionReady !== false || value.ledgerEligible !== true || value.dirty !== false ||
       !HEX40.test(value.commit ?? '') || !HEX64.test(value.sourceDigest ?? '') ||
       !exactKeys(value.environment, ['host', 'architectureEvidence', 'node', 'docker', 'profile', 'scope']) ||
-      value.environment.host !== 'macOS ARM64' || value.environment.architectureEvidence !== 'native' ||
+      !(value.environment.host in HOSTS) || value.environment.architectureEvidence !== 'native' ||
       !exactKeys(value.counts, ['passed', 'failed', 'skipped', 'not_run']) || !Array.isArray(value.checks) || value.checks.length !== CHECKS.length ||
       value.counts.passed !== CHECKS.length || value.counts.failed !== 0 || value.counts.skipped !== 0 || value.counts.not_run !== 0 ||
       !Array.isArray(value.readbacks) || value.readbacks.length !== 5 || JSON.stringify(value.readbacks.map(row => row?.target)) !== JSON.stringify(['kind', 'machine', 'rotatedKind', 'obs02', 'machineRejoin']) ||
@@ -227,9 +233,9 @@ function validateCompletedJourney(value) {
   if (ids.size !== CHECKS.length || value.readbacks.some(row => !exactKeys(row, ['target', 'sha256']) || !HEX64.test(row.sha256 ?? ''))) invalid();
   const projected = projectJourneyReceipt({
     commit: value.commit, sourceDigest: value.sourceDigest, dirty: value.dirty,
-    platform: 'darwin', arch: 'arm64', dockerArch: 'aarch64',
+    ...HOSTS[value.environment.host], profile: value.environment.profile,
     node: value.environment.node, docker: value.environment.docker,
-    checks: value.checks,
+    checks: value.checks, telemetryStates: value.telemetryStates,
     readbacks: Object.fromEntries(value.readbacks.map(row => [row.target, row.sha256])),
   });
   if (JSON.stringify(projected) !== JSON.stringify(value)) invalid();

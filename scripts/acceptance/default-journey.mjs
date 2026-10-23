@@ -1,11 +1,11 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { receipt, writeReceipt } from '../../tests/e2e/default/receipt.mjs';
+import { sourceBinding } from './source-binding.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const fail = id => { throw new Error('journey:' + id); };
@@ -28,27 +28,10 @@ export function run(args = process.argv.slice(2)) {
   const source = { platform: process.platform, arch: process.arch, node: process.versions.node, checks: [] };
   try {
     if (Number(process.versions.node.split('.')[0]) !== 22) fail('node22-required');
-    const git = args => {
-      const child = spawnSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
-      if (child.status !== 0) fail('source-binding');
-      return child.stdout;
-    };
     const evidencePath = path.relative(root, output).split(path.sep).join('/');
     // Same source-byte binding as the installer, including untracked harness files.
     // The one new receipt is an output, not a change to the tested source.
-    const bind = () => {
-      const hash = createHash('sha256');
-      for (const file of git(['ls-files', '--cached', '--others', '--exclude-standard', '-z']).split('\0').filter(Boolean).sort()) {
-        if (file === evidencePath) continue;
-        hash.update(file).update('\0');
-        const full = path.join(root, file);
-        if (!fs.existsSync(full)) hash.update('deleted\0');
-        else hash.update(fs.lstatSync(full).isSymbolicLink() ? fs.readlinkSync(full) : fs.readFileSync(full)).update('\0');
-      }
-      const dirty = git(['status', '--porcelain', '--untracked-files=all']).split('\n').filter(Boolean)
-        .some(line => line.slice(3).trim() !== evidencePath);
-      return { commit: git(['rev-parse', 'HEAD']).trim(), dirty, sourceDigest: hash.digest('hex') };
-    };
+    const bind = () => sourceBinding(root, evidencePath, fail);
     const initial = bind();
     Object.assign(source, initial);
     const require = createRequire(path.join(root, 'package.json'));

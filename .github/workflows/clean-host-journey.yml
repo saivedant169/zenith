@@ -6,6 +6,11 @@ name: Clean-host default journey
 # port offset. Manual only: it pulls and builds several GiB of images.
 on:
   workflow_dispatch:
+    inputs:
+      ux:
+        description: Also run the PROD-UX-01 accessibility cases (axe at two viewports) and upload the UX receipt
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -156,6 +161,21 @@ jobs:
             node tests/e2e/default/prepare.mjs --directory "$RUNNER_TEMP/zenith/j2" --stack "$stack" \
               --node-image "$KIND_NODE_IMAGE" --witness-image "$WITNESS_IMAGE" --mailpit-url "$mail"
 
+      - name: UX-01 exclusive window (ux runs only)
+        if: inputs.ux
+        run: |
+          set -euo pipefail
+          install -d -m 700 "$RUNNER_TEMP/ux"
+          node scripts/acceptance/ux01-window.mjs --stack "$RUNNER_TEMP/zenith/stack" --config "$RUNNER_TEMP/zenith/j2/journey.json" \
+            --receipt .data-ci-lane/clean-host-journey-receipt.json --out "$RUNNER_TEMP/ux/window.json" --id "j2-ux-${GITHUB_RUN_ID}-${{ matrix.arch }}"
+          {
+            echo "ZENITH_UX01_BROWSER=1"
+            echo "ZENITH_UX01_CHROME=$(node -e "console.log(require('@playwright/test').chromium.executablePath())")"
+            echo "ZENITH_UX01_RECEIPT=$RUNNER_TEMP/ux/ux-receipt.json"
+            echo "ZENITH_UX01_EXCLUSIVE_WINDOW_FILE=$RUNNER_TEMP/ux/window.json"
+            echo "ZENITH_UX01_EXCLUSIVE_WINDOW_ID=j2-ux-${GITHUB_RUN_ID}-${{ matrix.arch }}"
+          } >> "$GITHUB_ENV"
+
       - name: J2 default journey
         run: |
           set -euo pipefail
@@ -189,5 +209,14 @@ jobs:
         with:
           name: clean-host-journey-${{ matrix.arch }}
           path: .data-ci-lane/clean-host-journey-receipt.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      # Closed-vocabulary UX receipt only; the private uncertainty observations stay on the runner.
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always() && inputs.ux
+        with:
+          name: clean-host-ux-${{ matrix.arch }}
+          path: ${{ runner.temp }}/ux/ux-receipt.json
           if-no-files-found: warn
           retention-days: 30

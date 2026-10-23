@@ -20,6 +20,7 @@ const input = () => {
     commit: randomBytes(20).toString('hex'), sourceDigest: randomBytes(32).toString('hex'), dirty: false,
     platform: 'darwin', arch: 'arm64', dockerArch: 'aarch64', node: '22.23.3', docker: '28.5.0',
     checks: CHECKS.map(id => ({ id, status: 'passed' })), readbacks,
+    telemetryStates: { metric: 'unknown', log: 'empty', event: 'fresh', trace: 'unknown', health: 'fresh', healthSilent: 'unknown', healthRevoked: 'inaccessible' },
   };
 };
 
@@ -117,6 +118,11 @@ describe('default journey opt-in gate', () => {
     expect(result.telemetryStates).toEqual({ metric: 'unknown', log: 'fresh', healthSilent: 'unknown', healthRevoked: 'inaccessible' });
     expect(JSON.stringify(result)).not.toContain('secret text');
     expect(result.evidence?.logs ?? null).toBeNull();
+  });
+  it('is not ledger evidence unless every telemetry signal, including both machine-health refusals, was observed', () => {
+    const { healthRevoked: _revoked, ...partial } = input().telemetryStates;
+    const result = receipt({ ...input(), telemetryStates: partial });
+    expect(result.ledgerEligible).toBe(false); expect(result.evidence).toBeNull();
   });
 });
 

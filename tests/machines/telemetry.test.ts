@@ -97,5 +97,19 @@ describe("zenithd machine health through readMachineHealth", () => {
     expect(out.telemetry.provenance[0]).toMatchObject({ source: "machines.zenithd", provider: "zenithd", state });
     expect(out.telemetry.provenance[0].reason).toMatch(/\S/);
   });
+  it("keeps a refused mutating zenithd request a transport error, never a clean 'nothing ran' denial", async () => {
+    const enqueue = vi.fn(async () => { throw new DispatchError("agent_revoked", "revoked"); });
+    const driver = createZenithdMachineDriver({ dispatcher: { enqueue, await: vi.fn() }, now: () => T0 });
+    const req = requestFor("machine.service.restart", { unit: "nginx.service" }, { transport: "zenithd", targetId: "mac_fixture" });
+    await expect(driver.execute(req, { grantJws: "inert-local-grant" }, new AbortController().signal)).rejects.toMatchObject({ code: "transport_error", message: "could not queue the machine request" });
+    expect(enqueue).toHaveBeenCalledTimes(1);
+  });
+  it("labels a granted read with a non-reversible session fingerprint and the grant's project", async () => {
+    const grant = grantFor("system.metrics", { proj: "proj-1", jti: "grant-jti-canary" });
+    const out = await readMachineHealth(requestFor("system.metrics", {}, { transport: "zenithd", targetId: "mac_fixture" }), { ...zenithd(async () => { throw new DispatchError("agent_stale", "silent"); }), grant });
+    expect(out.telemetry.session).toMatchObject({ provider: "zenithd", transport: "zenithd", ref: expect.stringMatching(/^[a-f0-9]{16}$/), expiresAt: new Date(grant.exp * 1000).toISOString() });
+    expect(JSON.stringify(out.telemetry)).not.toContain(grant.jti);
+    expect(out.telemetry.scope.projectId).toBe("proj-1");
+  });
 });
 

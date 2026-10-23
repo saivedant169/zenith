@@ -9,6 +9,8 @@
  * refused). A refusal is a labeled result, never a silent gap and never
  * "healthy".
  */
+import { createHash } from "node:crypto";
+import type { CapabilityGrantClaims } from "@/lib/controlplane/types";
 import { answeredProvenance, buildEnvelope, evidenceOf, failedProvenance, FRESHNESS_BUDGET_MS, type SourceProvenance, type TelemetryEnvelope } from "@/lib/observability/telemetry";
 import { isMachineOperationError } from "./errors";
 import { executeMachineOperation, type MachineExecutionContext } from "./service";
@@ -38,16 +40,24 @@ function sourceFor(target: MachineTarget): string {
   return `machines.${target.transport}`;
 }
 
-function scopeFor(target: MachineTarget) {
+function scopeFor(target: MachineTarget, grant?: CapabilityGrantClaims) {
   return {
     workspaceId: target.workspaceId,
+    ...(grant?.proj ? { projectId: grant.proj } : {}),
     environmentId: target.environmentId ?? "",
     ...(target.address ? { addresses: [target.address] } : {}),
   };
 }
 
-export function machineHealthTelemetry(input: { target: MachineTarget; observedAt: string; result?: MachineResult; error?: { code: string; message: string } }): TelemetryEnvelope {
-  const { target, observedAt, result, error } = input;
+/** The scoped session of a machine read is its single-operation grant: a non-reversible fingerprint, never the JWS. */
+function sessionFor(target: MachineTarget, grant: CapabilityGrantClaims) {
+  const provider = PROVIDER_OF[target.transport];
+  return { provider, transport: target.transport, expiresAt: new Date(grant.exp * 1000).toISOString(),
+    ref: createHash("sha256").update([provider, grant.aud, grant.jti, grant.exp].join("|")).digest("hex").slice(0, 16) };
+}
+
+export function machineHealthTelemetry(input: { target: MachineTarget; observedAt: string; result?: MachineResult; error?: { code: string; message: string }; grant?: CapabilityGrantClaims }): TelemetryEnvelope {
+  const { target, observedAt, result, error, grant } = input;
   const source = sourceFor(target);
   const provider = PROVIDER_OF[target.transport];
   let provenance: SourceProvenance;
@@ -76,7 +86,7 @@ export function machineHealthTelemetry(input: { target: MachineTarget; observedA
     // a failed-but-returned operation reached the machine plane: it is unknown, never inaccessible by text accident
     if (result) provenance.state = "unknown";
   }
-  return buildEnvelope({ signal: "health", scope: scopeFor(target), observedAt, provenance: [provenance] });
+  return buildEnvelope({ signal: "health", scope: scopeFor(target, grant), ...(grant ? { session: sessionFor(target, grant) } : {}), observedAt, provenance: [provenance] });
 }
 
 /**
@@ -90,10 +100,10 @@ export async function readMachineHealth(req: MachineRequest, ctx: MachineExecuti
   const now = ctx.now ?? (() => new Date());
   try {
     const result = await executeMachineOperation(req, ctx);
-    return { result, telemetry: machineHealthTelemetry({ target: req.target, observedAt: now().toISOString(), result }) };
+    return { result, telemetry: machineHealthTelemetry({ target: req.target, observedAt: now().toISOString(), result, grant: ctx.grant }) };
   } catch (e) {
     if (!isMachineOperationError(e) || e.code === "uncertain" || e.code === "evidence_failed" || e.code === "aborted") throw e;
     const error = { code: e.code, message: e.message };
-    return { error, telemetry: machineHealthTelemetry({ target: req.target, observedAt: now().toISOString(), error }) };
+    return { error, telemetry: machineHealthTelemetry({ target: req.target, observedAt: now().toISOString(), error, grant: ctx.grant }) };
   }
 }

@@ -85,6 +85,7 @@ const journey = () => projectJourneyReceipt({
   platform: 'darwin', arch: 'arm64', dockerArch: 'aarch64', node: '22.23.3', docker: '28.5.0',
   checks: CHECKS.map(id => ({ id, status: 'passed' })),
   readbacks: Object.fromEntries(['kind', 'machine', 'rotatedKind', 'obs02', 'machineRejoin'].map(target => [target, randomBytes(32).toString('hex')])),
+  telemetryStates: { metric: 'unknown', log: 'empty', event: 'fresh', trace: 'unknown', health: 'fresh', healthSilent: 'unknown', healthRevoked: 'inaccessible' },
 });
 
 describe('PROD-UX-01 actual-browser receipt contract', () => {

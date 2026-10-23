@@ -420,6 +420,8 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       telemetry.scope?.environmentId === environmentId && telemetry.scope?.addresses?.[0] === witnessAddress && Date.parse(telemetry.observedAt) > 0 &&
       telemetry.provenance?.length === 1 && telemetry.provenance[0].source === 'machines.zenithd' && telemetry.provenance[0].provider === 'zenithd' &&
       telemetry.provenance[0].state === state && typeof telemetry.provenance[0].reason === 'string' && telemetry.provenance[0].reason.length > 0 &&
+      // Refused before any grant was issued, so no machine session was opened.
+      telemetry.session === undefined &&
       !JSON.stringify(read.rows).includes(healthMachine.credential), label);
     return telemetry.state;
   };
@@ -866,7 +868,11 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       const explicit = value => Array.isArray(value?.provenance) && value.provenance.length > 0 && value.provenance.every(source =>
         typeof source.source === 'string' && typeof source.provider === 'string' && ['fresh', 'stale', 'empty', 'unknown', 'inaccessible'].includes(source.state)
         && (!['unknown', 'inaccessible'].includes(source.state) || (typeof source.reason === 'string' && source.reason.length > 0)));
+      // PROD-OBS-02: each fabric read runs inside the broker's per-read Kubernetes session, named only by a non-reversible ref.
+      const scopedSession = value => value?.session?.provider === 'kubernetes' && /^[a-f0-9]{16}$/.test(value.session.ref ?? '') &&
+        Object.keys(value.session).every(key => ['provider', 'ref', 'region', 'transport', 'expiresAt'].includes(key));
       ensure(explicit(envelope), 'default-metrics-provenance-explicit');
+      ensure(scopedSession(envelope), 'default-metrics-scoped-session');
       telemetryStates.metric = envelope.state;
       const logsRaw = await mcp(stack, linked.token, 'tools/call', { name: 'zenith_query_logs', arguments: {
         target: { workspaceId, projectId: project.id, environmentId }, serviceId, lastMinutes: 5, limit: 20,
@@ -876,6 +882,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       const logEnvelope = logs.data?.telemetry;
       ensure(logEnvelope?.signal === 'log' && logEnvelope.scope?.workspaceId === workspaceId && logEnvelope.scope?.projectId === project.id &&
         logEnvelope.scope?.environmentId === environmentId && Date.parse(logEnvelope.observedAt) > 0 && explicit(logEnvelope), 'default-logs-provenance');
+      ensure(scopedSession(logEnvelope), 'default-logs-scoped-session');
       ensure(!JSON.stringify(logs).includes(linked.token) && !JSON.stringify(logs).includes(healthToken.token), 'logs-token-redaction');
       telemetryStates.log = logEnvelope.state;
       // PROD-OBS-02: provider/resource events and traces through their own read grants, with the same envelope contract.
@@ -888,6 +895,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
         const telemetry = answer.data?.telemetry;
         ensure(telemetry?.signal === signal && telemetry.scope?.workspaceId === workspaceId && telemetry.scope?.projectId === project.id && telemetry.scope?.environmentId === environmentId &&
           Date.parse(telemetry.observedAt) > 0 && explicit(telemetry), 'default-' + signal + '-provenance');
+        ensure(scopedSession(telemetry), 'default-' + signal + '-scoped-session');
         ensure(!JSON.stringify(answer).includes(linked.token), signal + '-token-redaction');
         telemetryStates[signal] = telemetry.state;
       }
@@ -951,6 +959,9 @@ test('default operated browser, REST, MCP and customer machine journey', async (
         Date.parse(telemetry.observedAt) > 0 && telemetry.provenance?.length === 1 &&
         telemetry.provenance[0].source === 'machines.zenithd' && telemetry.provenance[0].provider === 'zenithd' &&
         ['fresh', 'stale'].includes(telemetry.state) && !JSON.stringify(evidence).includes(healthMachine.credential), 'health-evidence-provenance');
+      // The read's scoped session is its single-operation machine grant: project-scoped, fingerprinted, never the JWS.
+      ensure(telemetry.scope?.projectId === project.id && telemetry.session?.provider === 'zenithd' && telemetry.session.transport === 'zenithd' &&
+        /^[a-f0-9]{16}$/.test(telemetry.session.ref ?? '') && Date.parse(telemetry.session.expiresAt) > Date.parse(telemetry.observedAt), 'health-evidence-scoped-session');
       ensure(JSON.parse(await psql(sql, { ...sqlVariables, workspace_id: nonce() })).length === 0, 'health-evidence-tenant-filter');
       readbacks.obs02 = sha256({ operationId, status: terminal.operation.status, workflowProgressObserved: workflowProgress !== null,
         progress: workflowProgress,
@@ -1272,6 +1283,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       ensure(revokedReadback?.status === 'revoked' && revokedReadback.environmentId === environmentId &&
         revokedReadback.address === witnessAddress, 'ux01-uncertainty-machine-revoke-readback');
       healthMachine.revocationConfirmed = true;
+      telemetryStates.healthRevoked = assertHealthNegative(await machineHealthRead('health-revoked'), 'inaccessible', 'health-revoked-machine-inaccessible');
       const preStopWindow = readUxExclusiveWindow({ stack, source, config });
       const preStopInventory = await runbookInventory(request.id);
       ensure(preStopWindow.id === uxOriginalWindow?.id && preStopWindow.digest === uxOriginalWindow?.digest &&

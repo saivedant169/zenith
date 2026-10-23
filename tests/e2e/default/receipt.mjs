@@ -27,7 +27,9 @@ export function receipt(input = {}) {
   }
   const checks = CHECKS.map(id => ({ id, status: facts.find(fact => fact.id === id)?.status ?? 'not_run' }));
   const counts = Object.fromEntries([...STATUSES].map(status => [status, checks.filter(check => check.status === status).length]));
-  const complete = counts.passed === CHECKS.length && ['kind', 'machine', 'rotatedKind', 'obs02', 'machineRejoin'].every(target => hash(input.readbacks?.[target], 64));
+  // PROD-OBS-02: an eligible run also observed every telemetry signal, including both machine-health refusals.
+  const complete = counts.passed === CHECKS.length && ['kind', 'machine', 'rotatedKind', 'obs02', 'machineRejoin'].every(target => hash(input.readbacks?.[target], 64)) &&
+    TELEMETRY_SIGNALS.every(signal => TELEMETRY_STATES.has(input.telemetryStates?.[signal]));
   const bound = hash(input.commit, 40) && hash(input.sourceDigest, 64) && typeof input.dirty === 'boolean';
   // macOS ARM64, or Linux on its own architecture; the Docker engine must report the same architecture.
   const host = input.platform === 'darwin' && input.arch === 'arm64' ? 'macOS ARM64'

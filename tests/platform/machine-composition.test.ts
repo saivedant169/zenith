@@ -18,7 +18,7 @@ vi.mock("@/lib/execution", async (original) => {
 const { openPlatformDb, repos } = await import("@/lib/controlplane/db");
 const { composeExecutionActivities } = await import("@/lib/platform/execution");
 const { createDefaultMachinePort } = await import("@/lib/machines/composition");
-const { executeMachineOperation, createMachineDrivers, createMachineSessionProvider } = await import("@/lib/machines");
+const { executeMachineOperation, createMachineDrivers, createMachineSessionProvider, readMachineHealth } = await import("@/lib/machines");
 const { machineResultSealer, readMachineEvidenceBlob } = await import("@/lib/machines/persistence");
 const { AZURE_WIRE_HEADER } = await import("@/lib/machines/transports/azure-scripts");
 const { createPlatformRunnerStore } = await import("@/lib/runners/db/pg-store");
@@ -178,5 +178,13 @@ describe("default machine composition", () => {
     // Every binding revoked: no ambiguity about the answer, which is a refusal of the revoked machine.
     await plane.store.machines.revoke("ws-1", agent.id);
     expect(await port.boundMachine("ws-1", "env-1", "compute_instance/web")).toMatchObject({ status: "revoked" });
+    // Real store, dispatcher and zenithd driver: a health read of the revoked machine is an explicit, labelled refusal that queues nothing.
+    const healthReq = { ...req, operationId: "op-health" };
+    const healthClaims = grantFor(healthReq.operation, { aud: `machine:${agent.id}`, op: "op-health", iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 900 });
+    const healthJws = await issueGrant(plane, healthClaims);
+    const read = await readMachineHealth(healthReq, { grant: healthClaims, drivers: createMachineDrivers({ dispatcher: port.dispatcher }), sessions: createMachineSessionProvider({ credentials, grantJws: healthJws }), evidence: port.evidence, signal: new AbortController().signal });
+    expect(read.error?.code).toBe("denied");
+    expect(read.telemetry).toMatchObject({ signal: "health", state: "inaccessible", session: { provider: "zenithd", transport: "zenithd" } });
+    expect(await plane.store.machineRequests.listForOperation("ws-1", "op-health")).toHaveLength(0);
   });
 });

@@ -73,11 +73,17 @@ export async function run(receipt: string, env = process.env) {
         const error = typeof raw === "string" ? raw.replace(/\b\w+=\S+/g, "…=…").replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/(?:\/[^\s/]+){2,}/g, "…path").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 300) : null;
         const pods = async (namespace: string) => {
           const list = await command("kubectl", ["--kubeconfig", ctx.config!.kind.observerKubeconfigFile, "--context", ctx.config!.kind.context, "-n", namespace, "get", "pods", "-o", "json"]).catch(() => "");
-          const items = (list ? JSON.parse(list).items : []) as { metadata: { labels?: Record<string, string> }; status?: { phase?: string; reason?: string; containerStatuses?: { name: string; restartCount: number; ready?: boolean; imageID?: string; state?: Record<string, { reason?: string; exitCode?: number }> }[] } }[];
-          return items.map(p => ({ role: p.metadata.labels?.["zenith.dev/role"] ?? p.metadata.labels?.["app.kubernetes.io/component"] ?? null, phase: p.status?.phase ?? null, reason: p.status?.reason ?? null,
+          const items = (list ? JSON.parse(list).items : []) as { metadata: { labels?: Record<string, string> }; status?: { phase?: string; reason?: string; message?: string; containerStatuses?: { name: string; restartCount: number; ready?: boolean; imageID?: string; state?: Record<string, { reason?: string; exitCode?: number }> }[] } }[];
+          return items.map(p => ({ role: p.metadata.labels?.["zenith.dev/role"] ?? p.metadata.labels?.["app.kubernetes.io/component"] ?? null, phase: p.status?.phase ?? null, reason: p.status?.reason ?? null, message: p.status?.message?.slice(0, 240) ?? null,
             containers: (p.status?.containerStatuses ?? []).map(c => ({ name: c.name, restarts: c.restartCount, ready: c.ready ?? null, imageDigest: c.imageID?.match(/@(sha256:[0-9a-f]{12})/)?.[1] ?? null, state: Object.keys(c.state ?? {})[0] ?? null, reason: Object.values(c.state ?? {})[0]?.reason ?? null, exit: Object.values(c.state ?? {})[0]?.exitCode ?? null })) }));
         };
+        const events = async (namespace: string) => {
+          const list = await command("kubectl", ["--kubeconfig", ctx.config!.kind.observerKubeconfigFile, "--context", ctx.config!.kind.context, "-n", namespace, "get", "events", "-o", "json"]).catch(() => "");
+          const items = (list ? JSON.parse(list).items : []) as { type?: string; reason?: string; message?: string; count?: number }[];
+          return items.filter(e => e.type === "Warning").slice(-6).map(e => ({ reason: e.reason ?? null, count: e.count ?? null, message: e.message?.slice(0, 300) ?? null }));
+        };
         process.stderr.write(`operated outside-step failed: journey:private-build-terminal ${JSON.stringify({ status: settled.operation.status, error,
+          buildWarnings: await events(build.profile.config.namespace),
           expectedProxy: build.profile.config.proxy.image.match(/@(sha256:[0-9a-f]{12})/)?.[1] ?? null,
           build: await pods(build.profile.config.namespace), proxy: await pods(build.profile.config.proxy.namespace) })}\n`);
       }

@@ -83,12 +83,15 @@ production_database_delete := {
 
 # A production plan that deletes or replaces stateful resources is denied,
 # except through `infrastructure.destroy`, which has its own admin,
-# separation-of-duties approval path (see zenith.rules.approval).
+# separation-of-duties approval path (see zenith.rules.approval). A read
+# (plan/observe) attached to an approved destroy cannot delete anything, so
+# only mutating requests are judged by what their plan deletes.
 production_destroys_data := {
 	"code": "production_destroys_data",
 	"message": "A production plan that deletes or replaces stateful resources is denied unless it is an explicit infrastructure.destroy.",
 } if {
 	lib.is_production
+	lib.mutating
 	input.plan.destroysData == true
 	input.request.capability != "infrastructure.destroy"
 }

@@ -150,6 +150,24 @@ test_production_destroys_data_exempts_infrastructure_destroy if {
 	}))
 }
 
+# A read grant attached to an approved destroy carries the destroy's plan; it deletes nothing.
+test_production_destroys_data_exempts_reads if {
+	every capability in ["infrastructure.plan", "infrastructure.observe"] {
+		not deny.production_destroys_data with input as fx.with_patch(object.union(fx.production, {
+			"request": {"capability": capability, "mutates": false},
+			"plan": fx.plan({"destroysData": true}),
+		}))
+	}
+}
+
+# A request that does not say it is read-only is judged as mutating (fail closed).
+test_production_destroys_data_unlabelled_request_is_mutating if {
+	deny.production_destroys_data.code == "production_destroys_data" with input as json.remove(fx.with_patch(object.union(fx.production, {
+		"request": {"capability": "infrastructure.apply"},
+		"plan": fx.plan({"destroysData": true}),
+	})), ["request/mutates"])
+}
+
 test_production_destroys_data_only_in_production if {
 	every class in ["sandbox", "development", "staging"] {
 		not deny.production_destroys_data with input as fx.with_patch({

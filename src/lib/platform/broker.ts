@@ -100,10 +100,7 @@ export function createExecutionBroker(db: Sql, getBroker: BrokerFactory = platfo
   };
   const decisionFor = async (broker: Broker, op: OperationRecord, facts?: PlanPolicyInput, cap = op.capability) => {
     const req = requestFromOperation(op);
-    // An attenuated read grant is judged as that read: the parent's plan describes its mutation (a reviewed teardown's
-    // data deletion would otherwise trip production_destroys_data on a plan/observe read).
-    const read = cap !== op.capability && ["infrastructure.plan", "infrastructure.observe"].includes(cap) ? { plan: undefined, planDigest: undefined } : {};
-    return evaluate(broker.deps, { ...req, ...read, def: capability(cap), risk: cap === op.capability ? req.risk : capability(cap).risk, ...(facts ? { plan: facts, planDigest: op.planDigest } : {}) });
+    return evaluate(broker.deps, { ...req, def: capability(cap), risk: cap === op.capability ? req.risk : capability(cap).risk, ...(facts ? { plan: facts, planDigest: op.planDigest } : {}) });
   };
   const captureCurrentRequirement = async (op: OperationRecord, evaluation: Evaluation): Promise<Omit<NativeDispatchRequirement, "approvals"> & { candidates: Record<string, unknown>[] }> => {
     if (!op.planDigest || !op.environmentId || evaluation.decision.outcome === "deny") return unavailableRequirement();

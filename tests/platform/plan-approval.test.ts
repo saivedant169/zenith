@@ -146,8 +146,8 @@ describe("concrete plan approval rounds", () => {
 
 
 /** Initial source review is immutable before the destroy proposal exists. Synthetic plan bytes remain outside this authority test. */
-async function immutableDestroyReview(kind:"pglite"|"postgres",readPolicy?:(input:{plan?:unknown})=>ReturnType<typeof allowDecision>) {
-  const h=await makeHarness({kind,engine:scriptedEngine("source-review-policy",input=>input.request.capability==="infrastructure.destroy"?requireApproval(1,"admin"):readPolicy&&input.request.capability==="infrastructure.plan"?readPolicy(input):allowDecision())});
+async function immutableDestroyReview(kind:"pglite"|"postgres") {
+  const h=await makeHarness({kind,engine:scriptedEngine("source-review-policy",input=>input.request.capability==="infrastructure.destroy"?requireApproval(1,"admin"):allowDecision())});
   await h.db!.exec(migration0013ApprovedSourceSnapshots.sql); // Explicit candidate prerequisite.
   const scope={workspaceId:h.ids.wsA,projectId:h.ids.projA,environmentId:h.ids.envASbx};
   const initial=await h.broker.propose({capability:"infrastructure.plan",scope,input:{environmentId:scope.environmentId,teardownReview:true}},user("bob"));
@@ -192,13 +192,6 @@ for(const kind of ["pglite",...(PG_URL?["postgres" as const]:[])] as const) desc
     expect(await grants()).toEqual([]);
     expect((await f.worker.approvalStatus(f.op.id)).dispatchApproval?.approvalIds).toEqual([approvals[0].id]);
     expect((await f.worker.approvalStatus(f.op.id)).approved).toBe(true);
-  });
-  it("evaluates a destroy's read grant as the read, without the destroy plan's facts",async()=>{
-    // Mirrors production_destroys_data: a plan-capability request that carries a data-deleting plan is denied.
-    const f=await immutableDestroyReview(kind,input=>input.plan?{outcome:"deny",reasons:[{code:"production_destroys_data",message:"denied"}]} as never:allowDecision());
-    await f.ports.transition({workspaceId:f.scope.workspaceId,operationId:f.op.id,to:"running"});
-    const read=await f.worker.issueGrant(f.op.id,"worker",undefined,{capability:"infrastructure.plan"});
-    expect(read.claims.cap).toBe("infrastructure.plan");
   });
   it.each(["failed source","expired source","simulated source evidence","missing source evidence","foreign source scope","foreign source workspace reference","moved source digest"])("refuses %s for an initial destroy proposal",async(mode)=>{
     const f=await immutableDestroyReview(kind);

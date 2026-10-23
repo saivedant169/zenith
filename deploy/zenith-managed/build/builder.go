@@ -19,9 +19,12 @@ import (
 	"os/exec"
 	archivepath "path"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
+	"unsafe"
 )
 
 func extract(archive []byte, destination, expected string) error {
@@ -106,6 +109,53 @@ func deniedAddress(address string) bool {
 	}
 	return true
 }
+// Negative probes: each attempts an operation that succeeds for an unconfined process and must be refused here (by the
+// seccomp filter, AppArmor or missing capabilities). None is a malformed call that would fail for its own reasons.
+
+// ptraceDenied: PTRACE_TRACEME succeeds for any unconfined process with a parent.
+func ptraceDenied() bool {
+	_, _, errno := syscall.Syscall(syscall.SYS_PTRACE, syscall.PTRACE_TRACEME, 0, 0)
+	return errno != 0
+}
+
+// bpfDenied: creating a one-entry array map succeeds wherever bpf is permitted.
+func bpfDenied() bool {
+	attr := [4]uint32{2 /* BPF_MAP_TYPE_ARRAY */, 4, 4, 1}
+	nr, ok := map[string]uintptr{"amd64": 321, "arm64": 280}[runtime.GOARCH] // __NR_bpf; the syscall package lacks it on arm64
+	if !ok {
+		return false
+	}
+	fd, _, errno := syscall.Syscall(nr, 0 /* BPF_MAP_CREATE */, uintptr(unsafe.Pointer(&attr[0])), unsafe.Sizeof(attr))
+	if errno == 0 {
+		syscall.Close(int(fd))
+	}
+	return errno != 0
+}
+
+// keyctlDenied: KEYCTL_GET_KEYRING_ID on the session keyring succeeds for any process allowed to use keyrings.
+func keyctlDenied() bool {
+	_, _, errno := syscall.Syscall(syscall.SYS_KEYCTL, 0 /* KEYCTL_GET_KEYRING_ID */, ^uintptr(2) /* KEY_SPEC_SESSION_KEYRING (-3) */, 0)
+	return errno != 0
+}
+
+// rawSocketDenied: a raw ICMP socket.
+func rawSocketDenied() bool {
+	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, syscall.IPPROTO_ICMP)
+	if err == nil {
+		syscall.Close(fd)
+	}
+	return err != nil
+}
+
+// procSysWriteDenied: opening a kernel tunable for writing (nothing is written).
+func procSysWriteDenied() bool {
+	f, err := os.OpenFile("/proc/sys/kernel/hostname", os.O_WRONLY, 0)
+	if err == nil {
+		f.Close()
+	}
+	return err != nil
+}
+
 // seccompEnforced: the kernel reports filter mode (2) for this process, so the Localhost profile is applied, not just requested.
 func seccompEnforced() bool {
 	b, e := os.ReadFile("/proc/self/status")
@@ -220,6 +270,7 @@ func outerChecks() map[string]bool {
 		"credentialsEndpointDenied": deniedAddress("169.254.170.2:80"), "directEgressDenied": deniedAddress("1.1.1.1:443"),
 		"proxyDenied": proxyDenied(), "proxyAllowed": proxyAllowed(), "registryDirectDenied": os.Getenv("ZENITH_REGISTRY_PROBE_ENDPOINT") != "" && deniedAddress(os.Getenv("ZENITH_REGISTRY_PROBE_ENDPOINT")), "resourcesBounded": boundedResources(),
 		"seccompEnforced": seccompEnforced(), "appArmorEnforced": appArmorEnforced(),
+		"ptraceDenied": ptraceDenied(), "bpfDenied": bpfDenied(), "keyctlDenied": keyctlDenied(), "rawSocketDenied": rawSocketDenied(), "procSysWriteDenied": procSysWriteDenied(),
 	}
 }
 func fullProcessSandbox() error {

@@ -14,7 +14,7 @@ const commit = "a".repeat(40), sourceDigest = "b".repeat(64), runId = "drv4-test
 function receipt(scenarioId: "two-tenants" | "export" = "two-tenants"): OperatedReceipt {
   return { schema: 1, evidenceLabel: OPERATED_LABEL, scenarioId, runId, sourceCommit: commit, sourceDigest,
     checks: DRIVER_CHECKS[scenarioId].map(id => ({ id, status: "passed" })),
-    readbacks: Object.fromEntries((scenarioId === "two-tenants" ? ["tenant-a", "tenant-b"] : ["source", "bundle", "portable-plan", "portable", "adoption"]).map(key => [key, "c".repeat(64)])),
+    readbacks: Object.fromEntries((scenarioId === "two-tenants" ? ["tenant-a", "tenant-b"] : ["source", "bundle", "portable-plan", "portable"]).map(key => [key, "c".repeat(64)])),
     ...(scenarioId === "export" ? { dataRoundtrips: Object.fromEntries(DATA_KINDS.map(kind => {
       const content = (letter: "a" | "b") => kind === "object_store" ? objectWitness(knownData(runId, letter).objects) : rowWitness(knownData(runId, letter).rows);
       return [kind, { source: content("a"), target: content("a"), otherTenant: content("b"), exportedContentDigest: sourceDigest, restoredContentDigest: sourceDigest,

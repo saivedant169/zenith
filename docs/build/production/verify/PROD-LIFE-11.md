@@ -2,7 +2,7 @@
 
 ## Operated adopt journey, 24 October 2026
 
-The D-4 export scenario now runs LIFE-11 adoption through the product API on the owned J1 stack and kind cluster,
+The D-4 adopt scenario (`drivers-d4-adopt`, `scripts/release/drivers/adopt.ts`; split out of the export scenario so the export gate keeps its own result) runs LIFE-11 adoption through the product API on the owned J1 stack and kind cluster,
 with browser approvals only (`scripts/release/drivers/adopt-kind.ts`, checks `adopt-release-retains` and
 `adopt-destroy-teardown`): an out-of-band zero-replica postgres StatefulSet and claim are declared `referenced`,
 adopted (`manage`), released, adopted again (`manage_and_destroy`) and torn down with the environment.

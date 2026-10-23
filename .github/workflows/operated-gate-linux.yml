@@ -18,6 +18,7 @@ on:
           - j15-operated-upgrade
           - j15-operated-restore
           - drivers-d4-export
+          - drivers-d4-adopt
           - drv1-update-rollback
           - drv1-private-source
         default: drv2-drift-repair
@@ -153,6 +154,8 @@ jobs:
             echo "ZENITH_LOCAL_JOURNEY_CONFIG_FILE=$RUNNER_TEMP/zenith/j2/journey.json"
             # D-4 two tenants reads the same private journey configuration (as in ci.yml).
             echo "ZENITH_LOCAL_TWO_TENANTS_CONFIG_FILE=$RUNNER_TEMP/zenith/j2/journey.json"
+            # D-4 adopt (LIFE-11 adoption journey) uses the same private journey configuration.
+            echo "ZENITH_LOCAL_ADOPT_CONFIG_FILE=$RUNNER_TEMP/zenith/j2/journey.json"
             echo "ZENITH_LOCAL_UPGRADE_IMAGES_FILE=${root}/upgrade-images.json"
           } >> "$GITHUB_ENV"
           # DRV-1 private-source: owner-approved inputs (verify/DRV-1-DECLARATIONS.md), private files outside the checkout.

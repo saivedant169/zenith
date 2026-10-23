@@ -480,6 +480,60 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  drivers-d4-adopt:
+    if: github.event_name == 'push' && vars.ZENITH_LOCAL_DRIVER_D4 == '1'
+    runs-on: [self-hosted, macOS, ARM64, zenith-operated]
+    environment: operated-rehearsal
+    timeout-minutes: 45
+    concurrency:
+      group: zenith-operated-${{ github.repository }}
+      cancel-in-progress: false
+    env:
+      ZENITH_DATA: ${{ github.workspace }}/.data-ci-drivers-d4-adopt
+      ZENITH_LOCAL_DRIVER_D4: "1"
+      ZENITH_LOCAL_TARGETS: "1"
+      ZENITH_LOCAL_JOINED_DRIVERS: "1"
+      ZENITH_ACCEPTANCE_DEFAULT_STACK: "1"
+      ZENITH_DEFAULT_JOURNEY: "1"
+      ZENITH_LOCAL_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}-drivers-d4-adopt
+      ZENITH_LOCAL_ROOT: ${{ vars.ZENITH_OPERATED_DRV4_ADOPT_ROOT }}
+      ZENITH_ACCEPTANCE_DEFAULT_STACK_DIR: ${{ vars.ZENITH_OPERATED_DRV4_ADOPT_STACK_DIR }}
+      ZENITH_LOCAL_JOURNEY_CONFIG_FILE: ${{ vars.ZENITH_OPERATED_DRV4_ADOPT_CONFIG_FILE }}
+      ZENITH_LOCAL_ADOPT_CONFIG_FILE: ${{ vars.ZENITH_OPERATED_DRV4_ADOPT_CONFIG_FILE }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22.23.3'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Load the owned J1 host environment without printing credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${ZENITH_LOCAL_ROOT:?fresh private root required}"
+          : "${ZENITH_ACCEPTANCE_DEFAULT_STACK_DIR:?fresh owned lean J1 required}"
+          : "${ZENITH_LOCAL_JOURNEY_CONFIG_FILE:?fresh private J2 config required}"
+          node scripts/acceptance/default-stack/env.mjs "$ZENITH_ACCEPTANCE_DEFAULT_STACK_DIR" "$ZENITH_LOCAL_ROOT/ci-host.env"
+          trap 'rm -f -- "$ZENITH_LOCAL_ROOT/ci-host.env"' EXIT
+          while IFS='=' read -r key value; do
+            printf '%s=%s\n' "$key" "$value" >> "$GITHUB_ENV"
+          done < "$ZENITH_LOCAL_ROOT/ci-host.env"
+      - run: node scripts/ci/run-gate.mjs drivers-d4-adopt --run
+      - name: Require the exact operated case and current-source execution
+        if: always()
+        run: node scripts/ci/run-gate.mjs drivers-d4-adopt --validate .data-ci-lane/drivers-d4-adopt.json --require-execution
+      - name: Preserve sanitized gate evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: canonical-drivers-d4-adopt-evidence-${{ github.sha }}
+          path: .data-ci-lane/drivers-d4-adopt-evidence.json
+          if-no-files-found: error
+          retention-days: 14
+
   verify:
     runs-on: ubuntu-latest
     # Preserve the repository maximum while running every canonical core step.

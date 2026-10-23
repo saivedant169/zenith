@@ -9,7 +9,7 @@ const runId = "drv4-data", sourceCommit = "a".repeat(40), sourceDigest = "b".rep
 const witness = (kind: string, tenant: "a" | "b") => kind === "object_store" ? objectWitness(knownData(runId, tenant).objects) : rowWitness(knownData(runId, tenant).rows);
 function receipt(): OperatedReceipt {
   return { schema: 1, evidenceLabel: OPERATED_LABEL, scenarioId: "export", runId, sourceCommit, sourceDigest,
-    checks: DRIVER_CHECKS.export.map(id => ({ id, status: "passed" })), readbacks: Object.fromEntries(["source", "bundle", "portable-plan", "portable", "adoption"].map(k => [k, sourceDigest])),
+    checks: DRIVER_CHECKS.export.map(id => ({ id, status: "passed" })), readbacks: Object.fromEntries(["source", "bundle", "portable-plan", "portable"].map(k => [k, sourceDigest])),
     dataRoundtrips: Object.fromEntries(DATA_KINDS.map(kind => [kind, { source: witness(kind, "a"), target: witness(kind, "a"), otherTenant: witness(kind, "b"),
       exportedContentDigest: sourceDigest, restoredContentDigest: sourceDigest, tenantIsolation: true, mysqlTls: kind === "mysql" ? "verified_identity" : "not_applicable" }])),
     limits: [...DRIVER_LIMITS.export] };
@@ -35,10 +35,10 @@ describe("DRV4 customer-data witness planners", () => {
       "preconditions", "browser-approved-deployment", "provider-readback", "revision-export", "working-copy-divergence",
       "export-file-readback", "credential-absence", "browser-approved-teardown", "portable-plan", "portable-apply-readback",
       "data-preconditions", "postgres-data-roundtrip", "mysql-data-roundtrip", "object-store-data-roundtrip", "data-tenant-scoping",
-      "adopt-release-retains", "adopt-destroy-teardown", "source-stable", "owned-cleanup",
+      "source-stable", "owned-cleanup",
     ]);
     ordered(driverSource.slice(driverSource.indexOf("export async function runExport")), [
-      "await operatedDataRoundtrips(ctx)", "await operatedAdoption(ctx)", "const target = await localstack(ctx)", "await ctx.step(\"browser-approved-deployment\"",
+      "await operatedDataRoundtrips(ctx)", "const target = await localstack(ctx)", "await ctx.step(\"browser-approved-deployment\"",
     ]);
     ordered(exporterSource.slice(exporterSource.indexOf("export async function operatedDataRoundtrips")), [
       "await leg.seedSource(legContext)", "const exportOp = await operation(", "const importOp = await operation(",

@@ -893,7 +893,7 @@ type TenantExportArguments = [input: DriverInput, work: (context: OperatedContex
 type BoundTenantExportArguments = [input: DriverInput & { scenarioId: TenantExportScenario }, work: (context: OperatedContext) => Promise<void>];
 type RunOperatedArguments = DriftCrashArguments | SourceArguments | TenantExportArguments;
 function isTenantExportArguments(args: RunOperatedArguments): args is BoundTenantExportArguments {
-  return args.length === 2 && (args[0].scenarioId === "two-tenants" || args[0].scenarioId === "export");
+  return args.length === 2 && (args[0].scenarioId === "two-tenants" || args[0].scenarioId === "export" || args[0].scenarioId === "adopt");
 }
 function isDriftCrashArguments(args: RunOperatedArguments): args is DriftCrashArguments {
   return args.length === 2 && (args[0].scenarioId === "drift-repair" || args[0].scenarioId === "crash-partition");

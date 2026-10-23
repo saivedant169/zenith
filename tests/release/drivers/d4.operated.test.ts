@@ -12,12 +12,12 @@ import { validateOperatedReceipt } from "../../../scripts/release/drivers/protoc
 import { localEnvironment } from "../../../scripts/release/local-targets";
 
 describe.skipIf(process.env.ZENITH_LOCAL_DRIVER_D4 !== "1")("J15 DRV-4 actual owned operated stack", () => {
-  for (const scenarioId of ["two-tenants", "export"] as const) {
+  for (const scenarioId of ["two-tenants", "export", "adopt"] as const) {
     it(`${scenarioId}: browser authority, independent readback and owned cleanup`, async () => {
-      const file = process.env[scenarioId === "two-tenants" ? "ZENITH_LOCAL_TWO_TENANTS_CONFIG_FILE" : "ZENITH_LOCAL_EXPORT_CONFIG_FILE"];
+      const file = process.env[{ "two-tenants": "ZENITH_LOCAL_TWO_TENANTS_CONFIG_FILE", export: "ZENITH_LOCAL_EXPORT_CONFIG_FILE", adopt: "ZENITH_LOCAL_ADOPT_CONFIG_FILE" }[scenarioId]];
       expect(file, "Each case needs a fresh owned J1/J2 lean fixture and private config; the previous case destroys its fixture").toBeTruthy();
       const config = Config.parse(JSON.parse(privateFile(file)));
-      const runId = process.env.ZENITH_LOCAL_RUN_ID ?? (scenarioId === "two-tenants" ? "drv4-tenants" : "drv4-export");
+      const runId = process.env.ZENITH_LOCAL_RUN_ID ?? { "two-tenants": "drv4-tenants", export: "drv4-export", adopt: "drv4-adopt" }[scenarioId];
       const root = process.env.ZENITH_LOCAL_ROOT ?? mkdtempSync(path.join(realpathSync(os.tmpdir()), `zenith-j15-${runId}-`));
       if (!process.env.ZENITH_LOCAL_ROOT) chmodSync(root, 0o700);
       const output = path.join(root, `${scenarioId}.operated-receipt.json`), source = sourceBinding();

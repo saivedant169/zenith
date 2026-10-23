@@ -1,0 +1,319 @@
+{
+  "schemaVersion": 2,
+  "requirementId": "PROD-UX-01",
+  "kind": "actual_browser",
+  "browser": "Google Chrome via Playwright",
+  "viewports": [
+    "1280x900",
+    "375x900"
+  ],
+  "axeTags": [
+    "wcag2a",
+    "wcag2aa",
+    "wcag21a",
+    "wcag21aa"
+  ],
+  "source": {
+    "commit": "e0ca85c08696b3c38941dd01c101036f0af1b1b4",
+    "sourceDigest": "7c8b07744b3094ca0e2661293d8b7225082573aec9f076c1a8c4a7570b36b8c5",
+    "dirty": false
+  },
+  "counts": {
+    "passed": 8,
+    "failed": 0,
+    "not_run": 0
+  },
+  "result": "passed",
+  "cases": [
+    {
+      "id": "ux01-operation-review-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "operation-requester-review",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false
+        },
+        {
+          "pageId": "operation-requester-review",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false
+        }
+      ]
+    },
+    {
+      "id": "ux01-independent-approval-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "operation-before-independent-approval",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false
+        },
+        {
+          "pageId": "operation-before-independent-approval",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false
+        },
+        {
+          "pageId": "operation-after-independent-approval",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false
+        },
+        {
+          "pageId": "operation-after-independent-approval",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false
+        }
+      ]
+    },
+    {
+      "id": "ux01-replan-reapproval-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "operation-reapproval-required",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false
+        },
+        {
+          "pageId": "operation-reapproval-required",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false
+        }
+      ]
+    },
+    {
+      "id": "ux01-cancel-operation-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "operation-pending-cancel",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false
+        },
+        {
+          "pageId": "operation-pending-cancel",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false
+        },
+        {
+          "pageId": "operation-cancelled",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false
+        },
+        {
+          "pageId": "operation-cancelled",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false
+        }
+      ]
+    },
+    {
+      "id": "ux01-legacy-projection-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "linked-workflow-deployment",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false
+        },
+        {
+          "pageId": "linked-workflow-deployment",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false
+        }
+      ]
+    },
+    {
+      "id": "ux01-runbook-approval-progress-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "runbook-pending-approval",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false
+        },
+        {
+          "pageId": "runbook-pending-approval",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false
+        }
+      ]
+    },
+    {
+      "id": "ux01-readiness-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "platform-readiness",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false
+        },
+        {
+          "pageId": "platform-readiness",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false
+        }
+      ]
+    },
+    {
+      "id": "ux01-uncertainty-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "operation-uncertain",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false
+        },
+        {
+          "pageId": "operation-uncertain",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false
+        }
+      ]
+    }
+  ],
+  "uncertainty": {
+    "source": {
+      "commit": "e0ca85c08696b3c38941dd01c101036f0af1b1b4",
+      "sourceDigest": "7c8b07744b3094ca0e2661293d8b7225082573aec9f076c1a8c4a7570b36b8c5",
+      "imageDigest": "e9ffd9909ca655a5dd55b2b605484cbf9788901e37f041b3017639c9a97a3036",
+      "fixtureRunId": "3b2a13e69bab3e1ef809b6be"
+    },
+    "scheduler": {
+      "mode": "existing_critical_job",
+      "budgetMs": 15000,
+      "preflightSha256": "0e1eeca872f19f05659252ceb691b2d4fb78c0783e348e590c441f31bdfc02f4",
+      "claimableRunIds": [],
+      "dueScheduleIds": [],
+      "exclusiveWindowId": "j2-ux-39926605553-amd64"
+    },
+    "approval": {
+      "requesterId": "206362e4-bb19-4f11-b399-fde77dd90acd",
+      "approverId": "0a8b8e99-0549-44f3-b117-287a95d528b3",
+      "bindingDigest": "b4e0a326e3a7d0f5033b5f15207766300e10a81ebcb9a7f50041893e7b2dd2cd",
+      "selfApprovalStatus": 403,
+      "approvalStatus": 200
+    },
+    "run": {
+      "id": "rbr_db320b88-f3e7-4a2d-880b-22737b7a8b7e",
+      "runbookId": "j2-uncertainty-3b2a13e69bab3e1ef809b6be",
+      "version": 1,
+      "definitionDigest": "008ee66b234ae7b4379b2284c83466174543fb1836eda0f3eef16d60e64f695e",
+      "bindingDigest": "b4e0a326e3a7d0f5033b5f15207766300e10a81ebcb9a7f50041893e7b2dd2cd",
+      "workspaceId": "mvkqs4rjt84pvh",
+      "projectId": "mvkqs5cmoahk70",
+      "environmentId": "mvkqs7akmpi3q4",
+      "resourceId": "res_4d5c8280-44ee-4e5c-8a4b-7b9679a66bd8",
+      "targetIndex": 0,
+      "statusBefore": "running",
+      "statusAfter": "running",
+      "releasedReason": "caller_abort"
+    },
+    "step": {
+      "id": "hold",
+      "targetIndex": 0,
+      "statusBefore": "started",
+      "statusAfter": "uncertain",
+      "errorCode": "uncertain",
+      "deterministicOperationId": "rbs_4ddf20298aa2ad09bd3f79e297b332e562c3bea7124d1526"
+    },
+    "audit": {
+      "sha256": "61ab2cf1a0a6933e77c1b9d465917a2aacb333f56e7a14b94337306c959fac27",
+      "authorizationCount": 1,
+      "operationId": "op_735149a034014e2fa6a2e872658717ba",
+      "stepOperationId": "rbs_4ddf20298aa2ad09bd3f79e297b332e562c3bea7124d1526"
+    },
+    "broker": {
+      "operationId": "op_735149a034014e2fa6a2e872658717ba",
+      "statusBefore": "running",
+      "statusAfter": "uncertain",
+      "workspaceId": "mvkqs4rjt84pvh",
+      "projectId": "mvkqs5cmoahk70",
+      "environmentId": "mvkqs7akmpi3q4",
+      "resourceId": "res_4d5c8280-44ee-4e5c-8a4b-7b9679a66bd8",
+      "runbookStep": {
+        "runId": "rbr_db320b88-f3e7-4a2d-880b-22737b7a8b7e",
+        "stepId": "hold",
+        "targetIndex": 0,
+        "target": {
+          "address": "container_service/witness",
+          "targetId": "mac_6adcff1b-d14f-4a10-9b07-4f413bbaedf4",
+          "transport": "zenithd",
+          "resourceId": "res_4d5c8280-44ee-4e5c-8a4b-7b9679a66bd8",
+          "workspaceId": "mvkqs4rjt84pvh",
+          "environmentId": "mvkqs7akmpi3q4"
+        },
+        "bindingDigest": "b4e0a326e3a7d0f5033b5f15207766300e10a81ebcb9a7f50041893e7b2dd2cd"
+      }
+    },
+    "request": {
+      "id": "mreq_faf7bdd13bd4e8c56813cc628b42d400",
+      "machineId": "mac_6adcff1b-d14f-4a10-9b07-4f413bbaedf4",
+      "workspaceId": "mvkqs4rjt84pvh",
+      "operationId": "op_735149a034014e2fa6a2e872658717ba",
+      "operation": "machine.exec",
+      "capability": "machine.exec",
+      "statusBefore": "running",
+      "startedAt": "2026-10-23T09:06:00.621Z",
+      "settledAt": null
+    },
+    "marker": {
+      "sha256": "90d2a893fe7e71649bf1ae85afa377670964177a173e603088468c3e4c666975",
+      "nonceMatch": true
+    },
+    "order": {
+      "authorization": 17971,
+      "requestStarted": 18128,
+      "markerObserved": 18196,
+      "abort": 31955,
+      "uncertainReadback": 32595,
+      "ui": 34419
+    },
+    "ui": {
+      "operationId": "op_735149a034014e2fa6a2e872658717ba",
+      "persistedStatus": "uncertain",
+      "uncertainState": true,
+      "callout": "Outcome uncertain: do not assume it failed or succeeded",
+      "nextSteps": [
+        "Do not retry yet: the change may already have been applied.",
+        "Open the resource state and wait for the next reconciliation, or check the cloud console directly.",
+        "When you know the real state, propose a new operation for whatever is still missing."
+      ]
+    },
+    "closeout": {
+      "runStatus": "cancelled",
+      "stepStatus": "uncertain",
+      "brokerStatus": "uncertain",
+      "machineId": "mac_6adcff1b-d14f-4a10-9b07-4f413bbaedf4",
+      "machineStatus": "revoked",
+      "containerId": "60f1fd78546be0c1bafa9af34506963c80d33cfb26bfc5c177f1729024ffaf16",
+      "containerRunLabel": "3b2a13e69bab3e1ef809b6be-obs",
+      "containerRunning": false,
+      "requestCount": 1,
+      "authorizationCount": 1,
+      "observed": 200563
+    }
+  }
+}

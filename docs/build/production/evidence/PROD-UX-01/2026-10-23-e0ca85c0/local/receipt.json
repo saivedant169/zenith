@@ -1,0 +1,610 @@
+{
+  "schemaVersion": 1,
+  "requirement": "PROD-UX-01",
+  "recordedAt": "2026-10-23T09:15:33.989Z",
+  "sourceFreeze": {
+    "before": {
+      "head": "e0ca85c08696b3c38941dd01c101036f0af1b1b4",
+      "tracked": ""
+    },
+    "after": {
+      "head": "e0ca85c08696b3c38941dd01c101036f0af1b1b4",
+      "tracked": ""
+    },
+    "unchanged": true
+  },
+  "hostedRun": {
+    "runId": 39926605553,
+    "url": "https://github.com/saivedant169/zenith/actions/runs/39926605553",
+    "receipts": [
+      {
+        "arch": "amd64",
+        "uxReceiptSha256": "12d933c38d4c3778aa25cb75a5327710d0527584df0232486761ed8e5097aa1e",
+        "journeyReceiptSha256": "d0d046c2bb635eae706e3d5bfe3342a8d5b20042b9d9ddaaf15bb20d62db7468"
+      },
+      {
+        "arch": "arm64",
+        "uxReceiptSha256": "1f51584e9170b70026b25b5d921ca35682f94b468c67fe9c4de5066c04223acc",
+        "journeyReceiptSha256": "02fb4a3acb55ed2212e257c10403cfc98970d27dbb8f293f581948579eac686b"
+      }
+    ]
+  },
+  "environment": {
+    "host": "Darwin arm64",
+    "node": "v22.23.3",
+    "docker": "29.8.2",
+    "postgresImage": "postgres:16.15-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685"
+  },
+  "lanes": [
+    {
+      "name": "contract-1",
+      "argv": [
+        "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/agent-v3/adapters.test.ts",
+        "tests/agent-v3/as-metadata.test.ts",
+        "tests/agent-v3/auth.test.ts",
+        "tests/agent-v3/catalog.test.ts",
+        "tests/agent-v3/client-conformance.test.ts",
+        "tests/agent-v3/envelope.test.ts",
+        "tests/agent-v3/execute.test.ts",
+        "tests/agent-v3/oauth-issuer-fixture.test.ts",
+        "--no-file-parallelism",
+        "--maxWorkers=2",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile",
+        "/private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/ux01/out1/contract-1.json"
+      ],
+      "argvSha256": "8fbfa16b3307a721f506c0557956a4dea013fce92de237cb200e40cfcdfc9cf8",
+      "gates": [],
+      "started": "2026-10-23T09:14:05.802Z",
+      "finished": "2026-10-23T09:14:19.565Z",
+      "exit": 0,
+      "summary": "123 passed (123)"
+    },
+    {
+      "name": "contract-2",
+      "argv": [
+        "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/agent-v3/oauth-metadata.test.ts",
+        "tests/agent-v3/oauth-revoke.test.ts",
+        "tests/agent-v3/observability-wired.test.ts",
+        "tests/agent-v3/official-client-conformance.test.ts",
+        "tests/agent-v3/placement-transport.test.ts",
+        "tests/agent-v3/placement.test.ts",
+        "tests/agent-v3/principal.test.ts",
+        "tests/agent-v3/propose.test.ts",
+        "--no-file-parallelism",
+        "--maxWorkers=2",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile",
+        "/private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/ux01/out1/contract-2.json"
+      ],
+      "argvSha256": "85f20227473a8c8f88863829ddcb1b47d367448c949bc5dc9aaa78ad03e319da",
+      "gates": [],
+      "started": "2026-10-23T09:14:19.565Z",
+      "finished": "2026-10-23T09:14:29.525Z",
+      "exit": 0,
+      "summary": "109 passed (109)"
+    },
+    {
+      "name": "contract-3",
+      "argv": [
+        "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/agent-v3/protocol.test.ts",
+        "tests/agent-v3/read.test.ts",
+        "tests/agent-v3/route.test.ts",
+        "tests/agent-v3/runner-connections.test.ts",
+        "tests/agent-v3/schemas.test.ts",
+        "tests/agent-v3/scope-catalog.test.ts",
+        "tests/agent-v3/sdk.test.ts",
+        "tests/agent-v3/stream-store.test.ts",
+        "--no-file-parallelism",
+        "--maxWorkers=2",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile",
+        "/private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/ux01/out1/contract-3.json"
+      ],
+      "argvSha256": "4551cb72112bb181e5d9fa81d1b24ed6dcafff82a6bea58a64789ed444c8a773",
+      "gates": [],
+      "started": "2026-10-23T09:14:29.525Z",
+      "finished": "2026-10-23T09:14:41.459Z",
+      "exit": 0,
+      "summary": "161 passed (161)"
+    },
+    {
+      "name": "contract-4",
+      "argv": [
+        "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/agent-v3/tenancy.test.ts",
+        "tests/auth/callback.test.ts",
+        "tests/auth/destination.test.ts",
+        "tests/auth/hosted-membership.test.ts",
+        "tests/auth/identity-link-sdk.test.ts",
+        "tests/auth/identity-link.test.ts",
+        "tests/auth/membership.test.ts",
+        "tests/auth/mfa-legacy-cancel.test.ts",
+        "--no-file-parallelism",
+        "--maxWorkers=2",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile",
+        "/private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/ux01/out1/contract-4.json"
+      ],
+      "argvSha256": "e34134d971fec9424ed6a7acc2399ad779b8fed5bad07b81502bc77354142988",
+      "gates": [],
+      "started": "2026-10-23T09:14:41.459Z",
+      "finished": "2026-10-23T09:14:44.511Z",
+      "exit": 0,
+      "summary": "117 passed (117)"
+    },
+    {
+      "name": "contract-5",
+      "argv": [
+        "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/auth/mfa-operators.test.ts",
+        "tests/auth/mfa-routes.test.ts",
+        "tests/auth/mfa-workspace-state.test.ts",
+        "tests/auth/mfa.test.ts",
+        "tests/auth/middleware.test.ts",
+        "tests/auth/oauth-redirect.test.ts",
+        "tests/auth/oauth.test.ts",
+        "tests/auth/session-middleware.test.ts",
+        "--no-file-parallelism",
+        "--maxWorkers=2",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile",
+        "/private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/ux01/out1/contract-5.json"
+      ],
+      "argvSha256": "3881d8ef81056f6471c025f6e568b9fc41783bc83303641c4f231593361518e4",
+      "gates": [],
+      "started": "2026-10-23T09:14:44.511Z",
+      "finished": "2026-10-23T09:14:48.712Z",
+      "exit": 0,
+      "summary": "240 passed | 22 skipped (262)"
+    },
+    {
+      "name": "contract-6",
+      "argv": [
+        "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/auth/signout-destination.test.ts",
+        "tests/auth/workspace-sharing.test.ts",
+        "tests/auth/workspace-stream-access.test.ts",
+        "tests/auth/workspaces.test.ts",
+        "tests/cli/bin.test.ts",
+        "tests/cli/commands.test.ts",
+        "tests/cli/config.test.ts",
+        "tests/cli/connections.test.ts",
+        "--no-file-parallelism",
+        "--maxWorkers=2",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile",
+        "/private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/ux01/out1/contract-6.json"
+      ],
+      "argvSha256": "48f5a51554f973ca4e837b3a6573bbe61086635e1fe8418dca5c3ab00128c5b4",
+      "gates": [],
+      "started": "2026-10-23T09:14:48.712Z",
+      "finished": "2026-10-23T09:14:50.141Z",
+      "exit": 0,
+      "summary": "132 passed | 1 skipped (133)"
+    },
+    {
+      "name": "contract-7",
+      "argv": [
+        "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/cli/failures.test.ts",
+        "tests/cli/follow.test.ts",
+        "tests/cli/plugin-launcher.test.ts",
+        "tests/cli/plugin-runtime.test.ts",
+        "tests/cli/plugin-sandbox.test.ts",
+        "tests/e2e/default/receipt.test.ts",
+        "tests/e2e/default/ux-receipt.test.ts",
+        "tests/plugins/launch-integration.test.ts",
+        "--no-file-parallelism",
+        "--maxWorkers=2",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile",
+        "/private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/ux01/out1/contract-7.json"
+      ],
+      "argvSha256": "1450ee74720079b344214aa270986db297808fe8b18cd4cc6c7acc2858049f34",
+      "gates": [],
+      "started": "2026-10-23T09:14:50.141Z",
+      "finished": "2026-10-23T09:14:57.470Z",
+      "exit": 0,
+      "summary": "208 passed | 2 skipped (210)"
+    },
+    {
+      "name": "contract-8",
+      "argv": [
+        "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/plugins/manifest.test.ts",
+        "tests/plugins/mcp-boundary.test.ts",
+        "tests/plugins/service.test.ts",
+        "--no-file-parallelism",
+        "--maxWorkers=2",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile",
+        "/private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/ux01/out1/contract-8.json"
+      ],
+      "argvSha256": "78cae779548711d9a9828638f8eee239f29c3038a011bc2d7153d484c7036031",
+      "gates": [],
+      "started": "2026-10-23T09:14:57.470Z",
+      "finished": "2026-10-23T09:15:01.437Z",
+      "exit": 0,
+      "summary": "54 passed | 1 skipped (55)"
+    },
+    {
+      "name": "receipt-gate-amd64",
+      "argv": [
+        "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/e2e/default/ux-receipt-gated.test.ts",
+        "--no-file-parallelism",
+        "--maxWorkers=2",
+        "--reporter=json",
+        "--outputFile",
+        "/private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/ux01/out1/wave6-03be46338cbeb148-amd64.json"
+      ],
+      "argvSha256": "ba56a4b9cc04a332564ebed02a75eaa5be0fbb8c41e4915237966ff23d308ff4",
+      "gates": [
+        "ZENITH_TEST_UX01_RECEIPT"
+      ],
+      "started": "2026-10-23T09:15:01.438Z",
+      "finished": "2026-10-23T09:15:01.706Z",
+      "exit": 0,
+      "summary": null,
+      "verify": {
+        "id": "wave6-03be46338cbeb148",
+        "exit": 0,
+        "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+      }
+    },
+    {
+      "name": "receipt-gate-arm64",
+      "argv": [
+        "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/e2e/default/ux-receipt-gated.test.ts",
+        "--no-file-parallelism",
+        "--maxWorkers=2",
+        "--reporter=json",
+        "--outputFile",
+        "/private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/ux01/out1/wave6-03be46338cbeb148-arm64.json"
+      ],
+      "argvSha256": "b9084541c5c1df6a7bda60a3c30fd36c71119b3775402148c2cde1d1c769861f",
+      "gates": [
+        "ZENITH_TEST_UX01_RECEIPT"
+      ],
+      "started": "2026-10-23T09:15:01.733Z",
+      "finished": "2026-10-23T09:15:02.001Z",
+      "exit": 0,
+      "summary": null,
+      "verify": {
+        "id": "wave6-03be46338cbeb148",
+        "exit": 0,
+        "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+      }
+    },
+    {
+      "name": "mfa-postgres",
+      "argv": [
+        "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/auth/mfa-workspace-state.test.ts",
+        "--no-file-parallelism",
+        "--maxWorkers=2",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile",
+        "/private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/ux01/out1/mfa-postgres.json"
+      ],
+      "argvSha256": "d811ba09308fb11c4818c527b884d6d7c4fb9e6856bc6eb2100fc7f254bf5367",
+      "gates": [
+        "ZENITH_MFA_PG",
+        "ZENITH_TEST_PLATFORM_PG_URL"
+      ],
+      "started": "2026-10-23T09:15:03.304Z",
+      "finished": "2026-10-23T09:15:07.145Z",
+      "exit": 0,
+      "summary": "46 passed (46)"
+    },
+    {
+      "name": "wave6-ff5f66e171449b71",
+      "verifyOf": "mfa-postgres",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-116c94f580ee0281",
+      "verifyOf": "mfa-postgres",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-31728615b6490eba",
+      "verifyOf": "mfa-postgres",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-54cfaee71ba6b367",
+      "verifyOf": "mfa-postgres",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-08328bdebd543633",
+      "verifyOf": "mfa-postgres",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-f10de5eb37f9d631",
+      "verifyOf": "mfa-postgres",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-fbabbb58998b32de",
+      "verifyOf": "mfa-postgres",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-a5d03612101a53f7",
+      "verifyOf": "mfa-postgres",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-e522d51d12084a15",
+      "verifyOf": "mfa-postgres",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-a95aadfeb54d40a6",
+      "verifyOf": "mfa-postgres",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-5f0bd4aa09440d6d",
+      "verifyOf": "mfa-postgres",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-c0c51007bebf9cb9",
+      "verifyOf": "mfa-postgres",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-4e01859917bd5751",
+      "verifyOf": "mfa-postgres",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-5241cd6a90de0665",
+      "verifyOf": "mfa-postgres",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-d08d25b3a9f68b9d",
+      "verifyOf": "mfa-postgres",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-2af3359a6bbd3c7b",
+      "verifyOf": "mfa-postgres",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-2683ef8a30dd3ae2",
+      "verifyOf": "mfa-postgres",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-cb920e2be6ac8d0f",
+      "verifyOf": "mfa-postgres",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-4e7bc7b223756fa8",
+      "verifyOf": "mfa-postgres",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-253c73d94af4e4d3",
+      "verifyOf": "mfa-postgres",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-f5a1d60994bb0eb2",
+      "verifyOf": "mfa-postgres",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-5dceba4b0cf5ef89",
+      "verifyOf": "mfa-postgres",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "oauth-dcr",
+      "argv": [
+        "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/agent-v3/oauth-issuer-live.test.ts",
+        "--no-file-parallelism",
+        "--maxWorkers=2",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile",
+        "/private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/ux01/out1/oauth-dcr.json"
+      ],
+      "argvSha256": "4bcee991365446d81f64168684155bb69f08651ba62cc275e74ee7b54afc468a",
+      "gates": [
+        "ZENITH_TEST_OAUTH_ISSUER"
+      ],
+      "started": "2026-10-23T09:15:32.536Z",
+      "finished": "2026-10-23T09:15:33.273Z",
+      "exit": 0,
+      "summary": "4 passed | 1 skipped (5)"
+    },
+    {
+      "name": "wave6-2bb7d1d95be98cdc",
+      "verifyOf": "oauth-dcr",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-c93632e05b15b121",
+      "verifyOf": "oauth-dcr",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-de67db2c43dccacd",
+      "verifyOf": "oauth-dcr",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    },
+    {
+      "name": "wave6-77c8d26ff58ce05a",
+      "verifyOf": "oauth-dcr",
+      "exit": 0,
+      "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+    }
+  ],
+  "notRunHere": [
+    {
+      "id": "wave6-18c6df0bd1926f2f",
+      "gates": [
+        "ZENITH_TEST_OAUTH_BROWSER_TOKEN"
+      ],
+      "ranHere": false
+    },
+    {
+      "id": "wave6-bc53c98868197436",
+      "gates": [
+        "ZENITH_MFA_BROWSER"
+      ],
+      "ranHere": false
+    },
+    {
+      "id": "wave6-a19fd9525a62d581",
+      "gates": [
+        "ZENITH_MFA_BROWSER"
+      ],
+      "ranHere": false
+    },
+    {
+      "id": "wave6-804f49145d9c6b23",
+      "gates": [
+        "ZENITH_TEST_PLUGIN_DOCKER"
+      ],
+      "ranHere": false
+    },
+    {
+      "id": "wave6-4de28b8c5378d1de",
+      "gates": [
+        "ZENITH_TEST_PLUGIN_DOCKER"
+      ],
+      "ranHere": false
+    },
+    {
+      "id": "wave6-a5f94528790619de",
+      "gates": [
+        "ZENITH_TEST_PLUGIN_DOCKER"
+      ],
+      "ranHere": false
+    },
+    {
+      "id": "wave6-133824cc8cbd87d4",
+      "gates": [
+        "ZENITH_TEST_PLATFORM_PG_URL"
+      ],
+      "ranHere": false
+    },
+    {
+      "id": "wave6-4f4f1f7601a66aa9",
+      "gates": [
+        "ZENITH_TEST_PLATFORM_PG_URL"
+      ],
+      "ranHere": false
+    },
+    {
+      "id": "wave6-f6024a096cc38daa",
+      "gates": [
+        "ZENITH_TEST_PLUGIN_DOCKER",
+        "ZENITH_TEST_PLATFORM_PG_URL"
+      ],
+      "ranHere": false
+    },
+    {
+      "id": "wave6-546689f4b22fdb85",
+      "gates": [
+        "ZENITH_TEST_PLUGIN_PLATFORM"
+      ],
+      "ranHere": false
+    }
+  ],
+  "reportSha256": {
+    "contract-1.json": "e228af612612c6ddac1b8cc8961d74a5111e80c16a1b65cb2a185d1b12b7b78d",
+    "contract-2.json": "1aaac1561e4290bb3b7677b2373f6146f08ee563eea6b6ce7b7c6f486fc94a35",
+    "contract-3.json": "7f70b1d1acf6432d7d8ea6abab82cccca59a939082f001c404edfebb4ab75b8f",
+    "contract-4.json": "55f45ba30e19d3e4b91ad3f3135ab14589424ec2963b7c2a22b0b0ea03725b99",
+    "contract-5.json": "809c5e002d43961336c16818a99dee271626b0cadc157daed5faebdc2877069b",
+    "contract-6.json": "4a180c5a4ee14ed635d2c362ac013271e508495a86812f853bdac8edc3dddfbf",
+    "contract-7.json": "7307ee76d58f2bea14982caa2ab38f528dd378ad98ca12490e11b8c6b58f8ca6",
+    "contract-8.json": "f9f1e55cb0e343abc4e5557a0da8bd1877d60cf505fbebf99d721eb2e40c5d07",
+    "mfa-postgres.json": "f93fbe25bf6c2926015f4abdf53ea64bdaae3a8f272d394c087fb4c6f66a0738",
+    "oauth-dcr.json": "72c755cb673397580214f25738fdf6240f3ddb7f8e9cbd15d5c6c18ad721bc6a",
+    "wave6-03be46338cbeb148-amd64.json": "950a487fe3117e711b968a838b5415c1d6a454b1739250b95fa9c280ca5fdd16",
+    "wave6-03be46338cbeb148-arm64.json": "69b110d7aaaa1380ba8b4532b260403ee3cb95ae792fe2528f5c9b3c831cda97"
+  },
+  "cleanup": {
+    "postgres": "",
+    "keycloak": "",
+    "clean": true,
+    "privateCopiesRemoved": true,
+    "interopRemoved": true
+  }
+}

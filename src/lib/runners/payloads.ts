@@ -60,7 +60,7 @@ export const AwsHttpPayloadSchema = z
       .string()
       .max(8192)
       .refine((u) => u.startsWith("https://"), "aws.http requires an https:// URL"),
-    headers: z.record(headerValue).default({}),
+    headers: z.record(z.string(), headerValue).prefault({}),
     bodyB64: base64.optional(),
   })
   .strict();
@@ -92,8 +92,8 @@ export const OciHttpPayloadSchema = z.object({
   region: z.string().regex(/^[a-z]{2}-[a-z0-9-]{3,30}-\d$/),
   method: z.enum(["GET", "HEAD", "POST", "PUT"]),
   path: z.string().refine(ociWirePath, "must be a percent-encoded absolute OCI path"),
-  query: z.array(z.tuple([z.string().min(1).max(128), z.string().max(2048)])).max(128).default([]),
-  headers: z.record(z.string().max(256)).default({}),
+  query: z.array(z.tuple([z.string().min(1).max(128), z.string().max(2048)])).max(128).prefault([]),
+  headers: z.record(z.string(), z.string().max(256)).prefault({}),
   bodyB64: base64.max(Math.ceil((1 << 20) / 3) * 4).optional(),
   endpointHost: z.string().max(253).regex(/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+oraclecloud\.com$/).optional(),
 }).strict().superRefine((p, ctx) => {
@@ -126,7 +126,7 @@ export const ProbeHttpPayloadSchema = z
   .object({
     url: z.string().min(1).max(8192),
     method: z.enum(["GET", "HEAD"]).optional(),
-    headers: z.record(z.string().max(8192)).optional(),
+    headers: z.record(z.string(), z.string().max(8192)).optional(),
     timeoutMs: timeoutMs.optional(),
     followRedirects: z.boolean().optional(),
     maxRedirects: z.number().int().min(0).max(10).optional(),

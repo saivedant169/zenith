@@ -16,7 +16,7 @@ import { buildCtx } from "@/lib/server/context";
 export const dynamic = "force-dynamic";
 
 const PublishBody = z.object({
-  jobId: z.string().uuid(),
+  jobId: z.string().guid(),
   source: PublishSource,
 });
 

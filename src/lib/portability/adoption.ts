@@ -40,9 +40,9 @@ export const AdoptionClaimSchema = z
      * `manage`: Zenith configures and observes it; it can never delete it (release it instead).
      * `manage_and_destroy`: a later human-approved destroy may delete it.
      */
-    lifecycle: z.enum(ADOPTION_LIFECYCLES).default("manage"),
+    lifecycle: z.enum(ADOPTION_LIFECYCLES).prefault("manage"),
     /** optional confirmation of field owners; must equal the registry's answer */
-    fields: z.array(z.object({ path: z.string().min(1).max(200), owner: z.enum(["iac", "native-op", "autoscaler", "provider-managed"]) }).strict()).max(50).default([]),
+    fields: z.array(z.object({ path: z.string().min(1).max(200), owner: z.enum(["iac", "native-op", "autoscaler", "provider-managed"]) }).strict()).max(50).prefault([]),
     note: z.string().max(500).optional(),
   })
   .strict();

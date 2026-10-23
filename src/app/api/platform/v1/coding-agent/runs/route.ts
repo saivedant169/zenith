@@ -26,7 +26,7 @@ const Body = z
   .object({
     task: z.string().min(1).max(TASK_MAX),
     repository: z.string().min(3).max(201),
-    ref: z.string().min(1).max(250).default("HEAD"),
+    ref: z.string().min(1).max(250).prefault("HEAD"),
     root: z.string().max(200).optional(),
     target: z.object({ projectId: z.string().regex(ID), environmentId: z.string().regex(ID) }).strict().optional(),
     model: z.string().max(60).optional(),

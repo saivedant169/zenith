@@ -41,8 +41,8 @@ export const ScheduleSpecSchema = z
     windows: z.array(WindowSchema).min(1).max(14),
     notBefore: isoInstant.optional(),
     notAfter: isoInstant.optional(),
-    maxRunDurationSec: z.number().int().min(10).max(MAX_RUN_DURATION_SEC).default(1800),
-    maxParallelTargets: z.number().int().min(1).max(5).default(1),
+    maxRunDurationSec: z.number().int().min(10).max(MAX_RUN_DURATION_SEC).prefault(1800),
+    maxParallelTargets: z.number().int().min(1).max(5).prefault(1),
   })
   .strict();
 export type ScheduleSpec = z.output<typeof ScheduleSpecSchema>;

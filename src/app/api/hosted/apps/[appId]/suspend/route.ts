@@ -13,7 +13,7 @@ import { buildCtx } from "@/lib/server/context";
 
 export const dynamic = "force-dynamic";
 
-const SuspendBody = z.object({ jobId: z.string().uuid(), reason: z.string().trim().max(300).optional() });
+const SuspendBody = z.object({ jobId: z.string().guid(), reason: z.string().trim().max(300).optional() });
 
 export const POST = hostedRoute<{ appId: string }>(
   { workspaceRole: "admin" },

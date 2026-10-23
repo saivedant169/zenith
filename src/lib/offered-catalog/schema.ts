@@ -134,7 +134,7 @@ export const EntrySchema = z
     driverId: z.string().min(1).optional(),
     registration: Registration.optional(),
     experimental: z.boolean().optional(),
-    lifecycle: z.record(z.enum(LIFECYCLE_OPS), CellSchema).optional(),
+    lifecycle: z.partialRecord(z.enum(LIFECYCLE_OPS), CellSchema).optional(),
     dayTwo: z.record(z.string().min(1), CellSchema).optional(),
   })
   .superRefine((e, ctx) => {

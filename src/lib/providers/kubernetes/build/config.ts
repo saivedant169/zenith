@@ -22,7 +22,7 @@ export const ConfigSchema = z.object({
     destinations: z.array(z.object({ host, ip, port: z.number().int().min(1).max(65535), tls: z.boolean() }).strict()).min(1).max(64),
   }).strict(),
   pushSecret: label.optional(),
-  timeoutSec: z.number().int().min(60).max(1800).default(1800),
+  timeoutSec: z.number().int().min(60).max(1800).prefault(1800),
 }).strict();
 export type IsolatedBuildConfig = z.infer<typeof ConfigSchema>;
 

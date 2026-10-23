@@ -37,11 +37,11 @@ export const RunbookStepSchema = z
     id: z.string().regex(STEP_ID_RE, "step id must match [a-z0-9][a-z0-9_-]{0,47}"),
     title: z.string().min(1).max(200),
     operation: z.enum(IMPLEMENTED_OPERATIONS as [MachineOperation, ...MachineOperation[]]),
-    args: z.record(z.unknown()),
-    timeoutSec: z.number().int().min(1).max(MAX_TIMEOUT_SEC).default(DEFAULT_TIMEOUT_SEC),
-    maxOutputBytes: z.number().int().min(1).max(MAX_OUTPUT_BYTES).default(DEFAULT_MAX_OUTPUT_BYTES),
+    args: z.record(z.string(), z.unknown()),
+    timeoutSec: z.number().int().min(1).max(MAX_TIMEOUT_SEC).prefault(DEFAULT_TIMEOUT_SEC),
+    maxOutputBytes: z.number().int().min(1).max(MAX_OUTPUT_BYTES).prefault(DEFAULT_MAX_OUTPUT_BYTES),
     /** `abort` stops the remaining steps on that target; `continue` records the failure and goes on */
-    onFailure: z.enum(["abort", "continue"]).default("abort"),
+    onFailure: z.enum(["abort", "continue"]).prefault("abort"),
   })
   .strict();
 
@@ -49,7 +49,7 @@ export const RunbookDefinitionSchema = z
   .object({
     schemaVersion: z.literal(RUNBOOK_SCHEMA_VERSION),
     name: z.string().min(1).max(120),
-    description: z.string().max(2000).default(""),
+    description: z.string().max(2000).prefault(""),
     steps: z.array(RunbookStepSchema).min(1).max(MAX_RUNBOOK_STEPS),
   })
   .strict();

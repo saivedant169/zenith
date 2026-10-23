@@ -30,8 +30,8 @@ export const SNS_TOPIC_SCHEMA = z.object({
   encrypted: z.literal(true).optional(),
   encryption: z.literal(true).optional(),
   kmsKeyArn: z.string().regex(KMS_KEY_ARN).optional(),
-  deletionPolicy: z.enum(["deny", "approval", "allow"]).default("deny"),
-  subscriptions: z.array(z.string().min(1).max(256)).max(100).default([]),
+  deletionPolicy: z.enum(["deny", "approval", "allow"]).prefault("deny"),
+  subscriptions: z.array(z.string().min(1).max(256)).max(100).prefault([]),
 }).strict();
 export type SnsTopicSpec = z.input<typeof SNS_TOPIC_SCHEMA>;
 

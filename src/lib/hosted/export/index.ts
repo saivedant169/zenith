@@ -238,11 +238,11 @@ const ImportBundle = z.object({
   app: z.object({ name: z.string().min(1).max(200), slug: z.string().optional() }).passthrough().optional(),
   access: z
     .object({
-      grants: z.array(z.object({ email: z.string().min(3).max(320), role: Role })).default([]),
-      invites: z.array(z.object({ email: z.string().min(3).max(320), role: Role })).default([]),
+      grants: z.array(z.object({ email: z.string().min(3).max(320), role: Role })).prefault([]),
+      invites: z.array(z.object({ email: z.string().min(3).max(320), role: Role })).prefault([]),
     })
-    .default({ grants: [], invites: [] }),
-  records: z.array(ImportedRecord).default([]),
+    .prefault({ grants: [], invites: [] }),
+  records: z.array(ImportedRecord).max(50_000).prefault([]),
 });
 
 /** Where an import lands. */

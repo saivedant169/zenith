@@ -49,7 +49,7 @@ const ClaimsSchema = z.object({
   env: str().optional(),
   res: str().optional(),
   fence: z.number().int().nonnegative().optional(),
-  constraints: z.record(z.unknown()).optional(),
+  constraints: z.record(z.string(), z.unknown()).optional(),
 });
 
 function checkLifetime(iat: number, exp: number): void {

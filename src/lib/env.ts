@@ -57,28 +57,28 @@ export function decodeSecretKey(raw: string): Buffer | undefined {
 
 const Schema = z.object({
   /** Data directory: JSON snapshot plus the event and audit logs. */
-  ZENITH_DATA: z.string().min(1).default(path.join(process.cwd(), ".data")),
+  ZENITH_DATA: z.string().min(1).prefault(path.join(process.cwd(), ".data")),
   /** "1" collapses simulated step durations. Anything else is off. */
-  ZENITH_FAST: z.enum(["0", "1"]).default("0"),
+  ZENITH_FAST: z.enum(["0", "1"]).prefault("0"),
   /**
    * Which implementation backs product A's store (`src/lib/db/store.ts`).
    * "file" is the embedded JSON snapshot + JSONL logs and the only one this
    * build ships; "postgres" parses here — the flag exists end to end — and is
    * refused by the store itself, saying so.
    */
-  ZENITH_STORE: z.enum(["file", "postgres"]).default("file"),
+  ZENITH_STORE: z.enum(["file", "postgres"]).prefault("file"),
   /** LocalStack's edge endpoint. */
-  ZENITH_LOCALSTACK_ENDPOINT: z.string().url().default("http://localhost:4566"),
+  ZENITH_LOCALSTACK_ENDPOINT: z.string().url().prefault("http://localhost:4566"),
   /** Model id for the Navigator's optional language front-end. */
-  ZENITH_LLM_MODEL: z.string().min(1).default(DEFAULT_LLM_MODEL),
+  ZENITH_LLM_MODEL: z.string().min(1).prefault(DEFAULT_LLM_MODEL),
   /** Lowest level `lib/log.ts` emits. */
-  ZENITH_LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
+  ZENITH_LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).prefault("info"),
   /**
    * How long the engine waits on one provider step before failing it. Default
    * is generous (5 min): the slowest honest step in the catalog is a 45s ECR
    * push, and a real cloud can be slower than its own estimate.
    */
-  ZENITH_STEP_TIMEOUT_MS: z.coerce.number().int().positive().default(5 * 60_000),
+  ZENITH_STEP_TIMEOUT_MS: z.coerce.number().int().positive().prefault(5 * 60_000),
   /**
    * Optional. Encrypts the secret store (`lib/secrets`). Unset means Zenith
    * has nowhere to hold a secret value and says so instead of pretending.

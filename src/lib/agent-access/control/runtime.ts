@@ -331,7 +331,7 @@ export function catalog(who: Principal) {
     .map(({scope,mutates,...t})=>({...t, annotations:{ readOnlyHint:!mutates, destructiveHint:mutates, idempotentHint:!mutates, openWorldHint:true }, requiredScope:scope,...(t.name==='zenith_execute_operation'?{requiredAnyScope:['write','publish']}:{} )}));
 }
 const idSchema = z.string().regex(/^[A-Za-z0-9_-]{1,100}$/);
-const pageSchema = z.object({limit:z.number().int().min(1).max(100).default(50),offset:z.number().int().min(0).max(10000).default(0)});
+const pageSchema = z.object({limit:z.number().int().min(1).max(100).prefault(50),offset:z.number().int().min(0).max(10000).prefault(0)});
 export async function invoke(name: string, args: Record<string, unknown>, whoInput: Principal, selected: SelectedScope, freshIdentity: () => Promise<Principal>, origin: string): Promise<unknown> {
   const who = selectedPrincipal(whoInput, selected), spec = catalog(who).find(t=>t.name===name);
   if (!spec) throw new ControlError('capability_unavailable','This tool is not enabled for the current scopes and deployment topology.',403);

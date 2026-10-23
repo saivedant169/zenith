@@ -16,7 +16,7 @@ import { callerOf } from "../../_lib/principal";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const Body = z.object({ overrides: z.record(z.unknown()), expectedVersion: z.number().int().min(0).optional() }).strict();
+const Body = z.object({ overrides: z.record(z.string(), z.unknown()), expectedVersion: z.number().int().min(0).optional() }).strict();
 
 export const GET = platformRoute(async (req) => {
   const caller = await callerOf(req);

@@ -22,8 +22,8 @@ import { AgentApiError, MAX_REGISTRATION_TOKEN_TTL_SEC, type AgentKind } from "@
 
 const TokenBody = z
   .object({
-    kind: z.enum(["runner", "machine"]).default("runner"),
-    ttlMinutes: z.number().int().min(1).max(MAX_REGISTRATION_TOKEN_TTL_SEC / 60).default(MAX_REGISTRATION_TOKEN_TTL_SEC / 60),
+    kind: z.enum(["runner", "machine"]).prefault("runner"),
+    ttlMinutes: z.number().int().min(1).max(MAX_REGISTRATION_TOKEN_TTL_SEC / 60).prefault(MAX_REGISTRATION_TOKEN_TTL_SEC / 60),
     /** machines only: pin the zenithd machine to an environment and/or resource address */
     binding: z
       .object({ environmentId: z.string().min(1).max(128).optional(), address: z.string().min(1).max(200).regex(/^[^\u0000-\u001f\u007f]+$/).optional() })

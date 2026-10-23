@@ -18,16 +18,16 @@ const HOST_RE = /^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)(\.[a-z0-9]([
 
 const Schema = z.object({
   /** "1" turns on hosted admission rules: no claim re-grant, fail-closed auth, gateway on. */
-  ZENITH_HOSTED_MODE: z.enum(["0", "1"]).default("0"),
+  ZENITH_HOSTED_MODE: z.enum(["0", "1"]).prefault("0"),
   /** Where the control app is reached by browsers; the exchange redirects come back here. */
-  ZENITH_CONTROL_ORIGIN: z.string().url().default("http://localhost:3400"),
+  ZENITH_CONTROL_ORIGIN: z.string().url().prefault("http://localhost:3400"),
   /** Registrable domain under which every app gets `<slug>.<domain>`. */
   ZENITH_APP_DOMAIN: z
     .string()
     .regex(HOST_RE, "must be a bare hostname such as apps.localhost or apps.example.com")
-    .default("apps.localhost"),
+    .prefault("apps.localhost"),
   /** Scheme app hosts are served on. http only makes sense for *.localhost. */
-  ZENITH_APP_SCHEME: z.enum(["http", "https"]).default("http"),
+  ZENITH_APP_SCHEME: z.enum(["http", "https"]).prefault("http"),
   /**
    * Which implementation backs the hosted subsystem's control authority — the
    * hosted sibling of product A's `ZENITH_STORE` (`@/lib/env`). "sqlite" is the
@@ -37,10 +37,10 @@ const Schema = z.object({
    * Storage bucket. `@/lib/hosted/index` installs whichever this names at boot;
    * see docs/HOSTED-POSTGRES.md.
    */
-  ZENITH_HOSTED_STORE: z.enum(["sqlite", "postgres"]).default("sqlite"),
-  ZENITH_RUNTIME: z.enum(["local", "cloudflare"]).default("local"),
+  ZENITH_HOSTED_STORE: z.enum(["sqlite", "postgres"]).prefault("sqlite"),
+  ZENITH_RUNTIME: z.enum(["local", "cloudflare"]).prefault("local"),
   /** Which build runner may run. `none` refuses every build and says why. */
-  ZENITH_BUILD_RUNNER: z.enum(["none", "recipe-local", "e2b", "docker"]).default("none"),
+  ZENITH_BUILD_RUNNER: z.enum(["none", "recipe-local", "e2b", "docker"]).prefault("none"),
   /** Immutable E2B template ID; aliases/tags (including `latest`) are rejected. */
   ZENITH_E2B_TEMPLATE: z
     .string()
@@ -56,8 +56,8 @@ const Schema = z.object({
   ZENITH_E2B_TEMPLATE_ATTESTATION_PUBLIC_KEY: z.string().min(1).optional(),
   ZENITH_ARTIFACT_DIR: z.string().min(1).optional(),
   /** Object-storage bucket published artifacts live in when the store is not local disk. */
-  ZENITH_ARTIFACT_BUCKET: z.string().default("zenith-artifacts"),
-  ZENITH_BACKUP_TARGET: z.enum(["none", "filesystem", "s3"]).default("none"),
+  ZENITH_ARTIFACT_BUCKET: z.string().prefault("zenith-artifacts"),
+  ZENITH_BACKUP_TARGET: z.enum(["none", "filesystem", "s3"]).prefault("none"),
   ZENITH_BACKUP_DIR: z.string().min(1).optional(),
   ZENITH_BACKUP_S3_BUCKET: z.string().min(1).optional(),
   ZENITH_BACKUP_S3_ENDPOINT: z.string().url().optional(),
@@ -72,11 +72,11 @@ const Schema = z.object({
   /** Path to the bundled broker worker module the Cloudflare runtime uploads. */
   ZENITH_CF_BROKER_MODULE: z.string().min(1).optional(),
   /** Monthly envelope the 50/75/90 % spending alerts are measured against. */
-  ZENITH_SPEND_ENVELOPE_USD: z.coerce.number().nonnegative().default(0),
+  ZENITH_SPEND_ENVELOPE_USD: z.coerce.number().nonnegative().prefault(0),
   /** Comma-separated subjects excluded from activation metrics as founder actors. */
-  ZENITH_FOUNDER_SUBJECTS: z.string().default(""),
+  ZENITH_FOUNDER_SUBJECTS: z.string().prefault(""),
   /** Comma-separated subjects classified as test actors (read by `@/lib/hosted/events`). */
-  ZENITH_TEST_SUBJECTS: z.string().default(""),
+  ZENITH_TEST_SUBJECTS: z.string().prefault(""),
   /** From address for app invitations; falls back to ZENITH_ALERT_FROM. */
   ZENITH_INVITE_FROM: z.string().optional(),
 });

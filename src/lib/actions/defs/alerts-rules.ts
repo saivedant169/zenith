@@ -60,7 +60,7 @@ const Create = z.object({
   threshold: z.number().optional(),
   enabled: z.boolean().optional(),
   /** omit for every enabled channel; `[]` for none (on-screen only) */
-  channelIds: z.array(z.string()).optional(),
+  channelIds: z.array(z.string()).max(50).optional(),
 });
 type Create = z.infer<typeof Create>;
 
@@ -179,7 +179,7 @@ const Update = z.object({
    * Three states, because there are three: omit to leave the rule's selection
    * alone, `null` to go back to every enabled channel, `[]` to deliver nowhere.
    */
-  channelIds: z.array(z.string()).nullable().optional(),
+  channelIds: z.array(z.string()).max(50).nullable().optional(),
 });
 type Update = z.infer<typeof Update>;
 

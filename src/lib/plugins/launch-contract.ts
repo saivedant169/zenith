@@ -13,8 +13,8 @@ export type LaunchBinding = z.infer<typeof LaunchBinding>;
 export const LaunchLease = LaunchBinding.extend({
   status: z.literal("active"), credentialKind: z.literal("plugin_scoped_za"),
   projectIds: launchIds, environmentIds: launchIds,
-  tools: z.array(z.enum(TOOL_NAMES)).min(1).refine((v) => new Set(v).size === v.length),
-  scopes: z.array(z.enum(INTEGRATION_SCOPES)).min(1).refine((v) => new Set(v).size === v.length),
+  tools: z.array(z.enum(TOOL_NAMES)).min(1).max(TOOL_NAMES.length).refine((v) => new Set(v).size === v.length),
+  scopes: z.array(z.enum(INTEGRATION_SCOPES)).min(1).max(INTEGRATION_SCOPES.length).refine((v) => new Set(v).size === v.length),
   expiresAt: z.string().datetime(),
 });
 export type LaunchLease = z.infer<typeof LaunchLease>;

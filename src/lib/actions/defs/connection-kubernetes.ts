@@ -36,7 +36,7 @@ const InputBase = z.object({
    * false saves a legacy kubeconfig_ref connection: it serves deploy/observe only; guest sessions are refused
    * until it is converted to scoped_guest through connection.rotate.
    */
-  scopedGuest: z.boolean().default(true),
+  scopedGuest: z.boolean().prefault(true),
   guestAudiences: z.array(z.string().min(1).max(253)).max(4).optional(),
   /**
    * PROD-K8S-CONN: the SEPARATE deployer credential of a scoped guest connection (vault reference). It serves only

@@ -114,7 +114,7 @@ export const PolicyInputSchema = z
           })
           .strict(),
         requestedDurationSec: z.number().int().min(1).max(31_536_000).optional(),
-        constraints: z.record(z.union([z.string().max(1000), z.number().finite(), z.boolean(), z.null()])).optional(),
+        constraints: z.record(z.string(), z.union([z.string().max(1000), z.number().finite(), z.boolean(), z.null()])).optional(),
       })
       .strict(),
     principal: z
@@ -178,7 +178,7 @@ export const PolicyDecisionSchema = z
     outcome: z.enum(["allow", "deny", "require_approval"]),
     reasons: z.array(ReasonSchema).min(1).max(200),
     approval: ApprovalSchema.optional(),
-    constraints: z.record(z.union([z.string(), z.number().finite(), z.boolean()])).optional(),
+    constraints: z.record(z.string(), z.union([z.string(), z.number().finite(), z.boolean()])).optional(),
   })
   .strict()
   .superRefine((decision, ctx) => {

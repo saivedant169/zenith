@@ -16,6 +16,7 @@
  * guards, receive bounded diagnostics and a stable platform code. Unexpected
  * errors retain the generic server response that leaks no diagnostics.
  */
+import { legacyIssueCode } from "@/lib/zod-issue-code";
 import type { NextRequest } from "next/server";
 import type { ZodTypeAny, z } from "zod";
 import { AgentError } from "@/lib/agent-access/security";
@@ -55,7 +56,7 @@ export async function readJson(req: NextRequest, max = MAX_BODY_BYTES): Promise<
 export function parseWith<S extends ZodTypeAny>(schema: S, raw: unknown): z.infer<S> {
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
-    const issues = parsed.error.issues.slice(0, 8).map((i) => `${i.path.join(".") || "(root)"}: ${i.code}`);
+    const issues = parsed.error.issues.slice(0, 8).map((i) => `${i.path.join(".") || "(root)"}: ${legacyIssueCode(i)}`);
     throw new BrokerError("invalid_request", `The request is invalid (${issues.join(", ")}).`);
   }
   return parsed.data as z.infer<S>;

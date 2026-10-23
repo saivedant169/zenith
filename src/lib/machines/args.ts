@@ -85,7 +85,7 @@ const sinceSchema = z
   .max(8)
   .refine((s) => parseSince(s) !== null, "must be a relative duration like 900s, 15m, 2h or 1d, at most 7d");
 
-const linesSchema = (fallback: number) => z.number().int().min(1).max(MAX_LOG_LINES).default(fallback);
+const linesSchema = (fallback: number) => z.number().int().min(1).max(MAX_LOG_LINES).prefault(fallback);
 
 /**
  * argv vector: 1..32 items, each ≤4096 characters, no NUL; the executable is
@@ -117,8 +117,8 @@ export const MachineArgsSchemas = {
   "machine.inspect": none,
   "process.list": z
     .object({
-      limit: z.number().int().min(1).max(MAX_PROCESS_LIMIT).default(50),
-      sortBy: z.enum(["cpu", "memory"]).default("cpu"),
+      limit: z.number().int().min(1).max(MAX_PROCESS_LIMIT).prefault(50),
+      sortBy: z.enum(["cpu", "memory"]).prefault("cpu"),
     })
     .strict(),
   "service.status": z.object({ unit: unitSchema }).strict(),
@@ -127,8 +127,8 @@ export const MachineArgsSchemas = {
     .strict(),
   "container.list": z
     .object({
-      all: z.boolean().default(false),
-      limit: z.number().int().min(1).max(MAX_CONTAINER_LIMIT).default(100),
+      all: z.boolean().prefault(false),
+      limit: z.number().int().min(1).max(MAX_CONTAINER_LIMIT).prefault(100),
       /** Kubernetes only; refused by the Docker-based transports */
       labelSelector: z.string().regex(LABEL_SELECTOR_RE, "not a valid label selector").optional(),
     })
@@ -139,7 +139,7 @@ export const MachineArgsSchemas = {
       container: containerRefSchema.optional(),
       since: sinceSchema.optional(),
       lines: linesSchema(DEFAULT_LOG_LINES),
-      timestamps: z.boolean().default(false),
+      timestamps: z.boolean().prefault(false),
     })
     .strict(),
   "container.exec": z
@@ -152,7 +152,7 @@ export const MachineArgsSchemas = {
   "file.read": z
     .object({
       path: filePathSchema,
-      maxBytes: z.number().int().min(1).max(MAX_OUTPUT_BYTES).default(DEFAULT_FILE_READ_BYTES),
+      maxBytes: z.number().int().min(1).max(MAX_OUTPUT_BYTES).prefault(DEFAULT_FILE_READ_BYTES),
     })
     .strict(),
   "file.write": z.object({
@@ -182,20 +182,20 @@ export const MachineArgsSchemas = {
     .object({
       host: hostSchema(false),
       port: z.number().int().min(1).max(65535),
-      timeoutSec: z.number().int().min(1).max(MAX_PORT_CHECK_TIMEOUT_SEC).default(5),
+      timeoutSec: z.number().int().min(1).max(MAX_PORT_CHECK_TIMEOUT_SEC).prefault(5),
     })
     .strict(),
   "network.dnsCheck": z
     .object({
       name: hostSchema(true),
-      recordType: z.enum(["A", "AAAA", "CNAME", "MX", "NS", "SRV", "TXT"]).default("A"),
+      recordType: z.enum(["A", "AAAA", "CNAME", "MX", "NS", "SRV", "TXT"]).prefault("A"),
     })
     .strict(),
   "system.metrics": none,
   "system.logs": z
     .object({
       unit: unitSchema.optional(),
-      since: sinceSchema.default("1h"),
+      since: sinceSchema.prefault("1h"),
       lines: linesSchema(DEFAULT_LOG_LINES),
     })
     .strict(),
@@ -237,7 +237,7 @@ export const MachineRequestSchema = z
     operationId: z.string().regex(OPERATION_ID_RE, "must match [A-Za-z0-9_.:-]{1,128}"),
     target: MachineTargetSchema,
     operation: z.enum(MACHINE_OPERATIONS),
-    args: z.record(z.unknown()),
+    args: z.record(z.string(), z.unknown()),
     timeoutSec: z.number().int().min(1).max(MAX_TIMEOUT_SEC),
     maxOutputBytes: z.number().int().min(1).max(MAX_OUTPUT_BYTES),
   })
@@ -250,12 +250,12 @@ export function describeIssues(error: z.ZodError): string[] {
   return error.issues.slice(0, 8).map((i) => {
     const where = i.path.length ? i.path.join(".") : "(args)";
     const what =
-      i.code === "invalid_enum_value"
+      i.code === "invalid_value"
         ? "is not one of the allowed values"
         : i.code === "unrecognized_keys"
           ? `has unrecognized keys (${i.keys.length})`
           : i.code === "invalid_type"
-            ? `expected ${i.expected}, got ${i.received}`
+            ? `expected ${i.expected}`
             : i.message;
     return `${where}: ${what}`.slice(0, 200);
   });

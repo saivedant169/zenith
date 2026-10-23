@@ -17,31 +17,31 @@ const Target = z.object({
   id: Id, provider: z.enum(PROVIDERS), account: Account, region: Id,
   kind: z.enum(["product", "https", "kubernetes", "aws", "gcp", "azure", "postgres"]),
   origin: z.string().url().optional(), credentialRef: Ref.optional(),
-  auth: z.enum(["bearer", "browser", "none"]).default("none"), workspaceId: Id.optional(),
+  auth: z.enum(["bearer", "browser", "none"]).prefault("none"), workspaceId: Id.optional(),
   context: z.string().min(1).max(300).optional(),
   caRef: Ref.optional(), hostSuffix: z.string().regex(/^\.[a-z0-9.-]+$/).optional(),
 }).strict();
 export type Target = z.infer<typeof Target>;
 const Request = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("http"), target: Id, method: z.enum(["GET", "POST"]), path: z.string().max(1000), body: z.record(z.unknown()).optional(), status: z.number().int().min(100).max(599), assertions: z.array(Assertion).min(1) }).strict(),
+  z.object({ kind: z.literal("http"), target: Id, method: z.enum(["GET", "POST"]), path: z.string().max(1000), body: z.record(z.string(), z.unknown()).optional(), status: z.number().int().min(100).max(599), assertions: z.array(Assertion).min(1) }).strict(),
   z.object({ kind: z.literal("kubernetes"), target: Id, resource: z.enum(["namespace", "deployment", "pods", "resourcequota", "networkpolicy", "httproute", "certificate", "persistentvolumeclaim", "job"]), namespace: Id.optional(), name: Id, assertions: z.array(Assertion).min(1) }).strict(),
   z.object({ kind: z.literal("delete_namespace"), target: Id, name: Id }).strict(),
   z.object({ kind: z.literal("scale_deployment"), target: Id, namespace: Id, name: Id, replicas: z.number().int().min(0).max(5) }).strict(),
   z.object({ kind: z.literal("inventory"), target: Id }).strict(),
   z.object({ kind: z.literal("mixed_evidence"), target: Id, path: z.string().regex(/^\/api\/platform\/v1\/mixed\/plans\/[a-zA-Z0-9_.:-]+$/) }).strict(),
-  z.object({ kind: z.literal("mixed_traffic"), target: Id, databaseTarget: Id, orders: z.number().int().min(1).max(100).default(50), phase: z.enum(["baseline", "outage", "recovered"]) }).strict(),
+  z.object({ kind: z.literal("mixed_traffic"), target: Id, databaseTarget: Id, orders: z.number().int().min(1).max(100).prefault(50), phase: z.enum(["baseline", "outage", "recovered"]) }).strict(),
   z.object({ kind: z.literal("connectivity"), target: Id, certRef: Ref, keyRef: Ref, caRef: Ref,
     outsideAllowlist: z.boolean(), endpoints: z.array(z.object({ id: Id, dataClass: z.enum(["database", "service", "function"]), host: z.string().regex(/^[a-z0-9][a-z0-9.-]+$/), port: z.number().int().min(1).max(65535), dnsTargets: z.array(z.string()).min(1), tlsMinVersion: z.enum(["1.2", "1.3"]), serverNames: z.array(z.string()).min(1), serverSpkiSha256: z.string().regex(/^[a-f0-9]{64}$/), allowlist: z.array(z.string()).min(1) }).strict()).min(1) }).strict(),
 ]);
 export type Request = z.infer<typeof Request>;
 const Resource = z.object({ id: Id, target: Id, name: Id, ownership: Request, tagPointer: Pointer, ttlPointer: Pointer }).strict();
 export type Resource = z.infer<typeof Resource>;
-const Step = z.object({ id: Id, scenario: Id, action: z.enum(["read", "create_disposable", "mutate_run_tagged", "teardown_run_tagged", "inject_fault"]), resource: Id.optional(), request: Request, attempts: z.number().int().min(1).max(120).default(1), intervalMs: z.number().int().min(100).max(30000).default(1000) }).strict();
+const Step = z.object({ id: Id, scenario: Id, action: z.enum(["read", "create_disposable", "mutate_run_tagged", "teardown_run_tagged", "inject_fault"]), resource: Id.optional(), request: Request, attempts: z.number().int().min(1).max(120).prefault(1), intervalMs: z.number().int().min(100).max(30000).prefault(1000) }).strict();
 export type Step = z.infer<typeof Step>;
 export const Recipe = z.object({
   schema: z.literal(1), profile: z.enum(["managed", "mixed", "release"]), runId: z.string().regex(/^zlive-\d{12}-[a-z0-9]{4}$/),
   sourceCommit: Hex, startedAt: z.string().datetime(), ttlMinutes: z.number().int().min(5).max(240),
-  estimate: z.object({ byProviderUsd: z.record(z.enum(PROVIDERS), z.number().finite().nonnegative()), cleanupReserveUsd: z.number().finite().positive(), basis: z.string().min(20).max(400), provisional: z.literal(true) }).strict(),
+  estimate: z.object({ byProviderUsd: z.partialRecord(z.enum(PROVIDERS), z.number().finite().nonnegative()), cleanupReserveUsd: z.number().finite().positive(), basis: z.string().min(20).max(400), provisional: z.literal(true) }).strict(),
   targets: z.array(Target).min(1).max(30), resources: z.array(Resource).max(100),
   steps: z.array(Step).min(1).max(200), cleanup: z.array(Step).max(100), scans: z.array(Step).min(1).max(30),
 }).strict();

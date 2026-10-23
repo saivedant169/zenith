@@ -27,7 +27,7 @@ const AddResource = z.object({
   size: ServiceSize.optional(),
   ownership: Ownership.optional(),
   externalRef: z.string().optional(),
-  config: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
+  config: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
   /** optionally connect it to a service in the same step */
   bindTo: z.string().optional(),
 });
@@ -82,7 +82,7 @@ const UpdateResource = z.object({
   resourceId: z.string().min(1),
   name: z.string().optional(),
   size: ServiceSize.optional(),
-  config: z.record(z.union([z.string(), z.number(), z.boolean()])).optional(),
+  config: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
 });
 type UpdateResource = z.infer<typeof UpdateResource>;
 

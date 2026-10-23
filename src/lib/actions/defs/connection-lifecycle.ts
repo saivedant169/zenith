@@ -54,7 +54,7 @@ const basePlan = (summary: string, details: string[], extra: Partial<ActionPlan>
 
 function createAction<S extends z.ZodTypeAny>(provider: "gcp" | "azure" | "oci" | "zenith", id: string, title: string, schema: S, details: string[]) {
   defineAction<z.infer<S>>({
-    id, title, category: "connection", risk: "medium", requiredRole: "admin", mutates: true, input: schema,
+    id, title, category: "connection", risk: "medium", requiredRole: "admin", mutates: true, input: schema as z.ZodType<z.infer<S>>,
     async plan(ctx) {
       return basePlan(`Save a pending ${provider.toUpperCase()} connection.`, [
         "Only identifiers are recorded. No cloud call and no verification run at creation.",

@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-const Flag = z.enum(["0", "1"]).default("0");
+const Flag = z.enum(["0", "1"]).prefault("0");
 const Schema = z.object({
   enabled: Flag,
   gateEnabled: Flag,
-  adminIds: z.string().default(""),
+  adminIds: z.string().prefault(""),
   existingUsersBefore: z.string().datetime({ offset: true }).optional(),
   rateLimitSecret: z.string().min(32).optional(),
   trustedIpHeader: z.enum(["x-forwarded-for", "x-real-ip", "x-vercel-forwarded-for"]).optional(),
@@ -14,7 +14,7 @@ const Schema = z.object({
   if (value.enabled === "1" && !value.rateLimitSecret)
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["rateLimitSecret"], message: "Set ZENITH_WAITLIST_RATE_LIMIT_SECRET before enabling public intake." });
   for (const id of value.adminIds.split(",").map((item) => item.trim()).filter(Boolean)) {
-    if (!z.string().uuid().safeParse(id).success)
+    if (!z.string().guid().safeParse(id).success)
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["adminIds"], message: "ZENITH_WAITLIST_ADMIN_IDS must contain Supabase user UUIDs." });
   }
 });

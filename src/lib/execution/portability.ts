@@ -16,6 +16,7 @@
  * before any effect are `StepFailedError`; an unexpected exception stays plain
  * so a mutating step finalizes `uncertain`.
  */
+import { legacyIssueCode } from "@/lib/zod-issue-code";
 import { digest } from "@/lib/controlplane/digest";
 import { factsForNode } from "@/lib/ownership";
 import type { CapabilityName } from "@/lib/capabilities/catalog";
@@ -50,11 +51,11 @@ function asStep(err: unknown): unknown {
   return err instanceof PortabilityError ? refuse(err.message) : err;
 }
 
-interface SchemaLike<T> { safeParse(value: unknown): { success: true; data: T } | { success: false; error: { issues: { path: (string | number)[]; code: string }[] } } }
+interface SchemaLike<T> { safeParse(value: unknown): { success: true; data: T } | { success: false; error: { issues: { path: PropertyKey[]; code: string }[] } } }
 
 function parseInput<T>(schema: SchemaLike<T>, raw: unknown, what: string): T {
   const parsed = schema.safeParse(raw ?? {});
-  if (!parsed.success) throw refuse(`The ${what} input is invalid (${parsed.error.issues.slice(0, 6).map((i) => `${i.path.join(".") || "(root)"}: ${i.code}`).join(", ")}).`);
+  if (!parsed.success) throw refuse(`The ${what} input is invalid (${parsed.error.issues.slice(0, 6).map((i) => `${i.path.map(String).join(".") || "(root)"}: ${legacyIssueCode(i)}`).join(", ")}).`);
   return parsed.data;
 }
 

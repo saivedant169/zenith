@@ -11,9 +11,9 @@ import { verifyMixedEvidence } from "../../mixed-evidence";
 import { tagsMatch, teardownUntilFailure } from "../shared";
 
 const Credentials = z.discriminatedUnion("provider", [
-  z.object({ provider: z.literal("azure"), account: z.string(), region: z.string(), tokenFiles: z.record(z.string().min(1)), trafficTokenFiles: z.record(z.string().min(1)).optional() }).strict(),
-  z.object({ provider: z.literal("gcp"), account: z.string(), region: z.string(), accessTokenFile: z.string().min(1), trafficTokenFiles: z.record(z.string().min(1)).optional() }).strict(),
-  z.object({ provider: z.literal("oci"), account: z.string(), region: z.string(), securityTokenFile: z.string().min(1), privateKeyFile: z.string().min(1), trafficTokenFiles: z.record(z.string().min(1)).optional() }).strict(),
+  z.object({ provider: z.literal("azure"), account: z.string(), region: z.string(), tokenFiles: z.record(z.string(), z.string().min(1)), trafficTokenFiles: z.record(z.string(), z.string().min(1)).optional() }).strict(),
+  z.object({ provider: z.literal("gcp"), account: z.string(), region: z.string(), accessTokenFile: z.string().min(1), trafficTokenFiles: z.record(z.string(), z.string().min(1)).optional() }).strict(),
+  z.object({ provider: z.literal("oci"), account: z.string(), region: z.string(), securityTokenFile: z.string().min(1), privateKeyFile: z.string().min(1), trafficTokenFiles: z.record(z.string(), z.string().min(1)).optional() }).strict(),
 ]);
 type Credentials = z.infer<typeof Credentials>;
 export type ReadResult = { body: unknown; nextPage?: string };

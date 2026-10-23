@@ -40,7 +40,7 @@ export async function gateway(request:Request):Promise<Response>{
     const auth=await authorizeRequest(request);await throttleAsync(auth.who);
     if(request.method==='GET')return inAgentScope(auth.who,async()=>json({contractVersion:CONTROL_VERSION,mode:'reviewed-operations',tools:catalog(auth.who)}));
     if(request.method!=='POST')return json({error:{code:'method_not_allowed'}},405);
-    const input=z.object({name:z.string().min(1).max(100),arguments:z.record(z.unknown()).default({})}).strict().parse(await jsonBody(request));
+    const input=z.object({name:z.string().min(1).max(100),arguments:z.record(z.string(), z.unknown()).prefault({})}).strict().parse(await jsonBody(request));
     return json(result(await invoke(input.name,input.arguments,auth.who,auth.selected,async()=>{request.signal.throwIfAborted();return (await authorizeRequest(request)).who;},auth.origin)));
   }catch(error){return failure(error);}
 }

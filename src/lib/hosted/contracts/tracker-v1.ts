@@ -56,22 +56,34 @@ const isoDate = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, "must be a calendar date, YYYY-MM-DD")
   .refine((s) => !Number.isNaN(Date.parse(`${s}T00:00:00Z`)), "must be a real date");
 
+/** Field rules without defaults: a patch must never fill in defaults for fields it does not name. */
+const RequestFields = {
+  title: z.string().trim().min(1).max(TRACKER_LIMITS.title),
+  details: z.string().trim().max(TRACKER_LIMITS.details),
+  category: RequestCategory,
+  quantity: z.number().int().min(1).max(TRACKER_LIMITS.quantityMax),
+  priority: RequestPriority,
+  status: RequestStatus,
+  /** who the item is for; free text, not an identity */
+  requestedFor: z.string().trim().max(TRACKER_LIMITS.requestedFor),
+  neededBy: isoDate.nullable(),
+};
+
 export const EquipmentRequestInput = z
   .object({
-    title: z.string().trim().min(1).max(TRACKER_LIMITS.title),
-    details: z.string().trim().max(TRACKER_LIMITS.details).default(""),
-    category: RequestCategory,
-    quantity: z.number().int().min(1).max(TRACKER_LIMITS.quantityMax).default(1),
-    priority: RequestPriority.default("normal"),
-    status: RequestStatus.default("requested"),
-    /** who the item is for; free text, not an identity */
-    requestedFor: z.string().trim().max(TRACKER_LIMITS.requestedFor).default(""),
-    neededBy: isoDate.nullable().default(null),
+    ...RequestFields,
+    details: RequestFields.details.prefault(""),
+    quantity: RequestFields.quantity.prefault(1),
+    priority: RequestFields.priority.prefault("normal"),
+    status: RequestFields.status.prefault("requested"),
+    requestedFor: RequestFields.requestedFor.prefault(""),
+    neededBy: RequestFields.neededBy.prefault(null),
   })
   .strict();
 export type EquipmentRequestInput = z.infer<typeof EquipmentRequestInput>;
 
-export const EquipmentRequestPatch = EquipmentRequestInput.partial().strict();
+// zod 4 applies an inner default inside .partial()/.optional(); zod 3 did not. Build the patch from undefaulted fields.
+export const EquipmentRequestPatch = z.object(RequestFields).partial().strict();
 export type EquipmentRequestPatch = z.infer<typeof EquipmentRequestPatch>;
 
 export interface EquipmentRequest extends EquipmentRequestInput {
@@ -86,7 +98,7 @@ export interface EquipmentRequest extends EquipmentRequestInput {
   updatedAt: string;
 }
 
-const uuid = z.string().uuid();
+const uuid = z.string().guid();
 
 export const CreateRequestBody = z
   .object({ writeId: uuid, record: EquipmentRequestInput })
@@ -104,7 +116,7 @@ export type UpdateRequestBody = z.infer<typeof UpdateRequestBody>;
 
 export const ListRequestsQuery = z
   .object({
-    limit: z.coerce.number().int().min(1).max(TRACKER_LIMITS.listMax).default(TRACKER_LIMITS.listDefault),
+    limit: z.coerce.number().int().min(1).max(TRACKER_LIMITS.listMax).prefault(TRACKER_LIMITS.listDefault),
     cursor: z.string().max(200).optional(),
     status: RequestStatus.optional(),
     category: RequestCategory.optional(),

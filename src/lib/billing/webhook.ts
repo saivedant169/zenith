@@ -32,7 +32,7 @@ const EventSchema = z.object({
   id: z.string().regex(/^[A-Za-z0-9_]{1,100}$/),
   type: z.string().min(1).max(120),
   created: z.number().int().min(0).max(4_000_000_000),
-  data: z.object({ object: z.record(z.unknown()) }),
+  data: z.object({ object: z.record(z.string(), z.unknown()) }),
 }).passthrough();
 export type StripeEvent = z.infer<typeof EventSchema>;
 

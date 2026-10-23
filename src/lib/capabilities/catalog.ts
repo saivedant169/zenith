@@ -137,7 +137,7 @@ export const CapabilityRequestSchema = z
     /** capability-specific, validated again by the executing handler */
     input: z.unknown().optional(),
     /** narrowing the requester asks for, e.g. { maxLines: 500, window: "1h" } */
-    constraints: z.record(z.unknown()).optional(),
+    constraints: z.record(z.string(), z.unknown()).optional(),
     /** how long a resulting grant should live, capped by policy (seconds) */
     requestedDurationSec: z.number().int().min(1).max(3600).optional(),
     /** why — shown to approvers; untrusted text */

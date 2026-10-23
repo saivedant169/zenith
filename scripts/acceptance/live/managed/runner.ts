@@ -16,7 +16,7 @@ export interface RecordResult { id: string; scenario: string; phase: "scenario" 
 export interface Report { schema: 1; runId: string; planSha256: string; sourceCommit: string; scopeDigest: string; environment: "live_sandbox"; results: RecordResult[]; counts: { passed: number; failed: number; notRun: number }; pendingScenarios: string[]; ok: boolean; statement: string }
 export interface Journal { schema: 1; planSha256: string; scopeDigest: string; sourceCommit: string; attempted: string[]; counts: Record<string, number>; closed: boolean }
 export interface JournalStore { load(): unknown; save(journal: Journal): void }
-const JournalSchema = z.object({ schema: z.literal(1), planSha256: z.string(), scopeDigest: z.string(), sourceCommit: z.string(), attempted: z.array(z.string()), counts: z.record(z.number().int().nonnegative()), closed: z.boolean() }).strict();
+const JournalSchema = z.object({ schema: z.literal(1), planSha256: z.string(), scopeDigest: z.string(), sourceCommit: z.string(), attempted: z.array(z.string()), counts: z.record(z.string(), z.number().int().nonnegative()), closed: z.boolean() }).strict();
 export function fileJournal(file: string): JournalStore {
   return { load: () => existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) : undefined,
     save: journal => { mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 }); writeFileSync(`${file}.new`, `${JSON.stringify(journal)}\n`, { mode: 0o600 }); renameSync(`${file}.new`, file); } };

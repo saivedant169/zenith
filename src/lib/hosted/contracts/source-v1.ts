@@ -30,7 +30,7 @@ export const SourceManifest = z
     name: z.string().trim().min(1).max(60),
     schema: z.literal(1),
     /** entry HTML, relative; only the default is supported in v1 */
-    entry: z.literal("index.html").default("index.html"),
+    entry: z.literal("index.html").prefault("index.html"),
   })
   .strict();
 export type SourceManifest = z.infer<typeof SourceManifest>;
@@ -48,7 +48,7 @@ export const SourcePackageJson = z
     version: z.string().optional(),
     private: z.boolean().optional(),
     type: z.literal("module").optional(),
-    dependencies: z.record(z.string()).optional(),
+    dependencies: z.record(z.string(), z.string()).optional(),
   })
   .strict();
 

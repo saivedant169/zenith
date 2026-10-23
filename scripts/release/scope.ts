@@ -68,7 +68,7 @@ const Content = z.object({
   budgets: z.object({
     currency: z.literal("USD"),
     perRunUsd: Money,
-    perProviderPerRunUsd: z.record(z.enum(PROVIDERS), Money),
+    perProviderPerRunUsd: z.partialRecord(z.enum(PROVIDERS), Money),
     totalUsd: Money,
     maxRunTtlMinutes: z.number().int().positive().max(24 * 60),
   }).strict(),
@@ -85,7 +85,7 @@ const Content = z.object({
   sandboxes: z.object({
     aws: z.object({ accountId: z.string().regex(/^\d{12}$/).nullable(), regions: z.array(z.string().min(3).max(40)).min(1) }).strict(),
     gcp: z.object({ projectId: z.string().regex(/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/).nullable(), regions: z.array(z.string().min(3).max(40)).min(1) }).strict(),
-    azure: z.object({ subscriptionId: z.string().uuid().nullable(), tenantId: z.string().uuid().nullable(), regions: z.array(z.string().min(3).max(40)).min(1) }).strict(),
+    azure: z.object({ subscriptionId: z.string().guid().nullable(), tenantId: z.string().guid().nullable(), regions: z.array(z.string().min(3).max(40)).min(1) }).strict(),
     oci: z.object({ tenancyId: z.string().regex(/^ocid1\.tenancy\./).nullable(), compartmentId: z.string().regex(/^ocid1\.compartment\./).nullable(), regions: z.array(z.string().min(3).max(40)).min(1) }).strict(),
     supabase: z.object({ projectRef: z.string().regex(/^[a-z0-9]{20}$/).nullable(), region: z.string().min(3).max(40) }).strict(),
   }).strict(),
@@ -99,7 +99,7 @@ const Content = z.object({
   }).strict(),
   harnesses: z.record(z.string().regex(/^[a-z0-9][a-z0-9-]{1,60}$/), HarnessGrant),
   forbiddenActions: z.array(z.string()).min(1),
-  exemptions: z.array(z.object({ file: z.string().max(300), reason: z.string().max(400) }).strict()).default([]),
+  exemptions: z.array(z.object({ file: z.string().max(300), reason: z.string().max(400) }).strict()).prefault([]),
 }).strict();
 export type ScopeContent = z.infer<typeof Content>;
 

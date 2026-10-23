@@ -17,6 +17,7 @@
  * The broker — not the model, not the client — decides. A foreign id and a
  * missing id are the same `not_found`; a non-member is told the same.
  */
+import { legacyIssueCode } from "@/lib/zod-issue-code";
 import { digest } from "@/lib/controlplane/digest";
 import type { CapabilityGrantClaims, OperationProposal, Principal, Scope } from "@/lib/controlplane/types";
 import type { ZodError } from "zod";
@@ -45,7 +46,7 @@ export const READ_EVENT_WINDOW_MS = 60_000;
 /* ------------------------------ request parsing ----------------------------- */
 
 function describeIssues(error: ZodError): string {
-  const parts = error.issues.slice(0, 8).map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.code}`);
+  const parts = error.issues.slice(0, 8).map((issue) => `${issue.path.join(".") || "(root)"}: ${legacyIssueCode(issue)}`);
   return parts.join(", ") + (error.issues.length > 8 ? `, and ${error.issues.length - 8} more` : "");
 }
 

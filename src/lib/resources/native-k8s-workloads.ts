@@ -51,8 +51,8 @@ export type VolumeClaimConfig = z.infer<typeof VolumeClaimConfig>;
 
 export const RetentionConfig = z
   .object({
-    whenDeleted: z.enum(["Retain", "Delete"]).default("Retain"),
-    whenScaled: z.enum(["Retain", "Delete"]).default("Retain"),
+    whenDeleted: z.enum(["Retain", "Delete"]).prefault("Retain"),
+    whenScaled: z.enum(["Retain", "Delete"]).prefault("Retain"),
     /** required when either policy is Delete: the claims (the data) are then removed by the cluster */
     acknowledgeDataLoss: z.boolean().optional(),
   })
@@ -66,11 +66,11 @@ export type RetentionConfig = z.infer<typeof RetentionConfig>;
 export const StatefulRolloutConfig = z
   .object({
     /** ordinals >= partition receive the new revision; 0 updates everything. Higher ordinals update first. */
-    partition: z.number().int().min(0).max(1000).default(0),
-    minReadySeconds: z.number().int().min(0).max(3600).default(0),
-    podManagementPolicy: z.enum(["OrderedReady", "Parallel"]).default("OrderedReady"),
+    partition: z.number().int().min(0).max(1000).prefault(0),
+    minReadySeconds: z.number().int().min(0).max(3600).prefault(0),
+    podManagementPolicy: z.enum(["OrderedReady", "Parallel"]).prefault("OrderedReady"),
     /** rollback needs the previous revision, so at least two are kept */
-    revisionHistoryLimit: z.number().int().min(2).max(50).default(10),
+    revisionHistoryLimit: z.number().int().min(2).max(50).prefault(10),
   })
   .strict();
 export type StatefulRolloutConfig = z.infer<typeof StatefulRolloutConfig>;
@@ -81,7 +81,7 @@ export const StatefulSetNativeConfig = z
     image: Image,
     command: Argv.optional(),
     args: z.array(z.string().max(512)).max(32).optional(),
-    replicas: z.number().int().min(0).max(100).default(1),
+    replicas: z.number().int().min(0).max(100).prefault(1),
     port: z.number().int().min(1).max(65_535).optional(),
     /** HTTP readiness/liveness path; requires port */
     healthPath: z.string().min(1).max(512).optional(),
@@ -91,14 +91,14 @@ export const StatefulSetNativeConfig = z
     vcpu: Vcpu,
     memoryMb: MemoryMb,
     volumeClaims: z.array(VolumeClaimConfig).min(1).max(8),
-    retention: RetentionConfig.default({}),
-    rollout: StatefulRolloutConfig.default({}),
+    retention: RetentionConfig.prefault({}),
+    rollout: StatefulRolloutConfig.prefault({}),
     /** a numeric non-root uid; required for images that declare no non-root USER */
     runAsUser: z.number().int().min(1).max(65_535).optional(),
     /** group that owns the mounted volumes; defaults to runAsUser */
     fsGroup: z.number().int().min(1).max(65_535).optional(),
     zones: z.number().int().min(1).max(10).optional(),
-    terminationGracePeriodSeconds: z.number().int().min(0).max(3600).default(30),
+    terminationGracePeriodSeconds: z.number().int().min(0).max(3600).prefault(30),
   })
   .strict()
   .superRefine((c, ctx) => {

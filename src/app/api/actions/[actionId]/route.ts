@@ -23,10 +23,10 @@ export const dynamic = "force-dynamic";
 
 const Body = z.object({
   input: z.unknown().optional(),
-  mode: z.enum(["plan", "execute"]).default("plan"),
+  mode: z.enum(["plan", "execute"]).prefault("plan"),
   scope: z
     .object({ projectId: z.string().optional(), environmentId: z.string().optional() })
-    .default({}),
+    .prefault({}),
   idempotencyKey: z.string().optional(),
 });
 

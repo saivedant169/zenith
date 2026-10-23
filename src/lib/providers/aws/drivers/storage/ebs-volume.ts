@@ -27,9 +27,9 @@ export const EBS_VOLUME_SCHEMA = z.object({
   encrypted: z.literal(true).optional(),
   kmsKeyArn: z.string().regex(KMS_KEY_ARN).optional(),
   availabilityZone: z.string().regex(/^[a-z]{2}(?:-[a-z]+)+-\d[a-z]$/).optional(),
-  deletionPolicy: z.enum(["deny", "approval", "allow"]).default("deny"),
+  deletionPolicy: z.enum(["deny", "approval", "allow"]).prefault("deny"),
   instance: z.string().min(1).max(256).optional(),
-  deviceName: z.string().regex(/^\/dev\/sd[f-p]$/).default("/dev/sdf"),
+  deviceName: z.string().regex(/^\/dev\/sd[f-p]$/).prefault("/dev/sdf"),
 }).strict();
 export type EbsVolumeSpec = z.input<typeof EBS_VOLUME_SCHEMA>;
 

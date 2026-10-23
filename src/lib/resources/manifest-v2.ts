@@ -64,7 +64,7 @@ export const Placement = z
   .object({
     provider: PlacementProvider,
     /** primary region first; required unless provider is `auto` */
-    regions: z.array(RegionName).max(8).default([]),
+    regions: z.array(RegionName).max(8).prefault([]),
     zones: z.number().int().min(1).max(3).optional(),
     /** data residency: allowed jurisdictions (`eu`, `in`, `us`…). Declared here, evaluated by placement/policy. */
     residency: z.array(z.string().regex(/^[A-Za-z][A-Za-z0-9-]{0,30}$/)).max(16).optional(),
@@ -93,9 +93,9 @@ export const BACKUP_POLICIES = ["none", "daily", "hourly"] as const;
 
 export const PoliciesV2 = z
   .object({
-    deletion: z.enum(DELETION_POLICIES).default("approval"),
+    deletion: z.enum(DELETION_POLICIES).prefault("approval"),
     /** applies to stateful resources */
-    backup: z.enum(BACKUP_POLICIES).default("daily"),
+    backup: z.enum(BACKUP_POLICIES).prefault("daily"),
     approvalRequired: z.boolean().optional(),
     allowStatefulDeletion: z.boolean().optional(),
   })
@@ -188,9 +188,9 @@ export const NativeNode = z
     type: z.string().min(1).max(100),
     /** region for this node when its provider differs from the environment's; a nodePlacement entry wins over it */
     region: RegionName.optional(),
-    config: z.record(z.unknown()).default({}),
+    config: z.record(z.string(), z.unknown()).prefault({}),
     /** ids or names of services, resources or other native entries */
-    dependsOn: z.array(z.string().min(1)).optional(),
+    dependsOn: z.array(z.string().min(1)).max(200).optional(),
   })
   .strict();
 export type NativeNode = z.infer<typeof NativeNode>;
@@ -239,7 +239,7 @@ export type MigrateHook = z.infer<typeof MigrateHook>;
  */
 export const RolloutHook = z
   .object({
-    strategy: z.enum(["rolling", "progressive"]).default("rolling"),
+    strategy: z.enum(["rolling", "progressive"]).prefault("rolling"),
     steps: z.array(z.number().int().min(1).max(100)).min(1).max(6).optional(),
     bakeSec: z.number().int().min(0).max(3600).optional(),
   })
@@ -258,15 +258,15 @@ export const ManifestFunction = z.object({
   id: z.string().regex(/^[a-z][a-z0-9-]{1,30}$/), name: z.string().regex(/^[a-z][a-z0-9-]{1,30}$/), kind: z.literal("function"),
   provider: z.literal("aws"), region: RegionName,
   runtime: z.string().regex(/^[a-z][a-z0-9.]{1,30}$/), handler: z.string().regex(/^[A-Za-z0-9._/:-]{1,128}$/),
-  memoryMb: z.number().int().min(128).max(10240).default(256), timeoutSec: z.number().int().min(1).max(900).default(30),
-  architecture: z.enum(["x86_64", "arm64"]).default("x86_64"),
+  memoryMb: z.number().int().min(128).max(10240).prefault(256), timeoutSec: z.number().int().min(1).max(900).prefault(30),
+  architecture: z.enum(["x86_64", "arm64"]).prefault("x86_64"),
   source: z.object({ type: z.literal("s3"), bucket: z.string().regex(/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/),
     key: z.string().regex(/^[A-Za-z0-9!_.*'()/=+@:-]{1,900}$/).refine(k => !k.includes("..")),
     version: z.string().regex(/^[A-Za-z0-9._-]{1,1024}$/).refine(v => v !== "null"),
     sha256: z.string().regex(/^[a-f0-9]{64}$/), sourceDigest: z.string().regex(/^[a-f0-9]{64}$/) }).strict(),
-  env: z.array(z.object({ key: z.string().regex(/^[A-Za-z][A-Za-z0-9_]{0,254}$/), value: z.string().max(4096) }).strict()).max(50).default([]),
+  env: z.array(z.object({ key: z.string().regex(/^[A-Za-z][A-Za-z0-9_]{0,254}$/), value: z.string().max(4096) }).strict()).max(50).prefault([]),
   /** Service ids that invoke this function using separately scoped IAM credentials. No public URL is generated. */
-  invokedBy: z.array(z.string()).max(32).default([]),
+  invokedBy: z.array(z.string()).max(32).prefault([]),
 }).strict();
 export type ManifestFunction = z.infer<typeof ManifestFunction>;
 
@@ -276,17 +276,17 @@ export type ManifestFunction = z.infer<typeof ManifestFunction>;
 export const ManifestV2Object = z
   .object({
     version: z.literal(2),
-    services: z.array(Service).default([]),
-    resources: z.array(Resource).default([]),
-    routes: z.array(Route).default([]),
-    bindings: z.array(Binding).default([]),
+    services: z.array(Service).max(500).prefault([]),
+    resources: z.array(Resource).max(500).prefault([]),
+    routes: z.array(Route).max(500).prefault([]),
+    bindings: z.array(Binding).max(500).prefault([]),
     placement: Placement.optional(),
     constraints: Constraints.optional(),
     policies: PoliciesV2.optional(),
     /** node id (or name) → provider/region override, for multi-cloud */
-    nodePlacement: z.record(NodePlacementEntry).optional(),
+    nodePlacement: z.record(z.string(), NodePlacementEntry).optional(),
     providerConfig: ProviderConfig.optional(),
-    native: z.array(NativeNode).optional(),
+    native: z.array(NativeNode).max(500).optional(),
     functions: z.array(ManifestFunction).max(32).optional(),
     /** release-time steps (migrations); see `Release` */
     release: Release.optional(),

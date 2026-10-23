@@ -38,7 +38,7 @@ const ReportSchema = z.object({
   connection: z
     .object({
       state: z.enum(["online", "degraded", "offline"]),
-      consecutiveFailures: count(1_000_000).default(0),
+      consecutiveFailures: count(1_000_000).prefault(0),
       offlineSince: isoish.optional(),
       lastRecoveredAt: isoish.optional(),
       lastOfflineSec: count(31_536_000).optional(),
@@ -49,7 +49,7 @@ const ReportSchema = z.object({
       depth: count(1_000_000),
       bytes: count(2 ** 40),
       oldestAt: isoish.optional(),
-      replayed: count(2 ** 40).default(0),
+      replayed: count(2 ** 40).prefault(0),
     })
     .optional(),
   update: z
@@ -59,7 +59,7 @@ const ReportSchema = z.object({
       running: text(64),
       target: text(64).optional(),
       previous: text(64).optional(),
-      lastSeq: count(2 ** 52).default(0),
+      lastSeq: count(2 ** 52).prefault(0),
       lastCheckAt: isoish.optional(),
       lastError: text(300).optional(),
       rolledBackFrom: text(64).optional(),

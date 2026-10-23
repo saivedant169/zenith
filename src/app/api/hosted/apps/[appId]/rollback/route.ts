@@ -13,7 +13,7 @@ import { buildCtx } from "@/lib/server/context";
 
 export const dynamic = "force-dynamic";
 
-const RollbackBody = z.object({ jobId: z.string().uuid(), releaseId: z.string().min(1) });
+const RollbackBody = z.object({ jobId: z.string().guid(), releaseId: z.string().min(1) });
 
 export const POST = hostedRoute<{ appId: string }>(
   { workspaceRole: "editor" },

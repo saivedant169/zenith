@@ -96,15 +96,15 @@ const RegisterBody = z.object({
   version: z.string().max(64).regex(PRINTABLE).optional(),
   /** protocol ids the agent speaks, newest first; absent means the v1 baseline (PROD-OPS-03 negotiation) */
   protocols: z.array(z.string().regex(/^zenith\.(?:runner|machine)\/v[1-9][0-9]{0,2}$/)).min(1).max(8).optional(),
-  capabilities: z.array(z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/)).max(32).default([]),
+  capabilities: z.array(z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/)).max(32).prefault([]),
   labels: z
-    .record(z.string().max(253).regex(PRINTABLE))
+    .record(z.string(), z.string().max(253).regex(PRINTABLE))
     .refine((l) => Object.keys(l).length <= 32 && Object.keys(l).every((k) => k.length >= 1 && k.length <= 63 && PRINTABLE.test(k)), "at most 32 labels; keys 1-63 printable characters")
-    .default({}),
+    .prefault({}),
   host: z
-    .record(z.string().max(64).regex(PRINTABLE))
+    .record(z.string(), z.string().max(64).regex(PRINTABLE))
     .refine((h) => Object.keys(h).length <= 8, "at most 8 host members")
-    .default({}),
+    .prefault({}),
 });
 
 const HeartbeatBody = z.object({
@@ -112,14 +112,14 @@ const HeartbeatBody = z.object({
   capabilities: z.array(z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/)).max(32).optional(),
   running: z.number().int().min(0).max(10_000).optional(),
   host: z
-    .record(z.string().max(64).regex(PRINTABLE))
+    .record(z.string(), z.string().max(64).regex(PRINTABLE))
     .refine((h) => Object.keys(h).length <= 8, "at most 8 host members")
     .optional(),
   /** informational delivery report; validated separately so a bad one never fails the heartbeat */
   lifecycle: z.unknown().optional(),
 });
 
-const PollBody = z.object({ max: z.number().int().min(1).max(10).default(1), waitSec: z.number().int().min(0).max(25).default(0) });
+const PollBody = z.object({ max: z.number().int().min(1).max(10).prefault(1), waitSec: z.number().int().min(0).max(25).prefault(0) });
 
 const ResultBody = z.object({
   status: z.enum(["succeeded", "failed", "rejected", "timed_out"]),
@@ -137,7 +137,7 @@ const LogsBody = z.object({
     .max(2000),
 });
 
-function parse<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, value: unknown): T {
+function parse<T>(schema: z.ZodType<T, unknown>, value: unknown): T {
   const r = schema.safeParse(value);
   if (!r.success) {
     const issue = r.error.issues[0];

@@ -59,3 +59,11 @@ Reply "approve", or name changes (for example a syscall to add or remove, the gV
 - Which BuildKit rootless version? The repo only uses the mutable tag `moby/buildkit:rootless`, resolved at verification. I did not check the profiles against a specific version.
 - gVisor or runc, per the caveat above.
 - Not checked in this environment: AppArmor syntax, seccomp loading, and every runtime behaviour above (no Linux node, no `apparmor_parser`).
+
+## Findings from the hosted DRV-1 run (2026-10-23)
+Hosted `drv1-private-source` on ubuntu-24.04-arm (kind, containerd, gVisor `release-20260928.0`, Calico v3.33.0).
+- AppArmor: kind nodes do not mount securityfs, so kubelet refused the Localhost profile as unsupported. The DRV-1 fixture now mounts it and requires `zenith-build (enforce)` to be visible. After that, kubelet admitted the pod (run `39880088648`).
+- gVisor with `hostUsers: false` fails. Every probe sandbox failed with
+  `cannot create gofer process: gofer: error setting namespace of type user and path ".../pinned-namespaces/user": invalid argument`
+  (run `39885437619`, source `27fbb5a2`). runsc cannot join the user namespace that containerd pins for the pod, so no build or probe container ever started under gVisor. This answers the "gVisor or runc" question for this release: gVisor and the mandatory outer pod user namespace cannot be combined.
+- Not changed: the RuntimeClass, the profile digest, and the approved declaration. Changing the runtime changes the reviewed profile digest, so the owner must approve it again.

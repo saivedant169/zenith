@@ -92,8 +92,16 @@ What does not change: rootless BuildKit; `hostUsers: false`; the `zenith-build` 
 limits; `privileged: false`; the admission checks; the pod-level isolation probe, now 21 checks including the
 negative probes the J6 plan listed. Each attempts a real operation an unconfined process could perform and must be
 refused: `ptrace(PTRACE_TRACEME)`, creating a one-entry BPF array map, `keyctl` get-session-keyring, a raw ICMP
-socket, and opening `/proc/sys/kernel/hostname` for writing (`builder.go`). In a plain Docker container (root, default
-profiles) `ptrace` and the raw socket succeed, so these probes can fail. The build container keeps the
+socket, and opening `/proc/sys/kernel/hostname` for writing (`builder.go`). They run twice:
+  - in the builder process before any source is read, where only the reviewed profile applies: `ptrace` must return
+    EPERM (an unconfined `PTRACE_TRACEME` succeeds) and `keyctl` must return ENOSYS (the profile's own errno, which the
+    kernel never returns for `keyctl`), so these two prove the zenith-build filter itself. `bpf`, raw sockets and
+    `/proc/sys` are also refused by the dropped capabilities and file permissions, so they show defence in depth, not
+    the filter alone;
+  - inside an untrusted `RUN` step of the probe build (`exec-probe`), where all five must be refused or the probe build
+    fails; BuildKit stacks its own filter there, so any refusal counts.
+  In a plain Docker container (root, Docker's default profile) `ptrace` and the raw socket succeed and `keyctl` returns
+  EPERM rather than ENOSYS, so both checks fail there. The build container keeps the
 capabilities the 2026-10-21 approval already allows for rootless BuildKit and nothing more: all dropped, then
 `SETUID` and `SETGID` added for the UID helpers, `allowPrivilegeEscalation: true` (setuid helpers inside the pod user
 namespace), `procMount: Unmasked`, and `sys_admin` allowed by the AppArmor profile for mounts inside the nested

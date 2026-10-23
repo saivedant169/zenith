@@ -112,30 +112,45 @@ func deniedAddress(address string) bool {
 // Negative probes: each attempts an operation that succeeds for an unconfined process and must be refused here (by the
 // seccomp filter, AppArmor or missing capabilities). None is a malformed call that would fail for its own reasons.
 
-// ptraceDenied: PTRACE_TRACEME succeeds for any unconfined process with a parent.
-func ptraceDenied() bool {
+// ptraceErrno: PTRACE_TRACEME succeeds (0) for any unconfined process with a parent.
+func ptraceErrno() syscall.Errno {
 	_, _, errno := syscall.Syscall(syscall.SYS_PTRACE, syscall.PTRACE_TRACEME, 0, 0)
-	return errno != 0
+	return errno
 }
 
 // bpfDenied: creating a one-entry array map succeeds wherever bpf is permitted.
-func bpfDenied() bool {
+func bpfDenied() bool { return bpfErrno() != 0 }
+func bpfErrno() syscall.Errno {
 	attr := [4]uint32{2 /* BPF_MAP_TYPE_ARRAY */, 4, 4, 1}
 	nr, ok := map[string]uintptr{"amd64": 321, "arm64": 280}[runtime.GOARCH] // __NR_bpf; the syscall package lacks it on arm64
 	if !ok {
-		return false
+		return 0 // unknown architecture: reported as not denied
 	}
 	fd, _, errno := syscall.Syscall(nr, 0 /* BPF_MAP_CREATE */, uintptr(unsafe.Pointer(&attr[0])), unsafe.Sizeof(attr))
 	if errno == 0 {
 		syscall.Close(int(fd))
 	}
-	return errno != 0
+	return errno
 }
 
-// keyctlDenied: KEYCTL_GET_KEYRING_ID on the session keyring succeeds for any process allowed to use keyrings.
-func keyctlDenied() bool {
-	_, _, errno := syscall.Syscall(syscall.SYS_KEYCTL, 0 /* KEYCTL_GET_KEYRING_ID */, ^uintptr(2) /* KEY_SPEC_SESSION_KEYRING (-3) */, 0)
-	return errno != 0
+// keyctlErrno: KEYCTL_GET_KEYRING_ID on the session keyring, creating it if needed, succeeds (0) for any process allowed
+// to use keyrings.
+func keyctlErrno() syscall.Errno {
+	_, _, errno := syscall.Syscall(syscall.SYS_KEYCTL, 0 /* KEYCTL_GET_KEYRING_ID */, ^uintptr(2) /* KEY_SPEC_SESSION_KEYRING (-3) */, 1)
+	return errno
+}
+
+// The reviewed profile's own answers: ptrace returns EPERM (errnoRet 1) where an unconfined PTRACE_TRACEME succeeds, and
+// keyctl returns ENOSYS (errnoRet 38), which the kernel never returns for keyctl. These two prove the zenith-build
+// filter itself, not just "some" refusal; bpf, raw sockets and /proc/sys are also refused by missing capabilities and
+// file permissions (defence in depth).
+func ptraceDenied() bool { return ptraceErrno() == syscall.EPERM }
+func keyctlDenied() bool { return keyctlErrno() == syscall.ENOSYS }
+
+// negativeProbesDenied runs inside an untrusted build step (exec-probe). BuildKit stacks its own filter on top of the
+// pod's, so any refusal counts there.
+func negativeProbesDenied() bool {
+	return ptraceErrno() != 0 && bpfErrno() != 0 && keyctlErrno() != 0 && rawSocketDenied() && procSysWriteDenied()
 }
 
 // rawSocketDenied: a raw ICMP socket.
@@ -325,7 +340,8 @@ func receipt(value any) error {
 }
 func main() {
 	if len(os.Args) == 2 && os.Args[1] == "exec-probe" {
-		if e := fullProcessSandbox(); e != nil {
+		// Inside an untrusted RUN step: the daemon is invisible and every negative probe is refused, or the probe build fails.
+		if e := fullProcessSandbox(); e != nil || !negativeProbesDenied() {
 			os.Exit(1)
 		}
 		return

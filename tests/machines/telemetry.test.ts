@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { machineHealthTelemetry, readMachineHealth, type MachineDriver } from "@/lib/machines";
+import { createZenithdMachineDriver } from "@/lib/machines/transports/zenithd";
+import { DispatchError } from "@/lib/runners/dispatch";
 import { grantFor, MemoryEvidence, okResult, requestFor, sessions, T0 } from "./_helpers";
 
 const NOW = () => new Date(T0 + 1000);
@@ -74,3 +76,26 @@ describe("machine health telemetry", () => {
     await expect(readMachineHealth(requestFor("machine.exec", { command: "id" }), ctx(driver()))).rejects.toThrow(/not a read-only machine health operation/);
   });
 });
+
+describe("zenithd machine health through readMachineHealth", () => {
+  const zenithd = (enqueue: () => Promise<string>) => ({
+    grant: grantFor("system.metrics"),
+    drivers: { zenithd: createZenithdMachineDriver({ dispatcher: { enqueue: vi.fn(enqueue), await: vi.fn() }, now: () => T0 }) },
+    sessions: sessions({ grantJws: "inert-local-grant" }), evidence: new MemoryEvidence(), signal: new AbortController().signal, now: NOW,
+  });
+  const req = () => requestFor("system.metrics", {}, { transport: "zenithd", targetId: "mac_fixture" });
+  it.each([
+    ["a revoked machine is inaccessible", new DispatchError("agent_revoked", "The machine mac_fixture is revoked."), "inaccessible", "denied"],
+    ["a silent machine is unknown", new DispatchError("agent_stale", "The machine has not sent a heartbeat for 90 seconds."), "unknown", "target_unreachable"],
+    ["an unregistered machine is unknown", new DispatchError("agent_not_found", "No machine mac_fixture in this workspace."), "unknown", "target_unreachable"],
+    ["any other queue failure stays an unknown transport error", new Error("store outage"), "unknown", "transport_error"],
+  ])("%s, never healthy", async (_case, failure, state, code) => {
+    const out = await readMachineHealth(req(), zenithd(async () => { throw failure; }));
+    expect(out.result).toBeUndefined();
+    expect(out.error?.code).toBe(code);
+    expect(out.telemetry).toMatchObject({ signal: "health", state });
+    expect(out.telemetry.provenance[0]).toMatchObject({ source: "machines.zenithd", provider: "zenithd", state });
+    expect(out.telemetry.provenance[0].reason).toMatch(/\S/);
+  });
+});
+

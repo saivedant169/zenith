@@ -109,6 +109,8 @@ async function authenticateBeforeWorkspace(page, stack, user) {
 // Collection (--list) never reads a credential/config or starts an engine.
 test.skip(process.env.ZENITH_DEFAULT_JOURNEY !== '1', 'needs ZENITH_DEFAULT_JOURNEY=1, J1 stack, Mailpit, kind and Chromium');
 
+const HEALTH_EVIDENCE_SQL = "select coalesce(json_agg(json_build_object('id',e.id,'workspaceId',e.workspace_id,'operationId',e.operation_id,'kind',e.kind,'simulated',e.simulated,'createdAt',e.created_at,'summary',e.summary,'operationStatus',o.status,'projectId',o.project_id,'environmentId',o.environment_id,'resourceId',o.resource_id,'capability',o.capability)), '[]'::json)::text from platform.evidence e join platform.operations o on o.workspace_id = e.workspace_id and o.id = e.operation_id where e.workspace_id = :'workspace_id' and e.operation_id = :'operation_id' and o.project_id = :'project_id' and o.environment_id = :'environment_id' and o.resource_id = :'resource_id' and e.kind = 'observation' and e.summary->>'kind' = 'machine_health' and e.summary->>'capability' = 'system.metrics'";
+
 test('default operated browser, REST, MCP and customer machine journey', async ({ browser }) => {
   let source = {}, stack, config, a, b, machine, healthMachine, linked, runnerProcess, runnerId, runnerName, runnerServiceAccount, runnerConnectionId, runnerDir, runnerCustodyMarker, runnerCaseSucceeded = false, runnerSpawned = false, runnerSpawnError = false, runnerExited = false, runnerClosed = false, workspaceId, project, environmentId, healthResourceId;
   let uxBrowser, uxA, uxB, axeSource, uxApprovalRecorded = false, uxUncertaintyEvidence, uxOriginalWindow, uxStage = 'not-started', uxOuterCleanupComplete = false, uxFailureStage;
@@ -384,6 +386,37 @@ test('default operated browser, REST, MCP and customer machine journey', async (
     ensure(terminal.operation.status === 'succeeded', 'scale-terminal-outcome');
     return { operationId };
   };
+  // PROD-OBS-02: one approved system.metrics read of the health resource, returning its stored health telemetry rows.
+  const machineHealthRead = async label => {
+    const proposed = ok(await jsonRequest(stack.apiUrl + '/api/platform/v1/capabilities/propose', {
+      method: 'POST', headers: { authorization: 'Bearer ' + linked.token, 'x-zenith-workspace': workspaceId },
+      body: { capability: 'system.metrics', scope: { workspaceId, projectId: project.id, environmentId, resourceId: healthResourceId },
+        input: {}, idempotencyKey: nonce() },
+    }));
+    const operationId = proposed.operation?.id;
+    ensure(['awaiting_approval', 'approved'].includes(proposed.operation?.status) && operationId, label + '-proposal');
+    if (proposed.operation.status === 'awaiting_approval') await approve(operationId, true);
+    const reviewed = await getDetail(operationId);
+    await mcp(stack, linked.token, 'tools/call', { name: 'zenith_execute_approved_operation', arguments: {
+      workspaceId, operationId, expectedDigest: reviewed.operation.proposalDigest,
+    } });
+    const terminal = await until(() => getDetail(operationId), value => ['succeeded', 'failed', 'uncertain'].includes(value.operation.status), 60_000);
+    const rows = JSON.parse(await psql(HEALTH_EVIDENCE_SQL, { workspace_id: workspaceId, project_id: project.id, operation_id: operationId,
+      environment_id: environmentId, resource_id: healthResourceId }));
+    return { operationId, status: terminal.operation.status, rows };
+  };
+  // An unanswered machine health read is an explicit labeled envelope from the zenithd source, never fresh and never silent.
+  const assertHealthNegative = (read, state, label) => {
+    const telemetry = read.rows[0]?.summary?.telemetry;
+    ensure(read.status === 'failed' && read.rows.length === 1 && read.rows[0].operationId === read.operationId && read.rows[0].simulated === false &&
+      telemetry?.signal === 'health' && telemetry.state === state && telemetry.scope?.workspaceId === workspaceId &&
+      telemetry.scope?.environmentId === environmentId && telemetry.scope?.addresses?.[0] === witnessAddress && Date.parse(telemetry.observedAt) > 0 &&
+      telemetry.provenance?.length === 1 && telemetry.provenance[0].source === 'machines.zenithd' && telemetry.provenance[0].provider === 'zenithd' &&
+      telemetry.provenance[0].state === state && typeof telemetry.provenance[0].reason === 'string' && telemetry.provenance[0].reason.length > 0 &&
+      !JSON.stringify(read.rows).includes(healthMachine.credential), label);
+    return telemetry.state;
+  };
+  const telemetryStates = {};
   let failed = false;
   try {
     await step('prerequisites', async () => {
@@ -827,6 +860,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
         typeof source.source === 'string' && typeof source.provider === 'string' && ['fresh', 'stale', 'empty', 'unknown', 'inaccessible'].includes(source.state)
         && (!['unknown', 'inaccessible'].includes(source.state) || (typeof source.reason === 'string' && source.reason.length > 0)));
       ensure(explicit(envelope), 'default-metrics-provenance-explicit');
+      telemetryStates.metric = envelope.state;
       const logsRaw = await mcp(stack, linked.token, 'tools/call', { name: 'zenith_query_logs', arguments: {
         target: { workspaceId, projectId: project.id, environmentId }, serviceId, lastMinutes: 5, limit: 20,
       } }, true);
@@ -836,6 +870,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       ensure(logEnvelope?.signal === 'log' && logEnvelope.scope?.workspaceId === workspaceId && logEnvelope.scope?.projectId === project.id &&
         logEnvelope.scope?.environmentId === environmentId && Date.parse(logEnvelope.observedAt) > 0 && explicit(logEnvelope), 'default-logs-provenance');
       ensure(!JSON.stringify(logs).includes(linked.token) && !JSON.stringify(logs).includes(healthToken.token), 'logs-token-redaction');
+      telemetryStates.log = logEnvelope.state;
       // PROD-OBS-02: provider/resource events and traces through their own read grants, with the same envelope contract.
       for (const [name, signal] of [['zenith_search_events', 'event'], ['zenith_search_traces', 'trace']]) {
         const raw = await mcp(stack, linked.token, 'tools/call', { name, arguments: {
@@ -844,9 +879,10 @@ test('default operated browser, REST, MCP and customer machine journey', async (
         const answer = raw.data?.result?.structuredContent;
         ensure(raw.status === 200 && answer?.ok === true && answer.simulated === false, 'default-' + signal + '-api');
         const telemetry = answer.data?.telemetry;
-        ensure(telemetry?.signal === signal && telemetry.scope?.workspaceId === workspaceId && telemetry.scope?.environmentId === environmentId &&
+        ensure(telemetry?.signal === signal && telemetry.scope?.workspaceId === workspaceId && telemetry.scope?.projectId === project.id && telemetry.scope?.environmentId === environmentId &&
           Date.parse(telemetry.observedAt) > 0 && explicit(telemetry), 'default-' + signal + '-provenance');
         ensure(!JSON.stringify(answer).includes(linked.token), signal + '-token-redaction');
+        telemetryStates[signal] = telemetry.state;
       }
 
       healthResourceId = await witnessResourceId();
@@ -893,7 +929,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       ensure(finalRead.data.operation.status === 'succeeded' && finalRead.data.operation.id === operationId &&
         !JSON.stringify(finalRead).includes(linked.token) && !JSON.stringify(finalRead).includes(healthToken.token), 'health-operation-api-redaction');
 
-      const sql = "select coalesce(json_agg(json_build_object('id',e.id,'workspaceId',e.workspace_id,'operationId',e.operation_id,'kind',e.kind,'simulated',e.simulated,'createdAt',e.created_at,'summary',e.summary,'operationStatus',o.status,'projectId',o.project_id,'environmentId',o.environment_id,'resourceId',o.resource_id,'capability',o.capability)), '[]'::json)::text from platform.evidence e join platform.operations o on o.workspace_id = e.workspace_id and o.id = e.operation_id where e.workspace_id = :'workspace_id' and e.operation_id = :'operation_id' and o.project_id = :'project_id' and o.environment_id = :'environment_id' and o.resource_id = :'resource_id' and e.kind = 'observation' and e.summary->>'kind' = 'machine_health' and e.summary->>'capability' = 'system.metrics'";
+      const sql = HEALTH_EVIDENCE_SQL;
       const sqlVariables = { workspace_id: workspaceId, project_id: project.id, operation_id: operationId,
         environment_id: environmentId, resource_id: healthResourceId };
       const rows = JSON.parse(await psql(sql, sqlVariables));
@@ -913,6 +949,27 @@ test('default operated browser, REST, MCP and customer machine journey', async (
         progress: workflowProgress,
         metricScope: envelope.scope, metricState: envelope.state, healthScope: telemetry.scope,
         healthState: telemetry.state, healthSource: telemetry.provenance[0].source, createdAt: evidence.createdAt });
+      telemetryStates.health = telemetry.state;
+      const machineState = async () => ok(await browserRequest(a, '/api/platform/v1/machines', undefined, 'GET', workspaceId))
+        .machines?.find(value => value.id === healthMachine.id)?.connection?.state;
+      // A registered zenithd that falls silent past the heartbeat threshold answers an explicit unknown, never a stale success.
+      await docker(['pause', healthMachine.container]);
+      try {
+        await until(machineState, state => state === 'offline', 240_000);
+        telemetryStates.healthSilent = assertHealthNegative(await machineHealthRead('health-silent'), 'unknown', 'health-silent-machine-unknown');
+      } finally { await docker(['unpause', healthMachine.container]); }
+      await until(machineState, state => state === 'online', 180_000);
+      // A revoked zenithd answers an explicit inaccessible. UX-01 runs keep this machine for their own revocation case.
+      if (!UX_ENABLED) {
+        const revoked = ok(await browserRequest(b, '/api/platform/v1/machines/' + healthMachine.id + '/revoke', {}, 'POST', workspaceId));
+        ensure(revoked.id === healthMachine.id && revoked.status === 'revoked', 'machine-revocation');
+        healthMachine.revocationConfirmed = true;
+        const stoppedAgent = await until(async () => JSON.parse(await command('docker', ['inspect', healthMachine.container])),
+          value => value[0].State.Running === false);
+        ensure(stoppedAgent.length === 1 && stoppedAgent[0].Config.Labels?.['io.zenith.journey'] === healthMachine.runId &&
+          stoppedAgent[0].State.ExitCode === 3, 'machine-native-revoked-exit-code');
+        telemetryStates.healthRevoked = assertHealthNegative(await machineHealthRead('health-revoked'), 'inaccessible', 'health-revoked-machine-inaccessible');
+      }
     });
     await step('customer-credential-absence', async () => {
       await machine.credentialAbsent(process.env.ZENITH_JOURNEY_SCRATCH, healthMachine ? [healthMachine.credential] : []);
@@ -1522,7 +1579,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
         persistUxPrivateDocument('.uncertainty-private.json');
       } catch { uxStage = 'private-evidence-final-write'; markUxFailure(); failed = true; }
     }
-    const result = { ...source, checks: facts, readbacks };
+    const result = { ...source, checks: facts, readbacks, telemetryStates };
     // A failed step makes the projected status failed, so its receipt names the real failing check;
     // without it the runner can only record a generic prerequisites failure.
     if (process.env.ZENITH_JOURNEY_RECEIPT && (!failed || facts.some(fact => fact.status === 'failed'))) {

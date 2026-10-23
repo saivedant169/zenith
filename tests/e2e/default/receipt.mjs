@@ -10,6 +10,8 @@ export const CHECKS = Object.freeze([
   'runner-connection-lifecycle', 'connection-rotation-readback', 'connection-revocation-no-fallback', 'worker-readiness-graceful-drain', 'cleanup',
 ]);
 const STATUSES = new Set(['passed', 'failed', 'skipped', 'not_run']);
+const TELEMETRY_SIGNALS = Object.freeze(['metric', 'log', 'event', 'trace', 'health', 'healthSilent', 'healthRevoked']);
+const TELEMETRY_STATES = new Set(['fresh', 'stale', 'empty', 'unknown', 'inaccessible']);
 const hash = (value, length) => typeof value === 'string' && new RegExp(`^[a-f0-9]{${length}}$`).test(value);
 const version = value => typeof value === 'string' && /^\d+\.\d+\.\d+(?:[-+][a-zA-Z0-9.-]{1,40})?$/.test(value) ? value : 'unrecorded';
 
@@ -49,12 +51,15 @@ export function receipt(input = {}) {
     environment, counts, checks,
     // Only verifier-owned sha256 values, never a result body.
     readbacks: ['kind', 'machine', 'rotatedKind', 'obs02', 'machineRejoin'].flatMap(target => hash(input.readbacks?.[target], 64) ? [{ target, sha256: input.readbacks[target] }] : []),
+    // Observed PROD-OBS-02 envelope states, closed vocabulary only; a missing signal was not observed.
+    telemetryStates: Object.fromEntries(TELEMETRY_SIGNALS.flatMap(signal => TELEMETRY_STATES.has(input.telemetryStates?.[signal]) ? [[signal, input.telemetryStates[signal]]] : [])),
     evidence: ledgerEligible ? {
       level: 'local_engine', commit: input.commit,
       command: 'ZENITH_DEFAULT_JOURNEY=1 node scripts/acceptance/default-journey.mjs --config <private-config> --receipt <evidence-file>',
       environment: `${environment.host}; native ${input.arch === 'x64' ? 'AMD64' : 'ARM64'} Docker ${environment.docker}; Node ${environment.node}; ${environment.profile}; disposable local installation`,
       result: `${counts.passed} passed /${counts.failed} failed /${counts.skipped} skipped /${counts.not_run} not run`,
-      logs: 'docs/build/production/evidence/PROD-PKG-05/default-journey.json',
+      // The receipt itself is the record; its committed path is chosen when it is filed.
+      logs: null,
     } : null,
   };
 }

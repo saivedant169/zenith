@@ -30,7 +30,7 @@ import type { NativeOperation } from "@/lib/drivers/types";
 import type { PortableKind, ProviderKey, ResourceNode } from "@/lib/resources/types";
 import type { ExecutionActivities } from "@/lib/workflows/types";
 import { ApplicationFailure } from "@temporalio/activity";
-import { MACHINE_OPERATIONS, createMachineDrivers, createMachineSessionProvider, executeMachineOperation, readMachineHealth, MACHINE_HEALTH_OPERATIONS, MachineOperationError, DEFAULT_TIMEOUT_SEC, DEFAULT_MAX_OUTPUT_BYTES, parseAzureVmTargetId, parseGcpInstanceTargetId, type MachineOperation, type MachineTarget } from "@/lib/machines";
+import { MACHINE_OPERATIONS, createMachineDrivers, createMachineSessionProvider, executeMachineOperation, readMachineHealth, machineHealthTelemetry, MACHINE_HEALTH_OPERATIONS, MachineOperationError, DEFAULT_TIMEOUT_SEC, DEFAULT_MAX_OUTPUT_BYTES, parseAzureVmTargetId, parseGcpInstanceTargetId, type MachineOperation, type MachineTarget } from "@/lib/machines";
 import { loadExecContext, resolveConnection, type ExecContext } from "./context";
 import { assertLeaseFor } from "./desired";
 import { StepFailedError } from "./errors";
@@ -46,14 +46,25 @@ const MAX_DATA_BYTES = 4_000;
 
 const isMachineCapability = (name: string): name is MachineOperation => (MACHINE_OPERATIONS as readonly string[]).includes(name);
 
+/** A bound machine that exists but cannot be used; health reads label it instead of failing silently. */
+class UnavailableMachine extends StepFailedError {
+  constructor(readonly target: MachineTarget, readonly healthCode: "denied" | "target_unreachable", reason: string) { super(reason); }
+}
+
 /** Resolve only registered bindings or observed ids; a missing identity stays unknown. */
 async function machineTarget(rt: Runtime, ec: ExecContext, row: StoredResource): Promise<MachineTarget> {
   const plane = rt.d.machines!;
   const base = { workspaceId: ec.workspaceId, environmentId: ec.environmentId, resourceId: row.id, address: row.address };
   const machine = await plane.boundMachine(ec.workspaceId, ec.environmentId, row.address);
   if (machine) {
-    if (machine.kind !== "machine" || machine.workspaceId !== ec.workspaceId || machine.environmentId !== ec.environmentId || machine.address !== row.address || machine.status !== "active" || machine.stale) {
+    if (machine.kind !== "machine" || machine.workspaceId !== ec.workspaceId || machine.environmentId !== ec.environmentId || machine.address !== row.address) {
       throw new StepFailedError("The bound machine is unavailable or does not belong to this resource.");
+    }
+    if (machine.status !== "active" || machine.stale) {
+      const target: MachineTarget = { ...base, transport: "zenithd", targetId: machine.id };
+      throw machine.status === "revoked"
+        ? new UnavailableMachine(target, "denied", "The bound machine is revoked; the machine plane refused the request.")
+        : new UnavailableMachine(target, "target_unreachable", "The bound machine is unavailable (inactive or silent); nothing was dispatched.");
     }
     return { ...base, transport: "zenithd", targetId: machine.id };
   }
@@ -87,7 +98,20 @@ async function machineTarget(rt: Runtime, ec: ExecContext, row: StoredResource):
 async function executeMachineCapability(rt: Runtime, ec: ExecContext, row: StoredResource, name: MachineOperation, lease: LeaseRef): Promise<{ ok: boolean; summary: string }> {
   const plane = rt.d.machines;
   if (!plane) throw new StepFailedError("This worker has no machine plane configured.");
-  const target = await machineTarget(rt, ec, row);
+  let target: MachineTarget;
+  try { target = await machineTarget(rt, ec, row); }
+  catch (error) {
+    // PROD-OBS-02: a health read of a revoked or silent bound machine is an explicit inaccessible/unknown answer.
+    if (error instanceof UnavailableMachine && MACHINE_HEALTH_OPERATIONS.has(name)) {
+      const telemetry = machineHealthTelemetry({ target: error.target, observedAt: rt.now().toISOString(), error: { code: error.healthCode, message: error.message } });
+      try {
+        await rt.evidence(ec.scope, { kind: "observation", digest: digest({ op: ec.op.id, capability: name, address: row.address, state: telemetry.state }), summary: { kind: "machine_health", capability: name, address: row.address, telemetry }, simulated: false, key: `machine-health:${ec.op.id}` }, { critical: false });
+      } catch {
+        rt.log("warn", "machine health telemetry evidence could not be stored", { operationId: ec.op.id });
+      }
+    }
+    throw error;
+  }
   const connection = target.transport === "zenithd" ? undefined : await resolveConnection(rt, ec);
   const { claims, jws } = await rt.d.broker.issueGrant(ec.op.id, target.transport === "zenithd" ? `machine:${target.targetId}` : "worker", { scope: lease.scope, fenceToken: lease.fenceToken });
   const mutates = lookupCapability(name).mutates;

@@ -98,6 +98,10 @@ export function createZenithdMachineDriver(options: ZenithdDriverOptions): Machi
     try {
       id = await dispatcher.enqueue(normalized, session.grantJws);
     } catch (e) {
+      // These dispatch refusals are raised before anything is queued, so nothing ran on the machine.
+      const refusal = (e as { name?: unknown; code?: unknown } | null)?.name === "DispatchError" ? (e as { code: unknown }).code : undefined;
+      if (refusal === "agent_revoked") throw new MachineOperationError("denied", "the machine is revoked; the machine plane refused the request", { cause: e });
+      if (refusal === "agent_stale" || refusal === "agent_not_found") throw new MachineOperationError("target_unreachable", "the machine is silent or no longer registered; nothing was queued", { retryable: true, cause: e });
       throw new MachineOperationError("transport_error", "could not queue the machine request", { retryable: true, cause: e });
     }
 

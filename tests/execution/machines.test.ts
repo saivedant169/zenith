@@ -130,6 +130,22 @@ describe("machine capability activities", () => {
     const [record] = w.evidence.ofKind("observation");
     expect((record!.summary as { telemetry: { state: string } }).telemetry.state).toBe("inaccessible");
   });
+  it.each([
+    ["revoked", { status: "revoked" as const }, "inaccessible", /access denied/],
+    ["silent", { stale: true }, "unknown", /unavailable/],
+  ])("a health read of a %s bound zenithd stores an explicit envelope, dispatches nothing and still refuses", async (_case, over, state, reason) => {
+    const { w, plane, calls, lease, binding, row } = await machineWorld("zenithd", "system.metrics");
+    plane.boundMachine = async () => ({ ...binding, ...over });
+    await expect(w.activities.executeCapability({ operationId: OP, lease })).rejects.toBeInstanceOf(StepFailedError);
+    const [record] = w.evidence.ofKind("observation");
+    const telemetry = (record!.summary as { telemetry: { state: string; scope: unknown; provenance: { source: string; provider: string; state: string; reason?: string }[] } }).telemetry;
+    expect(record!.summary).toMatchObject({ kind: "machine_health", capability: "system.metrics", address: row.address });
+    expect(telemetry.state).toBe(state);
+    expect(telemetry.scope).toEqual({ workspaceId: WS, environmentId: ENV, addresses: [row.address] });
+    expect(telemetry.provenance[0]).toMatchObject({ source: "machines.zenithd", provider: "zenithd", state });
+    expect(telemetry.provenance[0].reason).toMatch(reason);
+    expect(calls).toHaveLength(0); expect(w.broker.grants).toHaveLength(0);
+  });
   it("refuses unknown observations and foreign/stale machine bindings before execution", async () => {
     const { w, plane, calls, lease, binding } = await machineWorld("zenithd");
     for (const invalid of [{ ...binding, workspaceId: "foreign" }, { ...binding, environmentId: "foreign" }, { ...binding, stale: true }, { ...binding, status: "revoked" as const }]) {

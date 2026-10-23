@@ -112,4 +112,11 @@ describe('default journey opt-in gate', () => {
     expect(result.status).toBe('incomplete');
     expect(result.readbacks.map(value => value.target)).toEqual(['kind', 'machine', 'rotatedKind', 'obs02']);
   });
+  it('records only closed-vocabulary PROD-OBS-02 envelope states and no free-text log pointer', () => {
+    const result = receipt({ ...input(), telemetryStates: { metric: 'unknown', log: 'fresh', event: 'not-a-state', healthSilent: 'unknown', healthRevoked: 'inaccessible', extra: 'fresh', reason: 'secret text' } });
+    expect(result.telemetryStates).toEqual({ metric: 'unknown', log: 'fresh', healthSilent: 'unknown', healthRevoked: 'inaccessible' });
+    expect(JSON.stringify(result)).not.toContain('secret text');
+    expect(result.evidence?.logs ?? null).toBeNull();
+  });
 });
+

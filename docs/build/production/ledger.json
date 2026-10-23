@@ -6661,7 +6661,7 @@
           "environment": "Default installed stack with the real kind target and zenithd; receipts docs/build/production/evidence/PROD-LIFE-01/2026-10-23-28217dab-clean-host-j2-{amd64,arm64}.json",
           "runId": 39896904543,
           "url": "https://github.com/saivedant169/zenith/actions/runs/39896904543",
-          "result": "J2 21/21, 0 failed, 0 skipped, 0 not run on both native architectures. Through the linked agent's scoped MCP session against the real engines: metrics, logs (zenith_query_logs), events (zenith_search_events) and traces (zenith_search_traces) each return a telemetry envelope with explicit provenance and matching workspace/project/environment scope. Same commit as the CI contract run 39888081660. The earlier review finding on machine-health negative states is not re-proven by this run. Not promoted; independent review pending."
+          "result": "J2 21/21, 0 failed, 0 skipped, 0 not run on both native architectures. Through the linked agent's scoped MCP session against the real engines: metrics, logs (zenith_query_logs), events (zenith_search_events) and traces (zenith_search_traces) each return a telemetry envelope with explicit provenance; metrics and logs assert workspace/project/environment scope, events and traces only workspace/environment (corrected after independent review). Same commit as the CI contract run 39888081660. The earlier review finding on machine-health negative states is not re-proven by this run. Not promoted; independent review pending."
         }
       ],
       "requiredEvidence": [

@@ -25,7 +25,7 @@ export function renderBaseline(raw: IsolatedBuildConfig): K8sObject[] {
   return [
     { apiVersion: "v1", kind: "Namespace", metadata: { name: c.namespace, labels: { "zenith.dev/isolated-build": "true", "pod-security.kubernetes.io/enforce": "baseline" } } },
     { apiVersion: "v1", kind: "ServiceAccount", metadata: meta(BUILD_ACCOUNT), automountServiceAccountToken: false },
-    { apiVersion: "networking.k8s.io/v1", kind: "NetworkPolicy", metadata: meta("zenith-build-default-deny"), spec: { podSelector: {}, policyTypes: ["Ingress", "Egress"], ingress: [], egress: [] } },
+    { apiVersion: "networking.k8s.io/v1", kind: "NetworkPolicy", metadata: meta("zenith-build-default-deny"), spec: { podSelector: {}, policyTypes: ["Ingress", "Egress"] } }, // no rules = deny all; the API server drops empty rule lists
     { apiVersion: "networking.k8s.io/v1", kind: "NetworkPolicy", metadata: meta("zenith-build-proxy-only"), spec: { podSelector: {}, policyTypes: ["Egress"], egress: [{ to: [{ namespaceSelector: { matchLabels: { "kubernetes.io/metadata.name": c.proxy.namespace } }, podSelector: { matchLabels: { app: "zenith-build-proxy" } } }], ports: [{ protocol: "TCP", port: c.proxy.port }] }] } },
     { apiVersion: "v1", kind: "ResourceQuota", metadata: meta("zenith-build-quota"), spec: { hard: { pods: "2", "requests.cpu": "1", "requests.memory": "1Gi", "limits.cpu": "4", "limits.memory": "8Gi", "requests.ephemeral-storage": "2Gi", "limits.ephemeral-storage": "8Gi", "count/jobs.batch": "4", "count/secrets": "8" } } },
   ];
@@ -36,7 +36,7 @@ export function renderJob(raw: IsolatedBuildConfig, r: BuildRequest, probe = fal
   const registry = new URL(`https://${r.image.split("/")[0]}`);
   const destination = c.proxy.destinations.find(d => d.host === registry.hostname && d.port === Number(registry.port || "443"));
   const env = [
-    { name: "HTTP_PROXY", value: proxyUrl(c) }, { name: "HTTPS_PROXY", value: proxyUrl(c) }, { name: "NO_PROXY", value: "" },
+    { name: "HTTP_PROXY", value: proxyUrl(c) }, { name: "HTTPS_PROXY", value: proxyUrl(c) }, { name: "NO_PROXY" }, // set to empty; the API server drops value: ""
     { name: "XDG_RUNTIME_DIR", value: "/run/user/1000" }, { name: "HOME", value: "/home/user" }, { name: "DOCKER_CONFIG", value: "/registry-auth" },
     { name: "ZENITH_BUILD_ID", value: "zenith-isolated:" + configDigest(c) + ":" + buildKey(r) },
     { name: "ZENITH_REGISTRY_PROBE_URL", value: (destination?.tls === false ? "http://" : "https://") + registry.host + "/v2/" },
@@ -48,7 +48,8 @@ export function renderJob(raw: IsolatedBuildConfig, r: BuildRequest, probe = fal
     apiVersion: "batch/v1", kind: "Job", metadata: { name, namespace: c.namespace, labels: { "app.kubernetes.io/managed-by": "zenith" }, annotations },
     spec: { backoffLimit: 0, completions: 1, parallelism: 1, activeDeadlineSeconds: probe ? 180 : c.timeoutSec, ttlSecondsAfterFinished: 3600,
       template: { metadata: { labels: { "zenith.dev/isolated-build": "true" }, annotations }, spec: {
-        runtimeClassName: c.runtimeClass, hostUsers: false, hostNetwork: false, hostPID: false, hostIPC: false, shareProcessNamespace: false,
+        // hostNetwork/hostPID/hostIPC default false and the API server drops explicit false; assertPod refuses true.
+        runtimeClassName: c.runtimeClass, hostUsers: false, shareProcessNamespace: false,
         // Affinity remains effective even for a node-bound build; never bypass the scheduler with nodeName.
         nodeSelector: { [BUILD_NODE_LABEL]: c.nodeIsolation.tenant, [BUILD_PROFILE_LABEL]: c.nodeIsolation.profileDigest.slice(0, 63), ...(nodeName ? { "kubernetes.io/hostname": nodeName } : {}) },
         tolerations: ["NoSchedule", "NoExecute"].map(effect => ({ key: BUILD_TAINT, operator: "Equal", value: c.nodeIsolation.tenant, effect })),

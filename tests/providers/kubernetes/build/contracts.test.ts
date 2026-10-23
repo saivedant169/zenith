@@ -29,7 +29,8 @@ describe("owned isolated builder admission (contract)",()=>{
  });
  it("renders read-only root/source, bounded scratch, no token, host user namespaces and full process isolation",()=>{
   const job=renderJob(config,request),pod=dig(job,"spec","template","spec");
-  expect(pod).toMatchObject({hostUsers:false,hostPID:false,hostNetwork:false,shareProcessNamespace:false,automountServiceAccountToken:false,runtimeClassName:"userns"});
+  expect(pod).not.toHaveProperty("hostPID"); expect(pod).not.toHaveProperty("hostNetwork"); expect(pod).not.toHaveProperty("hostIPC");
+  expect(pod).toMatchObject({hostUsers:false,shareProcessNamespace:false,automountServiceAccountToken:false,runtimeClassName:"userns"});
   expect(dig(pod,"containers",0,"securityContext")).toMatchObject({privileged:false,readOnlyRootFilesystem:true,capabilities:{drop:["ALL"],add:["SETUID","SETGID"]},seccompProfile:{type:"Localhost"}});
   expect(JSON.stringify(job)).not.toContain("no-process-sandbox");
   expect(dig(pod,"containers",0,"env")).not.toEqual(expect.arrayContaining([expect.objectContaining({name:"AWS_ACCESS_KEY_ID"})]));
@@ -139,8 +140,15 @@ describe("published OCI provenance (contract)",()=>{
   await expect(verifyBuildProvenance(signed.jws,expected,[])).rejects.toThrow();
   await expect(verifyBuildProvenance(signed.jws,{...expected,source:{...source,archiveDigest:"f".repeat(64)}},keys.publicKeys)).rejects.toThrow();
  });
+  it("renders no empty list, empty string or host-namespace false that the API server would drop from the live object", () => {
+    // The live baseline and Job comparisons are subset checks, so a dropped field reads as tampering.
+    const dropped: string[] = [];
+    const walk = (v: unknown, p: string): void => {
+      if (Array.isArray(v)) { if (!v.length) dropped.push(p); v.forEach((x, i) => walk(x, p + "[" + i + "]")); }
+      else if (v && typeof v === "object") for (const [k, x] of Object.entries(v)) { if (["hostNetwork", "hostPID", "hostIPC"].includes(k) && x === false) dropped.push(p + "." + k); walk(x, p + "." + k); }
+      else if (v === "") dropped.push(p);
+    };
+    for (const o of [...renderBaseline(config), ...renderProxy(config), renderJob(config, request), renderJob(config, request, true, "node-a")]) walk(o, o.kind + "/" + o.metadata.name);
+    expect(dropped).toEqual([]);
+  });
 });
-
-
-
-

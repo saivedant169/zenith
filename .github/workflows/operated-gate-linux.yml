@@ -156,9 +156,9 @@ jobs:
               echo "ZENITH_LOCAL_SOURCE_BINARY_FILE=$RUNNER_TEMP/zenith/drv1/app"
               echo "ZENITH_LOCAL_SOURCE_BUILD_DECLARATION_FILE=$RUNNER_TEMP/zenith/drv1/build-declaration.json"
               echo "ZENITH_LOCAL_SOURCE_REGISTRY_IMAGE=$REGISTRY_IMAGE"
-              echo "DRV1_GVISOR_RELEASE=20260928.0"
-              echo "DRV1_GVISOR_SHA256=b7e11d27cbd69370ed7addb6c0d1c33e70e57a153cee57b5fdc5344bf303c7eb"
-              echo "DRV1_GVISOR_ARCHIVE=$RUNNER_TEMP/zenith/drv1/gvisor-aarch64.tar.bz2"
+              # Owner-approved 2026-10-23: runc build runtime for disposable verification on this ephemeral
+              # single-tenant runner (gVisor cannot join the hostUsers:false pod user namespace, run 39885437619).
+              echo "DRV1_RUNTIME=runc"
               echo "DRV1_CALICO_MANIFEST=$RUNNER_TEMP/zenith/drv1/calico.yaml"
               # The 16 GB runner gives the isolated build node room for J6's 4 GiB build limit (prepare.mjs default 640m).
               echo "ZENITH_J2_BUILD_WORKER_MEMORY=3g"
@@ -214,9 +214,6 @@ jobs:
           set -euo pipefail
           umask 077
           cd "$DRV1_PRIVATE"
-          curl --fail --silent --show-error --location --retry 3 --max-time 300 --output gvisor-aarch64.tar.bz2 \
-            "https://github.com/google/gvisor/releases/download/release-${DRV1_GVISOR_RELEASE}/gvisor-aarch64.tar.bz2"
-          printf '%s  %s\n' "$DRV1_GVISOR_SHA256" gvisor-aarch64.tar.bz2 | sha256sum --check --strict
           # drv1-isolation.ts refuses any manifest other than the reviewed upstream bytes.
           curl --fail --silent --show-error --location --retry 3 --max-time 120 --output calico.yaml \
             https://raw.githubusercontent.com/projectcalico/calico/v3.33.0/manifests/calico.yaml
@@ -249,9 +246,9 @@ jobs:
           BUILDER="$builder" PROXY="$proxy" node -e '
             const fs = require("fs");
             const declaration = { registryRepositoryRoot: "localhost:5000/zenith-drv1-build", config: {
-              namespace: "zb-replaced-by-driver", builderImage: process.env.BUILDER, runtimeClass: "zenith-build-gvisor",
+              namespace: "zb-replaced-by-driver", builderImage: process.env.BUILDER, runtimeClass: "zenith-build-runc",
               seccompProfile: "zenith-build.json", appArmorProfile: "zenith-build",
-              nodeIsolation: { tenant: "replaced-by-driver", profileDigest: "897374eb4b9c19774a93cd50f56b07603968e066051bc3c8dc1b8097fe88db6e", systemDaemonSets: ["kube-proxy", "calico-node"] },
+              nodeIsolation: { tenant: "replaced-by-driver", profileDigest: "559c41027d4793561f860cc1ab5aaebd8dab04a2766a26961973ba1f1151de47", systemDaemonSets: ["kube-proxy", "calico-node"] },
               proxy: { namespace: "zp-replaced-by-driver", ip: "10.96.200.10", port: 3128, image: process.env.PROXY,
                 destinations: [{ host: "replaced-by-driver", ip: "172.18.0.250", port: 5000, tls: false }] },
               timeoutSec: 1800 } };

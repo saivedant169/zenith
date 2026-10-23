@@ -142,3 +142,17 @@ Not verified:
 
 Reply "approve DRV-1 declarations", or name changes, for example a different compiler image, Cilium instead of Calico,
 another proxy IP or port, or running on the Mac instead of hosted arm64.
+
+## 2026-10-23 runtime change (owner decision): runc for disposable build verification
+
+The declaration above is superseded in two fields for the `drv1-private-source` lane, which now runs on an ephemeral
+single-tenant GitHub-hosted runner:
+- `runtimeClass`: `zenith-build-runc` (was `zenith-build-gvisor`).
+- `nodeIsolation.profileDigest`: `559c41027d4793561f860cc1ab5aaebd8dab04a2766a26961973ba1f1151de47` (was
+  `897374eb…db6e`), recomputed with `review-profile.ts`'s method; seccomp and AppArmor hashes are unchanged, only the
+  RuntimeClass manifest differs.
+- `DRV1_RUNTIME_MANIFEST`: `deploy/zenith-managed/build/profiles/zenith-build-runc.runtimeclass.json`; no gVisor archive.
+
+All other fields are unchanged. Reasoning, residual risk and the required independent security review are in
+[ISOLATED-BUILD-PROFILES-REVIEW.md](ISOLATED-BUILD-PROFILES-REVIEW.md) ("runc fallback for disposable build
+verification"). No run happens before that review passes.

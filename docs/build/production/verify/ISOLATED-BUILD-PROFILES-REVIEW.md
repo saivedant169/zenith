@@ -67,3 +67,35 @@ Hosted `drv1-private-source` on ubuntu-24.04-arm (kind, containerd, gVisor `rele
   `cannot create gofer process: gofer: error setting namespace of type user and path ".../pinned-namespaces/user": invalid argument`
   (run `39885437619`, source `27fbb5a2`). runsc cannot join the user namespace that containerd pins for the pod, so no build or probe container ever started under gVisor. This answers the "gVisor or runc" question for this release: gVisor and the mandatory outer pod user namespace cannot be combined.
 - Not changed: the RuntimeClass, the profile digest, and the approved declaration. Changing the runtime changes the reviewed profile digest, so the owner must approve it again.
+
+## runc fallback for disposable build verification (owner decision 2026-10-23)
+
+Owner decision: runc is approved for **disposable build verification only**, on dedicated ephemeral single-tenant build
+hosts, because gVisor cannot join the `hostUsers: false` pod user namespace (run `39885437619`). It is not an approval for
+production or shared-tenant build isolation, and tenant runtime keeps gVisor (`zenith-gvisor`, J14) unchanged.
+
+What changes:
+- New RuntimeClass `zenith-build-runc` (`deploy/zenith-managed/build/profiles/zenith-build-runc.runtimeclass.json`):
+  handler `runc` (containerd's stock `io.containerd.runc.v2` in the kind node), node selector
+  `zenith.dev/build-runtime=runc`, no overhead block.
+- Runtime profile digest, recomputed with `review-profile.ts`'s method over seccomp, AppArmor and the runtime manifest:
+  `559c41027d4793561f860cc1ab5aaebd8dab04a2766a26961973ba1f1151de47`. The same method reproduces the approved gVisor
+  digest `897374eb…db6e`, so only the runtime manifest changed.
+- `scripts/release/drivers/drv1-isolation.ts`: `DRV1_RUNTIME=runc|gvisor` (default `gvisor`). runc skips the runsc
+  install, requires kind's runc handler, labels the nodes for the runc class and creates it. Everything else is the same
+  code path.
+- `operated-gate-linux.yml` (`drv1-private-source`): `DRV1_RUNTIME=runc`, declaration `runtimeClass: zenith-build-runc`,
+  `profileDigest: 559c4102…de47`; the gVisor archive download is removed from this lane.
+
+What does not change: rootless BuildKit; `hostUsers: false`; the `zenith-build` seccomp profile and AppArmor profile
+(enforced, loaded into the runner kernel); default-deny NetworkPolicy with the pinned egress proxy as the only route;
+resource limits; no privileged mode or added capabilities; the admission checks; every negative isolation probe. The
+build pod still carries no cloud credentials; its only authority is the run's source and registry access.
+
+Residual risk accepted for this scope: with runc the build shares the host kernel, and the seccomp profile must allow
+mount and user-namespace syscalls for rootless BuildKit. A kernel escape is therefore not contained by a user-space
+kernel. That is why execution is limited to a fresh GitHub-hosted runner VM that exists only for the run, holds no
+control plane, customer workload or unrelated secret, and is destroyed afterwards.
+
+Required before execution: an independent security review of this change (recorded below). Production build isolation
+needs its own demonstrated security acceptance.

@@ -1,7 +1,9 @@
 /**
  * DRV-1 owner-approved isolation for the owned two-node J2 kind cluster (verify/DRV-1-DECLARATIONS.md):
- * Calico as the enforcing CNI, the gVisor runsc handler, the zenith-build-gvisor RuntimeClass and the
- * reviewed seccomp profile on every node. The AppArmor profile is loaded into the host kernel by the caller.
+ * Calico as the enforcing CNI, the build RuntimeClass and the reviewed seccomp profile on every node.
+ * DRV1_RUNTIME=gvisor (default) installs the pinned runsc handler and zenith-build-gvisor; DRV1_RUNTIME=runc uses
+ * containerd's stock runc handler and zenith-build-runc (owner-approved 2026-10-23 for disposable build verification on
+ * ephemeral single-tenant build hosts only). Both keep hostUsers:false, the same seccomp and AppArmor profiles and probes. The AppArmor profile is loaded into the host kernel by the caller.
  * Only the exact recorded zenith-j2 node containers are touched; nothing is installed anywhere else.
  */
 import { createHash } from "node:crypto";
@@ -41,8 +43,11 @@ const run: Run = (command, args, input) => {
 };
 
 export function prepareIsolation(env: NodeJS.ProcessEnv, exec: Run = run): { nodes: string[]; release: string } {
-  const targets = env.DRV1_TARGETS_DIR, archiveFile = env.DRV1_GVISOR_ARCHIVE, sha256 = env.DRV1_GVISOR_SHA256 ?? "", release = env.DRV1_GVISOR_RELEASE ?? "";
-  ensure(targets && path.isAbsolute(targets) && archiveFile && /^[a-f0-9]{64}$/.test(sha256) && /^\d{8}\.\d+$/.test(release) && env.DRV1_CALICO_MANIFEST, "usage");
+  const runtime = env.DRV1_RUNTIME ?? "gvisor";
+  ensure(runtime === "gvisor" || runtime === "runc", "runtime");
+  const gvisor = runtime === "gvisor";
+  const targets = env.DRV1_TARGETS_DIR, archiveFile = env.DRV1_GVISOR_ARCHIVE, sha256 = env.DRV1_GVISOR_SHA256 ?? "", release = gvisor ? env.DRV1_GVISOR_RELEASE ?? "" : "runc";
+  ensure(targets && path.isAbsolute(targets) && env.DRV1_CALICO_MANIFEST && (!gvisor || archiveFile && /^[a-f0-9]{64}$/.test(sha256) && /^\d{8}\.\d+$/.test(release)), "usage");
   const journal = JSON.parse(readFileSync(path.join(targets!, "targets.json"), "utf8"));
   ensure(journal.kind === "zenith-j2" && journal.createdBy === "J2-DEFAULT-JOURNEY" && journal.containerId && journal.buildContainerId, "target-journal");
   const kubectl = (...args: string[]) => exec("kubectl", ["--kubeconfig", path.join(targets!, "observer.json"), "--context", "kind-zenith-j2", ...args]);
@@ -51,27 +56,32 @@ export function prepareIsolation(env: NodeJS.ProcessEnv, exec: Run = run): { nod
     const [node] = JSON.parse(exec("docker", ["inspect", name]));
     ensure(node.Config.Labels?.["io.x-k8s.kind.cluster"] === "zenith-j2" && [journal.containerId, journal.buildContainerId].includes(node.Id), "node-owner");
   }
-  const archive = readFileSync(archiveFile!);
-  ensure(createHash("sha256").update(archive).digest("hex") === sha256, "gvisor-archive-digest");
-  const tar = spawnSync("bzip2", ["-dc"], { input: archive, maxBuffer: 512 * 1024 * 1024 });
+  const archive = gvisor ? readFileSync(archiveFile!) : Buffer.alloc(0);
+  ensure(!gvisor || createHash("sha256").update(archive).digest("hex") === sha256, "gvisor-archive-digest");
+  const tar = gvisor ? spawnSync("bzip2", ["-dc"], { input: archive, maxBuffer: 512 * 1024 * 1024 }) : { error: undefined, status: 0, stdout: Buffer.alloc(0) };
   ensure(!tar.error && tar.status === 0, "gvisor-decompress");
   const dir = `/opt/zenith-gvisor/${sha256}`;
   const calico = pinnedCalico(readFileSync(env.DRV1_CALICO_MANIFEST!, "utf8"));
   for (const name of nodes) {
     const arch = exec("docker", ["exec", name, "uname", "-m"]).trim();
-    validateArchiveMembers(exec("docker", ["exec", "-i", name, ...uncompressedTarArgs(["tar", "-tjf", "-"])], tar.stdout).trim().split("\n"));
-    ensure(exec("docker", ["exec", "-i", name, ...uncompressedTarArgs(["tar", "-tvjf", "-"])], tar.stdout).split("\n").filter(Boolean).every(line => /^[d-]/.test(line)), "gvisor-archive-special-files");
+    if (gvisor) {
+      validateArchiveMembers(exec("docker", ["exec", "-i", name, ...uncompressedTarArgs(["tar", "-tjf", "-"])], tar.stdout).trim().split("\n"));
+      ensure(exec("docker", ["exec", "-i", name, ...uncompressedTarArgs(["tar", "-tvjf", "-"])], tar.stdout).split("\n").filter(Boolean).every(line => /^[d-]/.test(line)), "gvisor-archive-special-files");
+    }
     // Extend kind's own config file (a full `config dump` would rewrite it). The owned source registry needs a
     // certs.d hosts directory, which stock kind does not configure and the isolated kind config may not patch in.
     const original = exec("docker", ["exec", name, "cat", "/etc/containerd/config.toml"]);
     ensure(/^\s*version\s*=\s*2\s*$/m.test(original) && !/\.registry\]|config_path/.test(original), "kind-containerd-config");
-    const config = runtimeConfig(original, dir) + `\n[plugins."io.containerd.grpc.v1.cri".registry]\n  config_path = "/etc/containerd/certs.d"\n`;
+    // runc: kind's own runc handler is used unchanged; only the registry hosts directory is added.
+    const config = (gvisor ? runtimeConfig(original, dir) : original) + `\n[plugins."io.containerd.grpc.v1.cri".registry]\n  config_path = "/etc/containerd/certs.d"\n`;
     exec("docker", ["exec", name, "mkdir", "-p", "/etc/containerd/certs.d"]);
-    exec("docker", ["exec", name, "mkdir", "-p", dir]);
-    exec("docker", ["exec", "-i", name, ...uncompressedTarArgs(["tar", "-xjf", "-", "--no-same-owner", "-C", dir])], tar.stdout);
-    assertRuntimeArchitecture(arch, exec("docker", ["exec", name, "od", "-An", "-t", "u1", "-N", "20", `${dir}/runsc`]));
-    ensure(exec("docker", ["exec", name, `${dir}/runsc`, "--version"]).includes(release), "gvisor-release");
-    exec("docker", ["exec", "-i", name, "tee", `${dir}/runsc.toml`], `binary_name = "${dir}/runsc"\n[runsc_config]\n  platform = "systrap"\n  systemd-cgroup = "true"\n`);
+    if (gvisor) {
+      exec("docker", ["exec", name, "mkdir", "-p", dir]);
+      exec("docker", ["exec", "-i", name, ...uncompressedTarArgs(["tar", "-xjf", "-", "--no-same-owner", "-C", dir])], tar.stdout);
+      assertRuntimeArchitecture(arch, exec("docker", ["exec", name, "od", "-An", "-t", "u1", "-N", "20", `${dir}/runsc`]));
+      ensure(exec("docker", ["exec", name, `${dir}/runsc`, "--version"]).includes(release), "gvisor-release");
+      exec("docker", ["exec", "-i", name, "tee", `${dir}/runsc.toml`], `binary_name = "${dir}/runsc"\n[runsc_config]\n  platform = "systrap"\n  systemd-cgroup = "true"\n`);
+    } else ensure(/runtimes\.runc\]/.test(original), "kind-runc-handler");
     exec("docker", ["exec", "-i", name, "tee", "/etc/containerd/config.toml"], config);
     // kind nodes do not mount securityfs, so kubelet and containerd see AppArmor as disabled and refuse the Localhost profile.
     // Both cache that host check at start; mount first, then restart both.
@@ -88,12 +98,12 @@ export function prepareIsolation(env: NodeJS.ProcessEnv, exec: Run = run): { nod
   writeFileSync(manifest, calico, { mode: 0o600 });
   kubectl("apply", "-f", manifest);
   kubectl("wait", "--for=condition=Ready", "node", "--all", "--timeout=300s");
-  for (const name of nodes) kubectl("label", "node", name, "zenith.dev/runtime=gvisor");
-  kubectl("create", "-f", path.join(PROFILES, "zenith-build-gvisor.runtimeclass.json"));
+  for (const name of nodes) kubectl("label", "node", name, gvisor ? "zenith.dev/runtime=gvisor" : "zenith.dev/build-runtime=runc");
+  kubectl("create", "-f", path.join(PROFILES, gvisor ? "zenith-build-gvisor.runtimeclass.json" : "zenith-build-runc.runtimeclass.json"));
   return { nodes, release };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]).endsWith("drv1-isolation.ts")) {
   const result = prepareIsolation(process.env);
-  process.stdout.write(JSON.stringify({ prepared: result.nodes.length, gvisorRelease: result.release }) + "\n");
+  process.stdout.write(JSON.stringify({ prepared: result.nodes.length, runtime: process.env.DRV1_RUNTIME ?? "gvisor", gvisorRelease: result.release }) + "\n");
 }

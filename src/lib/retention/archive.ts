@@ -124,7 +124,7 @@ export async function archiveBatch(db: Sql, workspaceId: string, cls: RetentionC
     return tx.query<{ row: Record<string, unknown>; id: string; ts: string; held: boolean }>(
       `select to_jsonb(l) as row, l.id::text as id, ${s.time}::text as ts, ${s.held} as held from ${s.from}
         where l.workspace_id = $1 and ${s.cold} and ${s.time} < $2::timestamptz - make_interval(days => $3::int)
-          and ($4::timestamptz is null or (${s.time}, l.id) > ($4::timestamptz, $5::${s.idType}))
+          and ($4::text::timestamptz is null or (${s.time}, l.id) > ($4::text::timestamptz, $5::${s.idType}))
         order by ${s.time}, l.id limit $6::int`,
       [workspaceId, now.toISOString(), archiveAfterDays, wm?.ts ?? null, wm?.id ?? null, limit]);
   });
@@ -185,7 +185,7 @@ export async function pruneArchive(db: Sql, archive: ArchiveRecord, pruneAfterDa
     return gone.length;
   });
   const left = await db.query<{ n: number }>(
-    `select count(*)::int as n from ${spec.table} l where l.workspace_id = $1 and l.id in (select x::${spec.idType} from jsonb_array_elements_text($2::jsonb) x)`,
+    `select count(*)::int as n from ${spec.table} l where l.workspace_id = $1 and l.id in (select x::${spec.idType} from jsonb_array_elements_text($2::text::jsonb) x)`,
     [archive.workspaceId, JSON.stringify(ids)]);
   const remaining = Number(left[0]?.n ?? 0);
   await markPruned(db, archive.id, archive.workspaceId, deleted, remaining, recheckMs);

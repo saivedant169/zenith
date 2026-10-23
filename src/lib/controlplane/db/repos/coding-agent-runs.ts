@@ -69,7 +69,7 @@ export interface CreateRunInput {
 export async function createRun(sql: Sql, input: CreateRunInput): Promise<CodingAgentRunRow> {
   const rows = await sql.query<Row>(
     `insert into platform.coding_agent_runs (id, workspace_id, project_id, environment_id, created_by, status, model, task, source, limits, usage, checkpoint, workflow_id)
-     values ($1,$2,$3,$4,$5,'running',$6,$7,$8::jsonb,$9::jsonb,$10::jsonb,$11::jsonb,$12) returning ${COLUMNS}`,
+     values ($1,$2,$3,$4,$5,'running',$6,$7,$8::text::jsonb,$9::text::jsonb,$10::text::jsonb,$11::text::jsonb,$12) returning ${COLUMNS}`,
     [requireText("id", input.id), requireText("workspaceId", input.workspaceId), input.projectId ?? null, input.environmentId ?? null, requireText("createdBy", input.createdBy),
       requireText("model", input.model), input.task, json(input.source), json(input.limits), json(input.usage), json(input.checkpoint), requireText("workflowId", input.workflowId)]
   );
@@ -104,8 +104,8 @@ export interface SaveRunInput {
 export async function saveRun(sql: Sql, input: SaveRunInput): Promise<CodingAgentRunRow> {
   const ws = requireText("workspaceId", input.workspaceId);
   const rows = await sql.query<Row>(
-    `update platform.coding_agent_runs set status = $4, stop_reason = $5, limits = $6::jsonb, usage = $7::jsonb, checkpoint = $8::jsonb,
-       result = coalesce($9::jsonb, result), proposal_operation_id = coalesce($10, proposal_operation_id), version = version + 1, updated_at = clock_timestamp()
+    `update platform.coding_agent_runs set status = $4, stop_reason = $5, limits = $6::text::jsonb, usage = $7::text::jsonb, checkpoint = $8::text::jsonb,
+       result = coalesce($9::text::jsonb, result), proposal_operation_id = coalesce($10, proposal_operation_id), version = version + 1, updated_at = clock_timestamp()
      where workspace_id = $1 and id = $2 and version = $3 and status = 'running' returning ${COLUMNS}`,
     [ws, requireText("id", input.id), input.expectedVersion, input.status, input.stopReason === undefined ? null : json(input.stopReason), json(input.limits), json(input.usage), json(input.checkpoint),
       input.result === undefined ? null : json(input.result), input.proposalOperationId ?? null]
@@ -120,7 +120,7 @@ export async function saveRun(sql: Sql, input: SaveRunInput): Promise<CodingAgen
 export async function attachOutcome(sql: Sql, input: { workspaceId: string; id: string; result?: unknown; proposalOperationId?: string }): Promise<CodingAgentRunRow> {
   const ws = requireText("workspaceId", input.workspaceId);
   const rows = await sql.query<Row>(
-    `update platform.coding_agent_runs set result = coalesce(result, $3::jsonb), proposal_operation_id = coalesce(proposal_operation_id, $4), version = version + 1, updated_at = clock_timestamp()
+    `update platform.coding_agent_runs set result = coalesce(result, $3::text::jsonb), proposal_operation_id = coalesce(proposal_operation_id, $4), version = version + 1, updated_at = clock_timestamp()
      where workspace_id = $1 and id = $2 and status <> 'running' returning ${COLUMNS}`,
     [ws, requireText("id", input.id), input.result === undefined ? null : json(input.result), input.proposalOperationId ?? null]
   );
@@ -132,7 +132,7 @@ export async function attachOutcome(sql: Sql, input: { workspaceId: string; id: 
 export async function claimResume(sql: Sql, input: { workspaceId: string; id: string; limits: unknown; workflowId: string }): Promise<CodingAgentRunRow> {
   const ws = requireText("workspaceId", input.workspaceId);
   const rows = await sql.query<Row>(
-    `update platform.coding_agent_runs set status = 'running', stop_reason = null, limits = $3::jsonb, workflow_id = $4, version = version + 1, updated_at = clock_timestamp()
+    `update platform.coding_agent_runs set status = 'running', stop_reason = null, limits = $3::text::jsonb, workflow_id = $4, version = version + 1, updated_at = clock_timestamp()
      where workspace_id = $1 and id = $2 and (status in ('budget_exhausted','failed') or (status = 'running' and updated_at < clock_timestamp() - interval '10 minutes')) returning ${COLUMNS}`,
     [ws, requireText("id", input.id), json(input.limits), requireText("workflowId", input.workflowId)]
   );

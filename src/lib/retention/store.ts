@@ -79,7 +79,7 @@ export function pruneSql(cls: RetentionClass): string {
   const join = spec.parent ? `p.workspace_id = l.workspace_id and p.id = l.${spec.parent.fk} and ` : "";
   return `delete from ${spec.table} l${using}
     where ${join}l.workspace_id = $1
-      and l.id in (select x::${s.idType} from jsonb_array_elements_text($2::jsonb) x)
+      and l.id in (select x::${s.idType} from jsonb_array_elements_text($2::text::jsonb) x)
       and ${s.cold} and ${s.time} < $3::timestamptz - make_interval(days => $4::int)
       and ${s.notLatest} and not ${s.held}
     returning l.id::text as id`;
@@ -233,7 +233,7 @@ export async function recordArchive(sql: Sql, a: NewArchive): Promise<ArchiveRec
   assertPrunableClass(a.dataClass);
   const rows = await sql.query<ArchiveRow>(
     `insert into platform.retention_archives (id, workspace_id, data_class, object_key, rows_digest, row_count, first_row_id, last_row_id, last_recorded_at, key_id, policy_digest, destination_id, destination_label, next_prune_check_at)
-     values ($1, $2, $3, $4, $5, $6::int, $7, $8, $9::timestamptz, $10, $11, $12, $13, clock_timestamp())
+     values ($1, $2, $3, $4, $5, $6::int, $7, $8, $9::text::timestamptz, $10, $11, $12, $13, clock_timestamp())
      on conflict (workspace_id, data_class, object_key) do update set key_id = platform.retention_archives.key_id
      returning ${ARCHIVE_COLUMNS}`,
     [`arc_${randomUUID()}`, a.workspaceId, a.dataClass, a.objectKey, a.rowsDigest, a.rowCount, a.firstRowId, a.lastRowId, a.lastRecordedAt, a.keyId, a.policyDigest, a.destinationId ?? null, a.destinationLabel ?? "operator storage"]);
@@ -333,7 +333,7 @@ export async function previewRetention(sql: Sql, policy: RetentionPolicy, now: D
       const w = resolveWindow(policy, ws, cls);
       const wm = await archiveWatermark(sql, ws, cls);
       // $1 workspace, $2 now, $3 archive days, $4 prune days, $5/$6 archive watermark (null before the first archive)
-      const afterWm = `($5::timestamptz is null or (${s.time}, l.id) > ($5::timestamptz, $6::${s.idType}))`;
+      const afterWm = `($5::text::timestamptz is null or (${s.time}, l.id) > ($5::text::timestamptz, $6::${s.idType}))`;
       const oldFor = (n: number) => `${s.time} < $2::timestamptz - make_interval(days => $${n}::int)`;
       const pruneBase = `$4::int is not null and ${s.cold} and ${oldFor(4)} and ${s.notLatest} and not ${s.held}`;
       const rows = await sql.query<Record<string, number>>(

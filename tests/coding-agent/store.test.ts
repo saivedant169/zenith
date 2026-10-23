@@ -44,6 +44,9 @@ describe.each(LANES)("coding_agent_runs on $name", (lane) => {
     const row = await repos.createRun(base(id, ws));
     expect(row).toMatchObject({ id, workspaceId: ws, status: "running", version: 1, projectId: "proj_1" });
     expect((await repos.getRun(ws, id))?.checkpoint).toEqual({ version: 1, messages: [] });
+    // Stored as jsonb objects, not JSON-encoded strings: postgres.js types a bare $n::jsonb parameter and would encode a
+    // JSON.stringify'd value a second time (PGlite does not), which only a typed read like this catches.
+    expect(await sql.query("select jsonb_typeof(limits) as l, jsonb_typeof(checkpoint) as c from platform.coding_agent_runs where id = $1", [id])).toEqual([{ l: "object", c: "object" }]);
     expect(await repos.getRun(other, id)).toBeNull();
     expect((await repos.listRuns(ws, 100)).map((r) => r.id)).toContain(id);
     expect((await repos.listRuns(other, 100)).map((r) => r.id)).not.toContain(id);

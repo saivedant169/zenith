@@ -103,11 +103,11 @@ export async function retentionPass(db: Sql, options: RetentionOptions = {}): Pr
     const candidates: { workspace_id: string; first_ts: string }[] = await db.query<{ workspace_id: string; first_ts: string }>(
       `select l.workspace_id, min(${s.time})::text as first_ts from ${s.from}
         where ${s.cold}
-          and ${s.time} < $1::timestamptz - make_interval(days => case when jsonb_exists($3::jsonb, l.workspace_id) then ($3::jsonb ->> l.workspace_id)::int else $2::int end)
+          and ${s.time} < $1::timestamptz - make_interval(days => case when jsonb_exists($3::text::jsonb, l.workspace_id) then ($3::text::jsonb ->> l.workspace_id)::int else $2::int end)
           and not exists (select 1 from platform.retention_archives a where a.workspace_id = l.workspace_id and a.data_class = '${cls}'
                            and (a.last_recorded_at, a.last_row_id::${s.idType}) >= (${s.time}, l.id))
         group by l.workspace_id
-        having ($5::timestamptz is null or (min(${s.time}), l.workspace_id) > ($5::timestamptz, $6::text))
+        having ($5::text::timestamptz is null or (min(${s.time}), l.workspace_id) > ($5::text::timestamptz, $6::text))
         order by min(${s.time}), l.workspace_id limit $4::int`,
       [now.toISOString(), defaultDays, JSON.stringify(overrides), pageSize, cursor?.ts ?? null, cursor?.ws ?? null]);
     for (const { workspace_id: ws } of candidates) {

@@ -7,8 +7,9 @@
       "aws": 10,
       "gcp": 10,
       "azure": 15,
-      "oci": 0,
+      "oci": 10,
       "kubernetes": 5,
+      "supabase": 5,
       "control_plane": 0,
       "public": 0
     },
@@ -20,6 +21,43 @@
     "namePrefix": "zenith-",
     "requiredTag": "zenith:live-run",
     "ttlTag": "zenith:ttl-expires"
+  },
+  "sandboxes": {
+    "aws": {
+      "accountId": null,
+      "regions": [
+        "us-east-1"
+      ]
+    },
+    "gcp": {
+      "projectId": null,
+      "regions": [
+        "us-central1"
+      ]
+    },
+    "azure": {
+      "subscriptionId": null,
+      "tenantId": null,
+      "regions": [
+        "eastus"
+      ]
+    },
+    "oci": {
+      "tenancyId": null,
+      "compartmentId": null,
+      "regions": [
+        "us-ashburn-1"
+      ]
+    },
+    "supabase": {
+      "projectRef": null,
+      "region": "us-east-1"
+    }
+  },
+  "allowances": {
+    "stopAtFraction": 0.8,
+    "anthropicUsd": 20,
+    "sharedLedger": "docs/build/production/budget-ledger.json"
   },
   "harnesses": {
     "aws-live": {

@@ -36,12 +36,13 @@ export const FORBIDDEN_ACTIONS = [
 ] as const;
 export type ForbiddenAction = (typeof FORBIDDEN_ACTIONS)[number];
 
-export const PROVIDERS = ["aws", "gcp", "azure", "oci", "kubernetes", "control_plane", "public"] as const;
+export const PROVIDERS = ["aws", "gcp", "azure", "oci", "kubernetes", "supabase", "control_plane", "public"] as const;
 export type ScopeProvider = (typeof PROVIDERS)[number];
 
 export type ScopeErrorCode =
   | "manifest_unreadable" | "manifest_invalid" | "not_approved" | "approval_stale" | "approval_expired" | "harness_unknown" | "provider_not_granted"
-  | "action_not_granted" | "action_forbidden" | "not_disposable" | "run_id_invalid" | "budget_unknown" | "budget_exceeded" | "ttl_exceeded";
+  | "action_not_granted" | "action_forbidden" | "not_disposable" | "run_id_invalid" | "budget_unknown" | "budget_exceeded" | "ttl_exceeded"
+  | "sandbox_unconfirmed";
 
 export class ScopeError extends Error {
   readonly code: ScopeErrorCode;
@@ -76,6 +77,25 @@ const Content = z.object({
     namePrefix: z.string().regex(/^[a-z][a-z0-9-]{1,30}$/),
     requiredTag: z.string().min(3).max(100),
     ttlTag: z.string().min(3).max(100),
+  }).strict(),
+  /**
+   * The exact sandbox each cloud provider may touch, confirmed by the owner. A provider whose identity is null is
+   * refused for every action: an approved budget never widens to "whatever account the credentials happen to reach".
+   */
+  sandboxes: z.object({
+    aws: z.object({ accountId: z.string().regex(/^\d{12}$/).nullable(), regions: z.array(z.string().min(3).max(40)).min(1) }).strict(),
+    gcp: z.object({ projectId: z.string().regex(/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/).nullable(), regions: z.array(z.string().min(3).max(40)).min(1) }).strict(),
+    azure: z.object({ subscriptionId: z.string().uuid().nullable(), tenantId: z.string().uuid().nullable(), regions: z.array(z.string().min(3).max(40)).min(1) }).strict(),
+    oci: z.object({ tenancyId: z.string().regex(/^ocid1\.tenancy\./).nullable(), compartmentId: z.string().regex(/^ocid1\.compartment\./).nullable(), regions: z.array(z.string().min(3).max(40)).min(1) }).strict(),
+    supabase: z.object({ projectRef: z.string().regex(/^[a-z0-9]{20}$/).nullable(), region: z.string().min(3).max(40) }).strict(),
+  }).strict(),
+  /** Allowances across runs and agents (the shared spend ledger), separate from the per-run budgets above. */
+  allowances: z.object({
+    /** stop launching new chargeable work at this fraction of an allowance, then reconcile */
+    stopAtFraction: z.number().gt(0).max(1),
+    /** model-evaluation calls, accounted apart from infrastructure (`budgets.totalUsd`) */
+    anthropicUsd: Money,
+    sharedLedger: z.string().regex(/^[A-Za-z0-9_./-]+\.json$/),
   }).strict(),
   harnesses: z.record(z.string().regex(/^[a-z0-9][a-z0-9-]{1,60}$/), HarnessGrant),
   forbiddenActions: z.array(z.string()).min(1),
@@ -151,9 +171,10 @@ export interface ScopeRequest {
 
 export interface SpendEntry { provider: ScopeProvider; usd: number; label: string }
 
-/** Per-run spend record shared by every step of one run. */
+/** Per-run spend record shared by every step of one run; `priorUsd` is what earlier runs already committed (shared ledger). */
 export class ScopeLedger {
   readonly entries: SpendEntry[] = [];
+  constructor(readonly priorUsd = 0) {}
   total(provider?: ScopeProvider): number {
     return this.entries.filter((e) => provider === undefined || e.provider === provider).reduce((sum, e) => sum + e.usd, 0);
   }
@@ -198,6 +219,21 @@ export class Scope {
     if (!grant) throw new ScopeError("harness_unknown", `Harness "${harness}" has no grant in the scope manifest.`);
     if (!grant.providers.includes(provider)) throw new ScopeError("provider_not_granted", `Harness "${harness}" is not granted provider ${provider}.`);
     if (!(grant.actions as readonly string[]).includes(action)) throw new ScopeError("action_not_granted", `Harness "${harness}" is not granted "${action}".`);
+    this.#assertSandbox(provider);
+  }
+
+  /** The owner-confirmed sandbox identity a harness must match before touching `provider`. */
+  sandbox(provider: ScopeProvider): Record<string, unknown> | undefined {
+    return (this.manifest.sandboxes as Record<string, Record<string, unknown>>)[provider];
+  }
+
+  #assertSandbox(provider: ScopeProvider): void {
+    const sandbox = this.sandbox(provider);
+    if (!sandbox) return; // kubernetes (disposable owned cluster), control_plane and public reads carry no cloud identity
+    const identity = Object.entries(sandbox).filter(([key]) => key !== "regions" && key !== "region");
+    if (identity.some(([, value]) => value === null)) {
+      throw new ScopeError("sandbox_unconfirmed", `The ${provider} sandbox identity is not confirmed in the scope manifest; no ${provider} action is authorized.`);
+    }
   }
 
   /**
@@ -213,6 +249,7 @@ export class Scope {
     if (!grant) throw new ScopeError("harness_unknown", `Harness "${request.harness}" has no grant in the scope manifest.`);
     if (!grant.providers.includes(request.provider)) throw new ScopeError("provider_not_granted", `Harness "${request.harness}" is not granted provider ${request.provider}.`);
     if (!(grant.actions as readonly string[]).includes(request.action)) throw new ScopeError("action_not_granted", `Harness "${request.harness}" is not granted "${request.action}".`);
+    this.#assertSandbox(request.provider);
     if (request.action === "read") return;
 
     const runIdPattern = new RegExp(this.manifest.disposable.runIdPattern);
@@ -242,9 +279,42 @@ export class Scope {
       throw new ScopeError("budget_exceeded", `This step ($${usd.toFixed(2)}) plus the run so far ($${spent.toFixed(2)}) exceeds the approved per-run budget for "${request.harness}" ($${Math.min(grant.maxRunUsd, budgets.perRunUsd).toFixed(2)}). Estimates are list prices, not invoices.`);
     }
     if (providerCap === undefined || spentProvider + usd > providerCap) throw new ScopeError("budget_exceeded", `The run would exceed the approved ${request.provider} budget ($${(providerCap ?? 0).toFixed(2)} per run).`);
+    const prior = ledger?.priorUsd ?? 0, stopAt = budgets.totalUsd * this.manifest.allowances.stopAtFraction;
     if (spent + usd > budgets.totalUsd) throw new ScopeError("budget_exceeded", `The run would exceed the approved total budget ($${budgets.totalUsd.toFixed(2)}).`);
+    if (prior + spent + usd > stopAt) throw new ScopeError("budget_exceeded", `Earlier runs ($${prior.toFixed(2)}) plus this run would pass ${Math.round(this.manifest.allowances.stopAtFraction * 100)}% of the infrastructure allowance ($${stopAt.toFixed(2)}); stop and reconcile actual costs first.`);
     ledger?.entries.push({ provider: request.provider, usd, label: request.resourceName ?? request.action });
   }
+}
+
+const SharedEntry = z.object({
+  runId: z.string().min(4).max(80), harness: z.string().max(80), kind: z.enum(["infrastructure", "anthropic"]),
+  recordedAt: z.string(), estimatedUsd: Money, actualUsd: Money.nullable(), activeForecastUsd: Money,
+  status: z.enum(["running", "torn_down", "reconciled"]),
+}).strict();
+const SharedLedgerFile = z.object({ schema: z.literal(1), entries: z.array(SharedEntry) }).strict();
+
+/**
+ * What earlier runs committed against an allowance: a reconciled actual where one exists, otherwise the estimate,
+ * plus whatever resources are still forecast to accrue. Unreadable ledger = refuse (never assume nothing was spent).
+ */
+export function committedSpend(file: string, kind: "infrastructure" | "anthropic"): number {
+  let parsed;
+  try { parsed = SharedLedgerFile.parse(JSON.parse(readFileSync(file, "utf8"))); } catch { throw new ScopeError("budget_unknown", "The shared spend ledger cannot be read; no chargeable work starts until it can."); }
+  return parsed.entries.filter((e) => e.kind === kind).reduce((sum, e) => sum + Math.max(e.actualUsd ?? 0, e.status === "reconciled" ? 0 : e.estimatedUsd) + e.activeForecastUsd, 0);
+}
+
+/** A per-run ledger seeded with the shared committed infrastructure spend. */
+export function runLedger(scope: Scope, root: string = process.cwd()): ScopeLedger {
+  return new ScopeLedger(committedSpend(path.resolve(root, scope.manifest.allowances.sharedLedger), "infrastructure"));
+}
+
+/** Model-evaluation spend (MACH-06) against its own allowance and the same stop fraction. */
+export function authorizeModelSpend(scope: Scope, usd: number, root: string = process.cwd()): void {
+  scope.assertApproved();
+  if (!Number.isFinite(usd) || usd < 0) throw new ScopeError("budget_unknown", "A model evaluation needs a usable cost estimate.");
+  const { anthropicUsd, stopAtFraction, sharedLedger } = scope.manifest.allowances;
+  const prior = committedSpend(path.resolve(root, sharedLedger), "anthropic");
+  if (prior + usd > anthropicUsd * stopAtFraction) throw new ScopeError("budget_exceeded", `Model evaluations would pass ${Math.round(stopAtFraction * 100)}% of the $${anthropicUsd.toFixed(2)} allowance; stop and reconcile.`);
 }
 
 export function loadScope(file: string = defaultManifestPath(), now?: () => Date): Scope {

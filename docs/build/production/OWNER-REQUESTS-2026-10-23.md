@@ -1,34 +1,64 @@
-# Owner requests, 2026-10-23
+# Owner requests, 2026-10-23 (revised after the owner's bounded authorization)
 
-Everything here needs a decision, an account, money or signoff that only the owner can give.
-All work that needs none of these continues without waiting. Status: 32 of 78 requirements verified.
+Status: 32 of 78 requirements verified. Work that needs nothing below continues without waiting.
 
-## Decisions (no account needed)
+## Decisions recorded (owner, 2026-10-23)
 
-| # | Decision | Blocks | Options and recommendation |
-|---|---|---|---|
-| 1 | Isolated build runtime. gVisor `release-20260928.0` cannot join the pod user namespace that `hostUsers: false` requires (hosted run `39885437619`; `verify/ISOLATED-BUILD-PROFILES-REVIEW.md`). | DRV-1 private source, LIFE-09, LIFE-10 (source-to-readback), wave6-kind gate (LIFE-07/08, part of LIFE-03), CI-08 and REL-01 evidence | **Recommended:** the reviewed runc fallback with `hostUsers: false`, the same seccomp and AppArmor profiles and the user-namespace probe; re-derive the profile digest. Alternative: keep gVisor and drop `hostUsers: false` for that class (larger change to the reviewed model). |
-| 2 | PROD-PKG-06 scope. Acceptance names hosted Supabase TLS, pooler, authorization and recovery; required levels are local only. | PKG-06 | Narrow to local PostgreSQL contracts, or keep hosted Supabase in scope (needs a hosted project, item 9). |
-| 3 | PROD-LIFE-01 scope. Acceptance covers every supported provider and customer runner form; only Kubernetes is proven at engine level. | LIFE-01 | Narrow to Kubernetes, or prove AWS/GCP/Azure/OCI lifecycle with cloud accounts (item 9). |
-| 4 | PROD-MACH-05 scope (Kubernetes runner transport does not exist). | MACH-05 | Build a Kubernetes runner transport, or accept a real AWS/OCI runner. |
-| 5 | OPS-01 SLO targets, OPS-07 retention defaults, MAN-07 pricing. | OPS-01, OPS-07, MAN-07 | Business values only the owner can set. |
-| 6 | Second Docker cleanup pass (~20 GB: builder `zenith-newmac-build`, `zenith-mach02dbg`, stopped `supabase_db_zenith-local-*`, digest-only rust image, labelled volumes). | Disk headroom only | Optional. |
+| Area | Decision | Where it is enforced or recorded |
+|---|---|---|
+| Isolated builds | runc fallback approved for **disposable build verification only**, on dedicated ephemeral single-tenant build hosts. Keeps rootless BuildKit, `hostUsers: false`, enforced seccomp/AppArmor, restricted egress, resource limits and every negative isolation probe. No privileged mode, no cloud-admin credentials in builds. gVisor stays where supported (tenant runtime). Not a production or shared-tenant isolation approval. Profile digest must be re-derived and independently security-reviewed before execution. | `deploy/zenith-managed/build/profiles/zenith-build-runc.runtimeclass.json`, `verify/ISOLATED-BUILD-PROFILES-REVIEW.md` |
+| PKG-06 | Keep hosted Supabase (TLS, pooler, authorization, recovery) in scope, on a disposable hosted project. | ledger PROD-PKG-06 |
+| LIFE-01 | Keep AWS, GCP, Azure, OCI and Kubernetes. Commercial regions first; sovereign variants reported as untested. | ledger PROD-LIFE-01 |
+| MACH-05 | Existing AWS customer-side runner first, then OCI. No Kubernetes runner transport: it stays explicitly unsupported/deferred. Unmet promised runner coverage stays open. | ledger PROD-MACH-05 |
+| Budget | $100 aggregate infrastructure allowance (four clouds plus disposable Supabase), at most $30 estimated per run across all providers, separate $20 for Anthropic evaluation calls. Stop launching chargeable work at 80% of either allowance and reconcile. Run tags, 4-hour default TTL, cleanup on failure, independent deletion readback. No GPUs, commitments, recurring subscriptions, real customer charges or production mutations. Longer telemetry/soak runs need a separately priced reservation. | `permissions.json` (`budgets`, `allowances`, `sandboxes`), shared ledger `budget-ledger.json`, `scripts/release/scope.ts` |
+| Business baseline | 2026-10-13 decisions reconfirmed (DEC-RETENTION, DEC-BUSINESS in `REQUIREMENTS.md`): 99.9% control plane and separately measured 99.9% managed runtime (engineering targets, not SLAs); API p95 < 500 ms; 95% dispatch within 30 s after approval; RPO 15 min, RTO 4 h for covered data; logs 30 days; sensitive payloads deleted within 72 h after completion subject to legal holds; audit at least one year, never auto-deleted; Explore free, Builder $29 minimum, Team $199 minimum, Enterprise by contract, max(minimum, $0.015 x managed-resource-hours). Stripe stays test mode; payment activation, terms, tax and Enterprise contracts remain separate decisions. Deletion verified on disposable data only; never enabled on existing installations because of this policy. | PROD-OPS-01, PROD-OPS-07, PROD-MAN-06/07 |
 
-## Credentials and accounts
+The permission manifest is **not approved yet**. Every cloud sandbox identity is `null`, and the scope refuses any action on a provider whose identity is unconfirmed (`sandbox_unconfirmed`). Approval is done by you, in a terminal, after the identities are filled in (step 8 below).
 
-| # | Need | Blocks | Notes |
-|---|---|---|---|
-| 7 | GCP Cloud Billing Catalog API key (free; a Google Cloud project, no billing) as a file for `ZENITH_LIVE_GCP_CATALOG_API_KEY_FILE`. | COST-01, COST-02 | AWS/Azure/OCI refresh already runs (dry run `evidence/PROD-COST-01/2026-10-23-live-refresh-dry-run`). Adoption waits for GCP so pinned figures change once. |
-| 8 | Anthropic API key for the real coding-agent evaluations. | MACH-06 | Scripted harness is a model, not engine proof. |
-| 9 | Sandbox cloud accounts with budgets: AWS, GCP, Azure (plus sovereign if LIFE-04 stays in scope), OCI tenancy; hosted Supabase project if item 2 keeps it. | LIFE-01/04/05/06 and every live_sandbox/operational_rehearsal requirement below | Trust files now take the fork repository as input (`deploy/live-sandbox/aws/main.tf` `github_repository`, OCI example placeholders). Steps: `docs/build/production/LIVE-ACCEPTANCE.md`. |
-| 10 | Supervised Claude Code and Codex CLI sessions with the owner's logins. | UX-02 | Interactive; the owner drives, the agent records. |
+## One-time secure setup (owner, on the Mac mini)
 
-## Requirements that need live sandbox or operational rehearsal
+Nothing here goes in chat, logs or command arguments. Secret files go in `~/.config/zenith-secrets/` (directory 0700, files 0600). Paste with `pbpaste > file` so values never reach shell history.
 
-MIX-01..07, MAN-01..07, OPS-01..09, REL-01..04 (27), plus LIFE-01, LIFE-04, LIFE-05, LIFE-06 by acceptance wording.
-Signoff (REL-03) stays with the owner after evidence exists.
+```bash
+umask 077; mkdir -p ~/.config/zenith-secrets
+```
 
-## Not blocked (in progress here)
+1. **AWS** (short-lived SSO session). Install the AWS CLI v2, then sign in to the sandbox account only:
+   `aws configure sso --profile zenith-sandbox` and `aws sso login --profile zenith-sandbox`.
+   I then read the account ID with `sts get-caller-identity`, plan `deploy/live-sandbox/aws` (GitHub OIDC trust for
+   `repo:saivedant169/zenith:environment:live-sandbox`, no access keys) and show you the plan before applying.
+2. **GCP** (your user account). Install the Google Cloud CLI, then `gcloud auth login` and
+   `gcloud config set project <sandbox project>`. I then enable `cloudbilling.googleapis.com`, create one API key
+   restricted to that API, and write it straight to `~/.config/zenith-secrets/gcp-catalog.key` without printing it
+   (`ZENITH_LIVE_GCP_CATALOG_API_KEY_FILE`). Workload identity federation for live runs follows from
+   `deploy/live-sandbox/gcp`, again shown as a plan first.
+3. **Azure.** Install the Azure CLI, `az login`, `az account set --subscription <sandbox subscription>`.
+   OIDC federation from `deploy/live-sandbox/azure` (no client secret) is planned and shown first.
+4. **OCI** (session token). Install the OCI CLI, then
+   `oci session authenticate --profile-name zenith-sandbox --region us-ashburn-1`, and tell me the sandbox
+   compartment name.
+5. **Anthropic** (MACH-06). Create an API key in the Anthropic Console, ideally in a workspace with a spend limit at or
+   below $20, then `pbpaste > ~/.config/zenith-secrets/anthropic.key`.
+6. **Disposable hosted Supabase** (PKG-06). Create a new project in your Supabase organization used only for this test
+   (any charge counts against the $100). Put its values in `~/.config/zenith-secrets/supabase-pkg06.env`:
+   `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL` (transaction pooler, port 6543,
+   `sslmode=verify-full`), `SUPABASE_PROJECT_REF`.
+7. Tell me "setup done" and the profile names if you changed them. I read only identifiers (account, project,
+   subscription, tenancy and compartment IDs, regions) and post them for your confirmation before any mutation.
+8. After you confirm, I write them into `permissions.json`; you approve that exact content in a terminal:
+   `npx tsx scripts/release/permissions-cli.ts approve --by "<your name>" --days 30`
+   (it shows the digest and asks you to type its first 12 characters).
 
-UX-01 (all hosted lanes green; operated plugin-platform case being built), COST-03
-(needs a usage meter and seven days of real telemetry), LIFE-11 (adopted-object teardown built and kind-gated; tenant backup, MinIO arm64 runtime, MySQL DNS/TLS open), PKG-06 local half.
+Later, scheduled separately: **UX-02 supervised session.** You sign in to Claude Code and Codex through their official
+clients (`claude mcp login`, `codex mcp login`); I drive the Zenith connection, proposal, approval, deployment,
+observation, revocation and reconnection paths and record real-client evidence apart from MCP test-client evidence.
+
+## Still open after setup
+
+- Static secrets that remain by design: the GCP catalog key, the Anthropic key, the Supabase service-role key and DB
+  URL, and the `za_` API token the live harnesses use (`scripts/acceptance/live/config.ts`). Everything else uses
+  SSO sessions, OIDC/WIF federation or session tokens.
+- MIX-01..07, MAN-01..07, OPS-01..09, REL-01..04 need live sandbox or operational rehearsal runs, which start with
+  low-cost identity and connectivity smoke tests once the manifest is approved.
+- Signoff (REL-03) stays with you after evidence exists.
+- Optional: second Docker cleanup pass (~20 GB of leftovers from earlier runs).

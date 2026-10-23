@@ -7,7 +7,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { runPermissionsCli } from "../../scripts/release/permissions-cli";
-import { FORBIDDEN_ACTIONS, Scope, ScopeError, ScopeLedger, contentDigest, loadManifestFile, parseManifest, requireScope, scopeSkipReason, type ScopeProvider, type ScopeRequest } from "../../scripts/release/scope";
+import { FORBIDDEN_ACTIONS, Scope, ScopeError, ScopeLedger, authorizeModelSpend, committedSpend, contentDigest, loadManifestFile, parseManifest, requireScope, runLedger, scopeSkipReason, type ScopeProvider, type ScopeRequest } from "../../scripts/release/scope";
 import { NOW, RUN, approvedManifest, approvedScope, shippedManifestPath, shippedRaw } from "./_support";
 
 const code = (fn: () => unknown): string | undefined => {
@@ -203,5 +203,48 @@ describe("permissions-cli", () => {
     expect(await runPermissionsCli(["approve"], s.env, s.io, true)).toBe(2);
     expect(await runPermissionsCli(["approve", "--by", "A", "--days", "400"], s.env, s.io, true)).toBe(2);
     expect(await runPermissionsCli(["bogus"], s.env, s.io)).toBe(2);
+  });
+});
+
+describe("owner-confirmed sandboxes and shared allowances (2026-10-23 authorization)", () => {
+  it("ships every cloud sandbox identity unconfirmed, so no cloud action is authorized even once approved", () => {
+    const shipped = parseManifest(shippedRaw());
+    for (const provider of ["aws", "gcp", "azure", "oci", "supabase"] as const) {
+      expect(Object.entries(shipped.sandboxes[provider]).filter(([key]) => !key.startsWith("region")).every(([, value]) => value === null)).toBe(true);
+    }
+    const unconfirmed = new Scope(parseManifest({ ...parseManifest(shippedRaw()), approval: { status: "approved", approvedBy: "Test Person", approvedAt: NOW.toISOString(), expiresAt: new Date(NOW.getTime() + 86_400_000).toISOString(), approvedDigest: contentDigest(parseManifest(shippedRaw())) } }), () => NOW);
+    expect(code(() => unconfirmed.authorize({ harness: "aws-iam-live", provider: "aws", action: "read" }))).toBe("sandbox_unconfirmed");
+    expect(code(() => unconfirmed.assertGrant("mixed-traffic-live", "gcp", "read"))).toBe("sandbox_unconfirmed");
+    expect(code(() => unconfirmed.authorize({ harness: "release-acceptance", provider: "control_plane", action: "read" }))).toBeUndefined();
+  });
+
+  it("records the bounded allowances: $100 infrastructure, $30 per run, $20 model calls, stop at 80%", () => {
+    const shipped = parseManifest(shippedRaw());
+    expect(shipped.budgets).toMatchObject({ totalUsd: 100, perRunUsd: 30, maxRunTtlMinutes: 240 });
+    expect(shipped.allowances).toMatchObject({ stopAtFraction: 0.8, anthropicUsd: 20 });
+  });
+
+  it("refuses new chargeable work once earlier runs plus this one would pass 80% of the allowance", () => {
+    const scope = approvedScope();
+    expect(code(() => scope.authorize(create({ estimatedUsd: 5 }), new ScopeLedger(70)))).toBeUndefined();
+    expect(code(() => scope.authorize(create({ estimatedUsd: 5 }), new ScopeLedger(76)))).toBe("budget_exceeded");
+  });
+
+  it("counts estimates until reconciled, active forecasts always, and refuses an unreadable shared ledger", () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), "zenith-ledger-"));
+    const file = path.join(dir, "ledger.json");
+    writeFileSync(file, JSON.stringify({ schema: 1, entries: [
+      { runId: "zlive-1", harness: "aws-live", kind: "infrastructure", recordedAt: NOW.toISOString(), estimatedUsd: 4, actualUsd: null, activeForecastUsd: 1, status: "torn_down" },
+      { runId: "zlive-2", harness: "aws-live", kind: "infrastructure", recordedAt: NOW.toISOString(), estimatedUsd: 9, actualUsd: 2, activeForecastUsd: 0, status: "reconciled" },
+      { runId: "eval-1", harness: "mach06", kind: "anthropic", recordedAt: NOW.toISOString(), estimatedUsd: 3, actualUsd: null, activeForecastUsd: 0, status: "running" },
+    ] }));
+    expect(committedSpend(file, "infrastructure")).toBe(7);
+    expect(committedSpend(file, "anthropic")).toBe(3);
+    const scope = approvedScope((raw) => { (raw.allowances as Record<string, unknown>).sharedLedger = "ledger.json"; });
+    expect(runLedger(scope, dir).priorUsd).toBe(7);
+    expect(code(() => authorizeModelSpend(scope, 12, dir))).toBeUndefined();
+    expect(code(() => authorizeModelSpend(scope, 14, dir))).toBe("budget_exceeded");
+    writeFileSync(file, "{");
+    expect(code(() => committedSpend(file, "infrastructure"))).toBe("budget_unknown");
   });
 });

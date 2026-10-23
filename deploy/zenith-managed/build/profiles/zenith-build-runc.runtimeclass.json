@@ -1,0 +1,14 @@
+{
+  "apiVersion": "node.k8s.io/v1",
+  "kind": "RuntimeClass",
+  "metadata": {
+    "name": "zenith-build-runc",
+    "labels": { "zenith.dev/purpose": "isolated-build" },
+    "annotations": {
+      "zenith.dev/status": "Owner-approved 2026-10-23 for disposable build verification on ephemeral single-tenant build hosts only; not a production or shared-tenant isolation approval (docs/build/production/verify/ISOLATED-BUILD-PROFILES-REVIEW.md).",
+      "zenith.dev/handler-source": "containerd's stock runc handler; the pod keeps hostUsers:false, the zenith-build seccomp and AppArmor profiles and rootless BuildKit."
+    }
+  },
+  "handler": "runc",
+  "scheduling": { "nodeSelector": { "zenith.dev/build-runtime": "runc" } }
+}

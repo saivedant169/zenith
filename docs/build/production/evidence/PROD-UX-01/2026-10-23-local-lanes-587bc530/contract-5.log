@@ -1,0 +1,24 @@
+
+ RUN  v4.1.12 /Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith
+
+ ✓ |node| tests/auth/mfa-workspace-state.test.ts (46 tests | 22 skipped) 1364ms
+     ✓ enables RLS, denies browser roles and grants service reads/inserts/updates only  547ms
+ ✓ |node| tests/auth/mfa-routes.test.ts (94 tests) 79ms
+{"level":"info","ts":"2026-10-23T16:45:48.738Z","msg":"maintenance mode changed","scope":"ops","mode":"off","version":1,"actor":"8fff069c-368f-49ed-b4a6-8a7520e7aa63"}
+ ✓ |node| tests/auth/mfa-operators.test.ts (8 tests) 11ms
+ ✓ |node| tests/auth/mfa.test.ts (57 tests) 9ms
+ ✓ |node| tests/auth/session-middleware.test.ts (20 tests) 8ms
+ ✓ |node| tests/auth/oauth.test.ts (13 tests) 3ms
+ ✓ |node| tests/auth/middleware.test.ts (13 tests) 2ms
+ ✓ |node| tests/auth/oauth-redirect.test.ts (11 tests) 2ms
+
+ Test Files  8 passed (8)
+      Tests  240 passed | 22 skipped (262)
+   Start at  22:15:44
+   Duration  4.19s (transform 1.27s, setup 0ms, import 2.35s, tests 1.48s, environment 0ms)
+
+JSON report written to /private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/hold/2026-10-23-local-lanes-587bc530/contract-5.json
+(node:10370) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:10371) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

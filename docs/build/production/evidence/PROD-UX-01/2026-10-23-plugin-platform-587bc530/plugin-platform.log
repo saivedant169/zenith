@@ -1,0 +1,12 @@
+
+ RUN  v4.1.12 /Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith
+
+ ✓ |node| tests/cli/plugin-platform-live.test.ts (1 test) 4638ms
+     ✓ requires real browser AAL2 consent and stops Docker after existing RFC and browser revocation paths  4638ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  22:14:13
+   Duration  4.79s (transform 56ms, setup 0ms, import 98ms, tests 4.64s, environment 0ms)
+
+JSON report written to /private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/hold/2026-10-23-plugin-platform-587bc530/wave6-546689f4b22fdb85.json

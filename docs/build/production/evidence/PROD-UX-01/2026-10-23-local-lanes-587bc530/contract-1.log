@@ -1,0 +1,46 @@
+
+ RUN  v4.1.12 /Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith
+
+ ✓ |node| tests/agent-v3/client-conformance.test.ts (12 tests) 7672ms
+     ✓ runs every journey step over HTTP; only the audience step needs an OAuth token  997ms
+     ✓ a dropped connection is not a cancellation: the held call finishes and the resumed stream delivers its result  1097ms
+     ✓ explicit cancellation of a propose call withdraws the proposal that call recorded  642ms
+     ✓ a cancel recorded by ANOTHER instance reaches a streamed call through the database  1385ms
+     ✓ a cancelled execute stops BEFORE the claim: nothing started, no approval consumed  599ms
+     ✓ answers the protocol edge cases a real client can hit  580ms
+     ✓ a default call (no progressToken) stays bounded JSON even when the client accepts event streams  571ms
+     ✓ a 2026-07-28 call with a progressToken is served and its progress is not resumable by id  586ms
+     ✓ completes the whole journey: exact issuer and audience, scopes, streaming, resume, cancel, audience refusal and grant revocation  617ms
+     ✓ refuses a token for another resource, issuer or key, an expired token, a missing grant and a missing workspace  572ms
+ ✓ |node| tests/agent-v3/envelope.test.ts (34 tests) 101ms
+ ✓ |node| tests/agent-v3/execute.test.ts (26 tests) 60ms
+ ✓ |node| tests/agent-v3/auth.test.ts (4 tests) 38ms
+ ✓ |node| tests/agent-v3/catalog.test.ts (23 tests) 28ms
+ ✓ |node| tests/agent-v3/adapters.test.ts (7 tests) 22ms
+ ✓ |node| tests/agent-v3/as-metadata.test.ts (9 tests) 9ms
+ ✓ |node| tests/agent-v3/oauth-issuer-fixture.test.ts (8 tests) 3ms
+
+ Test Files  8 passed (8)
+      Tests  123 passed (123)
+   Start at  22:15:04
+   Duration  13.83s (transform 1.84s, setup 0ms, import 5.53s, tests 7.93s, environment 0ms)
+
+JSON report written to /private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/hold/2026-10-23-local-lanes-587bc530/contract-1.json
+(node:10326) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+stderr | tests/agent-v3/client-conformance.test.ts > journey with a linked credential > runs every journey step over HTTP; only the audience step needs an OAuth token
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+stderr | tests/agent-v3/client-conformance.test.ts > journey with an OAuth access token > completes the whole journey: exact issuer and audience, scopes, streaming, resume, cancel, audience refusal and grant revocation
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+(node:10330) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:10331) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:10332) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:10333) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:10334) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

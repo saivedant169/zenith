@@ -1,0 +1,17 @@
+
+ RUN  v4.1.12 /Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith
+
+ ✓ |node| tests/plugins/launch-integration.test.ts (41 tests | 1 skipped) 2239ms
+     ✓ runs the approved child via main; RFC revocation invalidates the server token and kills its running sandbox  1044ms
+ ✓ |node| tests/plugins/service.test.ts (22 tests) 249ms
+
+ Test Files  2 passed (2)
+      Tests  62 passed | 1 skipped (63)
+   Start at  20:45:34
+   Duration  5.30s (transform 1.61s, setup 0ms, import 2.72s, tests 2.49s, environment 0ms)
+
+JSON report written to /private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/hold/2026-10-23-plugin-lanes-ca8fe49e/postgres.json
+(node:97195) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:97196) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

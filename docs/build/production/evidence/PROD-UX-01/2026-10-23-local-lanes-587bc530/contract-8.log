@@ -1,0 +1,55 @@
+
+ RUN  v4.1.12 /Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith
+
+ ✓ |dom| tests/screens/legacy-cancel-axe.test.tsx (2 tests) 87ms
+ ✓ |node| tests/plugins/service.test.ts (22 tests | 1 skipped) 827ms
+ ✓ |node| tests/plugins/mcp-boundary.test.ts (9 tests) 35ms
+ ✓ |node| tests/plugins/manifest.test.ts (24 tests) 7ms
+
+ Test Files  4 passed (4)
+      Tests  56 passed | 1 skipped (57)
+   Start at  22:15:58
+   Duration  4.46s (transform 1.69s, setup 11ms, import 2.93s, tests 956ms, environment 379ms)
+
+JSON report written to /private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/hold/2026-10-23-local-lanes-587bc530/contract-8.json
+stderr | tests/screens/legacy-cancel-axe.test.tsx > legacy cancellation control under axe > has no violations when offered, while confirming, after success and after an unconfirmed outcome
+The current testing environment is not configured to support act(...)
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+stderr | tests/screens/legacy-cancel-axe.test.tsx > legacy cancellation control under axe > has no violations when offered, while confirming, after success and after an unconfirmed outcome
+The current testing environment is not configured to support act(...)
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+stderr | tests/screens/legacy-cancel-axe.test.tsx > legacy cancellation control under axe > has no violations when offered, while confirming, after success and after an unconfirmed outcome
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+
+stderr | tests/screens/legacy-cancel-axe.test.tsx > legacy cancellation control under axe > has no violations when offered, while confirming, after success and after an unconfirmed outcome
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+stderr | tests/screens/legacy-cancel-axe.test.tsx > legacy cancellation control under axe > has no violations when offered, while confirming, after success and after an unconfirmed outcome
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+
+stderr | tests/screens/legacy-cancel-axe.test.tsx > legacy cancellation control under axe > has no violations when offered, while confirming, after success and after an unconfirmed outcome
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+The current testing environment is not configured to support act(...)
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+stderr | tests/screens/legacy-cancel-axe.test.tsx > legacy cancellation control under axe > has no violations when offered, while confirming, after success and after an unconfirmed outcome
+The current testing environment is not configured to support act(...)
+
+stderr | tests/screens/legacy-cancel-axe.test.tsx > legacy cancellation control under axe > has no violations when a viewer sees the disabled control and its explanation
+The current testing environment is not configured to support act(...)
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+stderr | tests/screens/legacy-cancel-axe.test.tsx > legacy cancellation control under axe > has no violations when a viewer sees the disabled control and its explanation
+The current testing environment is not configured to support act(...)
+
+(node:10407) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:10409) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

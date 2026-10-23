@@ -1,0 +1,25 @@
+
+ RUN  v4.1.12 /Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith
+
+ ✓ |node| tests/plugins/launch-integration.test.ts (41 tests | 2 skipped) 2106ms
+     ✓ runs the approved child via main; RFC revocation invalidates the server token and kills its running sandbox  1027ms
+ ✓ |node| tests/cli/failures.test.ts (68 tests) 1582ms
+     ✓ REST HTTP 429 exits 5 after 3 attempts  310ms
+     ✓ REST HTTP 500 exits 6 after 3 attempts  317ms
+     ✓ REST HTTP 503 exits 6 after 3 attempts  308ms
+     ✓ [ 'ops', 'show', 'op-cli' ] refuses credential-bearing redirects  307ms
+ ✓ |node| tests/cli/plugin-launcher.test.ts (35 tests) 418ms
+ ✓ |node| tests/cli/follow.test.ts (10 tests) 98ms
+ ✓ |node| tests/cli/plugin-sandbox.test.ts (23 tests) 58ms
+ ✓ |node| tests/e2e/default/receipt.test.ts (21 tests) 8ms
+ ✓ |node| tests/e2e/default/ux-receipt.test.ts (9 tests) 13ms
+ ✓ |node| tests/cli/plugin-runtime.test.ts (5 tests) 7ms
+
+ Test Files  8 passed (8)
+      Tests  210 passed | 2 skipped (212)
+   Start at  22:15:50
+   Duration  7.26s (transform 1.77s, setup 0ms, import 2.57s, tests 4.29s, environment 0ms)
+
+JSON report written to /private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/hold/2026-10-23-local-lanes-587bc530/contract-7.json
+(node:10396) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

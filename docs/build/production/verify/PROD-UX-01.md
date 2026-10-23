@@ -414,3 +414,8 @@ verdict lines), `2026-10-23-local-lanes-8b9a4fb0/` (contract batches, receipt ga
 kept beside them. The "uses verification disabled" wording in the plugin-platform addendum is corrected: Chromium uses
 `--ignore-certificate-errors-spki-list` pinned to the two stack edge certificates (pinning, which also bypasses
 hostname and chain checks for those exact keys); Node verifies normally against the stack CA.
+
+Current evidence (supersedes 8b9a4fb0 above): every lane on `587bc530` — hosted run 39984298051
+(`2026-10-23-hosted-39984298051/`: UX receipts schema 4 with 12 cases including legacy cancellation in a real browser,
+J2 journey receipts, MFA verdicts), `2026-10-23-local-lanes-587bc530/`, `2026-10-23-plugin-lanes-587bc530/`,
+`2026-10-23-plugin-platform-587bc530/`. Still open: the supervised screen-reader walk.

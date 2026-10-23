@@ -1,0 +1,14 @@
+
+ RUN  v4.1.12 /Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith
+
+ ✓ |node| tests/auth/mfa-workspace-state.test.ts (46 tests) 2017ms
+     ✓ enables RLS, denies browser roles and grants service reads/inserts/updates only  604ms
+
+ Test Files  1 passed (1)
+      Tests  46 passed (46)
+   Start at  22:16:04
+   Duration  3.71s (transform 1.15s, setup 0ms, import 1.65s, tests 2.02s, environment 0ms)
+
+JSON report written to /private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/hold/2026-10-23-local-lanes-587bc530/mfa-postgres.json
+(node:10469) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

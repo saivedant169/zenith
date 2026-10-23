@@ -1,0 +1,6 @@
+journey (amd64 2026-10-23T16:24:31.7390187Z mfa-browser wave6-bc53c98868197436 {"passed":1,"failed":0,"failures":[]}
+journey (amd64 2026-10-23T16:24:31.7670025Z mfa-browser wave6-a19fd9525a62d581 {"passed":1,"failed":0,"failures":[]}
+journey (amd64 2026-10-23T16:36:26.3338951Z journey passed {"passed":21,"failed":0,"skipped":0,"not_run":0}
+journey (arm64 2026-10-23T16:26:32.1225926Z mfa-browser wave6-bc53c98868197436 {"passed":1,"failed":0,"failures":[]}
+journey (arm64 2026-10-23T16:26:32.1595519Z mfa-browser wave6-a19fd9525a62d581 {"passed":1,"failed":0,"failures":[]}
+journey (arm64 2026-10-23T16:34:31.0432409Z journey passed {"passed":21,"failed":0,"skipped":0,"not_run":0}

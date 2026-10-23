@@ -4324,7 +4324,7 @@
         "PROD-LIFE-03",
         "PROD-LIFE-07"
       ],
-      "implementationStatus": "implementation_complete_verification_pending",
+      "implementationStatus": "implementation_complete_verification_pending; teardown_after_deploy_blocked_cleanup_writer_barrier_needs_authenticated_delivery_settlement_and_direct_path_origin",
       "implementationNote": "L3 gated observation/cleanup/inventory harness built; live and operational evidence plus owner fixtures/decisions pending. No verification claimed.",
       "evidence": [],
       "requiredEvidence": [
@@ -5524,7 +5524,7 @@
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "implementation_complete_verification_pending",
+      "implementationStatus": "implementation_complete_verification_pending; teardown_after_deploy_blocked_cleanup_writer_barrier_needs_authenticated_delivery_settlement_and_direct_path_origin",
       "evidence": [
         {
           "level": "local_cluster",
@@ -5721,7 +5721,7 @@
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "MinIO_R11_crossCompile_exit0_LinuxARM64_runtime_pending; R9_historical_refusal_permanent_no_adoption; R7_currentClosureObservationOnly; mysql_dns_tls_closed_62b70671; adopted_object_teardown_kind_verified_45af29ee; tenant_backup_beyond_export_and_operated_adopt_release_journey_open",
+      "implementationStatus": "MinIO_LinuxARM64_runtime_object_roundtrip_passed_hosted_arm64; mysql_dns_tls_closed_62b70671; adopted_object_teardown_kind_verified_bb8b6314; operated_adopt_release_retains_passed_190db611; teardown_after_deploy_blocked_cleanup_writer_barrier_needs_authenticated_delivery_settlement_and_direct_path_origin; tenant_backup_beyond_export_open",
       "evidence": [
         {
           "level": "local_engine",

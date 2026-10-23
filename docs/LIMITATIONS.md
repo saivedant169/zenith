@@ -2,6 +2,10 @@
 
 Status legend: âœ… implemented Â· ðŸŸ¡ partial Â· â¬œ not yet built
 
+## Teardown after deploy (24 October 2026, open)
+
+- **An environment that has been deployed cannot be torn down through the product yet.** Destroy write grants are issued only inside a held cleanup attempt, and that hold is refused while the environment has any earlier possible delivery: deploy workflow start intents (they stay `acknowledged`), non-read capability grants, build launches, runner and machine jobs, or plan uses without an authenticated standalone settlement receipt (`src/lib/controlplane/db/repos/cleanup-writer-barriers.ts`). A succeeded operation, an expired or revoked grant and a terminal workflow are deliberately not treated as proof that every earlier writer has stopped. Direct Kubernetes and Zenith-managed teardown has no cleanup origin at all (only the OpenTofu plan-artifact path creates one). The approved destroy therefore plans, then ends `uncertain` before any deletion; nothing is deleted. Closing this needs an authenticated delivery-settlement protocol and a reviewed direct-path origin. Affects PROD-LIFE-07, PROD-LIFE-11 and PROD-MIX-04 ([evidence](build/production/verify/PROD-LIFE-11.md)).
+
 ## Production wave 5 assembly (8 October 2026, verification pending)
 
 Wave 5 is assembled after the verifier's immutable schemas 42/43. New schemas 44â€“52 and aggregate `0026_platform_core.sql` include mixed output records, measured SLOs, recovery epochs, retention, audit exports, managed serving and billing. No Docker, networked PostgreSQL, Temporal, kind, browser or live cloud acceptance ran on this builder. [W5-ASSEMBLY.md](build/production/verify/W5-ASSEMBLY.md) records exact checks and deferred commands. Release flags remain false.

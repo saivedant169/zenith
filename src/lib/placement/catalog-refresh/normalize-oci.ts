@@ -46,11 +46,15 @@ export const OCI_RULES: readonly OciRule[] = [
     pick: "tiers",
     note: "Outbound data transfer; first paid tier from 0 GB (the monthly free allowance is not deducted), provider volume tiers from their cumulative boundaries",
   },
-  { sku: "oci.object_storage.storage_gb_month", unit: "gb_month", display: /Object Storage - Storage/i, metric: /GB Storage Capacity Per Month/i, pick: "first_paid", note: "Object Storage standard storage per GB-month" },
+  { sku: "oci.object_storage.storage_gb_month", unit: "gb_month", display: /Object Storage - Storage/i, metric: /^(?:GB|Gigabyte) Storage Capacity Per Month$/i, pick: "first_paid", note: "Object Storage standard storage per GB-month" },
   { sku: "oci.object_storage.get_million", unit: "million_requests", display: /Object Storage - Requests/i, metric: /10,000 Requests Per Month/i, scale: 100, pick: "first_paid", note: "Object Storage requests, per 10,000 converted to per million (OCI prices read and write alike)" },
   { sku: "oci.object_storage.put_million", unit: "million_requests", display: /Object Storage - Requests/i, metric: /10,000 Requests Per Month/i, scale: 100, pick: "first_paid", note: "Object Storage requests, per 10,000 converted to per million (OCI prices read and write alike)" },
-  { sku: "oci.block_volume.gb_month", unit: "gb_month", display: /Block Volume - Storage/i, metric: /GB Storage Capacity Per Month/i, pick: "first_paid", note: "Block Volume storage per GB-month" },
-  { sku: "oci.flexible_lb.hour", unit: "hour", display: /Load Balancer Base/i, metric: /Load Balancer Hour/i, pick: "first_paid", note: "Flexible Load Balancer base hour" },
+  // The catalog's block volume is the Balanced tier: storage plus 10 performance units per GB (derived below).
+  { sku: "component.oci.block.storage", unit: "gb_month", display: /^Storage - Block Volume - Storage$/i, metric: /^(?:GB|Gigabyte) Storage Capacity Per Month$/i, pick: "first_paid", note: "Block Volume storage per GB-month" },
+  { sku: "component.oci.block.vpu", unit: "gb_month", display: /^Storage - Block Volume - Performance Units$/i, metric: /^Performance Units Per Gigabyte Per Month$/i, pick: "first_paid", note: "Block Volume performance unit per GB-month" },
+  { sku: "oci.flexible_lb.hour", unit: "hour", display: /Load Balancer Base/i, metric: /^Load Balancer(?: Hour)?$/i, pick: "first_paid", note: "Flexible Load Balancer base hour" },
+  { sku: "component.oci.lb.mbps", unit: "hour", display: /^Load Balancer Bandwidth$/i, metric: /^Mbps Per Hour$/i, pick: "first_paid", note: "Flexible Load Balancer bandwidth per Mbps-hour" },
+  { sku: "component.oci.redis.gb", unit: "hour", display: /^Oracle Cloud Infrastructure Cache with Redis - Low Memory\b/i, metric: /^Redis Memory Gigabyte per Hour$/i, pick: "first_paid", note: "OCI Cache with Redis low-memory tier per GB-hour" },
 ];
 
 export const normalizeOci: Normalizer = (text, snapshot, ctx) => {
@@ -67,7 +71,8 @@ export const normalizeOci: Normalizer = (text, snapshot, ctx) => {
   for (const rule of OCI_RULES) {
     const candidates: Priced[] = [];
     for (const item of json.items) {
-      if (!rule.display.test(item.displayName ?? "") || !rule.metric.test(item.metricName ?? "")) continue;
+      // The public list has stray double spaces (e.g. "Compute - Standard - E4  - Memory").
+      if (!rule.display.test((item.displayName ?? "").replace(/\s+/g, " ")) || !rule.metric.test((item.metricName ?? "").replace(/\s+/g, " "))) continue;
       const usd = item.currencyCodeLocalizations?.find((l) => l.currencyCode === "USD");
       const dims: Dimension[] = [];
       for (const p of usd?.prices ?? []) {
@@ -108,6 +113,9 @@ export const normalizeOci: Normalizer = (text, snapshot, ctx) => {
 const OCI_DERIVED_RULES: DerivedPriceRule[] = [
   ...[["small", 2], ["medium", 4], ["large", 8]].map(([size, memory]) => ({ sku: `oci.compute.${size}_hour`, components: [{ sku: "component.oci.e4.cpu", quantity: 1 }, { sku: "component.oci.e4.memory", quantity: Number(memory) }], note: `VM.Standard.E4.Flex 1 OCPU and ${memory} GB` })),
   ...[["nano", 1], ["small", 1], ["standard", 2], ["performance", 4]].map(([size, cpu]) => ({ sku: `oci.postgres.${size}_hour`, components: [{ sku: "component.oci.pg.cpu", quantity: Number(cpu) }], note: `Database with PostgreSQL ${cpu} OCPU, no HA` })),
+  { sku: "oci.block_volume.gb_month", components: [{ sku: "component.oci.block.storage", quantity: 1 }, { sku: "component.oci.block.vpu", quantity: 10 }], note: "Balanced block volume: storage plus 10 VPU per GB-month" },
+  { sku: "oci.flexible_lb.lcu_hour", components: [{ sku: "component.oci.lb.mbps", quantity: 10 }], note: "capacity unit = 10 Mbps minimum flexible bandwidth" },
+  ...[["nano", 1], ["small", 2], ["standard", 4], ["performance", 8]].map(([size, gb]) => ({ sku: `oci.redis.${size}_hour`, components: [{ sku: "component.oci.redis.gb", quantity: Number(gb) }], note: `OCI Cache with Redis low-memory tier ${gb} GB` })),
 ];
 
 export function ociRefreshableSkus(): string[] {

@@ -19,8 +19,8 @@ export function derivePrices(result: NormalizeResult, rules: readonly DerivedPri
       continue;
     }
     const first = parts[0]!.observation!;
-    if (parts.some(p => p.observation!.snapshotSha256 !== first.snapshotSha256 || p.observation!.unit !== "hour" || p.observation!.tiers)) {
-      skipped.push({ sku: rule.sku, region, reason: "components must be untiered hourly prices from one snapshot" });
+    if (parts.some(p => p.observation!.snapshotSha256 !== first.snapshotSha256 || p.observation!.unit !== first.unit || p.observation!.tiers)) {
+      skipped.push({ sku: rule.sku, region, reason: "components must be untiered prices in one unit from one snapshot" });
       continue;
     }
     observations.push({ ...first, sku: rule.sku, usd: parts.reduce((sum, p) => sum + p.quantity * p.observation!.usd, 0),

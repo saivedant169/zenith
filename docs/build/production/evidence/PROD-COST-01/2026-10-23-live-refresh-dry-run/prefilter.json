@@ -1,0 +1,314 @@
+{
+  "schema": 1,
+  "tool": "scripts/cost/prefilter-aws-offer.ts",
+  "files": [
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSDataTransfer/current/ap-south-1/index.json",
+      "sourceSha256": "90fa51b6592565f895328c28ca6c22a925619f8772a02ff46a61e6c9e1be8001",
+      "sourceBytes": 1537045,
+      "filteredSha256": "69df9b2b0b07bca15b173b64648c1c8b5edcd20e5805eef99d0ebe7309414bee",
+      "filteredBytes": 198887
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSELB/current/ap-south-1/index.json",
+      "sourceSha256": "1aeb7a7655b5c72d762976ceed43fda9cf7378abe06d0a26da3312059266ccf8",
+      "sourceBytes": 16496,
+      "filteredSha256": "f51800e821dcca118d7f80b8878d373b5f4671929ff199497936b1b6e6173860",
+      "filteredBytes": 3153
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSQueueService/current/ap-south-1/index.json",
+      "sourceSha256": "a2719eee63e0b0685d154060deb167be5fc6269aebf6a8ec4b434d6c04b7941e",
+      "sourceBytes": 9522,
+      "filteredSha256": "dec8728c33cf544831e22d9469c92c525c2a8cbd64922a51285ae722cffeabb8",
+      "filteredBytes": 2042
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudWatch/current/ap-south-1/index.json",
+      "sourceSha256": "0605cd5cd1f4fc59124546937e4985c82a8d0cff463a4381e9731ee49dcb9e5e",
+      "sourceBytes": 201691,
+      "filteredSha256": "bb595f8745e7af791c5b41d4c37d6d0ce8cd2ac8a7d2c02f900a90487edf9e38",
+      "filteredBytes": 5109
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/ap-south-1/index.json",
+      "sourceSha256": "387a88346d3b33ba8014791b1080688f1e1ee699ee7e619465e1885d0a2c4158",
+      "sourceBytes": 314675647,
+      "filteredSha256": "51761c77d2b5dcb07c0c55e73d59826f84ca5efe6aee1cfd54941d8dd444e71d",
+      "filteredBytes": 9755
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonECS/current/ap-south-1/index.json",
+      "sourceSha256": "b68a557c7e4b150dc0f1eea70ac19adb5f488ae3085aa64e438e446770b07ddc",
+      "sourceBytes": 845681,
+      "filteredSha256": "804f565f683243657b9071614582be99285334f7638420cc32676c7842eac0c5",
+      "filteredBytes": 2015
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonElastiCache/current/ap-south-1/index.json",
+      "sourceSha256": "bc1526915be92ea6bff4e22a57f363aead9ab30bfad911b2367c84ffed1116e7",
+      "sourceBytes": 2000596,
+      "filteredSha256": "e0489df9bb00a8de67660e0e453260abc111dc21c98d8ca6eccb8f1f72ee99e8",
+      "filteredBytes": 4477
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonRDS/current/ap-south-1/index.json",
+      "sourceSha256": "38bf7c1e1dabf4ab369f7b72f1d6e8e5b9fa7929a808d52ee51674e06e5665c1",
+      "sourceBytes": 21422922,
+      "filteredSha256": "3a287f6648c3b884f7da994ad4d880897dd0165b21a66e36a4ec67d9afdc7660",
+      "filteredBytes": 96519
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonRoute53/current/ap-south-1/index.json",
+      "sourceSha256": "225edb46f591577d8c0d820c4895285b650801c982fdd7d2772978078eac5cf8",
+      "sourceBytes": 13786,
+      "filteredSha256": "e85dfbe74ae87d07a4320d54fa4114b76ba160b3d504b561e285323c2f510cbe",
+      "filteredBytes": 1511
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/ap-south-1/index.json",
+      "sourceSha256": "fd89d71c6ecaf0c4f48659abd24fa9f44b6957b76467bcfdddec92e1dec00828",
+      "sourceBytes": 513382,
+      "filteredSha256": "454eac4afc35cd68904bc354ae5a65276389fda848a32d0eaecc53cf55d26134",
+      "filteredBytes": 5185
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonVPC/current/ap-south-1/index.json",
+      "sourceSha256": "c2b9c0707b71a6ccd51c72229cf2f676c5e557a0c74473856281a83a9d75d0a4",
+      "sourceBytes": 80587,
+      "filteredSha256": "8a04226a0fb5575dbfe47958e91a744f22d48264f0019517076994db025d130c",
+      "filteredBytes": 1258
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSDataTransfer/current/ap-southeast-1/index.json",
+      "sourceSha256": "cfc36a6012cb0939f3d4da299697ca9a542bd8711bd083b84f457ccbc8303108",
+      "sourceBytes": 1531509,
+      "filteredSha256": "c17229ab2a1e6ffdf4b252c7a14957bdf1cb61303a585c52ce607ac3d07d2c28",
+      "filteredBytes": 200847
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSELB/current/ap-southeast-1/index.json",
+      "sourceSha256": "ae12e0f74a82ef65e47412c2145b62b61c836f155584bab3c42877d5d677c786",
+      "sourceBytes": 19266,
+      "filteredSha256": "054d46f3dfca28540685b5298ae31336b972ccad18481b6fc8bec5153b1c13d2",
+      "filteredBytes": 3177
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSQueueService/current/ap-southeast-1/index.json",
+      "sourceSha256": "7b4b2eb6b2412fb4ce07bb6beac03484bb1a0f7dc83c2f7d08192c3eaec68fbb",
+      "sourceBytes": 9564,
+      "filteredSha256": "e453f5ac280d3ea22ae6e467b199e210c4dc18520ae69896bfb7f02da096f4c2",
+      "filteredBytes": 2058
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudWatch/current/ap-southeast-1/index.json",
+      "sourceSha256": "526cc318a18047ec5b058dcbe1a69e5b44065475a6ca86060998c542f9b2c800",
+      "sourceBytes": 207819,
+      "filteredSha256": "5cc3143687409a42dd090732e9a91941462dbc50e7298195e2343d5511db8dbf",
+      "filteredBytes": 5129
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/ap-southeast-1/index.json",
+      "sourceSha256": "03643507b0f0195b5234e30ffdc65cf64c1e2201f011098c7a759558b06f00a4",
+      "sourceBytes": 356848524,
+      "filteredSha256": "45fe677657d80f02ed502c204541439cc5e774d5d5144614776223d5cd45bd15",
+      "filteredBytes": 10779
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonECS/current/ap-southeast-1/index.json",
+      "sourceSha256": "f3f4c93d0a8d0d4c405c3111e7ab74a077ff151974b6bd8c5f38e6fbc43157b1",
+      "sourceBytes": 906583,
+      "filteredSha256": "68c9a471cbda10a6b9f8f2a985bf74a3e6086bf68f3601b95b6fd9f5b26f6ab3",
+      "filteredBytes": 2033
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonElastiCache/current/ap-southeast-1/index.json",
+      "sourceSha256": "d435d2c84528f59159de79fe8cd84e4f4802914069178c14dae1230b07a9ab94",
+      "sourceBytes": 2004311,
+      "filteredSha256": "908742d9f4622d484e9e8fd61e1e8c1cc0264a728648dfb09754364cdf6f78f7",
+      "filteredBytes": 4505
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonRDS/current/ap-southeast-1/index.json",
+      "sourceSha256": "f744523c1c34359bff4b2687f4ab043d6d0579c2b7450b3eae63a9d3cd7d2f60",
+      "sourceBytes": 23750624,
+      "filteredSha256": "ee55e9a19769f9261e8e27dd3adc5675c8d20009c6e726d4ac9a7833afc2c76a",
+      "filteredBytes": 97191
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonRoute53/current/ap-southeast-1/index.json",
+      "sourceSha256": "61ef8dac9e35f85c2438f74843b1eca231fd554c31818b418a50d3374e59744f",
+      "sourceBytes": 13871,
+      "filteredSha256": "1b1a226588bc3bb622215e209185895f7e41d68bf3d1062dd0c94628efd11f20",
+      "filteredBytes": 1518
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/ap-southeast-1/index.json",
+      "sourceSha256": "9d0e43285c9610d775a86864ba0054341bf1a03d42117248f910b20dc00508a0",
+      "sourceBytes": 524701,
+      "filteredSha256": "6262aa5f575cc6b1e36da84354c006db7ad076fc37e862acbaa62fb5e1cfe759",
+      "filteredBytes": 5220
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonVPC/current/ap-southeast-1/index.json",
+      "sourceSha256": "d319456a7bcecd84bf5afb57861acdcc341ad0892e8146978c390e4569e0cd0b",
+      "sourceBytes": 81094,
+      "filteredSha256": "4dd4486739c7754ce580195002b4b798bc29c2e33c32d5523ee93625a189b15d",
+      "filteredBytes": 1265
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSDataTransfer/current/eu-west-1/index.json",
+      "sourceSha256": "c7fd70d58a4f318cbde6508bba217adbc4d67f3721f8f0fa08c7f0d81f03e297",
+      "sourceBytes": 1552463,
+      "filteredSha256": "0b0d9475d8bf51a5b670af16107be23c608e699e2dcdaaf057f633559bd4ccd8",
+      "filteredBytes": 194589
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSELB/current/eu-west-1/index.json",
+      "sourceSha256": "f14cffd81d7e10875dede4c322b00beaaf6ec1e13ed407b75c231ad9baa5c788",
+      "sourceBytes": 18952,
+      "filteredSha256": "988ca4cabf9eb5e8d262f14921cea76f2a38ca55c33348dc2eb41d3e7f7fa78a",
+      "filteredBytes": 3108
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSQueueService/current/eu-west-1/index.json",
+      "sourceSha256": "89926518ef6777a73f68e60bf54bb1ccd4fa2701548e26ba348153d47734da70",
+      "sourceBytes": 9423,
+      "filteredSha256": "8490aea6ed99bc05a39ea2962e68c5cd082d6003c5594e44c49387f4cd25939b",
+      "filteredBytes": 2003
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudWatch/current/eu-west-1/index.json",
+      "sourceSha256": "26cde27997980a244e3fde4145d9ed505027a0fafcf3f7842f96fbfc2bbb6ca6",
+      "sourceBytes": 204139,
+      "filteredSha256": "7cc324c63edbe2584287f34046dfa438537b7c6d474e7e0b877d5b53f87d8f91",
+      "filteredBytes": 5067
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/eu-west-1/index.json",
+      "sourceSha256": "a57c18c052e2f422438ceedc41c2b9a4e8f891d1456981862c0d410ba35fd816",
+      "sourceBytes": 442293090,
+      "filteredSha256": "af9f33691191214f6491d0d288de888bc421155ab2d75c52f2ea935a8263811a",
+      "filteredBytes": 10557
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonECS/current/eu-west-1/index.json",
+      "sourceSha256": "9a294a92a7b05fa063a20e6498038d2b31970fbe7964720412b8e6c7987f7e6c",
+      "sourceBytes": 1002143,
+      "filteredSha256": "cd2d1132c0072a43f9c6f09f8cd9d42b25e62858fdd336c13700794a63c10759",
+      "filteredBytes": 1973
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonElastiCache/current/eu-west-1/index.json",
+      "sourceSha256": "8f02443b3aecb9d487392b9163ee5fead1e3addee2b2442e921411ca72318bb8",
+      "sourceBytes": 2189714,
+      "filteredSha256": "7084a888b939c567b2ff77f6aa2bda07860896b07466932b1fe4ec45f3281b9a",
+      "filteredBytes": 4429
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonRDS/current/eu-west-1/index.json",
+      "sourceSha256": "33931d33ee40845c6a24b34d9513f8de25d20e033348bb40f47efd50eed4fbd9",
+      "sourceBytes": 29041392,
+      "filteredSha256": "e7c4b8c97cea177adcbb6b4dd985a9bb56b6f440041875d2447727ebe531cc85",
+      "filteredBytes": 95375
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonRoute53/current/eu-west-1/index.json",
+      "sourceSha256": "79f4727c98d094ead5626b8697c4d59dc85568b431af92699d27e6b55eff4e0e",
+      "sourceBytes": 13629,
+      "filteredSha256": "7536997448a98986d5bd52c1610f756cd0eb40b23737dccb4177ef932cc2b4a9",
+      "filteredBytes": 1499
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/eu-west-1/index.json",
+      "sourceSha256": "1ce98703534e52c806f1467d5abd6ef81842d1893366cb3c0fb46dc3945e8e6c",
+      "sourceBytes": 516206,
+      "filteredSha256": "c223c5db865cbf8d719099c685d890eaac8774a92dfa9550bd4593e2dc97366b",
+      "filteredBytes": 5157
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonVPC/current/eu-west-1/index.json",
+      "sourceSha256": "319a723bad16e7fb2b9163f0d027c67c9c49b23525a64e5224b0c9adb867f28c",
+      "sourceBytes": 79652,
+      "filteredSha256": "67e90f8c033f159f25d557b9234a5dd1dd3d04c708599a95dbe8b1a321d0caf0",
+      "filteredBytes": 1246
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSDataTransfer/current/us-east-1/index.json",
+      "sourceSha256": "00f81657d01946d02c905e32ca87cc6c23720b5de079b90fef5775243abcee80",
+      "sourceBytes": 1468865,
+      "filteredSha256": "b2f376e6b34a452fd150aa8fba6d8a8863114a6b7995477ccab0064367ea5386",
+      "filteredBytes": 165434
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSELB/current/us-east-1/index.json",
+      "sourceSha256": "c34f95e97c33d8b32b25eecb2e2008ba651a11ba3bc69794200f5749dcb9d463",
+      "sourceBytes": 19068,
+      "filteredSha256": "878bafc40973529a97145a2208c473f6ea888d5e99caf3bd92b5cdd6e168819c",
+      "filteredBytes": 3135
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AWSQueueService/current/us-east-1/index.json",
+      "sourceSha256": "787061c859b2ed47c2249b0b54516230b9d245b76ab41d87ce11f449a27813dc",
+      "sourceBytes": 9492,
+      "filteredSha256": "22347c1c4f06112f24efed868551e0510052cc476a0cd65e608d2599314b88c1",
+      "filteredBytes": 2031
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonCloudWatch/current/us-east-1/index.json",
+      "sourceSha256": "56cc88ec0074530e7a14c232c17e3bda0807468f1724c6a746e19f0f0330f5f5",
+      "sourceBytes": 209537,
+      "filteredSha256": "c009ca1c3df4898fe549be5a61dd5649231c8908a093006c4c3f67f11aa15be2",
+      "filteredBytes": 7004
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonEC2/current/us-east-1/index.json",
+      "sourceSha256": "076b23a45f04fd149bb631e01da2f8fff985b56f6ae3036e08cc7469f70e46b1",
+      "sourceBytes": 481575141,
+      "filteredSha256": "86c02f0ef3f802fc2d1e3581efe41f236265405374077f01ced667e664072efa",
+      "filteredBytes": 10665
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonECS/current/us-east-1/index.json",
+      "sourceSha256": "b30483c1fc2e9446987bae34cbbd593ece4995f0adb1cb6e25e2d4471f14e612",
+      "sourceBytes": 1206040,
+      "filteredSha256": "811037bf6214164372b884bd725fe50d5e8a5b2baa08b683ec244cec1f4bd8cb",
+      "filteredBytes": 2010
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonElastiCache/current/us-east-1/index.json",
+      "sourceSha256": "c159ca506b6ba17707602e7a5b3ea74581405600ac84a402a1712fcb8ae0fd87",
+      "sourceBytes": 2195852,
+      "filteredSha256": "fcbb1c5ab676fc56eef242573ebe17eeb61efc776fed43af8d7ff1ff1480ebef",
+      "filteredBytes": 4453
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonRDS/current/us-east-1/index.json",
+      "sourceSha256": "21ad3109d81fe992945d29d8e9f27c030879bbef112c98685bdd57e27b7d1131",
+      "sourceBytes": 30937790,
+      "filteredSha256": "5135c3445af052d37fa4eca73270b5ea3675ec15494a1cbaa398ec90b3eb98d9",
+      "filteredBytes": 95922
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonRoute53/current/us-east-1/index.json",
+      "sourceSha256": "b1f89aad634eeda054b207f0de981ee7b2c5d350a90d7fa581cf2ef66076b0b8",
+      "sourceBytes": 13776,
+      "filteredSha256": "d4f01ad0195e2b51af1bca98bd37ae6e7a27e25729a5eb6f79f978a837a75b65",
+      "filteredBytes": 1510
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonS3/current/us-east-1/index.json",
+      "sourceSha256": "a298361f29bd9bc926d810d1eb093720827275689c1e2db5a7af90890b1dc67c",
+      "sourceBytes": 473422,
+      "filteredSha256": "db6c4080d8ef1e353e3b916fdcb2d04f1de44df04e2b3d10be68acbe4de42535",
+      "filteredBytes": 5205
+    },
+    {
+      "url": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws/AmazonVPC/current/us-east-1/index.json",
+      "sourceSha256": "85367cb441bc050ea66796736a4605b4a937f9b2a8639a7103270c7eac941a1c",
+      "sourceBytes": 80535,
+      "filteredSha256": "e143fc1ba429427881a43cc6f8567c5c38b21eeaee620627066328e3af117bf9",
+      "filteredBytes": 1257
+    }
+  ]
+}

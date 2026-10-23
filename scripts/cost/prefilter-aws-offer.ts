@@ -7,6 +7,8 @@
  * matches, and exactly those products' OnDemand terms. The AWS normalizer reads nothing else,
  * so it returns the same observations for the filtered copy (tests/cost/prefilter-aws-offer.test.ts).
  * Prints the full file's SHA-256 and size so the refresh report can cite the original bytes.
+ * Limit: the copy keeps only what the rules matched AT FETCH TIME. After any AWS rule change,
+ * fetch again; an older pre-filtered snapshot can hide products the new rule would read.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { sha256Hex } from "@/lib/controlplane/digest";

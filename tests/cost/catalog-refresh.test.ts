@@ -251,6 +251,16 @@ describe("applyRefresh and the refresh pipeline", () => {
     );
   });
 
+  it("stores scaled and derived prices without binary float noise", () => {
+    const snap = loaded()[0]!.entry;
+    const real = base.entries.find((e) => e.provider === "aws" && e.region === "us-east-1" && e.sku === "aws.sqs.requests_million")!;
+    const r = applyRefresh({ base, snapshots: [snap], version: "2026-10-07.1", observations: [
+      { provider: "aws", region: "us-east-1", sku: real.sku, unit: real.unit, usd: 0.0000004 * 1e6, note: "x", snapshotSha256: snap.sha256 },
+    ] });
+    expect(0.0000004 * 1e6).not.toBe(0.4);
+    expect(r.catalog.entries.find((e) => e.region === "us-east-1" && e.sku === real.sku)?.usd).toBe(0.4);
+  });
+
   it("reports which cost dimensions are priced for each provider after the refresh", () => {
     const before = costDimensionCoverage(base);
     const after = costDimensionCoverage(out.catalog);

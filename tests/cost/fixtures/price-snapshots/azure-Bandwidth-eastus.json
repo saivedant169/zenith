@@ -9,7 +9,7 @@
       "type": "Consumption",
       "unitOfMeasure": "1 GB",
       "skuName": "Standard",
-      "productName": "Bandwidth - Routing Preference: Internet",
+      "productName": "Rtn Preference: MGN",
       "serviceName": "Bandwidth",
       "meterName": "Standard Data Transfer Out"
     },
@@ -21,7 +21,7 @@
       "type": "Consumption",
       "unitOfMeasure": "1 GB",
       "skuName": "Standard",
-      "productName": "Bandwidth - Routing Preference: Internet",
+      "productName": "Rtn Preference: MGN",
       "serviceName": "Bandwidth",
       "meterName": "Standard Data Transfer Out"
     },
@@ -33,7 +33,7 @@
       "type": "Consumption",
       "unitOfMeasure": "1 GB",
       "skuName": "Standard",
-      "productName": "Bandwidth - Routing Preference: Internet",
+      "productName": "Rtn Preference: MGN",
       "serviceName": "Bandwidth",
       "meterName": "Standard Data Transfer Out"
     },
@@ -45,7 +45,7 @@
       "type": "Consumption",
       "unitOfMeasure": "1 GB",
       "skuName": "Standard",
-      "productName": "Bandwidth - Routing Preference: Internet",
+      "productName": "Rtn Preference: MGN",
       "serviceName": "Bandwidth",
       "meterName": "Standard Data Transfer Out"
     },
@@ -57,7 +57,7 @@
       "type": "Consumption",
       "unitOfMeasure": "1 GB",
       "skuName": "Standard",
-      "productName": "Bandwidth - Routing Preference: Internet",
+      "productName": "Rtn Preference: MGN",
       "serviceName": "Bandwidth",
       "meterName": "Standard Data Transfer Out"
     }

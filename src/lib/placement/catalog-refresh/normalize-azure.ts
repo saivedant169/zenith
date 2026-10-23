@@ -37,26 +37,30 @@ interface AzureRule {
   note: string;
 }
 
+// Live files spell the same shape as Standard_D2s_v5 / D2s v5 / B1MS; compare one normalized form.
+const shapeOf = (value: string | undefined) => (value ?? "").replace(/^Standard_/i, "").replace(/[_\s]+/g, " ").trim().toLowerCase();
 const meter = (service: string, meterName: RegExp, product?: RegExp) => (i: AzureItem) =>
   i.serviceName === service && meterName.test(i.meterName ?? "") && (product ? product.test(i.productName ?? "") : true);
 
 export const AZURE_RULES: readonly AzureRule[] = [
   ...[["small", "B1ms"], ["medium", "B2s"], ["large", "D2s_v5"]].map(([size, shape]): AzureRule => ({
-    sku: `azure.vm.${size}_hour`, unit: "hour", match: i => i.serviceName === "Virtual Machines" && i.armSkuName === `Standard_${shape}` && i.meterName === shape && !/Windows|Spot|Low Priority/i.test(`${i.productName} ${i.skuName}`), unitOfMeasure: /^1 Hour$/i, pick: "first_paid", note: `Standard_${shape} Linux consumption VM, no Spot or Windows license`,
+    sku: `azure.vm.${size}_hour`, unit: "hour", match: i => i.serviceName === "Virtual Machines" && i.armSkuName === `Standard_${shape}` && shapeOf(i.meterName) === shapeOf(shape) && !/Windows|Spot|Low Priority/i.test(`${i.productName} ${i.skuName}`), unitOfMeasure: /^1 Hour$/i, pick: "first_paid", note: `Standard_${shape} Linux consumption VM, no Spot or Windows license`,
   })),
   ...[["nano", "B1ms"], ["small", "B2s"], ["standard", "D2ds_v5"], ["performance", "D4ds_v5"]].map(([size, shape]): AzureRule => ({
-    sku: `azure.postgres_flexible.${size}_hour`, unit: "hour", match: i => i.serviceName === "Azure Database for PostgreSQL" && /Flexible Server/i.test(i.productName ?? "") && i.armSkuName === `Standard_${shape}` && i.meterName === shape && !/Reserved|HA|High Availability/i.test(`${i.productName} ${i.skuName}`), unitOfMeasure: /^1 Hour$/i, pick: "first_paid", note: `PostgreSQL Flexible Server Standard_${shape} consumption compute, no HA`,
+    sku: `azure.postgres_flexible.${size}_hour`, unit: "hour", match: i => i.serviceName === "Azure Database for PostgreSQL" && /Flexible Server/i.test(i.productName ?? "") && shapeOf(i.armSkuName) === shapeOf(shape) && (shapeOf(i.meterName) === shapeOf(shape) || i.meterName === "vCore") && !/Reserved|HA|High Availability/i.test(`${i.productName} ${i.skuName}`), unitOfMeasure: /^1 Hour$/i, pick: "first_paid", note: `PostgreSQL Flexible Server Standard_${shape} consumption compute, no HA`,
   })),
   { sku: "azure.public_ip.hour", unit: "hour", match: meter("Virtual Network", /^Standard IPv4 Static Public IP$/), unitOfMeasure: /^1 Hour$/i, pick: "first_paid", note: "Standard IPv4 Static Public IP per hour" },
   {
     sku: "azure.bandwidth.internet_gb",
     unit: "gb",
-    match: meter("Bandwidth", /^Standard Data Transfer Out$/),
+    // Retail Prices lists the meter under both routing preferences; the catalog prices Microsoft-network routing.
+    match: (i) => meter("Bandwidth", /^Standard Data Transfer Out$/)(i) && !/Routing Preference: Internet/i.test(i.productName ?? ""),
     unitOfMeasure: /^1 GB$/i,
     pick: "tiers",
     note: "Internet data transfer out; first paid tier from 0 GB (free allowance not deducted), provider volume tiers from their cumulative boundaries",
   },
-  { sku: "azure.bandwidth.inter_region_gb", unit: "gb", match: meter("Bandwidth", /Data Transfer Out$/, /Inter-?Region/i), unitOfMeasure: /^1 GB$/i, pick: "first_paid", how: "mode", note: "Inter-region data transfer out; most common rate, higher rate on a tie" },
+  // Live files name the meter "Standard Inter-Region Data Transfer" under the Microsoft-network product.
+  { sku: "azure.bandwidth.inter_region_gb", unit: "gb", match: (i) => meter("Bandwidth", /Data Transfer Out$/, /Inter-?Region/i)(i) || (meter("Bandwidth", /^Standard Inter-Region Data Transfer$/)(i) && !/Routing Preference: Internet/i.test(i.productName ?? "")), unitOfMeasure: /^1 GB$/i, pick: "first_paid", how: "mode", note: "Inter-region data transfer out; most common rate, higher rate on a tie" },
   { sku: "azure.nat_gateway.hour", unit: "hour", match: meter("NAT Gateway", /^Standard Gateway$/), unitOfMeasure: /^1 Hour$/i, pick: "first_paid", note: "NAT Gateway resource hours" },
   { sku: "azure.nat_gateway.gb", unit: "gb", match: meter("NAT Gateway", /^Standard Data Processed$/), unitOfMeasure: /^1 GB$/i, pick: "first_paid", note: "NAT Gateway data processed per GB" },
   { sku: "azure.container_apps.vcpu_hour", unit: "hour", match: meter("Azure Container Apps", /^Standard vCPU Active Usage$/), unitOfMeasure: /second/i, scale: 3600, pick: "first_paid", note: "Container Apps active vCPU, per second converted to hours" },

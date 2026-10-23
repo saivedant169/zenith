@@ -4,14 +4,15 @@
  */
 import type { PriceCatalog } from "@/lib/placement/types";
 import { applyRefresh, type RefreshReport } from "@/lib/placement/catalog-refresh/merge";
-import { normalizeAws } from "@/lib/placement/catalog-refresh/normalize-aws";
-import { normalizeAzure } from "@/lib/placement/catalog-refresh/normalize-azure";
-import { normalizeGcp } from "@/lib/placement/catalog-refresh/normalize-gcp";
-import { normalizeOci } from "@/lib/placement/catalog-refresh/normalize-oci";
+import { awsRefreshableSkus, normalizeAws } from "@/lib/placement/catalog-refresh/normalize-aws";
+import { azureRefreshableSkus, normalizeAzure } from "@/lib/placement/catalog-refresh/normalize-azure";
+import { gcpRefreshableSkus, normalizeGcp } from "@/lib/placement/catalog-refresh/normalize-gcp";
+import { normalizeOci, ociRefreshableSkus } from "@/lib/placement/catalog-refresh/normalize-oci";
 import { RefreshError, type NormalizeContext, type Normalizer, type PriceObservation, type Skipped, type SnapshotEntry, type SnapshotFormat } from "@/lib/placement/catalog-refresh/types";
 import type { LoadedSnapshot } from "@/lib/placement/catalog-refresh/snapshots";
 import { verifySnapshotBytes } from "@/lib/placement/catalog-refresh/snapshots";
 
+const REFRESHABLE: Record<SnapshotEntry["provider"], () => string[]> = { aws: awsRefreshableSkus, gcp: gcpRefreshableSkus, azure: azureRefreshableSkus, oci: ociRefreshableSkus };
 const NORMALIZERS: Record<SnapshotFormat, Normalizer> = {
   aws_price_list: normalizeAws,
   gcp_billing_catalog: normalizeGcp,
@@ -64,6 +65,18 @@ export function refreshFromSnapshots(input: RefreshFromSnapshotsInput): RefreshO
     skipped.push(...out.skipped);
   }
   if (observations.length === 0) throw new RefreshError("validation", "No price could be read from the snapshots; refusing to publish a catalog that refreshed nothing.");
+  // A file that lacks a price another file supplied is not a miss; a refreshable target no file answered is.
+  const observed = new Set(observations.map((o) => `${o.sku}|${o.region}`));
+  const reported = new Map<string, Skipped>();
+  for (const s of skipped) if (!observed.has(`${s.sku}|${s.region}`) && !reported.has(`${s.sku}|${s.region}`)) reported.set(`${s.sku}|${s.region}`, s);
+  for (const provider of new Set(input.snapshots.map((s) => s.entry.provider))) {
+    const refreshable = new Set(REFRESHABLE[provider]());
+    for (const e of input.base.entries) {
+      const key = `${e.sku}|${e.region}`;
+      if (e.provider === provider && refreshable.has(e.sku) && !observed.has(key) && !reported.has(key)) reported.set(key, { sku: e.sku, region: e.region, reason: "no snapshot file had a matching price" });
+    }
+  }
+  skipped.splice(0, skipped.length, ...reported.values());
   const entries: SnapshotEntry[] = input.snapshots.map((s) => s.entry);
   const { catalog, report } = applyRefresh({
     base: input.base,

@@ -1,0 +1,55 @@
+Catalog refresh 2026-10-05.2 -> 2026-10-23.1
+  updated 8, unchanged 244, added 4, flagged 0, rejected 3
+  not refreshed (kept earlier value and source): 459; still weak evidence: 317
+  rejected aws/ap-southeast-1/aws.data_transfer.inter_az_gb: a second observation for the same entry; first one kept
+  rejected aws/eu-west-1/aws.data_transfer.inter_az_gb: a second observation for the same entry; first one kept
+  rejected aws/us-east-1/aws.data_transfer.inter_az_gb: a second observation for the same entry; first one kept
+  cost dimensions not fully priced: 17
+    aws storage_io_requests: not_priced (missing ap-south-1, ap-southeast-1, eu-west-1, us-east-1)
+    aws cross_region_backup_copy: not_priced (missing ap-south-1, ap-southeast-1, eu-west-1, us-east-1)
+    azure inter_az_transfer: not_priced (missing centralindia, eastus, southeastasia, westeurope)
+    azure storage_io_requests: not_priced (missing centralindia, eastus, southeastasia, westeurope)
+    azure cross_region_backup_copy: not_priced (missing centralindia, eastus, southeastasia, westeurope)
+    gcp internet_egress_volume_tiers: not_priced (missing asia-south1, asia-southeast1, europe-west1, us-central1)
+    gcp inter_az_transfer: not_priced (missing asia-south1, asia-southeast1, europe-west1, us-central1)
+    gcp storage_io_requests: not_priced (missing asia-south1, asia-southeast1, europe-west1, us-central1)
+    gcp cross_region_backup_copy: not_priced (missing asia-south1, asia-southeast1, europe-west1, us-central1)
+    oci internet_egress_volume_tiers: not_priced (missing ap-mumbai-1, ap-singapore-1, us-ashburn-1)
+    oci inter_az_transfer: not_priced (missing ap-mumbai-1, ap-singapore-1, us-ashburn-1)
+    oci storage_io_requests: not_priced (missing ap-mumbai-1, ap-singapore-1, us-ashburn-1)
+    oci cross_region_backup_copy: not_priced (missing ap-mumbai-1, ap-singapore-1, us-ashburn-1)
+    zenith internet_egress_volume_tiers: not_priced (missing ap-south, ap-southeast, eu-west, us-east)
+    zenith inter_az_transfer: not_priced (missing ap-south, ap-southeast, eu-west, us-east)
+    zenith storage_io_requests: not_priced (missing ap-south, ap-southeast, eu-west, us-east)
+    zenith cross_region_backup_copy: not_priced (missing ap-south, ap-southeast, eu-west, us-east)
+Skipped targets (not guessed): 29
+  aws.route53.zone_month ap-south-1: no matching price in the file
+  aws.route53.zone_month ap-southeast-1: no matching price in the file
+  aws.route53.zone_month eu-west-1: no matching price in the file
+  aws.route53.zone_month us-east-1: no matching price in the file
+  azure.blob.storage_gb_month eastus: ambiguous: 2 matching products carry 2 different prices
+  azure.blob.storage_gb_month westeurope: ambiguous: 2 matching products carry 2 different prices
+  oci.network.internet_gb ap-mumbai-1: ambiguous: 4 matching products carry 4 different prices
+  oci.network.internet_gb ap-singapore-1: ambiguous: 4 matching products carry 4 different prices
+  oci.network.internet_gb us-ashburn-1: ambiguous: 4 matching products carry 4 different prices
+  azure.blob.put_million centralindia: no snapshot file had a matching price
+  azure.blob.put_million southeastasia: no snapshot file had a matching price
+  azure.blob.put_million eastus: no snapshot file had a matching price
+  azure.blob.put_million westeurope: no snapshot file had a matching price
+  azure.nat_gateway.hour centralindia: no snapshot file had a matching price
+  azure.nat_gateway.hour southeastasia: no snapshot file had a matching price
+  azure.nat_gateway.hour eastus: no snapshot file had a matching price
+  azure.nat_gateway.hour westeurope: no snapshot file had a matching price
+  azure.nat_gateway.gb centralindia: no snapshot file had a matching price
+  azure.nat_gateway.gb southeastasia: no snapshot file had a matching price
+  azure.nat_gateway.gb eastus: no snapshot file had a matching price
+  azure.nat_gateway.gb westeurope: no snapshot file had a matching price
+  azure.dns.zone_month centralindia: no snapshot file had a matching price
+  azure.dns.zone_month southeastasia: no snapshot file had a matching price
+  azure.dns.zone_month eastus: no snapshot file had a matching price
+  azure.dns.zone_month westeurope: no snapshot file had a matching price
+  azure.dns.queries_million centralindia: no snapshot file had a matching price
+  azure.dns.queries_million southeastasia: no snapshot file had a matching price
+  azure.dns.queries_million eastus: no snapshot file had a matching price
+  azure.dns.queries_million westeurope: no snapshot file had a matching price
+Wrote the candidate catalog (scratch; sha256 in candidate-catalog.sha256). Review the report and the diff before adopting it as the bundled catalog.

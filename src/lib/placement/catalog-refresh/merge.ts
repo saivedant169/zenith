@@ -112,7 +112,10 @@ export function applyRefresh(options: RefreshOptions): { catalog: PriceCatalog; 
   const refreshedByProvider = new Map<string, number>();
   const newEntries: PriceEntry[] = [];
 
-  for (const o of [...options.observations].sort((a, b) => (key(a.provider, a.region, a.sku) < key(b.provider, b.region, b.sku) ? -1 : 1))) {
+  // Unit scaling and derivation multiply binary floats (0.0000004 x 1e6 = 0.39999999999999997); keep 12 significant digits.
+  const price = (usd: number) => Number(usd.toPrecision(12));
+  const rounded = options.observations.map((o) => ({ ...o, usd: price(o.usd), ...(o.tiers ? { tiers: o.tiers.map((t) => ({ ...t, usd: price(t.usd) })) } : {}) }));
+  for (const o of rounded.sort((a, b) => (key(a.provider, a.region, a.sku) < key(b.provider, b.region, b.sku) ? -1 : 1))) {
     const snap = bySha.get(o.snapshotSha256);
     const reject = (reason: string) => report.rejected.push({ provider: o.provider, region: o.region, sku: o.sku, reason });
     if (!snap) {

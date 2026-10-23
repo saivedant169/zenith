@@ -52,8 +52,8 @@
       "region": "eastus",
       "url": "https://prices.azure.com/api/retail/prices?currencyCode='USD'",
       "retrievedAt": "2026-10-06",
-      "sha256": "4a5dde2773257d1e0179788b27de7ee603e4ea9a3245319613e29eff2102de16",
-      "bytes": 2072,
+      "sha256": "1a01d919fd427ff944fd2fa80d4b17356945e58bc8f62411357b640959e7389e",
+      "bytes": 1967,
       "file": "azure-Bandwidth-eastus.json"
     },
     {

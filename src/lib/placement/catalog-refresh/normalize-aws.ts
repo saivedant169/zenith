@@ -60,7 +60,8 @@ const ec2 = (sku: string, type: string) =>
 const rds = (sku: string, type: string) =>
   instance("AmazonRDS", sku, type, (a) => a.databaseEngine === "PostgreSQL" && a.deploymentOption === "Single-AZ", "Database Instance", `${type} PostgreSQL Single-AZ`);
 const cache = (sku: string, type: string) =>
-  instance("AmazonElastiCache", sku, type, (a) => a.cacheEngine === "Redis", "Cache Instance", `${type} Redis on-demand node`);
+  // Plain NodeUsage only: Extended Support usage types (year 1-2, year 3) carry the same instance type at other prices.
+  instance("AmazonElastiCache", sku, type, (a) => a.cacheEngine === "Redis" && /^(?:[A-Z0-9]+-)?NodeUsage:/.test(a.usagetype ?? ""), "Cache Instance", `${type} Redis on-demand node`);
 
 export const AWS_RULES: readonly AwsRule[] = [
   { sku: "aws.nat_gateway.hour", unit: "hour", offers: ["AmazonEC2", "AmazonVPC"], match: usage(suffix("NatGateway-Hours")), dimUnit: /hrs?|hour/i, pick: "first_paid", note: "NAT Gateway hourly charge" },
@@ -94,7 +95,8 @@ export const AWS_RULES: readonly AwsRule[] = [
     pick: "first_paid",
     note: "Data transfer between availability zones in a region, per GB; AWS bills it in each direction",
   },
-  { sku: "aws.alb.hour", unit: "hour", offers: ["AWSELB"], match: (p, _a, u) => p.productFamily === "Load Balancer-Application" && suffix("LoadBalancerUsage").test(u), dimUnit: /hrs?|hour/i, pick: "first_paid", note: "Application Load Balancer hourly charge" },
+  // Outposts and Trust Store usage types share the LoadBalancerUsage suffix; the group description names the plain ALB hour.
+  { sku: "aws.alb.hour", unit: "hour", offers: ["AWSELB"], match: (p, a, u) => p.productFamily === "Load Balancer-Application" && suffix("LoadBalancerUsage").test(u) && !/Outposts/.test(u) && (a.groupDescription === undefined || a.groupDescription === "LoadBalancer hourly usage by Application Load Balancer"), dimUnit: /hrs?|hour/i, pick: "first_paid", note: "Application Load Balancer hourly charge" },
   { sku: "aws.alb.lcu_hour", unit: "hour", offers: ["AWSELB"], match: (p, _a, u) => p.productFamily === "Load Balancer-Application" && suffix("LCUUsage").test(u), dimUnit: /lcu|hrs?|hour/i, pick: "first_paid", note: "ALB Load Balancer Capacity Unit hour" },
   { sku: "aws.fargate.vcpu_hour", unit: "hour", offers: ["AmazonECS"], match: usage(suffix("Fargate-vCPU-Hours:perCPU")), dimUnit: /hour|hrs?/i, pick: "first_paid", note: "Fargate Linux/X86 on-demand, per vCPU-hour" },
   { sku: "aws.fargate.gb_hour", unit: "hour", offers: ["AmazonECS"], match: usage(suffix("Fargate-GB-Hours")), dimUnit: /hour|hrs?/i, pick: "first_paid", note: "Fargate Linux/X86 on-demand, per GB-hour" },
@@ -107,7 +109,8 @@ export const AWS_RULES: readonly AwsRule[] = [
   { sku: "aws.s3.storage_gb_month", unit: "gb_month", offers: ["AmazonS3"], match: (_p, a, u) => a.volumeType === "Standard" && suffix("TimedStorage-ByteHrs").test(u), dimUnit: /gb-mo/i, pick: "first_paid", note: "S3 Standard first paid tier" },
   { sku: "aws.s3.get_million", unit: "million_requests", offers: ["AmazonS3"], match: usage(suffix("Requests-Tier2")), dimUnit: /requests?/i, scale: 1e6, pick: "first_paid", note: "S3 GET/SELECT (Tier 2) per million" },
   { sku: "aws.s3.put_million", unit: "million_requests", offers: ["AmazonS3"], match: usage(suffix("Requests-Tier1")), dimUnit: /requests?/i, scale: 1e6, pick: "first_paid", note: "S3 PUT/COPY/POST/LIST (Tier 1) per million" },
-  { sku: "aws.sqs.requests_million", unit: "million_requests", offers: ["AWSQueueService"], match: usage(suffix("Requests-Tier1")), dimUnit: /requests?/i, scale: 1e6, pick: "first_paid", note: "SQS Standard queue requests per million (first paid tier)" },
+  // us-east-1 names the Standard tier-1 usage type Requests-RBP; the group attribute is stable in every region.
+  { sku: "aws.sqs.requests_million", unit: "million_requests", offers: ["AWSQueueService"], match: (_p, a, u) => a.group !== undefined ? a.queueType === "Standard" && a.group === "SQS-APIRequest-Tier1" : suffix("Requests-Tier1").test(u), dimUnit: /requests?/i, scale: 1e6, pick: "first_paid", note: "SQS Standard queue requests per million (first paid tier)" },
   { sku: "aws.route53.zone_month", unit: "month", offers: ["AmazonRoute53"], match: usage(suffix("HostedZone")), dimUnit: /.*/, pick: "first_paid", note: "Route 53 hosted zone (first paid tier)" },
   { sku: "aws.route53.queries_million", unit: "million_requests", offers: ["AmazonRoute53"], match: usage(suffix("DNS-Queries")), dimUnit: /quer/i, scale: 1e6, pick: "first_paid", note: "Route 53 standard queries, first paid tier" },
   { sku: "aws.cloudwatch.logs_ingest_gb", unit: "gb", offers: ["AmazonCloudWatch"], match: (p, _a, u) => p.productFamily === "Data Payload" && suffix("DataProcessing-Bytes").test(u), dimUnit: /^gb$/i, pick: "first_paid", note: "CloudWatch Logs standard ingestion per GB" },

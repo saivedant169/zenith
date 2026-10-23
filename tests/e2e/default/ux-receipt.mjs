@@ -25,6 +25,7 @@ export const UX_CASES_V3 = Object.freeze([...UX_CASES_V2,
 /** Schema 4 adds the AWS onboarding flow, and keyboard operability (reach, focus indicator, native controls) on every viewport. */
 export const UX_CASES = Object.freeze([...UX_CASES_V3,
   { id: 'ux01-aws-onboarding-a11y', pages: ['connection-aws-onboarding'] },
+  { id: 'ux01-legacy-cancel-a11y', pages: ['legacy-cancel-offered', 'legacy-cancel-confirming', 'legacy-cancel-viewer'] },
 ]);
 /** The measured executable, e.g. "Google Chrome 141.0.7390.54 via Playwright". */
 const BROWSER_RE = /^(?:Google Chrome|Chromium) \d+(?:\.\d+){1,3} via Playwright$/;

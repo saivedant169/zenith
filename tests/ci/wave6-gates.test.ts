@@ -37,7 +37,7 @@ describe("closed Wave 6 integration registry", () => {
     expect(UX_IDS).toEqual([
       "ux01-operation-review-a11y", "ux01-independent-approval-a11y", "ux01-replan-reapproval-a11y",
       "ux01-cancel-operation-a11y", "ux01-legacy-projection-a11y", "ux01-runbook-approval-progress-a11y",
-      "ux01-readiness-a11y", "ux01-uncertainty-a11y", "ux01-connection-onboarding-a11y", "ux01-connection-admin-a11y", "ux01-aws-onboarding-a11y",
+      "ux01-readiness-a11y", "ux01-uncertainty-a11y", "ux01-connection-onboarding-a11y", "ux01-connection-admin-a11y", "ux01-aws-onboarding-a11y", "ux01-legacy-cancel-a11y",
     ]);
     expect(new Set([...J2_CHECKS, ...UX_IDS]).size).toBe(J2_CHECKS.length + UX_IDS.length);
     const gate = WAVE6.gatedCases.find((item: { id: string }) => item.id === "wave6-03be46338cbeb148");

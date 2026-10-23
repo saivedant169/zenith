@@ -335,7 +335,7 @@ This prints the exact argv for each contract batch and required engine case, its
 
 Wave 6 maps `tests/e2e/default/ux-receipt.test.ts` and `tests/e2e/default/ux-receipt-gated.test.ts` to `PROD-UX-01`; the actual-browser receipt gate is `wave6-03be46338cbeb148`. The contract test checks the closed receipt schema. The gated test validates the private UX receipt against the completed, source-bound J2 journey receipt and actual Wave 6 report.
 
-This evidence records seven audited screens at the defined desktop and mobile viewports. The planned uncertainty scenario remains `not_run`, so the UX receipt result is `incomplete`; this mapping does not establish full UX acceptance.
+(Historical, schema 1/2.) This evidence recorded seven audited screens with the uncertainty scenario `not_run`. Superseded by the schema 3 and schema 4 receipts in the sections below.
 
 ## Hosted acceptance, 2026-10-23 (supersedes "pending" statements above)
 - The UX cases run on GitHub-hosted native linux/amd64 and linux/arm64 through `clean-host-journey.yml`
@@ -352,12 +352,11 @@ This evidence records seven audited screens at the defined desktop and mobile vi
   step-up) run in the same hosted job. Workspace MFA persistence runs on PostgreSQL.
 - `scripts/ci/ux01-receipt.mjs` runs the local lanes (contract batches, receipt gate per architecture, MFA
   PostgreSQL) on the same commit.
-- Registry: `oauth-issuer-live.test.ts` belongs to PROD-UX-02 (client OAuth issuer and audience) and
-  `plugin-platform-live.test.ts` to PROD-UX-03's operated level; neither is in UX-01's acceptance text, so
-  both were removed from UX-01's inventory (each remains registered under its owner).
-- Scope qualifiers (independent review, 2026-10-23): "connection onboarding" here is the runner-connection review
-  page; the AWS connect page is not audited. Keyboard evidence is Tab reachability on desktop only (no
-  Enter/Space activation, focus-visible or mobile keyboard check); no screen-reader pass. Plugin trust actions
+- Registry: `oauth-issuer-live.test.ts` belongs to PROD-UX-02 (client OAuth issuer and audience) and was removed
+  from UX-01's inventory. `plugin-platform-live.test.ts` stays registered under PROD-UX-01 (plugin trust actions are
+  step-up-protected privileged routes) as well as serving PROD-UX-03.
+- Scope qualifiers at the time (superseded by "Accessibility scope after the 2026-10-23 review" below, which adds the
+  AWS connect page, focus indicators, native-control checks and 375 px keyboard scans): no screen-reader pass. Plugin trust actions
   are step-up-protected privileged routes, so the operated plugin platform case (`wave6-546689f4b22fdb85`,
   real browser AAL2 consent) is part of UX-01 step-up evidence and runs on the Mac (its gateway reaches the
   API through Docker Desktop's host mapping, which Linux runners do not provide).
@@ -401,6 +400,12 @@ scope was not narrowed; the audit was widened:
 - The legacy-engine cancellation control renders only for legacy (non-workflow) deployments, which J2 does not create.
   Its states (offered, confirming, unconfirmed outcome, success, disabled for viewers) get axe A/AA in the component
   lane (`tests/screens/legacy-cancel-axe.test.tsx`); colour contrast needs layout and is reported as not evaluated.
+- Enter/Space activation is checked structurally (every visible widget-role element is native: buttons, inputs,
+  links with an href), not by pressing keys on real controls, which would act on the system under test. The 375 px
+  scans use a desktop browser at phone width with Tab, not a mobile device or on-screen keyboard.
+- Legacy cancellation is also audited in the real browser (case `ux01-legacy-cancel-a11y`, added after the 8b9a4fb0
+  evidence): a labelled fixture clones the J2 deployment as a legacy one awaiting approval, the control is audited
+  offered, confirming and as a viewer (disabled), and the fixture is deleted; confirm is never clicked.
 - Not covered by automation: a real screen-reader pass (VoiceOver/NVDA), which stays a supervised human step.
 
 Evidence, all on 8b9a4fb0: hosted run 39968933457 (`2026-10-23-hosted-39968933457/`, both UX receipts and the J2/MFA

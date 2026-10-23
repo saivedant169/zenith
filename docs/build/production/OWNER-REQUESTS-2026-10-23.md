@@ -54,6 +54,11 @@ umask 077; mkdir -p ~/.config/zenith-secrets
 Later, scheduled separately: **UX-02 supervised session.** You sign in to Claude Code and Codex through their official
 clients (`claude mcp login`, `codex mcp login`); I drive the Zenith connection, proposal, approval, deployment,
 observation, revocation and reconnection paths and record real-client evidence apart from MCP test-client evidence.
+In the same sitting, a **VoiceOver walk** for PROD-UX-01 (about 20 minutes, macOS VoiceOver, Safari or Chrome): operation
+approve and cancel, reapproval after a replan, the uncertain-outcome callout, runbook progress, connection change
+confirmation and the MFA step-up dialog. You drive VoiceOver; I record what it announces (name, role, state) and where
+focus lands after each action, from its caption panel, and fix any defect it finds. This is the one accessibility check
+automation cannot do.
 
 ## Still open after setup
 

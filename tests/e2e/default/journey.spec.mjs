@@ -43,7 +43,9 @@ async function auditUx(page, pageId, axeSource, scans) {
  *   wrapper ring drawn with :focus-within counts): outline, box-shadow or border colour differs between focused and
  *   unfocused (WCAG 2.4.7). A static shadow that does not change never counts.
  * - nonNative: focusable elements that act as controls (role button/link/checkbox/...) but are not native elements, so
- *   Enter/Space activation is not guaranteed by the platform. Native buttons, links and inputs get it from the browser.
+ *   Enter/Space activation is not guaranteed by the platform. Native buttons, links with an href and inputs get it
+ *   from the browser. Every visible element with a widget role is checked, focusable or not. Keys are not pressed on
+ *   real controls (that would act on the system under test), so this is a structural check, not a keystroke test.
  */
 const CONTROL_KEYS = () => {
   const visible = element => element.getClientRects().length > 0 && getComputedStyle(element).visibility !== 'hidden';
@@ -58,12 +60,17 @@ const CONTROL_KEYS = () => {
     const n = seen.get(base) ?? 0; seen.set(base, n + 1); keys.set(element, base + '#' + n);
   }
   const shape = element => [element.tagName, element.getAttribute('role'), element.getAttribute('type')].map(value => String(value ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 20)).filter(Boolean).join('-');
-  const NATIVE = new Set(['A', 'BUTTON', 'INPUT', 'SELECT', 'TEXTAREA', 'SUMMARY']);
-  const ACTIONS = new Set(['button', 'link', 'checkbox', 'radio', 'switch', 'menuitem', 'tab', 'option']);
-  const nonNative = controls.filter(element => !NATIVE.has(element.tagName) && ACTIONS.has(element.getAttribute('role') ?? '')).map(element => keys.get(element));
+  // Native means the browser itself activates it with Enter/Space: a link only with an href.
+  const native = element => ['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA', 'SUMMARY'].includes(element.tagName) || (element.tagName === 'A' && element.hasAttribute('href'));
+  const ACTIONS = new Set(['button', 'link', 'checkbox', 'radio', 'switch', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'tab', 'option',
+    'combobox', 'slider', 'spinbutton', 'treeitem', 'searchbox', 'textbox', 'menu', 'menubar', 'listbox', 'tree', 'grid', 'scrollbar']);
+  // Every visible element that claims a widget role, focusable or not: a div role=button without tabindex is a miss too.
+  const nonNative = [...document.querySelectorAll('[role]')].filter(element => visible(element) && ACTIONS.has(element.getAttribute('role') ?? '') && !native(element))
+    .map(element => keys.get(element) ?? [element.tagName, element.getAttribute('role'), 'unfocusable'].join('|'));
   const active = document.activeElement;
   return { keys: [...new Set(keys.values())], active: keys.get(active) ?? null, nonNative,
-    shapes: Object.fromEntries([...keys].map(([element, key]) => [key, shape(element)])) };
+    shapes: Object.fromEntries([...[...keys].map(([element, key]) => [key, shape(element)]),
+      ...[...document.querySelectorAll('[role]')].filter(element => !keys.has(element)).map(element => [[element.tagName, element.getAttribute('role'), 'unfocusable'].join('|'), shape(element)])]) };
 };
 /** True when focusing the active element visibly changes it or a near ancestor; focus is restored afterwards. */
 const FOCUS_INDICATOR = () => {
@@ -849,6 +856,44 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       ensure(await uxA.getByRole('heading', { name: 'Deployment', exact: true }).count() === 1, 'ux01-deployment-heading');
       ensure((await uxA.locator('[data-testid="journey-live"]:visible').innerText()).split('. ')[0] === stage, 'ux01-legacy-projection');
       await auditUx(uxA, 'linked-workflow-deployment', axeSource, uxCases.find(row => row.id === 'ux01-legacy-projection-a11y').scans);
+    });
+    // Legacy-engine cancellation renders only for non-workflow deployments, which this journey never creates. A labelled
+    // fixture clones this deployment as a legacy one awaiting approval, the control is audited as offered, confirming
+    // and (for a viewer) disabled, and the fixture is deleted. Confirm is never clicked; nothing is cancelled.
+    if (UX_ENABLED) await uxCase('ux01-legacy-cancel-a11y', async () => {
+      const fixtureId = 'dep_ux01_legacy_' + runId;
+      const scans = uxCases.find(row => row.id === 'ux01-legacy-cancel-a11y').scans;
+      const inserted = await psqlRead(`insert into public.deployments (id, workspace_id, project_id, environment_id, revision_id, status, created_at, data)
+        select :'fixture_id', workspace_id, project_id, environment_id, revision_id, 'awaiting_approval', now(),
+          (data - 'executor' - 'operationId' - 'workflowStartedAt') || jsonb_build_object('id', :'fixture_id', 'status', 'awaiting_approval', 'changeSummary', 'UX-01 legacy-cancel accessibility fixture')
+        from public.deployments where id = :'deployment_id' returning json_build_object('id', id)::text`, { fixture_id: fixtureId, deployment_id: deploymentId });
+      ensure(inserted?.id === fixtureId, 'ux01-legacy-fixture');
+      let viewer;
+      try {
+        await uxA.goto(stack.apiUrl + '/platform/deployments/' + fixtureId);
+        await uxA.getByRole('heading', { name: 'Cancel deployment', exact: true }).waitFor();
+        await auditUx(uxA, 'legacy-cancel-offered', axeSource, scans);
+        await uxA.getByRole('button', { name: 'Cancel deployment', exact: true }).click();
+        await uxA.getByRole('button', { name: 'Confirm cancellation', exact: true }).waitFor();
+        await auditUx(uxA, 'legacy-cancel-confirming', axeSource, scans);
+        await uxA.getByRole('button', { name: 'Keep deployment running', exact: true }).click();
+        // A viewer sees the control disabled with its explanation.
+        const operatorC = await operator(stack, config.mailpitUrl, 'c', users);
+        viewer = await uxBrowser.newContext().then(context => context.newPage());
+        await authenticateBeforeWorkspace(viewer, stack, operatorC);
+        const invite = ok(await browserRequest(a, '/api/workspace/invites', { email: operatorC.email, role: 'viewer', workspaceId })).invite;
+        const joined = ok(await browserRequest(viewer, '/api/workspace/invites/' + invite.id + '/accept', {}));
+        ensure(joined.member?.role === 'viewer', 'ux01-viewer-membership');
+        ok(await browserRequest(viewer, '/api/bootstrap'));
+        await viewer.goto(stack.apiUrl + '/platform/deployments/' + fixtureId);
+        await viewer.getByRole('heading', { name: 'Cancel deployment', exact: true }).waitFor();
+        ensure(await viewer.getByRole('button', { name: 'Cancel deployment', exact: true }).isDisabled(), 'ux01-viewer-cancel-disabled');
+        await auditUx(viewer, 'legacy-cancel-viewer', axeSource, scans);
+      } finally {
+        await viewer?.context().close();
+        const removed = await psqlRead(`with d as (delete from public.deployments where id = :'fixture_id' returning id) select json_build_object('removed', (select count(*) from d))::text`, { fixture_id: fixtureId });
+        ensure(removed?.removed === 1, 'ux01-legacy-fixture-cleanup');
+      }
     });
     await step('rest-proposal-execution-readback', async () => {
       await scale('rest', 2); readbacks.kind = await kindReadback(config, 2, witnessNonce);

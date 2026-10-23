@@ -7598,7 +7598,7 @@
         "PROD-CI-09"
       ],
       "implementationStatus": "implementation_complete_verification_pending",
-      "implementationNote": "2026-10-23: hosted two-architecture UX (receipt schema 3: ten audited groups including the runner-connection onboarding review page and connection administration, axe WCAG 2.1 A/AA at two viewports, desktop keyboard Tab reachability, measured browser), real-browser MFA enrollment/step-up/workspace controls against fresh real-UI admins, and local MFA PostgreSQL lanes. Not covered: AWS connect page audit, keyboard activation/focus-visible/mobile, screen reader. Pending: operated plugin platform case (plugin trust step-up in a real browser) on the Mac. See verify/PROD-UX-01.md 'Hosted acceptance, 2026-10-23'.",
+      "implementationNote": "2026-10-23: UX receipt schema 4 on GitHub-hosted amd64 and arm64: axe WCAG 2.0/2.1 A+AA at 1280 and 375 px, keyboard reach of every present control, a focus indicator on every reached control, native controls only (structural Enter/Space check), AWS onboarding, connection admin and onboarding, readiness, plan, progress, cancellation, replan/reapproval, uncertainty and legacy projection; real-browser MFA enrollment/step-up/workspace controls; MFA and plugin PostgreSQL lanes; plugin Docker lanes; operated plugin-platform step-up case. Legacy cancellation audited in a real browser (fixture) from the commit after 8b9a4fb0. Not covered: a real screen-reader pass. See verify/PROD-UX-01.md 'Accessibility scope after the 2026-10-23 review'.",
       "evidence": [
         {
           "level": "contract",

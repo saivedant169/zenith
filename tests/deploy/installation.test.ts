@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { prepare, validateInput, installationEnvironment, assertPreparedVersion } from '../../scripts/deploy/installation.mjs';
+import { prepare, validateInput, installationEnvironment, assertPreparedVersion, environmentsFor } from '../../scripts/deploy/installation.mjs';
 
 type Input = Parameters<typeof prepare>[0];
 const runtimeSecret = () => randomBytes(32).toString('hex');
@@ -42,6 +42,8 @@ describe('supported installation structural preflight', () => {
     { id: 'Temporal auth absent', change: v => { delete v.environment.ZENITH_TEMPORAL_API_KEY; }, failure: 'ZENITH_TEMPORAL_API_KEY' },
     { id: 'Temporal TLS disabled', change: v => { v.environment.ZENITH_TEMPORAL_TLS = 'false'; }, failure: 'ZENITH_TEMPORAL_TLS' },
     { id: 'unpaired OAuth config', change: v => { v.environment.ZENITH_AGENT_OAUTH_ISSUER = 'https://oauth.unit.invalid'; }, failure: 'ZENITH_AGENT_OAUTH_JWKS' },
+    { id: 'malformed plugin publisher trust', change: v => { v.environment.ZENITH_PLUGIN_TRUSTED_PUBLISHERS = '{"acme":[{"keyId":"k1","publicKey":"c2hvcnQ="}]}'; }, failure: 'ZENITH_PLUGIN_TRUSTED_PUBLISHERS' },
+    { id: 'non-JSON plugin publisher trust', change: v => { v.environment.ZENITH_PLUGIN_TRUSTED_PUBLISHERS = 'acme=k1'; }, failure: 'ZENITH_PLUGIN_TRUSTED_PUBLISHERS' },
     { id: 'floating image', change: v => { v.images.worker = 'zenith/worker:latest'; }, failure: 'images.worker' },
     { id: 'out-of-range port', change: v => { v.apiPort = 80; }, failure: 'apiPort' },
   ];
@@ -116,5 +118,19 @@ describe('single Supabase installation authority', () => {
     expect(() => validateInput(value)).toThrow('disposable-engine-overrides');
     const unknown = { ...input(), registryPassword: runtimeSecret() };
     expect(() => validateInput(unknown)).toThrow('unknown-installation-field');
+  });
+});
+
+describe('plugin publisher trust', () => {
+  it('reaches the web app only, as the public verify keys the operator supplied', () => {
+    const value = input();
+    const publishers = JSON.stringify({ acme: [{ keyId: 'k1', publicKey: randomBytes(32).toString('base64') }] });
+    value.environment.ZENITH_PLUGIN_TRUSTED_PUBLISHERS = publishers;
+    expect(validateInput(value).mode).toBe('production');
+    const config = { ...value, environment: installationEnvironment(value), schemaVersion: 2, installationId: 'a'.repeat(24), projectName: 'zenith-unit', source: { head: 'h', contentSha256: 'c', dirty: false } } as Parameters<typeof environmentsFor>[0];
+    const files = environmentsFor(config, '/private/unit');
+    expect(files['api.env'].ZENITH_PLUGIN_TRUSTED_PUBLISHERS).toBe(publishers);
+    expect(files['worker.env'].ZENITH_PLUGIN_TRUSTED_PUBLISHERS).toBeUndefined();
+    expect(files['migration.env'].ZENITH_PLUGIN_TRUSTED_PUBLISHERS).toBeUndefined();
   });
 });

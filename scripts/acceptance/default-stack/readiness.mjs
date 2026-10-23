@@ -48,7 +48,8 @@ export async function poolerProbe(state, mode = 'tls') {
 export function apiProbeRequest(origin, port, input, init) {
   const canonical = new URL(origin), transport = new URL(input);
   if (transport.origin !== canonical.origin || ![ports.api, ports.peerApi].includes(port)) fail('api-probe-origin');
-  transport.hostname = '127.0.0.1'; transport.port = String(port);
+  // An HTTPS public origin (plugin-platform lane) is served by a TLS edge; probes reach the API port itself.
+  transport.protocol = 'http:'; transport.hostname = '127.0.0.1'; transport.port = String(port);
   const headers = new Headers(init?.headers); headers.set('host', canonical.host);
   return { url: transport, options: { ...init, headers } };
 }

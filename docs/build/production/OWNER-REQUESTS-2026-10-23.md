@@ -1,7 +1,7 @@
 # Owner requests, 2026-10-23
 
 Everything here needs a decision, an account, money or signoff that only the owner can give.
-All work that needs none of these continues without waiting. Status: 31 of 78 requirements verified.
+All work that needs none of these continues without waiting. Status: 32 of 78 requirements verified.
 
 ## Decisions (no account needed)
 
@@ -30,5 +30,5 @@ Signoff (REL-03) stays with the owner after evidence exists.
 
 ## Not blocked (in progress here)
 
-OBS-02 (two-architecture J2 green with explicit unknown/inaccessible machine health; review next), UX-01, COST-03
-(needs a usage meter and seven days of real telemetry), LIFE-11, PKG-06 local half.
+UX-01 (all hosted lanes green; operated plugin-platform case being built), COST-03
+(needs a usage meter and seven days of real telemetry), LIFE-11 (adopted-object teardown built and kind-gated; tenant backup, MinIO arm64 runtime, MySQL DNS/TLS open), PKG-06 local half.

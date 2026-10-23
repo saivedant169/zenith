@@ -475,6 +475,8 @@ describe("J4 deferred default-stack admission", () => {
     expect(parseJ4UpOptions(["--profile", "lean", "--directory", "/tmp/j4-stack", "--j4-defer-workers", "--j4-namespace", namespace, "--j4-temporal-port", "17233"]))
       .toEqual({ profile: "lean", directory: "/tmp/j4-stack", imageLock: undefined, j4: { namespace, temporalPort: 17233 } });
     expect(parseJ4UpOptions(["--profile", "default", "--directory", "/tmp/j1-stack"]).j4).toBeUndefined();
+    expect(parseJ4UpOptions(["--profile", "lean", "--plugin-platform", "/tmp/p.json"]).pluginPlatform).toBe("/tmp/p.json");
+    expect(() => parseJ4UpOptions(["--profile", "lean", "--plugin-platform", "/tmp/p.json", "--j4-defer-workers", "--j4-namespace", namespace, "--j4-temporal-port", "17233"])).toThrow("plugin-platform-options");
     for (const args of [
       ["--j4-defer-workers", "--j4-namespace", namespace, "--j4-temporal-port", "17233"],
       ["--profile", "default", "--j4-defer-workers", "--j4-namespace", namespace, "--j4-temporal-port", "17233"],

@@ -208,6 +208,13 @@ describe('canonical API origin on declared peer transport', () => {
     expect(() => apiProbeRequest('http://127.0.0.1:36400', ports.peerApi, 'http://foreign.localhost/api/me', {})).toThrow('api-probe-origin');
   });
 
+  it('probes an HTTPS public origin (plugin-platform edge) on the API port itself, keeping its Host', () => {
+    const origin = 'https://host.docker.internal:36443';
+    const request = apiProbeRequest(origin, ports.api, `${origin}/api/agent/v3/mcp`, {});
+    expect(request.url.href).toBe(`http://127.0.0.1:${ports.api}/api/agent/v3/mcp`);
+    expect(request.options.headers.get('host')).toBe('host.docker.internal:36443');
+  });
+
   it('sends the canonical Host on the wire, which fetch() silently drops', async () => {
     const origin = `http://127.0.0.1:${ports.api}`;
     const server = http.createServer((request, response) => {

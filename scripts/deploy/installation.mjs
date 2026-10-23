@@ -17,7 +17,7 @@ const fields = new Set([
   'SUPABASE_DB_URL', 'ZENITH_PLATFORM_DB_URL', 'ZENITH_PLATFORM_MIGRATION_URL',
   'ZENITH_TEMPORAL_ADDRESS', 'ZENITH_TEMPORAL_NAMESPACE', 'ZENITH_TEMPORAL_TLS',
   'ZENITH_TEMPORAL_API_KEY', 'ZENITH_AGENT_OAUTH_ISSUER', 'ZENITH_AGENT_OAUTH_JWKS',
-  'ZENITH_AGENT_OAUTH_CLIENT_CLAIM', 'ZENITH_AGENT_OAUTH_SUBJECT_CLAIM',
+  'ZENITH_AGENT_OAUTH_CLIENT_CLAIM', 'ZENITH_AGENT_OAUTH_SUBJECT_CLAIM', 'ZENITH_PLUGIN_TRUSTED_PUBLISHERS',
 ]);
 const generated = new Set(['ZENITH_SECRET_KEY', 'ZENITH_PLAN_ARTIFACT_KEY', 'ZENITH_CONTROL_SIGNING_JWK', 'ZENITH_OIDC_SIGNING_JWK']);
 const hash = (/** @type {string|Buffer} */ value) => createHash('sha256').update(value).digest('hex');
@@ -57,6 +57,21 @@ function databaseUrl(value, field, tls) {
   return parsed;
 }
 
+/** Public verify keys only (docs/platform/operations/DEPLOYING.md); the web app parses the same shape at runtime.
+ * @param {string} value */
+function trustedPublishers(value) {
+  const field = 'ZENITH_PLUGIN_TRUSTED_PUBLISHERS';
+  let parsed; try { parsed = JSON.parse(value); } catch { refuse(field); }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || !Object.keys(parsed).length) refuse(field);
+  for (const keys of Object.values(parsed)) {
+    if (!Array.isArray(keys) || !keys.length || keys.length > 10) refuse(field);
+    for (const key of keys) {
+      if (!key || typeof key !== 'object' || Object.keys(key).sort().join() !== 'keyId,publicKey' || !/^[A-Za-z0-9_.-]{1,64}$/.test(key.keyId)
+        || typeof key.publicKey !== 'string' || Buffer.from(key.publicKey, 'base64').length !== 32) refuse(field);
+    }
+  }
+}
+
 /** Structural preflight only: no assertion of network, identity or tool readiness.
  * @param {InstallationInput|PreparedInstallation} input @param {boolean} prepared @returns {InstallationInput|PreparedInstallation} */
 export function validateInput(input, prepared = false) {
@@ -76,6 +91,7 @@ export function validateInput(input, prepared = false) {
     if (!fields.has(key) && !(prepared && generated.has(key))) refuse('unknown-environment-field');
     text(env[key], fields.has(key) || generated.has(key) ? key : 'environment');
   }
+  if (env.ZENITH_PLUGIN_TRUSTED_PUBLISHERS !== undefined) trustedPublishers(env.ZENITH_PLUGIN_TRUSTED_PUBLISHERS);
   const site = webUrl(env.NEXT_PUBLIC_SITE_URL, 'NEXT_PUBLIC_SITE_URL', input.mode === 'production');
   if (site.pathname !== '/' || site.origin !== env.NEXT_PUBLIC_SITE_URL) refuse('NEXT_PUBLIC_SITE_URL');
   const supabase = webUrl(env.SUPABASE_URL, 'SUPABASE_URL');
@@ -240,12 +256,13 @@ function assertTemporalTls(dir, names) {
 
 /** @param {PreparedInstallation} config @param {string} dir @returns {Record<string,Record<string,string>>} */
 export function environmentsFor(config, dir) {
-  const { ZENITH_PLATFORM_MIGRATION_URL: migrationUrl, ZENITH_PLAN_ARTIFACT_KEY: artifactKey, ...runtime } = config.environment;
+  const { ZENITH_PLATFORM_MIGRATION_URL: migrationUrl, ZENITH_PLAN_ARTIFACT_KEY: artifactKey, ZENITH_PLUGIN_TRUSTED_PUBLISHERS: publishers, ...runtime } = config.environment;
   const common = { ...runtime, NODE_ENV: 'production', ZENITH_STORE: 'postgres', ZENITH_HOSTED_STORE: 'postgres', ZENITH_PLATFORM_DB: 'postgres', ZENITH_PLATFORM_DB_MAX: '5',
     ZENITH_AGENT_CONTROL: '1', ZENITH_AGENT_ORIGIN: runtime.NEXT_PUBLIC_SITE_URL, ZENITH_OIDC_ISSUER: `${runtime.NEXT_PUBLIC_SITE_URL}/api/oidc`,
     ...(config.mode === 'disposable' ? disposableTemporalClient : {}) };
   return {
-    'api.env': { ...common, PORT: '3400', HOSTNAME: '0.0.0.0', ZENITH_DATA: '/data' },
+    // Plugin publisher trust is a web-app setting; the worker never registers plugins.
+    'api.env': { ...common, PORT: '3400', HOSTNAME: '0.0.0.0', ZENITH_DATA: '/data', ...(publishers ? { ZENITH_PLUGIN_TRUSTED_PUBLISHERS: publishers } : {}) },
     'worker.env': { ...common, ZENITH_PLAN_ARTIFACT_KEY: artifactKey, ZENITH_DATA: '/var/lib/zenith', HOME: '/var/lib/zenith', ZENITH_WORKER_PLAN_DIR: '/var/lib/zenith/plans', ZENITH_WORKER_HEALTH_PORT: '9464', ZENITH_WORKER_TASK_QUEUE: 'zenith-execution',
       // A disposable installation owns its whole engine and namespace; production keeps the operator's observe default.
       ...(config.mode === 'disposable' ? { ZENITH_WORKER_RECONCILE_SCHEDULE_MODE: 'provision' } : {}) },

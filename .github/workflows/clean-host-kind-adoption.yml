@@ -93,6 +93,10 @@ jobs:
             process.exit(bad ? 1 : 0);
           '
 
+      - name: Verify the registered case
+        # Paths in the report are this runner's, so the registry check runs here.
+        run: node scripts/ci/wave6-gates.mjs --case wave6-63ad274188ce3c88 --report .data-ci-lane/clean-host-kind-adoption-vitest.json
+
       - name: Remove owned kind cluster
         if: always()
         run: |

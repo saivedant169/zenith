@@ -18,8 +18,10 @@ const privateFile = (file, text) => fs.writeFileSync(file, text, { mode: 0o600, 
 async function certificates(directory) {
   fs.mkdirSync(directory, { mode: 0o700 });
   await run('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '2', '-subj', '/CN=Zenith disposable CA', '-addext', 'basicConstraints=critical,CA:TRUE', '-keyout', path.join(directory, 'ca.key'), '-out', path.join(directory, 'ca.crt')]);
-  for (const name of ['edge', 'pooler', 'mailpit']) {
-    privateFile(path.join(directory, `${name}.ext`), `basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\nsubjectAltName=DNS:supabase.localhost,DNS:supabase-pooler,DNS:mailpit,DNS:localhost,IP:127.0.0.1\n`);
+  for (const name of ['edge', 'pooler', 'mailpit', 'api-edge']) {
+    // The API edge name is the one origin both the host and a container (Docker Desktop) reach.
+    const names = name === 'api-edge' ? 'DNS:host.docker.internal' : 'DNS:supabase.localhost,DNS:supabase-pooler,DNS:mailpit,DNS:localhost,IP:127.0.0.1';
+    privateFile(path.join(directory, `${name}.ext`), `basicConstraints=critical,CA:FALSE\nkeyUsage=critical,digitalSignature,keyEncipherment\nextendedKeyUsage=serverAuth\nsubjectAltName=${names}\n`);
     await run('openssl', ['req', '-newkey', 'rsa:2048', '-nodes', '-subj', `/CN=${name}`, '-keyout', path.join(directory, `${name}.key`), '-out', path.join(directory, `${name}.csr`)]);
     await run('openssl', ['x509', '-req', '-in', path.join(directory, `${name}.csr`), '-CA', path.join(directory, 'ca.crt'), '-CAkey', path.join(directory, 'ca.key'), '-CAcreateserial', '-days', '2', '-extfile', path.join(directory, `${name}.ext`), '-out', path.join(directory, `${name}.crt`)]);
   }
@@ -99,7 +101,7 @@ async function build(state, kind, file, publicEnvironment) {
 }
 
 export function parseJ4UpOptions(args) {
-  let profile = 'default', directory, imageLock, deferWorkers = false, namespace, temporalPort;
+  let profile = 'default', directory, imageLock, deferWorkers = false, namespace, temporalPort, pluginPlatform;
   while (args.length) {
     const flag = args.shift();
     if (flag === '--j4-defer-workers') { if (deferWorkers) fail('usage'); deferWorkers = true; continue; }
@@ -107,17 +109,30 @@ export function parseJ4UpOptions(args) {
     if (flag === '--profile') profile = value;
     else if (flag === '--directory') directory = value;
     else if (flag === '--supabase-image-lock') imageLock = value;
+    else if (flag === '--plugin-platform') { if (pluginPlatform !== undefined) fail('usage'); pluginPlatform = value; }
     else if (flag === '--j4-namespace') { if (namespace !== undefined) fail('usage'); namespace = value; }
     else if (flag === '--j4-temporal-port') { if (temporalPort !== undefined) fail('usage'); temporalPort = value === String(ports.j4Temporal) ? ports.j4Temporal : Number.NaN; }
     else fail('usage');
   }
   const hasJ4 = deferWorkers || namespace !== undefined || temporalPort !== undefined;
   if (hasJ4 && (!deferWorkers || profile !== 'lean' || !/^j4-[a-z0-9-]{1,50}$/.test(namespace ?? '') || temporalPort !== ports.j4Temporal)) fail('j4-options');
-  return { profile, directory, imageLock, j4: hasJ4 ? { namespace, temporalPort } : undefined };
+  if (hasJ4 && pluginPlatform) fail('plugin-platform-options');
+  return { profile, directory, imageLock, j4: hasJ4 ? { namespace, temporalPort } : undefined, pluginPlatform };
 }
 
-export async function up(directory, profile = 'default', imageLockFile, j4Options = undefined) {
+/** PROD-UX-01 plugin-platform lane: a private JSON file `{ "publishers": <ZENITH_PLUGIN_TRUSTED_PUBLISHERS value> }`.
+ * The API is then served at one HTTPS origin the host and the plugin sandbox both reach. */
+function pluginPlatformInput(file) {
+  const location = privateLocation(file); assertPrivate(location);
+  const value = JSON.parse(fs.readFileSync(location, 'utf8'));
+  if (!value || typeof value !== 'object' || Object.keys(value).join() !== 'publishers') fail('plugin-platform-input');
+  return { publishers: JSON.stringify(value.publishers), edgePort: 36443 + portOffset };
+}
+
+export async function up(directory, profile = 'default', imageLockFile, j4Options = undefined, pluginPlatformFile = undefined) {
   requireEngineGate(); topology(profile);
+  if (j4Options && pluginPlatformFile) fail('plugin-platform-options');
+  const plugin = pluginPlatformFile ? pluginPlatformInput(pluginPlatformFile) : undefined;
   if (j4Options && (profile !== 'lean' || !/^j4-[a-z0-9-]{1,50}$/.test(j4Options.namespace ?? '') || j4Options.temporalPort !== ports.j4Temporal)) fail('j4-options');
   const registryPin = digestImage(process.env.ZENITH_DEFAULT_STACK_REGISTRY_IMAGE);
   if (await run('supabase', ['--version']) !== cliVersion) fail('supabase-cli-version');
@@ -184,7 +199,7 @@ export async function up(directory, profile = 'default', imageLockFile, j4Option
     const registryVolume = `zenith-local-${installationId}-registry`;
     await docker(['volume', 'create', '--label', `${installationLabel}=${installationId}`, registryVolume]);
     await docker(['run', '-d', '--name', `zenith-local-${installationId}-registry`, '--label', `${installationLabel}=${installationId}`, '-p', '127.0.0.1:5000:5000', '--memory', `${topology(profile).registryMiB}m`, '--mount', `type=volume,source=${registryVolume},target=/var/lib/registry`, registryPin]);
-    const publicEnv = { NEXT_PUBLIC_SUPABASE_URL: `https://supabase.localhost:${ports.supabase}`, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: status.ANON_KEY, NEXT_PUBLIC_SITE_URL: `http://127.0.0.1:${ports.api}` };
+    const publicEnv = { NEXT_PUBLIC_SUPABASE_URL: `https://supabase.localhost:${ports.supabase}`, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: status.ANON_KEY, NEXT_PUBLIC_SITE_URL: plugin ? `https://host.docker.internal:${plugin.edgePort}` : `http://127.0.0.1:${ports.api}` };
     const images = {};
     const buildSource = sourceBinding();
     operationStage = 'application-image-build';
@@ -201,7 +216,8 @@ export async function up(directory, profile = 'default', imageLockFile, j4Option
     const db = new URL(status.DB_URL);
     const input = { mode: 'disposable', apiPort: ports.api, images, environment: { ...publicEnv,
       SUPABASE_URL: publicEnv.NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY: status.SERVICE_ROLE_KEY,
-      SUPABASE_DB_URL: `postgresql://postgres.pooler-dev:${db.password}@supabase-pooler:6543/postgres?sslmode=verify-full` } };
+      SUPABASE_DB_URL: `postgresql://postgres.pooler-dev:${db.password}@supabase-pooler:6543/postgres?sslmode=verify-full`,
+      ...(plugin ? { ZENITH_PLUGIN_TRUSTED_PUBLISHERS: plugin.publishers } : {}) } };
     const inputFile = path.join(dir, 'input.json'); writeJson(inputFile, input);
     // Invoke the real prepare CLI; its original authority and binding guards stay intact.
     operationStage = 'application-prepare';
@@ -217,6 +233,14 @@ export async function up(directory, profile = 'default', imageLockFile, j4Option
     const document = structuredClone(canonicalDocument);
     document.services['supabase-edge'].user = `${process.getuid()}:${process.getgid()}`;
     document.networks.installation.driver_opts = { 'com.docker.network.bridge.host_binding_ipv4': '127.0.0.1' };
+    if (plugin) {
+      const edge = document.services['supabase-edge'];
+      document.services['api-edge'] = { ...structuredClone(edge), command: ['node', '/api-edge.mjs'], depends_on: ['api'],
+        environment: { ZENITH_API_EDGE_PORT: String(plugin.edgePort) }, networks: { installation: {} },
+        volumes: [`${path.join(root, 'scripts/acceptance/default-stack/api-edge.mjs')}:/api-edge.mjs:ro`, `${path.join(dir, 'tls/api-edge.crt')}:/run/edge.crt:ro`, `${path.join(dir, 'tls/api-edge.key')}:/run/edge.key:ro`],
+        ports: [`127.0.0.1:${plugin.edgePort}:${plugin.edgePort}`] };
+      state.pluginPlatform = { origin: publicEnv.NEXT_PUBLIC_SITE_URL, edgePort: plugin.edgePort, caFile: path.join(dir, 'tls/ca.crt') };
+    }
     const canonicalComposition = `${JSON.stringify(document, null, 2)}\n`;
     operationStage = 'composition-write';
     if (j4Options) {
@@ -280,8 +304,8 @@ export async function up(directory, profile = 'default', imageLockFile, j4Option
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await cli(async () => {
-  const { profile, directory: suppliedDirectory, imageLock, j4 } = parseJ4UpOptions(process.argv.slice(2));
+  const { profile, directory: suppliedDirectory, imageLock, j4, pluginPlatform } = parseJ4UpOptions(process.argv.slice(2));
   let directory = suppliedDirectory;
   if (!directory) directory = path.join(fs.realpathSync(os.tmpdir()), `zenith-default-${randomBytes(12).toString('hex')}`);
-  await up(directory, profile, imageLock, j4);
+  await up(directory, profile, imageLock, j4, pluginPlatform);
 });

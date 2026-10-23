@@ -386,6 +386,13 @@ test('default operated browser, REST, MCP and customer machine journey', async (
     ensure(terminal.operation.status === 'succeeded', 'scale-terminal-outcome');
     return { operationId };
   };
+  // A named wait, so a CI timeout says which condition it was.
+  const waitFor = async (label, read, predicate, timeout) => {
+    try { return await until(read, predicate, timeout); } catch (error) {
+      if (error instanceof Error && error.message === 'journey:readback-timeout') throw new Error('journey:' + label + '-timeout');
+      throw error;
+    }
+  };
   // PROD-OBS-02: one approved system.metrics read of the health resource, returning its stored health telemetry rows.
   const machineHealthRead = async label => {
     const proposed = ok(await jsonRequest(stack.apiUrl + '/api/platform/v1/capabilities/propose', {
@@ -400,7 +407,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
     await mcp(stack, linked.token, 'tools/call', { name: 'zenith_execute_approved_operation', arguments: {
       workspaceId, operationId, expectedDigest: reviewed.operation.proposalDigest,
     } });
-    const terminal = await until(() => getDetail(operationId), value => ['succeeded', 'failed', 'uncertain'].includes(value.operation.status), 60_000);
+    const terminal = await waitFor(label + '-terminal', () => getDetail(operationId), value => ['succeeded', 'failed', 'uncertain'].includes(value.operation.status), 180_000);
     const rows = JSON.parse(await psql(HEALTH_EVIDENCE_SQL, { workspace_id: workspaceId, project_id: project.id, operation_id: operationId,
       environment_id: environmentId, resource_id: healthResourceId }));
     return { operationId, status: terminal.operation.status, rows };
@@ -955,16 +962,16 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       // A registered zenithd that falls silent past the heartbeat threshold answers an explicit unknown, never a stale success.
       await docker(['pause', healthMachine.container]);
       try {
-        await until(machineState, state => state === 'offline', 240_000);
+        await waitFor('health-machine-offline', machineState, state => state === 'offline', 240_000);
         telemetryStates.healthSilent = assertHealthNegative(await machineHealthRead('health-silent'), 'unknown', 'health-silent-machine-unknown');
       } finally { await docker(['unpause', healthMachine.container]); }
-      await until(machineState, state => state === 'online', 180_000);
+      await waitFor('health-machine-online', machineState, state => state === 'online', 300_000);
       // A revoked zenithd answers an explicit inaccessible. UX-01 runs keep this machine for their own revocation case.
       if (!UX_ENABLED) {
         const revoked = ok(await browserRequest(b, '/api/platform/v1/machines/' + healthMachine.id + '/revoke', {}, 'POST', workspaceId));
         ensure(revoked.id === healthMachine.id && revoked.status === 'revoked', 'machine-revocation');
         healthMachine.revocationConfirmed = true;
-        const stoppedAgent = await until(async () => JSON.parse(await command('docker', ['inspect', healthMachine.container])),
+        const stoppedAgent = await waitFor('health-machine-revoked-exit', async () => JSON.parse(await command('docker', ['inspect', healthMachine.container])),
           value => value[0].State.Running === false);
         ensure(stoppedAgent.length === 1 && stoppedAgent[0].Config.Labels?.['io.zenith.journey'] === healthMachine.runId &&
           stoppedAgent[0].State.ExitCode === 3, 'machine-native-revoked-exit-code');

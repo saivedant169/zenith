@@ -51,6 +51,13 @@ async function teardown(ctx: OperatedContext, tenant: Tenant): Promise<void> {
   ensure(typeof requested.reviewOperationId === "string", "teardown-review-requested");
   const reviewed = await until(async () => ok(await browserRequest(tenant.owner, `${env}?reviewId=${requested.reviewOperationId}`, undefined, "GET", tenant.workspaceId)).review,
     (review: { operationId?: string; status: string } | null) => !!review?.operationId || terminal.includes(review?.status ?? ""));
+  if (typeof reviewed.operationId !== "string" && ctx.input.env.ZENITH_OPERATED_DIAGNOSTICS === "1") {
+    // The review's status and the product's own refusal sentence, with addresses, URLs and long tokens elided.
+    const failed = await detailOf(tenant, requested.reviewOperationId).catch(() => undefined) as { operation?: { status?: string; error?: unknown } } | undefined;
+    const raw = failed?.operation?.error;
+    const error = typeof raw === "string" ? raw.replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 300) : null;
+    process.stderr.write(`operated outside-step failed: journey:teardown-review ${JSON.stringify({ status: reviewed.status, error })}\n`);
+  }
   ensure(typeof reviewed.operationId === "string", "teardown-review-proposal");
   const id: string = reviewed.operationId;
   ctx.quiescence.add(async () => {

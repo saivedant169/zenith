@@ -10,6 +10,8 @@ import { digest } from "@/lib/controlplane/digest";
 import type { OperationRecord, Principal, Scope } from "@/lib/controlplane/types";
 import { projectPlanReview } from "@/lib/controlplane/db/repos/operation-review";
 import { withKeepAlive } from "@/lib/execution/keepalive";
+import { StepFailedError } from "@/lib/execution/errors";
+import { errorText } from "@/lib/execution/text";
 import type { Runtime } from "@/lib/execution/runtime";
 import type { LeaseRef, PlanSummary } from "@/lib/workflows/types";
 import { BrokerError, notFound } from "./errors";
@@ -150,7 +152,9 @@ export async function runDestroyReview(rt: Runtime, broker: Broker, input: { wor
     await broker.completeExecution({ workspaceId: op.workspaceId, operationId: op.id, outcome: "succeeded", result, fence: lease });
     return result;
   } catch (error) {
-    if (claimed) await broker.completeExecution({ workspaceId: op.workspaceId, operationId: op.id, outcome: "failed", error: "Teardown review did not complete. Nothing was applied." }).catch(() => undefined);
+    // Product-authored refusals say why (scrubbed and capped); anything else stays generic.
+    const reason = error instanceof BrokerError || error instanceof StepFailedError ? ` ${errorText(error, 300)}` : "";
+    if (claimed) await broker.completeExecution({ workspaceId: op.workspaceId, operationId: op.id, outcome: "failed", error: `Teardown review did not complete. Nothing was applied.${reason}` }).catch(() => undefined);
     // External diagnostics are data and may contain credentials. Never propagate them.
     if (error instanceof BrokerError) throw error;
     throw new BrokerError("invalid_state", "Teardown review failed or lost its lease. Nothing was applied. Inspect the operation and request a new review.");

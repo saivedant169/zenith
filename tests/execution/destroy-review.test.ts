@@ -16,6 +16,7 @@ import { deliverPlanApproval } from "@/lib/bridge/lifecycle";
 import { setBridgeDepsForTests } from "@/lib/bridge/deps";
 import { planEvidence, toPlanSummary } from "@/lib/execution/plan-evidence";
 import { extractPlanFacts } from "@/lib/policy/plan-facts";
+import { StepFailedError } from "@/lib/execution/errors";
 
 closeSharedPgliteAfterAll();
 const worlds: World[] = [];
@@ -239,6 +240,17 @@ describe("first destroy review", () => {
     expect((await h.store.listOperations(scope.workspaceId, { capability: "infrastructure.destroy", status: "awaiting_approval" })).items).toHaveLength(1);
     expect(await rt.d.leases.acquire({ scope: `env:${scope.environmentId}`, holder: "test-after", ttlMs: 1000, workspaceId: scope.workspaceId })).toBeTruthy();
     expect(w.tofu.applyCalls).toHaveLength(0);
+  });
+  it("records a product refusal's reason on the failed review, never a provider's raw text", async () => {
+    const { h, scope, request, run, w } = await setup();
+    const refused = await request("refused-intent");
+    vi.spyOn(w.tofu, "planWorkspace").mockRejectedValueOnce(new StepFailedError("The provider could not completely review teardown; skipped or uncertain objects require investigation."));
+    await expect(run(refused.reviewOperationId)).rejects.toBeTruthy();
+    expect((await h.store.getOperation(scope.workspaceId, refused.reviewOperationId))?.error).toBe("Teardown review did not complete. Nothing was applied. The provider could not completely review teardown; skipped or uncertain objects require investigation.");
+    const raw = await request("raw-intent");
+    vi.spyOn(w.tofu, "planWorkspace").mockRejectedValueOnce(new Error("provider said token=" + CANARY_SECRET));
+    await expect(run(raw.reviewOperationId)).rejects.toBeTruthy();
+    expect((await h.store.getOperation(scope.workspaceId, raw.reviewOperationId))?.error).toBe("Teardown review did not complete. Nothing was applied.");
   });
   it("refuses foreign scope, no plan scope and injected approval/plan fields before dispatch", async () => {
     const { h, scope, agent, dispatch } = await setup();

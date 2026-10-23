@@ -1093,7 +1093,14 @@ export async function connectKind(ctx: OperatedContext, tenant: Tenant): Promise
   await card.getByRole("button", { name: "Verify", exact: true }).click(); ensure((await response).ok(), "kind-connection-verified");
   tenant.environmentId = (await action(owner, "env.create", { projectId: project.id, name: "production", class: "production", connectionId: tenant.connectionId, approvalRequired: true })).environmentId;
   tenant.agent = await linkedAgent(owner, stack, project, tenant.workspaceId);
-  ctx.cleanup.add(async () => { ok(await browserRequest(owner, "/api/integrations/agent/link/revoke", { credentialId: tenant.agent!.credentialId })); });
+  ctx.cleanup.add(async () => {
+    // 503 is the product's retryable "could not verify MFA/authority now" answer; any other refusal fails cleanup.
+    for (let attempt = 1; ; attempt++) {
+      const response = await browserRequest(owner, "/api/integrations/agent/link/revoke", { credentialId: tenant.agent!.credentialId });
+      if (response.status !== 503 || attempt === 5) { ok(response); return; }
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+  });
 }
 
 export const detailOf = async (tenant: Tenant, operationId: string): Promise<OperationStatusView> => ok(await browserRequest(tenant.owner, "/api/platform/v1/operations/" + operationId, undefined, "GET", tenant.workspaceId));

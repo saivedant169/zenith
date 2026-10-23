@@ -1,5 +1,29 @@
 # PROD-LIFE-11 Backup export import and adoption
 
+## Adopted-object decommissioning, 23 October 2026
+
+Gap found: adoption flips the stored resource row to `managed`, but destroy reviewed the manifest graph, where the
+resource is still `referenced`. The decommission gate never saw adopted nodes, and Kubernetes teardown deletes only
+objects carrying Zenith's label, so an adopted object was neither refused nor deleted.
+
+Fix (`b09ec4d8`):
+- `execution/destroy.ts` takes ownership from the stored row, so the gate refuses an adopted node whose active claim is
+  `manage`, before any provider call.
+- For an active `manage_and_destroy` claim on a Kubernetes StatefulSet or PVC, destroy passes the exact object to
+  teardown (`adopted`). An adopted StatefulSet takes the claims its `volumeClaimTemplates` created
+  (`<template>-<name>-<ordinal>`). An object another Zenith environment labels as its own is never deleted. Adopted
+  objects are retained while stateful data is retained; malformed identities report uncertain.
+
+Evidence:
+- Contract: `tests/providers/kubernetes/teardown.test.ts` (adopted block), `tests/execution/destroy-providers.test.ts`
+  (adopted data service block); the PROD-LIFE-11 wave6 batch passed 173/0/0 on the Mac.
+- Real engine: `tests/providers/kubernetes/adoption-kind.test.ts` (`wave6-63ad274188ce3c88`) on a disposable kind
+  cluster: retain, dry-run plan of exactly three objects, delete, unrelated StatefulSet and claims survive, clean
+  repeat. Passed on the Mac kind node and on a fresh GitHub-hosted runner (`clean-host-kind-adoption.yml`).
+
+Still open for this requirement: tenant backup beyond data export, MinIO Linux/ARM64 runtime, MySQL DNS/TLS, and the
+adopt/release journey through the product API on an operated stack.
+
 ## MinIO R11 cross-compile checkpoint, 11 October 2026
 
 The pinned MinIO release source cross-compiled successfully on Darwin/ARM64 with Go1.24.2 for Linux/ARM64; the root command exited0 and the staged binary SHA-256 is recorded in the [sanitized evidence](../evidence/PROD-LIFE-11/2026-10-11-minio-r11-cross-compile.json). Runtime execution remains pending. The R9 historical refusal is permanent; no historical binary/run/audit adoption is claimed and the old marker remains retained. R7 proves current observed closure only. Wider backup adoption, decommissioning and MySQL DNS/TLS acceptance remain open.

@@ -176,18 +176,11 @@ jobs:
             echo "ZENITH_UX01_EXCLUSIVE_WINDOW_ID=j2-ux-${GITHUB_RUN_ID}-${{ matrix.arch }}"
           } >> "$GITHUB_ENV"
 
-      - name: J2 default journey
-        run: |
-          set -euo pipefail
-          stack="$RUNNER_TEMP/zenith/stack"
-          spki=$(node -e "const c=require('crypto');console.log(c.createHash('sha256').update(new c.X509Certificate(require('fs').readFileSync('$stack/tls/edge.crt')).publicKey.export({type:'spki',format:'der'})).digest('base64'))")
-          mkdir -p .data-ci-lane
-          env -u ZENITH_DEFAULT_STACK_PORT_OFFSET TMPDIR="$RUNNER_TEMP/zenith/tmp" ZENITH_ACCEPTANCE_DEFAULT_STACK=1 ZENITH_DEFAULT_JOURNEY=1 \
-            NODE_EXTRA_CA_CERTS="$stack/tls/ca.crt" ZENITH_JOURNEY_CHROMIUM_SPKI="$spki" ZENITH_OPERATED_DIAGNOSTICS=1 \
-            node scripts/acceptance/default-journey.mjs --config "$RUNNER_TEMP/zenith/j2/journey.json" --receipt .data-ci-lane/clean-host-journey-receipt.json
-
+      # Before J2: the fixture binds to J1's recorded source, which a finished journey's outputs would change.
       - name: UX-01 MFA browser cases (ux runs only)
         if: inputs.ux
+        # Its registry verdict is the evidence; a failure here must not stop the journey.
+        continue-on-error: true
         run: |
           set -euo pipefail
           stack="$RUNNER_TEMP/zenith/stack"
@@ -204,6 +197,16 @@ jobs:
           for id in wave6-bc53c98868197436 wave6-a19fd9525a62d581; do
             node scripts/ci/wave6-gates.mjs --case "$id" --report "$RUNNER_TEMP/ux/mfa-browser.json" | sed "s/^/mfa-browser $id /"
           done
+
+      - name: J2 default journey
+        run: |
+          set -euo pipefail
+          stack="$RUNNER_TEMP/zenith/stack"
+          spki=$(node -e "const c=require('crypto');console.log(c.createHash('sha256').update(new c.X509Certificate(require('fs').readFileSync('$stack/tls/edge.crt')).publicKey.export({type:'spki',format:'der'})).digest('base64'))")
+          mkdir -p .data-ci-lane
+          env -u ZENITH_DEFAULT_STACK_PORT_OFFSET TMPDIR="$RUNNER_TEMP/zenith/tmp" ZENITH_ACCEPTANCE_DEFAULT_STACK=1 ZENITH_DEFAULT_JOURNEY=1 \
+            NODE_EXTRA_CA_CERTS="$stack/tls/ca.crt" ZENITH_JOURNEY_CHROMIUM_SPKI="$spki" ZENITH_OPERATED_DIAGNOSTICS=1 \
+            node scripts/acceptance/default-journey.mjs --config "$RUNNER_TEMP/zenith/j2/journey.json" --receipt .data-ci-lane/clean-host-journey-receipt.json
 
       - name: Journey and stack diagnostics
         if: always()

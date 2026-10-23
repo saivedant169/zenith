@@ -25,10 +25,12 @@ export function createDefaultMachinePort(db: Sql, secretKey: string): MachineExe
     async boundMachine(ws, environmentId, address) {
       const matches = (await store.machines.list(ws)).filter((m) => m.environmentId === environmentId && m.address === address);
       const active = matches.filter((m) => m.status === "active");
-      if (active.length > 1 || (!active.length && matches.length > 1)) throw new StepFailedError("Multiple registered machines bind this resource; an operator must resolve the ambiguity.");
+      const allRevoked = matches.length > 0 && matches.every((m) => m.status === "revoked");
+      if (active.length > 1 || (!active.length && matches.length > 1 && !allRevoked)) throw new StepFailedError("Multiple registered machines bind this resource; an operator must resolve the ambiguity.");
       // A revoked registration cannot mask its active replacement. With no
-      // replacement, return the revoked binding so execution refuses fallback.
-      return active[0] ?? matches[0] ?? null;
+      // replacement, return the revoked binding so execution refuses fallback;
+      // when every binding is revoked the refusal is the same, so the latest registration is returned.
+      return active[0] ?? [...matches].sort((x, y) => y.registeredAt.localeCompare(x.registeredAt))[0] ?? null;
     },
     evidence: createMachineEvidenceSink(db, machineResultSealer(secretKey)),
     dispatcher: {

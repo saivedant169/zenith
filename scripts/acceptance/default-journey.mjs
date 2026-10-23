@@ -68,6 +68,12 @@ export function run(args = process.argv.slice(2)) {
     });
     // Kept only in the owner-private scratch, never printed: Playwright output can contain cookies, mail links or tokens.
     fs.writeFileSync(path.join(scratch, 'playwright.private.log'), `${child.stdout ?? ''}\n${child.stderr ?? ''}`, { mode: 0o600 });
+    // Opt-in CI diagnostics: forward only the journey's own fixed-vocabulary step failure lines.
+    if (process.env.ZENITH_OPERATED_DIAGNOSTICS === '1') {
+      for (const line of `${child.stderr ?? ''}`.split('\n')) {
+        if (/^journey step [a-z0-9-]{1,80} failed: (?:[a-z0-9:._-]{1,80}|unclassified [A-Za-z]{1,40})$/.test(line)) process.stdout.write(line + '\n');
+      }
+    }
     if (child.error || child.signal || child.status === null) fail('child-settlement-unconfirmed');
     if (!fs.existsSync(output)) fail('no-receipt');
     let result = JSON.parse(fs.readFileSync(output, 'utf8'));

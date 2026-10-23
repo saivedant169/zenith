@@ -175,5 +175,8 @@ describe("default machine composition", () => {
     await expect(port.boundMachine("ws-1", "env-1", "compute_instance/web")).rejects.toMatchObject({ type: "StepFailed", nonRetryable: true });
     await plane.store.machines.revoke("ws-1", other.id);
     expect(await port.boundMachine("ws-1", "env-1", "compute_instance/web")).toMatchObject({ id: agent.id, status: "active" });
+    // Every binding revoked: no ambiguity about the answer, which is a refusal of the revoked machine.
+    await plane.store.machines.revoke("ws-1", agent.id);
+    expect(await port.boundMachine("ws-1", "env-1", "compute_instance/web")).toMatchObject({ status: "revoked" });
   });
 });

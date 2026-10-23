@@ -38,9 +38,15 @@ async function keyboardReach(page) {
     const visible = element => element.getClientRects().length > 0 && getComputedStyle(element).visibility !== 'hidden';
     const controls = [...document.querySelectorAll('a[href],button,input,select,textarea,summary,[tabindex]')]
       .filter(element => !element.disabled && element.tabIndex >= 0 && element.type !== 'hidden' && visible(element));
-    controls.forEach((element, index) => element.setAttribute('data-ux01-key', String(index)));
+    // A named radio group is one Tab stop by platform convention (arrow keys move within it), so it is one control.
+    const keys = new Map();
+    controls.forEach((element, index) => {
+      const group = element.type === 'radio' && element.name ? 'radio:' + (element.form ? 'f' : 'd') + ':' + element.name : null;
+      if (group && !keys.has(group)) keys.set(group, String(index));
+      element.setAttribute('data-ux01-key', group ? keys.get(group) : String(index));
+    });
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
-    return controls.length;
+    return new Set(controls.map(element => element.getAttribute('data-ux01-key'))).size;
   });
   const reached = new Set();
   let previous = null, repeats = 0, missing;

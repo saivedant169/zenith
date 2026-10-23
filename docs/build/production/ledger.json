@@ -7650,6 +7650,26 @@
           "url": "https://github.com/saivedant169/zenith/actions/runs/39926605553",
           "result": "Hosted on both architectures: J2 21/21 (ledgerEligible, all seven telemetry states), UX receipt 8/8 audited groups at 1280x900 and 375x900 with zero axe WCAG 2.1 A/AA violations and no horizontal overflow (operation review, independent approval, replan/reapproval, cancellation, legacy projection, runbook approval progress, readiness, uncertainty), and the two registered real-browser MFA cases (AAL1 refusal of privileged mutation, real TOTP enrollment, later step-up) pass their wave6 verdicts against fresh real-UI identities. Local on the same commit: the UX receipt gate validates both architectures' UX receipts against their J2 receipts; workspace MFA persistence/API 46/46 on PostgreSQL (all 20 registered cases verified); four Keycloak DCR cases; the six plugin sandbox/PostgreSQL cases. Not run: browser-issued OAuth token case wave6-18c6df0bd1926f2f and operated plugin platform case wave6-546689f4b22fdb85.",
           "logs": "docs/build/production/evidence/PROD-UX-01/2026-10-23-e0ca85c0/"
+        },
+        {
+          "level": "contract",
+          "commit": "ede2827ad10894e5e9fe168efd47adaebba5be5e",
+          "command": "CI push run 39937008102; node scripts/ci/ux01-receipt.mjs (eight registered contract batches)",
+          "environment": "GitHub-hosted CI; Mac mini Darwin arm64 native for the registered batches",
+          "runId": 39937008102,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39937008102",
+          "result": "CI success on ede2827ad10894e5e9fe168efd47adaebba5be5e (21 success, 8 dispatch-only operated-gate jobs skipped). The eight registered PROD-UX-01 contract batches pass with 0 failures; their skips are registered gated cases, each run in its own lane (receipt gate, MFA PostgreSQL, MFA browser, plugin sandbox/PostgreSQL). Includes receipt schema 3 validation (measured browser, keyboard reach, ten groups).",
+          "logs": "docs/build/production/evidence/PROD-UX-01/2026-10-23-ede2827a/local/receipt.json"
+        },
+        {
+          "level": "local_engine",
+          "commit": "ede2827ad10894e5e9fe168efd47adaebba5be5e",
+          "command": "clean-host-journey.yml workflow_dispatch -f ux=true run 39937008092 (native linux/amd64 and linux/arm64); node scripts/ci/ux01-receipt.mjs; node scripts/ci/ux03-receipt.mjs",
+          "environment": "Hosted: default installed 2 API + 2 worker stack, disposable Supabase Auth/PostgreSQL, Temporal, zenithd, kind; UX browser measured as Google Chrome 155.0.8059.39 (amd64) and Chromium 141.0.7390.37 (arm64; no Linux ARM64 Chrome) with axe-core; local: disposable postgres:16.15, real Docker plugin sandbox",
+          "runId": 39937008092,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39937008092",
+          "result": "Hosted on both architectures: J2 21/21 (ledgerEligible); UX receipt schema 3, 10/10 groups with zero axe WCAG 2.1 A/AA violations and no horizontal overflow at 1280x900 and 375x900, and keyboard-only reach of every visible enabled control on all twelve audited pages (operation review, independent approval before/after, reapproval, pending cancel, cancelled, legacy projection, runbook approval, readiness, uncertainty, connection-change review for runner onboarding, connection administration); both registered real-browser MFA cases (AAL1 refusal, real TOTP enrollment, workspace control save, later step-up) pass against fresh real-UI admins. Local on the same commit: UX receipt gate for both architectures, workspace MFA persistence/API 46/46 on PostgreSQL with all 20 registered cases verified, and the six plugin sandbox/PostgreSQL cases. OAuth issuer and operated plugin-platform lanes moved to UX-02/UX-03.",
+          "logs": "docs/build/production/evidence/PROD-UX-01/2026-10-23-ede2827a/"
         }
       ],
       "requiredEvidence": [

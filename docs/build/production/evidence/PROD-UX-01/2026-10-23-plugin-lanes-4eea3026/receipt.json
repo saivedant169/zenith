@@ -1,0 +1,338 @@
+{
+  "schemaVersion": 1,
+  "requirement": "PROD-UX-03",
+  "recordedAt": "2026-10-23T13:19:55.666Z",
+  "executionReceiptComplete": false,
+  "ranLanesPassed": true,
+  "notRunLanes": [
+    "wave6-546689f4b22fdb85"
+  ],
+  "sourceFreeze": {
+    "before": {
+      "head": "4eea302619fa0d7b093471e5a4cd7b2452f6d9f7",
+      "tracked": ""
+    },
+    "after": {
+      "head": "4eea302619fa0d7b093471e5a4cd7b2452f6d9f7",
+      "tracked": ""
+    },
+    "unchanged": true
+  },
+  "environment": {
+    "host": "Darwin arm64",
+    "node": "v22.23.3",
+    "docker": "29.8.2",
+    "postgres": {
+      "image": "postgres:16.15-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685",
+      "tablesBeforeTests": 4,
+      "tablesAfterTests": 125,
+      "pluginTables": "platform.plugin_registrations,platform.plugin_grants,platform.plugin_events",
+      "pluginSandboxImage": "node@sha256:3ed98443660ff48413b5af19ecefce3b9d50845a901a43420d47cc63a9fddbe9"
+    }
+  },
+  "floors": {
+    "requiredFreeBytes": 23622320128,
+    "minimumObservedFreeBytes": 247191818240,
+    "met": true
+  },
+  "lanes": [
+    {
+      "name": "contract",
+      "argv": [
+        "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/cli/plugin-launcher.test.ts",
+        "tests/cli/plugin-runtime.test.ts",
+        "tests/cli/plugin-sandbox.test.ts",
+        "tests/middleware/platform-bearer.test.ts",
+        "tests/plugins/launch-integration.test.ts",
+        "tests/plugins/manifest.test.ts",
+        "tests/plugins/mcp-boundary.test.ts",
+        "tests/plugins/service.test.ts",
+        "--no-file-parallelism",
+        "--maxWorkers=2",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile",
+        "/Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith/docs/build/production/evidence/PROD-UX-01/2026-10-23-plugin-lanes-4eea3026/contract.json"
+      ],
+      "argvSha256": "87f4ad06b535ebdfee7121fb9636aba269621c19382699a8fc2145ed0897d3ea",
+      "gates": [],
+      "started": "2026-10-23T13:19:23.713Z",
+      "finished": "2026-10-23T13:19:32.209Z",
+      "exit": 0,
+      "freeBytesBefore": 247191818240,
+      "summary": "265 passed | 3 skipped (268)"
+    },
+    {
+      "name": "postgres",
+      "argv": [
+        "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/plugins/launch-integration.test.ts",
+        "tests/plugins/service.test.ts",
+        "--no-file-parallelism",
+        "--maxWorkers=2",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile",
+        "/Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith/docs/build/production/evidence/PROD-UX-01/2026-10-23-plugin-lanes-4eea3026/postgres.json"
+      ],
+      "argvSha256": "488c746b06d80a3976b4378829dbad5e88c21cdf685761f8b4a5fb03dce64a04",
+      "gates": [
+        "ZENITH_TEST_PLATFORM_PG_URL"
+      ],
+      "started": "2026-10-23T13:19:33.612Z",
+      "finished": "2026-10-23T13:19:39.208Z",
+      "exit": 0,
+      "freeBytesBefore": 251934830592,
+      "summary": "62 passed | 1 skipped (63)"
+    },
+    {
+      "name": "wave6-804f49145d9c6b23",
+      "argv": [
+        "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/cli/plugin-launcher-docker.test.ts",
+        "--testNamePattern",
+        "real plugin sandbox \\[needs ZENITH_TEST_PLUGIN_DOCKER=1, Linux Docker, pinned Node22 image, generated TLS files\\] proves actual process isolation and forced cleanup on revoke",
+        "--no-file-parallelism",
+        "--maxWorkers=2",
+        "--reporter=json",
+        "--outputFile",
+        "/Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith/docs/build/production/evidence/PROD-UX-01/2026-10-23-plugin-lanes-4eea3026/wave6-804f49145d9c6b23.json"
+      ],
+      "argvSha256": "e6089c3b0daa5243408ae81cda7b6903a195eb526bf1b6af344f05858e2eb8f5",
+      "gates": [
+        "ZENITH_TEST_PLUGIN_DOCKER"
+      ],
+      "started": "2026-10-23T13:19:40.926Z",
+      "finished": "2026-10-23T13:19:43.042Z",
+      "exit": 0,
+      "freeBytesBefore": 251930718208,
+      "summary": null,
+      "verify": {
+        "argv": [
+          "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+          "scripts/ci/wave6-gates.mjs",
+          "--case",
+          "wave6-804f49145d9c6b23",
+          "--report",
+          "/Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith/docs/build/production/evidence/PROD-UX-01/2026-10-23-plugin-lanes-4eea3026/wave6-804f49145d9c6b23.json"
+        ],
+        "exit": 0,
+        "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+      }
+    },
+    {
+      "name": "wave6-4de28b8c5378d1de",
+      "argv": [
+        "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/cli/plugin-launcher-docker.test.ts",
+        "--testNamePattern",
+        "real plugin sandbox \\[needs ZENITH_TEST_PLUGIN_DOCKER=1, Linux Docker, pinned Node22 image, generated TLS files\\] proves actual process isolation and forced cleanup on outage",
+        "--no-file-parallelism",
+        "--maxWorkers=2",
+        "--reporter=json",
+        "--outputFile",
+        "/Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith/docs/build/production/evidence/PROD-UX-01/2026-10-23-plugin-lanes-4eea3026/wave6-4de28b8c5378d1de.json"
+      ],
+      "argvSha256": "69e11e44bdd48472ffe8521a06b367c47b53292a3890d3ad87c393dbda78b3d3",
+      "gates": [
+        "ZENITH_TEST_PLUGIN_DOCKER"
+      ],
+      "started": "2026-10-23T13:19:43.069Z",
+      "finished": "2026-10-23T13:19:45.017Z",
+      "exit": 0,
+      "freeBytesBefore": 251924344832,
+      "summary": null,
+      "verify": {
+        "argv": [
+          "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+          "scripts/ci/wave6-gates.mjs",
+          "--case",
+          "wave6-4de28b8c5378d1de",
+          "--report",
+          "/Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith/docs/build/production/evidence/PROD-UX-01/2026-10-23-plugin-lanes-4eea3026/wave6-4de28b8c5378d1de.json"
+        ],
+        "exit": 0,
+        "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+      }
+    },
+    {
+      "name": "wave6-a5f94528790619de",
+      "argv": [
+        "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/cli/plugin-launcher-docker.test.ts",
+        "--testNamePattern",
+        "real plugin sandbox \\[needs ZENITH_TEST_PLUGIN_DOCKER=1, Linux Docker, pinned Node22 image, generated TLS files\\] proves actual process isolation and forced cleanup on cancel",
+        "--no-file-parallelism",
+        "--maxWorkers=2",
+        "--reporter=json",
+        "--outputFile",
+        "/Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith/docs/build/production/evidence/PROD-UX-01/2026-10-23-plugin-lanes-4eea3026/wave6-a5f94528790619de.json"
+      ],
+      "argvSha256": "513af9852cf546cfe2326b0e785c3e1d6929b7e0b20ba4d29952951fc54b7026",
+      "gates": [
+        "ZENITH_TEST_PLUGIN_DOCKER"
+      ],
+      "started": "2026-10-23T13:19:45.047Z",
+      "finished": "2026-10-23T13:19:46.283Z",
+      "exit": 0,
+      "freeBytesBefore": 251924819968,
+      "summary": null,
+      "verify": {
+        "argv": [
+          "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+          "scripts/ci/wave6-gates.mjs",
+          "--case",
+          "wave6-a5f94528790619de",
+          "--report",
+          "/Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith/docs/build/production/evidence/PROD-UX-01/2026-10-23-plugin-lanes-4eea3026/wave6-a5f94528790619de.json"
+        ],
+        "exit": 0,
+        "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+      }
+    },
+    {
+      "name": "wave6-133824cc8cbd87d4",
+      "argv": [
+        "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/plugins/service.test.ts",
+        "--testNamePattern",
+        "plugin service on native PostgreSQL \\[postgres; postgres needs ZENITH_TEST_PLATFORM_PG_URL\\] persists review, issuance and grant revocation in a networked PostgreSQL server, not PGlite",
+        "--no-file-parallelism",
+        "--maxWorkers=2",
+        "--reporter=json",
+        "--outputFile",
+        "/Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith/docs/build/production/evidence/PROD-UX-01/2026-10-23-plugin-lanes-4eea3026/wave6-133824cc8cbd87d4.json"
+      ],
+      "argvSha256": "cd8bc01bdbc52f698481a0dcb85104145ba68ed6154bdd59b2342c002fc1461f",
+      "gates": [
+        "ZENITH_TEST_PLATFORM_PG_URL"
+      ],
+      "started": "2026-10-23T13:19:46.315Z",
+      "finished": "2026-10-23T13:19:48.389Z",
+      "exit": 0,
+      "freeBytesBefore": 251922132992,
+      "summary": null,
+      "verify": {
+        "argv": [
+          "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+          "scripts/ci/wave6-gates.mjs",
+          "--case",
+          "wave6-133824cc8cbd87d4",
+          "--report",
+          "/Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith/docs/build/production/evidence/PROD-UX-01/2026-10-23-plugin-lanes-4eea3026/wave6-133824cc8cbd87d4.json"
+        ],
+        "exit": 0,
+        "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+      }
+    },
+    {
+      "name": "wave6-4f4f1f7601a66aa9",
+      "argv": [
+        "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/plugins/launch-integration.test.ts",
+        "--testNamePattern",
+        "plugin launch authority on native PostgreSQL \\[postgres; postgres needs ZENITH_TEST_PLATFORM_PG_URL\\] issues, checks and revokes a launch child against a networked PostgreSQL server, not PGlite",
+        "--no-file-parallelism",
+        "--maxWorkers=2",
+        "--reporter=json",
+        "--outputFile",
+        "/Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith/docs/build/production/evidence/PROD-UX-01/2026-10-23-plugin-lanes-4eea3026/wave6-4f4f1f7601a66aa9.json"
+      ],
+      "argvSha256": "9e5102be2ed2e89c746fe297eb0fc60e3a532316724e4e20ceb58580e7ac0ee4",
+      "gates": [
+        "ZENITH_TEST_PLATFORM_PG_URL"
+      ],
+      "started": "2026-10-23T13:19:48.411Z",
+      "finished": "2026-10-23T13:19:51.017Z",
+      "exit": 0,
+      "freeBytesBefore": 251920773120,
+      "summary": null,
+      "verify": {
+        "argv": [
+          "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+          "scripts/ci/wave6-gates.mjs",
+          "--case",
+          "wave6-4f4f1f7601a66aa9",
+          "--report",
+          "/Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith/docs/build/production/evidence/PROD-UX-01/2026-10-23-plugin-lanes-4eea3026/wave6-4f4f1f7601a66aa9.json"
+        ],
+        "exit": 0,
+        "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+      }
+    },
+    {
+      "name": "wave6-f6024a096cc38daa",
+      "argv": [
+        "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/plugins/launch-integration.test.ts",
+        "--testNamePattern",
+        "real revocation stopping a real Docker sandbox \\[docker; needs ZENITH_TEST_PLUGIN_DOCKER=1, ZENITH_TEST_PLATFORM_PG_URL, pinned Node22 image, generated TLS files\\] PostgreSQL-backed RFC revocation of the launched child stops and removes the actual sandbox",
+        "--no-file-parallelism",
+        "--maxWorkers=2",
+        "--reporter=json",
+        "--outputFile",
+        "/Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith/docs/build/production/evidence/PROD-UX-01/2026-10-23-plugin-lanes-4eea3026/wave6-f6024a096cc38daa.json"
+      ],
+      "argvSha256": "40520bfd933ed72d458791bf7a6f8fc2b79580c09ff21f31621e728a61a52309",
+      "gates": [
+        "ZENITH_TEST_PLATFORM_PG_URL",
+        "ZENITH_TEST_PLUGIN_DOCKER"
+      ],
+      "started": "2026-10-23T13:19:51.040Z",
+      "finished": "2026-10-23T13:19:55.428Z",
+      "exit": 0,
+      "freeBytesBefore": 251919474688,
+      "summary": null,
+      "verify": {
+        "argv": [
+          "/Users/saivedanthava/.local/share/zenith-verifier/node-v22.23.3-darwin-arm64/bin/node",
+          "scripts/ci/wave6-gates.mjs",
+          "--case",
+          "wave6-f6024a096cc38daa",
+          "--report",
+          "/Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith/docs/build/production/evidence/PROD-UX-01/2026-10-23-plugin-lanes-4eea3026/wave6-f6024a096cc38daa.json"
+        ],
+        "exit": 0,
+        "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+      }
+    },
+    {
+      "name": "wave6-546689f4b22fdb85",
+      "notRun": "operated browser lane: needs J1 stack, J3 MFA fixture, Mailpit and Chromium"
+    }
+  ],
+  "reportSha256": {
+    "contract.json": "bb3df34969839e6ad4852f312f5eb7410e32f38d9b2a3a11b0c9bcebb9c6879a",
+    "postgres.json": "0176c5c725f5bfa8965a6d8d9941419d6f791f52b7f7e87bf6af93116ad2520b",
+    "wave6-133824cc8cbd87d4.json": "f72581f0b2494f6fa6052da9ce46a3c5b0e87fab1cf3dbfddc4014d3677bfa21",
+    "wave6-4de28b8c5378d1de.json": "23fa3184d313e44a6d2e0c7a3caf127ca4322deed4ee8556d4e48246d25fe4cc",
+    "wave6-4f4f1f7601a66aa9.json": "f519175be5060b3a7bc3b3b37e80ab5b36991c3f81cc6386374fdd4a0bcbfc26",
+    "wave6-804f49145d9c6b23.json": "9b94082543915616021485d0b7e1343d93f26f90b7d50e24f3d60311c16703a7",
+    "wave6-a5f94528790619de.json": "42f256306dd13dc94365a2a62324a5cce220c6c8ee41976e672f1117155d2a9f",
+    "wave6-f6024a096cc38daa.json": "4c44f685ab08563c156d279bcf169d5b9e23b5745fec8a8c2f3465054af07bc1"
+  },
+  "cleanup": {
+    "containers": "",
+    "volumes": "",
+    "pgContainer": "",
+    "clean": true,
+    "tlsDirectoryRemoved": true
+  }
+}

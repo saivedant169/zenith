@@ -1,0 +1,100 @@
+
+ RUN  v4.1.12 /Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith
+
+ ✓ |node| tests/agent-v3/official-client-conformance.test.ts (7 tests) 2019ms
+     ✓ runs every official step with zero skips using signed OAuth and a restricted grant  626ms
+     ✓ the official SDK reconnects after a dropped POST stream without re-executing the held read  518ms
+ ✓ |node| tests/agent-v3/observability-wired.test.ts (5 tests) 819ms
+ ✓ |node| tests/agent-v3/oauth-revoke.test.ts (17 tests) 731ms
+ ✓ |node| tests/agent-v3/placement-transport.test.ts (8 tests) 69ms
+ ✓ |node| tests/agent-v3/propose.test.ts (22 tests) 35ms
+ ✓ |node| tests/agent-v3/placement.test.ts (6 tests) 21ms
+ ✓ |node| tests/agent-v3/oauth-metadata.test.ts (36 tests) 10ms
+ ✓ |node| tests/agent-v3/principal.test.ts (8 tests) 2ms
+
+ Test Files  8 passed (8)
+      Tests  109 passed (109)
+   Start at  20:27:56
+   Duration  9.80s (transform 1.77s, setup 0ms, import 5.72s, tests 3.71s, environment 0ms)
+
+JSON report written to /private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/hold/2026-10-23-local-lanes-8b9a4fb0/contract-2.json
+(node:88056) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+stderr | tests/agent-v3/official-client-conformance.test.ts > official MCP SDK conformance > runs every official step with zero skips using signed OAuth and a restricted grant
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+stderr | tests/agent-v3/official-client-conformance.test.ts > official MCP SDK conformance > runs every official step with zero skips using signed OAuth and a restricted grant
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+stderr | tests/agent-v3/official-client-conformance.test.ts > official MCP SDK conformance > runs every official step with zero skips using signed OAuth and a restricted grant
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+stderr | tests/agent-v3/official-client-conformance.test.ts > official MCP SDK conformance > names absent acceptance inputs as skips and never revokes without --revoke
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+stderr | tests/agent-v3/official-client-conformance.test.ts > official MCP SDK conformance > names absent acceptance inputs as skips and never revokes without --revoke
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+stderr | tests/agent-v3/official-client-conformance.test.ts > official MCP SDK conformance > names absent acceptance inputs as skips and never revokes without --revoke
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+stderr | tests/agent-v3/official-client-conformance.test.ts > official MCP SDK conformance > fails if the requested read is absent rather than accepting an empty list
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+stderr | tests/agent-v3/official-client-conformance.test.ts > official MCP SDK conformance > fails if the requested read is absent rather than accepting an empty list
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+stderr | tests/agent-v3/official-client-conformance.test.ts > official MCP SDK conformance > refuses a mutating cancellation probe before calling it
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+stderr | tests/agent-v3/official-client-conformance.test.ts > official MCP SDK conformance > refuses a mutating cancellation probe before calling it
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+stderr | tests/agent-v3/official-client-conformance.test.ts > official MCP SDK conformance > refuses a mutating cancellation probe before calling it
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+(node:88108) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:88111) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:88112) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+stderr | tests/agent-v3/placement-transport.test.ts > placement MCP HTTP 2026-07-28 > advertises the strict placement contract and dispatches tools/call to its authorized handler
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+stderr | tests/agent-v3/placement-transport.test.ts > placement MCP HTTP 2026-07-28 > advertises the strict placement contract and dispatches tools/call to its authorized handler
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+stderr | tests/agent-v3/placement-transport.test.ts > placement MCP HTTP 2026-07-28 > omits placement without plan scope and refuses a call before product reads
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+stderr | tests/agent-v3/placement-transport.test.ts > placement MCP HTTP 2026-07-28 > omits placement without plan scope and refuses a call before product reads
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+stderr | tests/agent-v3/placement-transport.test.ts > placement MCP HTTP 2026-07-28 > enforces nested strict schemas and bounded constraints before authorization
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+stderr | tests/agent-v3/placement-transport.test.ts > placement MCP HTTP 2026-07-28 > enforces nested strict schemas and bounded constraints before authorization
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+stderr | tests/agent-v3/placement-transport.test.ts > placement MCP HTTP 2026-07-28 > enforces nested strict schemas and bounded constraints before authorization
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+stderr | tests/agent-v3/placement-transport.test.ts > placement MCP HTTP 2026-07-28 > enforces nested strict schemas and bounded constraints before authorization
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+stderr | tests/agent-v3/placement-transport.test.ts > placement MCP HTTP 2026-07-28 > enforces nested strict schemas and bounded constraints before authorization
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+stderr | tests/agent-v3/placement-transport.test.ts > placement MCP HTTP 2026-07-28 > policy denial reaches the broker but never the product or connection store
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+(node:88113) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"level":"error","ts":"2026-10-23T14:58:05.437Z","msg":"mcp v3 request failed","scope":"agent","requestId":"e2dfddd1","error":{"name":"Error","message":"Modeled committed association ACK lost","stack":"Error: Modeled committed association ACK lost\n    at Object.<anonymous> (/Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith/tests/agent-v3/propose.test.ts:57:109)"}}
+(node:88114) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:88115) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:88116) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

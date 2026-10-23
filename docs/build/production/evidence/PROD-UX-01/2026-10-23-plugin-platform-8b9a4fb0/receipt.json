@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "requirement": "PROD-UX-01",
+  "case": "wave6-546689f4b22fdb85",
+  "recordedAt": "2026-10-23T14:26:20.770Z",
+  "sourceFreeze": {
+    "before": {
+      "head": "8b9a4fb0f5063cfbbb26014fc0a1ca064405ad19",
+      "tracked": ""
+    },
+    "after": {
+      "head": "8b9a4fb0f5063cfbbb26014fc0a1ca064405ad19",
+      "tracked": ""
+    },
+    "unchanged": true
+  },
+  "stack": {
+    "profile": "lean",
+    "source": {
+      "head": "8b9a4fb0f5063cfbbb26014fc0a1ca064405ad19",
+      "contentSha256": "68261f3d56796fa11b2190b58c539b903113e7f4eac286d68b7877abbb77ae93",
+      "dirty": false
+    },
+    "origin": "https://host.docker.internal:37443",
+    "stoppedForMemory": [
+      "execution-worker",
+      "temporal"
+    ]
+  },
+  "runner": {
+    "file": "scripts/ci/ux01-plugin-platform.mjs",
+    "sha256": "8cd70ccb5fb3c6b75d650943ae2f61d7e497e9175c82bab0b32862c3237d1aa3"
+  },
+  "environment": {
+    "host": "Darwin arm64",
+    "node": "v22.23.3",
+    "docker": "29.8.2",
+    "chromium": "141.0.7390.37",
+    "sandboxImage": "node@sha256:3ed98443660ff48413b5af19ecefce3b9d50845a901a43420d47cc63a9fddbe9"
+  },
+  "lanes": [
+    {
+      "name": "plugin-platform",
+      "argv": [
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "tests/cli/plugin-platform-live.test.ts",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile",
+        "/private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/hold/2026-10-23-plugin-platform-8b9a4fb0/wave6-546689f4b22fdb85.json"
+      ],
+      "started": "2026-10-23T14:26:15.697Z",
+      "finished": "2026-10-23T14:26:20.681Z",
+      "exit": 0,
+      "summary": "1 passed (1)",
+      "verify": {
+        "id": "wave6-546689f4b22fdb85",
+        "exit": 0,
+        "output": "{\"passed\":1,\"failed\":0,\"failures\":[]}"
+      }
+    }
+  ],
+  "reportSha256": {
+    "wave6-546689f4b22fdb85.json": "58ec6e0cec9888f67173eb2e9a8c980d46716c9ab340496f22677ff0dc8f3083"
+  },
+  "cleanup": {
+    "pluginContainers": "",
+    "privateDirRemoved": true,
+    "operatorsDeleted": 1
+  }
+}

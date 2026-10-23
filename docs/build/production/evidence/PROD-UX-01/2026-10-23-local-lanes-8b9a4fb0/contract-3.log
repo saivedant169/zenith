@@ -1,0 +1,48 @@
+
+ RUN  v4.1.12 /Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith
+
+ ✓ |node| tests/agent-v3/stream-store.test.ts (13 tests) 5880ms
+     ✓ stores priming, progress and the result in order and serves them back to the same principal only  711ms
+     ✓ a final response for a DIFFERENT request id does not finish the stream  527ms
+     ✓ is bounded per stream  590ms
+     ✓ refuses to append to another principal's or workspace's stream  532ms
+     ✓ expired streams are not readable and are removed when the workspace opens the next one  550ms
+     ✓ replays events after Last-Event-ID, in order, and ends after the result  532ms
+     ✓ resuming from the final event of a finished stream ends immediately with nothing  530ms
+     ✓ follows a still-running request and delivers the result when it lands  628ms
+     ✓ returns null (the caller answers 404) for unknown, foreign, malformed and cross-workspace ids  556ms
+     ✓ a cancel recorded by another instance reaches the in-flight request through the database  693ms
+ ✓ |node| tests/agent-v3/route.test.ts (39 tests) 87ms
+ ✓ |node| tests/agent-v3/read.test.ts (30 tests) 62ms
+ ✓ |node| tests/agent-v3/sdk.test.ts (19 tests) 43ms
+ ✓ |node| tests/agent-v3/runner-connections.test.ts (14 tests) 18ms
+ ✓ |node| tests/agent-v3/protocol.test.ts (22 tests) 10ms
+ ✓ |node| tests/agent-v3/schemas.test.ts (20 tests) 5ms
+ ✓ |node| tests/agent-v3/scope-catalog.test.ts (4 tests) 4ms
+
+ Test Files  8 passed (8)
+      Tests  161 passed (161)
+   Start at  20:28:06
+   Duration  12.02s (transform 1.71s, setup 0ms, import 5.56s, tests 6.11s, environment 0ms)
+
+JSON report written to /private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/hold/2026-10-23-local-lanes-8b9a4fb0/contract-3.json
+(node:88119) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:88120) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+stderr | tests/agent-v3/route.test.ts > MCP v3 HTTP > modern protocol requests also use JSON and the same catalog/strict tools
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+stderr | tests/agent-v3/route.test.ts > MCP v3 HTTP > modern protocol requests also use JSON and the same catalog/strict tools
+responseMode: 'json' drops mid-call notifications. subscriptions/listen streams are always served over SSE regardless; other notifications emitted before a result are dropped.
+
+(node:88121) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:88122) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:88123) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:88125) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:88138) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

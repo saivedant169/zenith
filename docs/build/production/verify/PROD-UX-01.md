@@ -387,3 +387,25 @@ This evidence records seven audited screens at the defined desktop and mobile vi
 - Execution worker and Temporal were stopped for memory; the case does not use them.
 - Debug runs before the evidence run (not evidence): artifact fetch refused while the runner blocked on the case
   (fixed: async spawn), and `/api/bootstrap` 404 before workspace creation (fixed: mfa-fixtures order).
+
+## Accessibility scope after the 2026-10-23 review (schema 4), evidence on 8b9a4fb0
+
+The independent review held promotion because the receipts audited less than the acceptance's "accessibility". The
+scope was not narrowed; the audit was widened:
+- Every audited page, at 1280 px and 375 px: axe WCAG 2.0/2.1 A and AA, no horizontal overflow, and keyboard
+  operability: Tab reaches every control present on the page (controls rendered while scanning are required too; the
+  scan keeps tabbing until all are reached), every reached control shows a visible focus indicator (a change in
+  outline, box-shadow or border colour on the control or its three nearest ancestors between focused and unfocused,
+  WCAG 2.4.7), and no control is a non-native element with a widget role (so Enter/Space activation is the browser's).
+- New page: AWS onboarding (`/platform/connections/aws`), case `ux01-aws-onboarding-a11y`.
+- The legacy-engine cancellation control renders only for legacy (non-workflow) deployments, which J2 does not create.
+  Its states (offered, confirming, unconfirmed outcome, success, disabled for viewers) get axe A/AA in the component
+  lane (`tests/screens/legacy-cancel-axe.test.tsx`); colour contrast needs layout and is reported as not evaluated.
+- Not covered by automation: a real screen-reader pass (VoiceOver/NVDA), which stays a supervised human step.
+
+Evidence, all on 8b9a4fb0: hosted run 39968933457 (`2026-10-23-hosted-39968933457/`, both UX receipts and the J2/MFA
+verdict lines), `2026-10-23-local-lanes-8b9a4fb0/` (contract batches, receipt gate, MFA PostgreSQL),
+`2026-10-23-plugin-lanes-8b9a4fb0/`, `2026-10-23-plugin-platform-8b9a4fb0/`. Superseded runs on 4eea3026 and 7c4e2ccf are
+kept beside them. The "uses verification disabled" wording in the plugin-platform addendum is corrected: Chromium uses
+`--ignore-certificate-errors-spki-list` pinned to the two stack edge certificates (pinning, which also bypasses
+hostname and chain checks for those exact keys); Node verifies normally against the stack CA.

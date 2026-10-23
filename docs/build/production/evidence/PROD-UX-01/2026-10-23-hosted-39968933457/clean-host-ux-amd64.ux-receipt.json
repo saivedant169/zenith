@@ -1,0 +1,529 @@
+{
+  "schemaVersion": 4,
+  "requirementId": "PROD-UX-01",
+  "kind": "actual_browser",
+  "browser": "Google Chrome 155.0.8059.39 via Playwright",
+  "viewports": [
+    "1280x900",
+    "375x900"
+  ],
+  "axeTags": [
+    "wcag2a",
+    "wcag2aa",
+    "wcag21a",
+    "wcag21aa"
+  ],
+  "source": {
+    "commit": "8b9a4fb0f5063cfbbb26014fc0a1ca064405ad19",
+    "sourceDigest": "68261f3d56796fa11b2190b58c539b903113e7f4eac286d68b7877abbb77ae93",
+    "dirty": false
+  },
+  "counts": {
+    "passed": 11,
+    "failed": 0,
+    "not_run": 0
+  },
+  "result": "passed",
+  "cases": [
+    {
+      "id": "ux01-operation-review-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "operation-requester-review",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 46,
+            "reached": 46,
+            "focusVisible": 46,
+            "nonNative": 0
+          }
+        },
+        {
+          "pageId": "operation-requester-review",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 28,
+            "reached": 28,
+            "focusVisible": 28,
+            "nonNative": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "ux01-independent-approval-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "operation-before-independent-approval",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 50,
+            "reached": 50,
+            "focusVisible": 50,
+            "nonNative": 0
+          }
+        },
+        {
+          "pageId": "operation-before-independent-approval",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 32,
+            "reached": 32,
+            "focusVisible": 32,
+            "nonNative": 0
+          }
+        },
+        {
+          "pageId": "operation-after-independent-approval",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 48,
+            "reached": 48,
+            "focusVisible": 48,
+            "nonNative": 0
+          }
+        },
+        {
+          "pageId": "operation-after-independent-approval",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 30,
+            "reached": 30,
+            "focusVisible": 30,
+            "nonNative": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "ux01-replan-reapproval-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "operation-reapproval-required",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 64,
+            "reached": 64,
+            "focusVisible": 64,
+            "nonNative": 0
+          }
+        },
+        {
+          "pageId": "operation-reapproval-required",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 46,
+            "reached": 46,
+            "focusVisible": 46,
+            "nonNative": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "ux01-cancel-operation-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "operation-pending-cancel",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 45,
+            "reached": 45,
+            "focusVisible": 45,
+            "nonNative": 0
+          }
+        },
+        {
+          "pageId": "operation-pending-cancel",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 27,
+            "reached": 27,
+            "focusVisible": 27,
+            "nonNative": 0
+          }
+        },
+        {
+          "pageId": "operation-cancelled",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 45,
+            "reached": 45,
+            "focusVisible": 45,
+            "nonNative": 0
+          }
+        },
+        {
+          "pageId": "operation-cancelled",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 27,
+            "reached": 27,
+            "focusVisible": 27,
+            "nonNative": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "ux01-legacy-projection-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "linked-workflow-deployment",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 39,
+            "reached": 39,
+            "focusVisible": 39,
+            "nonNative": 0
+          }
+        },
+        {
+          "pageId": "linked-workflow-deployment",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 21,
+            "reached": 21,
+            "focusVisible": 21,
+            "nonNative": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "ux01-runbook-approval-progress-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "runbook-pending-approval",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 44,
+            "reached": 44,
+            "focusVisible": 44,
+            "nonNative": 0
+          }
+        },
+        {
+          "pageId": "runbook-pending-approval",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 26,
+            "reached": 26,
+            "focusVisible": 26,
+            "nonNative": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "ux01-readiness-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "platform-readiness",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 42,
+            "reached": 42,
+            "focusVisible": 42,
+            "nonNative": 0
+          }
+        },
+        {
+          "pageId": "platform-readiness",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 24,
+            "reached": 24,
+            "focusVisible": 24,
+            "nonNative": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "ux01-uncertainty-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "operation-uncertain",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 51,
+            "reached": 51,
+            "focusVisible": 51,
+            "nonNative": 0
+          }
+        },
+        {
+          "pageId": "operation-uncertain",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 33,
+            "reached": 33,
+            "focusVisible": 33,
+            "nonNative": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "ux01-connection-onboarding-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "connection-change-review",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 39,
+            "reached": 39,
+            "focusVisible": 39,
+            "nonNative": 0
+          }
+        },
+        {
+          "pageId": "connection-change-review",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 21,
+            "reached": 21,
+            "focusVisible": 21,
+            "nonNative": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "ux01-connection-admin-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "connection-admin",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 57,
+            "reached": 57,
+            "focusVisible": 57,
+            "nonNative": 0
+          }
+        },
+        {
+          "pageId": "connection-admin",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 39,
+            "reached": 39,
+            "focusVisible": 39,
+            "nonNative": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "ux01-aws-onboarding-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "connection-aws-onboarding",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 44,
+            "reached": 44,
+            "focusVisible": 44,
+            "nonNative": 0
+          }
+        },
+        {
+          "pageId": "connection-aws-onboarding",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 26,
+            "reached": 26,
+            "focusVisible": 26,
+            "nonNative": 0
+          }
+        }
+      ]
+    }
+  ],
+  "uncertainty": {
+    "source": {
+      "commit": "8b9a4fb0f5063cfbbb26014fc0a1ca064405ad19",
+      "sourceDigest": "68261f3d56796fa11b2190b58c539b903113e7f4eac286d68b7877abbb77ae93",
+      "imageDigest": "091ed7e017ea9370e9198978b04649e580c251ecc29757295e0b1500bf6489cd",
+      "fixtureRunId": "ae03f4ff7401836d524736b7"
+    },
+    "scheduler": {
+      "mode": "existing_critical_job",
+      "budgetMs": 15000,
+      "preflightSha256": "408b3428aecb8dc397f74aaa65e9eb18805a98d2634c2a93eee869419b47ac6a",
+      "claimableRunIds": [],
+      "dueScheduleIds": [],
+      "exclusiveWindowId": "j2-ux-39968933457-amd64"
+    },
+    "approval": {
+      "requesterId": "101034e0-0d48-4bea-ba93-d34a0ca12baa",
+      "approverId": "1ae83eff-6150-4cd1-be81-151cce92436a",
+      "bindingDigest": "3d74464626962fe2848b550f4102bf2fef30f22f80b92f3f906228c7eb7c8119",
+      "selfApprovalStatus": 403,
+      "approvalStatus": 200
+    },
+    "run": {
+      "id": "rbr_dac7618a-be41-4357-8a7a-bafb63f20b7d",
+      "runbookId": "j2-uncertainty-ae03f4ff7401836d524736b7",
+      "version": 1,
+      "definitionDigest": "a2de46d953eb0024613becc09447a08933ff15555039d23594d7f60c44292d6c",
+      "bindingDigest": "3d74464626962fe2848b550f4102bf2fef30f22f80b92f3f906228c7eb7c8119",
+      "workspaceId": "mvl2xevj1i0r4m",
+      "projectId": "mvl2xfpfaovlzt",
+      "environmentId": "mvl2xhank3hyfy",
+      "resourceId": "res_8115b724-ac36-4bc8-ab76-f556734586ba",
+      "targetIndex": 0,
+      "statusBefore": "running",
+      "statusAfter": "running",
+      "releasedReason": "caller_abort"
+    },
+    "step": {
+      "id": "hold",
+      "targetIndex": 0,
+      "statusBefore": "started",
+      "statusAfter": "uncertain",
+      "errorCode": "uncertain",
+      "deterministicOperationId": "rbs_5a32a256c5c70924fda96668575abdd4eb8e16cb21f31df6"
+    },
+    "audit": {
+      "sha256": "cf5a8452a5e9df7017860b24cb354f1d4aaf4deb3e613a5c620d7350a4de3d1d",
+      "authorizationCount": 1,
+      "operationId": "op_c77e8a7c9c8d48cb9bfd7125e2ea0fa9",
+      "stepOperationId": "rbs_5a32a256c5c70924fda96668575abdd4eb8e16cb21f31df6"
+    },
+    "broker": {
+      "operationId": "op_c77e8a7c9c8d48cb9bfd7125e2ea0fa9",
+      "statusBefore": "running",
+      "statusAfter": "uncertain",
+      "workspaceId": "mvl2xevj1i0r4m",
+      "projectId": "mvl2xfpfaovlzt",
+      "environmentId": "mvl2xhank3hyfy",
+      "resourceId": "res_8115b724-ac36-4bc8-ab76-f556734586ba",
+      "runbookStep": {
+        "runId": "rbr_dac7618a-be41-4357-8a7a-bafb63f20b7d",
+        "stepId": "hold",
+        "targetIndex": 0,
+        "target": {
+          "address": "container_service/witness",
+          "targetId": "mac_5ff3728e-f57e-411b-afe5-46b3e7412426",
+          "transport": "zenithd",
+          "resourceId": "res_8115b724-ac36-4bc8-ab76-f556734586ba",
+          "workspaceId": "mvl2xevj1i0r4m",
+          "environmentId": "mvl2xhank3hyfy"
+        },
+        "bindingDigest": "3d74464626962fe2848b550f4102bf2fef30f22f80b92f3f906228c7eb7c8119"
+      }
+    },
+    "request": {
+      "id": "mreq_3dadffbd8a03b12c84d2c98f0788e843",
+      "machineId": "mac_5ff3728e-f57e-411b-afe5-46b3e7412426",
+      "workspaceId": "mvl2xevj1i0r4m",
+      "operationId": "op_c77e8a7c9c8d48cb9bfd7125e2ea0fa9",
+      "operation": "machine.exec",
+      "capability": "machine.exec",
+      "statusBefore": "running",
+      "startedAt": "2026-10-23T14:52:01.162Z",
+      "settledAt": null
+    },
+    "marker": {
+      "sha256": "3045e05560ebc7a05e37f5a2c9dbd80f6f47d3f6423ccba1b6f2d0053baf2087",
+      "nonceMatch": true
+    },
+    "order": {
+      "authorization": 12091,
+      "requestStarted": 12247,
+      "markerObserved": 12325,
+      "abort": 26085,
+      "uncertainReadback": 26832,
+      "ui": 29646
+    },
+    "ui": {
+      "operationId": "op_c77e8a7c9c8d48cb9bfd7125e2ea0fa9",
+      "persistedStatus": "uncertain",
+      "uncertainState": true,
+      "callout": "Outcome uncertain: do not assume it failed or succeeded",
+      "nextSteps": [
+        "Do not retry yet: the change may already have been applied.",
+        "Open the resource state and wait for the next reconciliation, or check the cloud console directly.",
+        "When you know the real state, propose a new operation for whatever is still missing."
+      ]
+    },
+    "closeout": {
+      "runStatus": "cancelled",
+      "stepStatus": "uncertain",
+      "brokerStatus": "uncertain",
+      "machineId": "mac_5ff3728e-f57e-411b-afe5-46b3e7412426",
+      "machineStatus": "revoked",
+      "containerId": "cc12d508cde99467240e2910137795cc25b10c4db790c4c04e839f2d2050b0e3",
+      "containerRunLabel": "ae03f4ff7401836d524736b7-obs",
+      "containerRunning": false,
+      "requestCount": 1,
+      "authorizationCount": 1,
+      "observed": 193999
+    }
+  }
+}

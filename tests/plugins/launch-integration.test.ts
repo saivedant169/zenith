@@ -382,7 +382,8 @@ describe.skipIf(!dockerJoin)("real revocation stopping a real Docker sandbox [do
       const fetcher: typeof fetch = (input, init) => new Promise<Response>((done, reject) => {
         const body = typeof init?.body === "string" ? init.body : init?.body instanceof URLSearchParams ? init.body.toString() : undefined;
         const req = httpsRequest(new URL(String(input)), { hostname: "127.0.0.1", servername: "host.docker.internal", ca: cert, method: init?.method,
-          headers: Object.fromEntries(new Headers(init?.headers)), signal: init?.signal ?? undefined }, (res) => {
+          // Send the API's own host name, as a real client does; only the TCP target is loopback.
+          headers: { ...Object.fromEntries(new Headers(init?.headers)), host: new URL(String(input)).host }, signal: init?.signal ?? undefined }, (res) => {
           const parts: Buffer[] = []; res.on("data", (part: Buffer) => parts.push(part));
           res.on("end", () => done(new Response(Buffer.concat(parts), { status: res.statusCode, headers: { "content-type": String(res.headers["content-type"] ?? "application/octet-stream") } })));
         });

@@ -1,5 +1,45 @@
 # PROD-LIFE-11 Backup export import and adoption
 
+## Operated adopt journey, 24 October 2026
+
+The D-4 export scenario now runs LIFE-11 adoption through the product API on the owned J1 stack and kind cluster,
+with browser approvals only (`scripts/release/drivers/adopt-kind.ts`, checks `adopt-release-retains` and
+`adopt-destroy-teardown`): an out-of-band zero-replica postgres StatefulSet and claim are declared `referenced`,
+adopted (`manage`), released, adopted again (`manage_and_destroy`) and torn down with the environment.
+
+Results on hosted GitHub runners (no receipt is a passing lane receipt yet):
+
+| Check | amd64 | arm64 |
+|---|---|---|
+| postgres, mysql and object-store data roundtrips (MinIO on Linux/ARM64 included) | passed (`190db611`, run 40019280969) | passed (`b249d7d9` run 39994409744; `190db611` run 40019284812) |
+| `adopt-release-retains`: adopt, release, same uid and claim survive | passed | passed |
+| `adopt-destroy-teardown` | failed | failed |
+| owned cleanup | passed | passed (`190db611`) |
+
+Product defects the journey found and fixed:
+- The resources read API returned no row ids, so no client could name a resource to adopt (`e2b73e8b`).
+- A failed teardown review recorded only a fixed sentence; product refusals now append their own scrubbed reason, and a
+  provider review refusal names the unreviewed refs (`6580eb63`, `b87f4504`).
+- Kubernetes teardown read an accepted delete back once; a claim held by `pvc-protection` became uncertain and
+  verification could never pass. It now waits, bounded, for absence of the same uid (`a8876238`).
+- An adopted object already deleted was reported as a blocking skip in verification's dry run (`bb8b6314`).
+- `production_destroys_data` denied the plan-read grant of an approved production teardown that deletes data; the rule
+  now judges mutating requests only (`190db611`, after independent review replaced the broader broker change in
+  `de51658a`). Worker grant denials name their rule codes (`68002e65`).
+- The J2 namespaced deployer could not list namespaces, HPAs or Roles, so teardown could never prove absence. The
+  fixture grants those reads (no create); `docs/platform/KUBERNETES-CONNECTIONS.md` documents the requirement.
+
+Hosted kind adoption (`clean-host-kind-adoption.yml`) passed on `a8876238` and `bb8b6314` with the stricter checks:
+every planned object confirmed deleted, and a post-deletion dry run with nothing left, nothing uncertain and no
+blocking skips.
+
+Remaining blocker (open, not worked around): the approved destroy now plans and reaches apply, then ends `uncertain`
+before any deletion. Destroy write grants are issued only inside a held, plan-artifact-backed cleanup attempt
+(`readNativeCleanupOwnerGrantOrigin`, migration 15), which only the OpenTofu path establishes. As the 5 October cleanup
+handoff records, direct Kubernetes/Zenith destruction refuses without a supported paired native origin. Product-level
+Kubernetes teardown therefore needs a reviewed direct-path cleanup origin (shared with PROD-LIFE-07). The adopted
+objects survive, which is the safe outcome. `dcadf325` logs the apply's cause for operators.
+
 ## Adopted-object decommissioning, 23 October 2026
 
 Gap found: adoption flips the stored resource row to `managed`, but destroy reviewed the manifest graph, where the
@@ -21,7 +61,7 @@ Evidence:
   cluster: retain, dry-run plan of exactly three objects, delete, unrelated StatefulSet and claims survive, clean
   repeat. Passed on the Mac kind node and on a fresh GitHub-hosted runner (`clean-host-kind-adoption.yml`).
 
-Still open for this requirement: tenant backup beyond data export, MinIO Linux/ARM64 runtime (hosted arm64 D-4 export
+Still open for this requirement (superseded in part by the 24 October section above): tenant backup beyond data export, MinIO Linux/ARM64 runtime (hosted arm64 D-4 export
 run dispatched 2026-10-23), and the adopt/release journey through the product API on an operated stack. MySQL DNS/TLS is
 closed: `62b70671` passed 21/21 including the real-server export/restore/readback over TLS by DNS hostname, and the
 hosted D-4 export on `86b37e7a` carried MySQL over TLS.

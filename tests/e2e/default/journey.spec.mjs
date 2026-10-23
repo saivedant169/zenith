@@ -82,24 +82,31 @@ const FOCUS_INDICATOR = () => {
 async function keyboardReach(page) {
   const initial = await page.evaluate(CONTROL_KEYS);
   await page.evaluate(() => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); });
-  const expected = new Set(initial.keys), reached = new Set(), indicated = new Set();
+  // Tab until every control on the page now has been reached: controls rendered while scanning (polling pages render
+  // late on slow hosts) join the target, and the scan keeps going for them. Bounded; a stuck focus ends it.
+  const present = new Set(initial.keys), reached = new Set(), indicated = new Set(), shapes = { ...initial.shapes }, nonNative = new Set(initial.nonNative);
   let previous = null, repeats = 0;
-  for (let press = 0; press < expected.size * 2 + 10 && reached.size < expected.size && repeats < 3; press++) {
+  for (let press = 0; press < present.size * 3 + 20 && repeats < 3; press++) {
     await page.keyboard.press('Tab');
     const now = await page.evaluate(CONTROL_KEYS);
+    for (const key of now.keys) present.add(key);
+    Object.assign(shapes, now.shapes); now.nonNative.forEach(key => nonNative.add(key));
     if (now.active !== null) { reached.add(now.active); if (await page.evaluate(FOCUS_INDICATOR)) indicated.add(now.active); }
     repeats = now.active !== null && now.active === previous ? repeats + 1 : 0; previous = now.active;
+    // Done only when every control on the page right now has been reached.
+    if (now.keys.every(key => reached.has(key))) break;
   }
-  // Controls that appeared while scanning are required too; anything still present and never reached is a miss.
+  // Required: every control on the page at the end, plus every control that was reached. A control that was removed
+  // before Tab arrived (e.g. replaced by the next state) is not required.
   const final = await page.evaluate(CONTROL_KEYS);
-  for (const key of final.keys) expected.add(key);
-  const shapes = { ...initial.shapes, ...final.shapes };
-  const nonNative = [...new Set([...initial.nonNative, ...final.nonNative])];
-  const reachedExpected = [...expected].filter(key => reached.has(key));
-  const missingKey = [...expected].find(key => !reached.has(key));
-  const unindicated = reachedExpected.find(key => !indicated.has(key));
-  return { total: expected.size, reached: reachedExpected.length, focusVisible: reachedExpected.filter(key => indicated.has(key)).length, nonNative: nonNative.length,
-    ...(missingKey ? { missing: shapes[missingKey] || 'unknown' } : unindicated ? { missing: 'focus-' + (shapes[unindicated] || 'unknown') } : nonNative.length ? { missing: 'nonnative-' + (shapes[nonNative[0]] || 'unknown') } : {}) };
+  Object.assign(shapes, final.shapes); final.nonNative.forEach(key => nonNative.add(key));
+  const required = new Set([...final.keys, ...reached]);
+  const reachedRequired = [...required].filter(key => reached.has(key));
+  const missingKey = [...required].find(key => !reached.has(key));
+  const unindicated = reachedRequired.find(key => !indicated.has(key));
+  const firstNonNative = [...nonNative][0];
+  return { total: required.size, reached: reachedRequired.length, focusVisible: reachedRequired.filter(key => indicated.has(key)).length, nonNative: nonNative.size,
+    ...(missingKey ? { missing: shapes[missingKey] || 'unknown' } : unindicated ? { missing: 'focus-' + (shapes[unindicated] || 'unknown') } : firstNonNative ? { missing: 'nonnative-' + (shapes[firstNonNative] || 'unknown') } : {}) };
 }
 
 const canonicalJson = value => {

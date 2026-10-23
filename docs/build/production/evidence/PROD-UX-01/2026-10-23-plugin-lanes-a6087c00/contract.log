@@ -1,0 +1,25 @@
+
+ RUN  v4.1.12 /Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith
+
+ ✓ |node| tests/plugins/launch-integration.test.ts (41 tests | 2 skipped) 2125ms
+     ✓ runs the approved child via main; RFC revocation invalidates the server token and kills its running sandbox  1025ms
+ ✓ |node| tests/plugins/service.test.ts (22 tests | 1 skipped) 810ms
+ ✓ |node| tests/cli/plugin-launcher.test.ts (35 tests) 437ms
+ ✓ |node| tests/cli/plugin-sandbox.test.ts (23 tests) 56ms
+ ✓ |node| tests/middleware/platform-bearer.test.ts (109 tests) 47ms
+ ✓ |node| tests/plugins/mcp-boundary.test.ts (9 tests) 34ms
+ ✓ |node| tests/cli/plugin-runtime.test.ts (5 tests) 7ms
+ ✓ |node| tests/plugins/manifest.test.ts (24 tests) 7ms
+
+ Test Files  8 passed (8)
+      Tests  265 passed | 3 skipped (268)
+   Start at  18:19:10
+   Duration  7.67s (transform 1.80s, setup 0ms, import 3.77s, tests 3.52s, environment 0ms)
+
+JSON report written to /Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith/docs/build/production/evidence/PROD-UX-01/2026-10-23-plugin-lanes-a6087c00/contract.json
+(node:33773) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:33784) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:33788) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

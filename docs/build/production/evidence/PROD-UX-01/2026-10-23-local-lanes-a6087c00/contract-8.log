@@ -1,0 +1,17 @@
+
+ RUN  v4.1.12 /Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith
+
+ ✓ |node| tests/plugins/service.test.ts (22 tests | 1 skipped) 837ms
+ ✓ |node| tests/plugins/mcp-boundary.test.ts (9 tests) 35ms
+ ✓ |node| tests/plugins/manifest.test.ts (24 tests) 7ms
+
+ Test Files  3 passed (3)
+      Tests  54 passed | 1 skipped (55)
+   Start at  18:18:24
+   Duration  3.94s (transform 1.77s, setup 0ms, import 2.93s, tests 878ms, environment 0ms)
+
+JSON report written to /Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith/docs/build/production/evidence/PROD-UX-01/2026-10-23-local-lanes-a6087c00/contract-8.json
+(node:33407) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:33427) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

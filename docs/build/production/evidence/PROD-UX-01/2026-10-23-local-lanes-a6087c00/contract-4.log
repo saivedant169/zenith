@@ -1,0 +1,20 @@
+
+ RUN  v4.1.12 /Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith
+
+ ✓ |node| tests/auth/mfa-legacy-cancel.test.ts (6 tests) 116ms
+ ✓ |node| tests/agent-v3/tenancy.test.ts (31 tests) 47ms
+ ✓ |node| tests/auth/destination.test.ts (26 tests) 11ms
+ ✓ |node| tests/auth/identity-link-sdk.test.ts (1 test) 8ms
+ ✓ |node| tests/auth/callback.test.ts (28 tests) 8ms
+ ✓ |node| tests/auth/identity-link.test.ts (7 tests) 6ms
+ ✓ |node| tests/auth/membership.test.ts (12 tests) 6ms
+ ✓ |node| tests/auth/hosted-membership.test.ts (6 tests) 4ms
+
+ Test Files  8 passed (8)
+      Tests  117 passed (117)
+   Start at  18:18:08
+   Duration  2.95s (transform 1.58s, setup 0ms, import 2.40s, tests 205ms, environment 0ms)
+
+JSON report written to /Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith/docs/build/production/evidence/PROD-UX-01/2026-10-23-local-lanes-a6087c00/contract-4.json
+(node:33293) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

@@ -7688,6 +7688,16 @@
           "environment": "Mac mini Darwin arm64, Docker Desktop 29.8.2, Node 22.23.3, Playwright Chromium 141.0.7390.37, sandbox node@sha256:3ed98443660ff48413b5af19ecefce3b9d50845a901a43420d47cc63a9fddbe9; J1 lean stack source dirty=false at 3da7177f",
           "logs": "docs/build/production/evidence/PROD-UX-01/2026-10-23-plugin-platform-3da7177f/receipt.json",
           "result": "Operated plugin-platform case wave6-546689f4b22fdb85: 1 passed/0 failed/0 skipped, registry check 1/0. Real J1 API at https://host.docker.internal:37443 behind its pass-through TLS edge, real browser AAL2 operator, signed fixture plugin approved through the browser review route, real Docker sandbox started, MCP discovery scoped to the one approved read tool, then both RFC token revocation and browser registration revocation stopped the sandbox and the launch check and MCP refused the child (401). Source unchanged across the run; no plugin containers left; private dir removed; operator deleted. Execution worker and Temporal stopped for memory (not used by the case). Not a promotion: independent review pending."
+        },
+        {
+          "level": "local_engine",
+          "commit": "a6087c00ce8e170de824f704d5eb19b579bcf36a",
+          "command": "clean-host-journey.yml -f ux=true (run 39951976873, amd64+arm64); node scripts/ci/ux01-receipt.mjs; node scripts/ci/ux03-receipt.mjs; node --import tsx scripts/ci/ux01-plugin-platform.mjs run",
+          "environment": "GitHub-hosted ubuntu-latest (amd64) and ubuntu-24.04-arm (arm64) for J2+UX+MFA browser; Mac mini Darwin arm64, Docker Desktop 29.8.2, Node 22.23.3 for contract batches, receipt gate, MFA/plugin PostgreSQL, plugin Docker lanes and the operated plugin-platform case",
+          "runId": 39951976873,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/39951976873",
+          "logs": "docs/build/production/evidence/PROD-UX-01/2026-10-23-local-lanes-a6087c00/receipt.json",
+          "result": "Every PROD-UX-01 registered lane on one source commit a6087c00: hosted J2 21/21 and UX receipts on both architectures, MFA browser cases 2/2 per architecture; receipt gate verified for amd64 and arm64; contract batches 8/8 exit 0; MFA PostgreSQL 46 passed; plugin contract 265 passed/3 skipped, plugin PostgreSQL 62 passed/1 skipped and the six plugin Docker/PostgreSQL gated cases verified (evidence/PROD-UX-01/2026-10-23-plugin-lanes-a6087c00); operated plugin-platform case wave6-546689f4b22fdb85 verified on a clean J1 stack built from a6087c00 (evidence/PROD-UX-01/2026-10-23-plugin-platform-a6087c00). Source unchanged across every local receipt; cleanup clean. One earlier local-lanes receipt on this commit was discarded because the tree changed mid-run, and two plugin-platform stack attempts failed in Supabase startup (cause not found; the third passed). Keyboard evidence is desktop Tab reachability only. Not a promotion: independent review pending."
         }
       ],
       "requiredEvidence": [

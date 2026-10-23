@@ -199,7 +199,7 @@ test.skip(process.env.ZENITH_DEFAULT_JOURNEY !== '1', 'needs ZENITH_DEFAULT_JOUR
 const HEALTH_EVIDENCE_SQL = "select coalesce(json_agg(json_build_object('id',e.id,'workspaceId',e.workspace_id,'operationId',e.operation_id,'kind',e.kind,'simulated',e.simulated,'createdAt',e.created_at,'summary',e.summary,'operationStatus',o.status,'projectId',o.project_id,'environmentId',o.environment_id,'resourceId',o.resource_id,'capability',o.capability)), '[]'::json)::text from platform.evidence e join platform.operations o on o.workspace_id = e.workspace_id and o.id = e.operation_id where e.workspace_id = :'workspace_id' and e.operation_id = :'operation_id' and o.project_id = :'project_id' and o.environment_id = :'environment_id' and o.resource_id = :'resource_id' and e.kind = 'observation' and e.summary->>'kind' = 'machine_health' and e.summary->>'capability' = 'system.metrics'";
 
 test('default operated browser, REST, MCP and customer machine journey', async ({ browser }) => {
-  let source = {}, stack, config, a, b, machine, healthMachine, linked, runnerProcess, runnerId, runnerName, runnerServiceAccount, runnerConnectionId, runnerDir, runnerCustodyMarker, runnerCaseSucceeded = false, runnerSpawned = false, runnerSpawnError = false, runnerExited = false, runnerClosed = false, workspaceId, project, environmentId, healthResourceId;
+  let source = {}, stack, config, a, b, c, machine, healthMachine, linked, runnerProcess, runnerId, runnerName, runnerServiceAccount, runnerConnectionId, runnerDir, runnerCustodyMarker, runnerCaseSucceeded = false, runnerSpawned = false, runnerSpawnError = false, runnerExited = false, runnerClosed = false, workspaceId, project, environmentId, healthResourceId;
   let uxBrowserLabel, uxBrowser, uxA, uxB, axeSource, uxApprovalRecorded = false, uxUncertaintyEvidence, uxOriginalWindow, uxStage = 'not-started', uxOuterCleanupComplete = false, uxFailureStage;
   const uxPrivateObservations = [];
   let uxPrivateObservationBytes = 0;
@@ -557,6 +557,17 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       const accepted = ok(await browserRequest(b, '/api/workspace/invites/' + invite.id + '/accept', {}));
       ok(await browserRequest(b, '/api/bootstrap'));
       ensure(accepted.member?.id === users[1] && accepted.member?.role === 'admin', 'operator-b-membership');
+      // UX-01 only: a third, viewer-role member for the read-only legacy-cancel audit, joined exactly as B joined.
+      if (UX_ENABLED) {
+        const operatorC = await operator(stack, config.mailpitUrl, 'c', users);
+        c = await (await browser.newContext()).newPage();
+        await authenticateBeforeWorkspace(c, stack, operatorC);
+        await enrollOperator(c, stack);
+        const viewerInvite = ok(await browserRequest(a, '/api/workspace/invites', { email: operatorC.email, role: 'viewer', workspaceId })).invite;
+        const joined = ok(await browserRequest(c, '/api/workspace/invites/' + viewerInvite.id + '/accept', {}));
+        ok(await browserRequest(c, '/api/bootstrap'));
+        ensure(joined.member?.role === 'viewer', 'ux01-viewer-membership');
+      }
       // The default policy lets a sole admin approve their own production change and refuses raw machine
       // commands in production. This journey proves the workspace's two-person rule and runs its customer
       // machine beside the deployed witness, so operator A sets both through the real admin browser route;
@@ -880,14 +891,8 @@ test('default operated browser, REST, MCP and customer machine journey', async (
         await uxA.getByRole('button', { name: 'Confirm cancellation', exact: true }).waitFor();
         await auditUx(uxA, 'legacy-cancel-confirming', axeSource, scans);
         await uxA.getByRole('button', { name: 'Keep deployment running', exact: true }).click();
-        // A viewer sees the control disabled with its explanation.
-        const operatorC = await operator(stack, config.mailpitUrl, 'c', users);
-        viewer = await uxBrowser.newContext().then(context => context.newPage());
-        await authenticateBeforeWorkspace(viewer, stack, operatorC);
-        const invite = ok(await browserRequest(a, '/api/workspace/invites', { email: operatorC.email, role: 'viewer', workspaceId })).invite;
-        const joined = ok(await browserRequest(viewer, '/api/workspace/invites/' + invite.id + '/accept', {}));
-        ensure(joined.member?.role === 'viewer', 'ux01-viewer-membership');
-        ok(await browserRequest(viewer, '/api/bootstrap'));
+        // A viewer (joined at workspace setup, beside operator B) sees the control disabled with its explanation.
+        viewer = await uxBrowser.newContext({ storageState: await c.context().storageState() }).then(context => context.newPage());
         await viewer.goto(stack.apiUrl + '/platform/deployments/' + fixtureId);
         await viewer.getByRole('heading', { name: 'Cancel deployment', exact: true }).waitFor();
         ensure(await viewer.getByRole('button', { name: 'Cancel deployment', exact: true }).isDisabled(), 'ux01-viewer-cancel-disabled');

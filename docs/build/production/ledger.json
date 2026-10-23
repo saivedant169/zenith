@@ -7643,12 +7643,12 @@
       "acceptance": [
         "Plugin capability declarations/provenance/schemas/isolation/revocation; no token passthrough or direct credential/store access."
       ],
-      "state": "in_progress",
+      "state": "verified",
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "implementation_complete_verification_pending",
-      "implementationNote": "J9 launcher plus main CLI install/run/list/revoke and authoritative scoped za_ issuance/check built. Browser trust uses a fail-closed verified AAL2 consent seam; MCP and existing revocation paths retain child restrictions and stop the supervisor. Native Docker/Postgres and operated browser acceptance remain pending; MFA challenge UI joins through assertPrivilegedConsent. Prior evidence retained.",
+      "implementationStatus": "verified_faee0f51: plugin capability declarations, schemas and Ed25519 provenance are refused unless signed, reviewed and digest-pinned; review, issuance and revocation persist in a networked PostgreSQL server; the plugin process runs in a real Docker sandbox (non-root uid, no capabilities, no-new-privileges, read-only root, no network, no Docker socket, no host store) and never receives the child token, which only the gateway holds (gateway refuses plugin-supplied credentials); real PostgreSQL-backed RFC revocation, observed by the launcher's launch-check polling, stops and removes the actual sandbox. Contract and local_engine on one source commit (faee0f51). Independent review: PROMOTE after three HOLD rounds (rounds found and fixed: live child token in the plugin env, unregistered PostgreSQL lane, fixture-only revocation join, unpinned sandbox image). Limits: operated browser lane (J1/J3 stack, MFA, Chromium) not run; browser launch-token issuance UI not built (CLI issuance only); OAuth grant parents refused by design; test publishers only, no production trust roots; isolation probes and the real-authority join run in separate cases; the external Zenith-plugins bridge (MCP v2) is not verifiable here.",
+      "implementationNote": "Verified at faee0f51 (see implementationStatus). Remaining for the operated level: browser launch-token UI and the operated browser lane wave6-546689f4b22fdb85.",
       "evidence": [
         {
           "level": "contract",
@@ -7758,6 +7758,22 @@
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
           "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
           "result": "Wave6 local lanes 2026-10-20: 3 passed / 0 failed / 1 not run of the requirement's 4 non-live wave6 cases. Plugin sandbox 3/3 on d23fc0b4 per the documented Mac runtime spec; platform launcher not run. Not promoted: local-engine slice only; acceptance judged separately."
+        },
+        {
+          "level": "contract",
+          "commit": "faee0f514c51bfcea6d332e28624a35581ccc346",
+          "command": "node scripts/ci/ux03-receipt.mjs <new-dir> (contract lane: wave6 PROD-UX-03 plan command, 8 files, --no-file-parallelism --maxWorkers=2)",
+          "environment": "Mac mini Darwin arm64 native; Node 22.23.3; Docker Desktop 29.8.2",
+          "result": "265 passed / 0 failed; the 3 skipped are the registered PostgreSQL and Docker+PostgreSQL cases, each passed in its own lane below. Includes runner token refusal (tests/cli/plugin-sandbox.test.ts) and the plugin-pipe no-token assertion (tests/cli/plugin-runtime.test.ts).",
+          "logs": "docs/build/production/evidence/PROD-UX-03/2026-10-23-faee0f51/receipt.json"
+        },
+        {
+          "level": "local_engine",
+          "commit": "faee0f514c51bfcea6d332e28624a35581ccc346",
+          "command": "node scripts/ci/ux03-receipt.mjs <new-dir> (PostgreSQL lane and registered wave6 cases wave6-804f49145d9c6b23, wave6-4de28b8c5378d1de, wave6-a5f94528790619de, wave6-133824cc8cbd87d4, wave6-4f4f1f7601a66aa9, wave6-f6024a096cc38daa, each verified with scripts/ci/wave6-gates.mjs --case --report)",
+          "environment": "Disposable postgres:16.15-alpine@sha256:cf78e766... (generated password, random loopback port; 4 -> 125 tables, plugin tables created by the tests); real Docker with pinned sandbox node@sha256:3ed98443...; source frozen before and after; cleanup clean; receipt sha256 recorded",
+          "result": "PostgreSQL lane 62 passed / 0 failed (1 skip = the Docker join, passed in its own lane). All six registered gated cases pass: real container isolation and forced cleanup on revoke/outage/cancel (uid 65532, no capabilities, no-new-privileges, read-only root, network none, no Docker socket, no Zenith token in the plugin env); networked-PostgreSQL review, issuance and revocation; and the join where the real PostgreSQL-backed RFC revocation, observed by the launcher's launch-check polling, stops the actual sandbox and removes its containers and volume. Operated browser lane wave6-546689f4b22fdb85 not run (later level).",
+          "logs": "docs/build/production/evidence/PROD-UX-03/2026-10-23-faee0f51/receipt.json"
         }
       ],
       "requiredEvidence": [
@@ -7766,13 +7782,15 @@
       ],
       "owner": null,
       "testPaths": [
+        "tests/plugins/manifest.test.ts",
+        "tests/plugins/service.test.ts",
+        "tests/plugins/mcp-boundary.test.ts",
+        "tests/plugins/launch-integration.test.ts",
         "tests/cli/plugin-launcher.test.ts",
-        "tests/cli/plugin-sandbox.test.ts",
         "tests/cli/plugin-runtime.test.ts",
+        "tests/cli/plugin-sandbox.test.ts",
         "tests/cli/plugin-launcher-docker.test.ts",
-        "tests/cli/plugin-platform-live.test.ts",
-        "tests/middleware/platform-bearer.test.ts",
-        "tests/plugins"
+        "tests/middleware/platform-bearer.test.ts"
       ],
       "implementationNotes": "Final integration: migration chain 1..58, shared human step-up, owned-stack and live-helper joins assembled. Local checks in verify/FINAL-INTEGRATION.md; Mac engine/browser/live verification remains pending. No verification promotion."
     },

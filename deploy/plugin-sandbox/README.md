@@ -23,8 +23,10 @@ the sandbox. Parent withdrawal invalidates the child through its live authority.
 
 The launcher requires a local signed manifest, its human-reviewed canonical
 digest, trusted publisher keys, a local Node22 Linux image by immutable digest,
-and a freshly issued dedicated scoped `za_` child token through stdin. It does
-not read saved login credentials or `ZENITH_TOKEN`. Artifact download uses the
+and a freshly issued dedicated scoped `za_` child token through stdin. Only the
+gateway container receives that token; the plugin process never does, and the
+gateway refuses plugin-supplied credentials. It does not read saved login
+credentials or `ZENITH_TOKEN`. Artifact download uses the
 signed HTTPS URL without authentication or redirects, is capped at 16 MiB,
 and must match the signed SHA-256 before container creation. There is no image
 pull, host extraction, host command supplied by the manifest, or unsigned mode.

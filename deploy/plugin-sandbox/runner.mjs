@@ -66,18 +66,19 @@ async function main() {
   if (!process.versions.node.startsWith("22.")) throw new Error("node22_required");
   const input = await bootstrapInput();
   const bytes = await readFile("/zenith/artifact.tgz");
-  if (!/^za_[A-Za-z0-9_-]{43}$/.test(input.token) || createHash("sha256").update(input.token).digest("hex") !== input.binding.credentialDigest ||
+  // The gateway alone holds the child token; a plugin bootstrap that carries any token is refused.
+  if ("token" in input || typeof input.binding?.credentialDigest !== "string" ||
       createHash("sha256").update(bytes).digest("hex") !== input.artifactDigest) throw new Error("invalid_bootstrap");
   await unpack(bytes, "/work/plugin");
   const args = input.args.map((arg) => arg.replaceAll("${CLAUDE_PLUGIN_ROOT}", "/work/plugin"));
   const entry = resolve(args[0]);
   if (!entry.startsWith("/work/plugin/")) throw new Error("invalid_entrypoint");
   // No inherited host/container credentials, loader flags, proxy variables or
-  // app store settings. Only the freshly issued scoped token reaches the child.
+  // app store settings, and no Zenith token: the gateway authenticates every call.
   const child = spawn(process.execPath, ["--import", "/zenith/transport.mjs", ...args], {
     cwd: "/work/plugin", shell: false,
     env: { PATH: "/usr/local/bin:/usr/bin:/bin", HOME: "/work", TMPDIR: "/work", ZENITH_API_VERSION: "3",
-      ZENITH_TOKEN: input.token, ZENITH_URL: input.apiOrigin, ZENITH_WORKSPACE: input.lease.workspaceId,
+      ZENITH_URL: input.apiOrigin, ZENITH_WORKSPACE: input.lease.workspaceId,
       ZENITH_MCP_SOCKET: "/channel/api.sock", ZENITH_MCP_PATH: "/api/agent/v3/mcp" },
     stdio: ["pipe", "ignore", "ignore"],
   });

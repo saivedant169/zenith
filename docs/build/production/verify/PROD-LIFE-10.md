@@ -9,7 +9,7 @@ Audit first. Existing release code: `src/lib/execution/release.ts` (buildArtifac
 New, additive:
 
 - `src/lib/release-safety/` (pure library plus service): `types.ts`, `state.ts` (release state machine), `classify.ts` (expand / data / contract / unclassified classifier for declared class and SQL, binding digest), `rollout.ts` (progressive plan validation, explicit provider refusal reasons), `provenance.ts` (the interface LIFE-09 plugs into, `registerProvenanceVerifier`), `service.ts` (`ReleaseSafetyService`: begin / approveMigration / beginMigration / markDeployed / markMigrated / markReady / markCutOver / recordReadback / rollbackSafety / lastServedForRevision), `store.ts`, `memory-store.ts`, `index.ts`.
-- `src/lib/controlplane/db/migrations/0024_release_pipelines.ts` (version 24, registered in `migrations/index.ts`) and `src/lib/controlplane/db/repos/release-pipelines.ts` (`createPlatformReleaseStore`, not added to `repos/index.ts`, like the runbook store).
+- `src/lib/controlplane/db/migrations/0023_release_pipelines.ts` (version 23, registered in `migrations/index.ts`) and `src/lib/controlplane/db/repos/release-pipelines.ts` (`createPlatformReleaseStore`, not added to `repos/index.ts`, like the runbook store).
 - `src/lib/platform/release-safety.ts`: composition (`createPlatformReleaseSafety`, Zenith build-record verifier, `ZENITH_RELEASE_MIN_PROVENANCE`), wired into `composeExecutionActivities` as `deps.releaseSafety`.
 - `src/lib/execution/release-safety.ts` and edits to `src/lib/execution/release.ts`: the pipeline in the real deploy activities (see below). `ports.ts` gains optional `WorkloadsPort.readServing` and `WorkloadsPort.progressive` (`ProgressiveWorkloadsPort`) and `ExecutionDeps.releaseSafety`.
 - Provider adapters: `src/lib/providers/gcp/release/traffic.ts` (Cloud Run weighted traffic, abort, serving-digest read), `src/lib/providers/kubernetes/release/workloads.ts` (`readServing`), `src/lib/platform/release.ts` + `release-gcp.ts` (dispatch; adapters without a capability report it plainly).
@@ -57,7 +57,7 @@ npx vitest run tests/middleware/platform-bearer.test.ts tests/platform/deploy-e2
 npx tsc --noEmit -p . && npx eslint <changed files>
 ```
 
-Expected: all pass, zero skipped (the PostgreSQL lane only with the env var). `deploy-e2e` and `composition` now run the real pipeline over PostgreSQL (the composition always supplies `releaseSafety`); they need migration 24 applied.
+Expected: all pass, zero skipped (the PostgreSQL lane only with the env var). `deploy-e2e` and `composition` now run the real pipeline over PostgreSQL (the composition always supplies `releaseSafety`); they need migration 23 applied.
 
 ## 4. Known gaps and shared-file updates for the assembler
 

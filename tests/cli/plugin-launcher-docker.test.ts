@@ -41,7 +41,7 @@ const result = { uid: process.getuid(), caps: /CapEff:\\s+0+\\n/.test(status), n
   noHostStore: await denied(() => access('/host')),
   apiDirectBlocked: await blocked('host.docker.internal', Number(process.argv[2])),
   metadataBlocked: await blocked('169.254.169.254', 80),
-  onlyScopedToken: /^za_[A-Za-z0-9_-]{43}$/.test(process.env.ZENITH_TOKEN),
+  noToken: process.env.ZENITH_TOKEN === undefined && !Object.values(process.env).some((v) => /za_[A-Za-z0-9_-]{20,}/.test(v)),
   envKeys: Object.keys(process.env).sort() };
 const send = (message) => new Promise((done, reject) => {
   const req = request({ socketPath: process.env.ZENITH_MCP_SOCKET, path: process.env.ZENITH_MCP_PATH, method: 'POST', headers: { 'content-type': 'application/json' } }, (res) => { res.resume(); res.once('end', () => done(res.statusCode)); });
@@ -119,9 +119,9 @@ describe.skipIf(!enabled)("real plugin sandbox [needs ZENITH_TEST_PLUGIN_DOCKER=
     try {
       await vi.waitFor(() => expect(f.received()).toBeDefined(), { timeout: 30_000 });
       const proof = f.received()!;
-      for (const name of ["caps", "noNewPrivileges", "rootReadOnly", "payloadReadOnly", "noDocker", "noHostStore", "apiDirectBlocked", "metadataBlocked", "onlyScopedToken"]) expect(proof[name], name).toBe(true);
+      for (const name of ["caps", "noNewPrivileges", "rootReadOnly", "payloadReadOnly", "noDocker", "noHostStore", "apiDirectBlocked", "metadataBlocked", "noToken"]) expect(proof[name], name).toBe(true);
       expect(proof.uid).toBe(65532);
-      expect(proof.envKeys).toEqual(["HOME", "PATH", "TMPDIR", "ZENITH_API_VERSION", "ZENITH_MCP_PATH", "ZENITH_MCP_SOCKET", "ZENITH_TOKEN", "ZENITH_URL", "ZENITH_WORKSPACE"]);
+      expect(proof.envKeys).toEqual(["HOME", "PATH", "TMPDIR", "ZENITH_API_VERSION", "ZENITH_MCP_PATH", "ZENITH_MCP_SOCKET", "ZENITH_URL", "ZENITH_WORKSPACE"]);
       const owned = await f.ownedContainers(); expect(owned).toHaveLength(2);
       const plugin = owned.find((c) => c.Name.endsWith("-process"))!;
       expect(plugin.HostConfig.NetworkMode).toBe("none"); expect(plugin.HostConfig.ReadonlyRootfs).toBe(true);

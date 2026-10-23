@@ -76,8 +76,10 @@ export class DockerRuntime implements ContainerRuntime {
         });
         void done.catch(() => {});
         child.stdin?.on("error", () => readyReject?.(new LauncherError("container_runtime_failed")));
-        // Secret only on an anonymous pipe, never argv, Docker env, files or logs.
-        child.stdin?.end(JSON.stringify(spec.bootstrap) + "\n");
+        // Secret only on an anonymous pipe, never argv, Docker env, files or logs. Only the gateway
+        // holds the child token; the plugin process never receives it (it reaches the API only via the gateway).
+        const { token: _token, ...pluginBootstrap } = spec.bootstrap;
+        child.stdin?.end(JSON.stringify(gateway ? spec.bootstrap : pluginBootstrap) + "\n");
         return { ready, done };
       };
       await this.command(containerArgs(spec, gatewayName, volume, true)); created.push(gatewayName);

@@ -38,7 +38,9 @@ describe("Docker runtime [modeled daemon commands, NOT engine proof]", () => {
     const input = spec(); const running = await new DockerRuntime().start(input);
     expect(model.commands.filter((args) => args[0] === "create").map((args) => args[2].split("-").at(-1))).toEqual(["gateway", "process"]);
     expect(model.commands.flat().join()).not.toContain(input.bootstrap.token);
-    expect(model.pipes).toHaveLength(2); expect(model.pipes.every((pipe) => JSON.parse(pipe).token === input.bootstrap.token)).toBe(true);
+    expect(model.pipes).toHaveLength(2); expect(JSON.parse(model.pipes[0]).token).toBe(input.bootstrap.token);
+    // The plugin process never receives the child token.
+    expect(model.pipes[1]).not.toContain(input.bootstrap.token); expect(JSON.parse(model.pipes[1])).not.toHaveProperty("token");
     const done = running.wait(); model.children[1].emit("close", 0); await expect(done).resolves.toBe(0);
     await running.stop();
     const removals = model.commands.filter((args) => args[0] === "rm");

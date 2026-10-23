@@ -7419,6 +7419,7 @@
       "tests/cli/follow.test.ts",
       "tests/cli/plugin-launcher-docker.test.ts",
       "tests/cli/plugin-launcher.test.ts",
+      "tests/cli/plugin-platform-live.test.ts",
       "tests/cli/plugin-runtime.test.ts",
       "tests/cli/plugin-sandbox.test.ts",
       "tests/e2e/default/journey.spec.mjs",

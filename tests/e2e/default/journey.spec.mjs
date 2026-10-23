@@ -708,6 +708,7 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       if (UX_ENABLED) await uxCase('ux01-connection-admin-a11y', async () => {
         await uxA.goto(stack.apiUrl + '/platform/connections');
         await uxA.getByRole('listitem').filter({ hasText: 'J2 kind ' + runId }).first().waitFor();
+        await uxA.getByRole('listitem').filter({ hasText: 'J2 MCP runner ' + runId }).first().waitFor();
         ensure(await uxA.getByRole('button', { name: 'Verify', exact: true }).count() > 0, 'ux01-connection-admin-actions');
         await auditUx(uxA, 'connection-admin', axeSource, uxCases.find(row => row.id === 'ux01-connection-admin-a11y').scans);
       });

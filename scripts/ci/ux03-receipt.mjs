@@ -62,7 +62,10 @@ try {
 } finally { spawnSync("docker", ["rm", "--force", pg]); fs.rmSync(tls, { recursive: true, force: true }); }
 const leftovers = { containers: sh("docker", ["ps", "-aq", "--filter", "label=zenith.plugin.launch"]), volumes: sh("docker", ["volume", "ls", "-q", "--filter", "label=zenith.plugin.launch"]), pgContainer: sh("docker", ["ps", "-aq", "--filter", "name=" + pg]) };
 const after = freeze();
-const receipt = { schemaVersion: 1, requirement: "PROD-UX-03", recordedAt: new Date().toISOString(), executionReceiptComplete: lanes.every(l => l.notRun || (l.exit === 0 && (!l.verify || l.verify.exit === 0))),
+const receipt = { schemaVersion: 1, requirement: "PROD-UX-03", recordedAt: new Date().toISOString(), // Complete only when every lane ran and passed; a not-run lane is listed, never counted as done.
+  executionReceiptComplete: lanes.every(l => !l.notRun && l.exit === 0 && (!l.verify || l.verify.exit === 0)),
+  ranLanesPassed: lanes.filter(l => !l.notRun).every(l => l.exit === 0 && (!l.verify || l.verify.exit === 0)),
+  notRunLanes: lanes.filter(l => l.notRun).map(l => l.name),
   sourceFreeze: { before, after, unchanged: JSON.stringify(before) === JSON.stringify(after) },
   environment: { host: `${os.type()} ${os.arch()}`, node: process.version, docker: sh("docker", ["version", "--format", "{{.Server.Version}}"]), postgres: pgProof },
   floors: { requiredFreeBytes: 22 * 2 ** 30, minimumObservedFreeBytes: Math.min(...lanes.filter(l => l.freeBytesBefore).map(l => l.freeBytesBefore)), met: Math.min(...lanes.filter(l => l.freeBytesBefore).map(l => l.freeBytesBefore)) >= 22 * 2 ** 30 },

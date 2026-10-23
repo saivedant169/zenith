@@ -355,3 +355,9 @@ This evidence records seven audited screens at the defined desktop and mobile vi
 - Registry: `oauth-issuer-live.test.ts` belongs to PROD-UX-02 (client OAuth issuer and audience) and
   `plugin-platform-live.test.ts` to PROD-UX-03's operated level; neither is in UX-01's acceptance text, so
   both were removed from UX-01's inventory (each remains registered under its owner).
+- Scope qualifiers (independent review, 2026-10-23): "connection onboarding" here is the runner-connection review
+  page; the AWS connect page is not audited. Keyboard evidence is Tab reachability on desktop only (no
+  Enter/Space activation, focus-visible or mobile keyboard check); no screen-reader pass. Plugin trust actions
+  are step-up-protected privileged routes, so the operated plugin platform case (`wave6-546689f4b22fdb85`,
+  real browser AAL2 consent) is part of UX-01 step-up evidence and runs on the Mac (its gateway reaches the
+  API through Docker Desktop's host mapping, which Linux runners do not provide).

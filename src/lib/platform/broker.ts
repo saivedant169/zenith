@@ -245,7 +245,8 @@ export function createExecutionBroker(db: Sql, getBroker: BrokerFactory = platfo
         parentTargets = original.constraints?.secretResources;
       }
       const { decision } = await decisionFor(broker, op, facts, cap);
-      if (decision.outcome === "deny") throw new StepFailedError("Current policy denies this activity grant.");
+      // Rule codes are fixed vocabulary; they tell an operator which policy refused, never input values.
+      if (decision.outcome === "deny") throw new StepFailedError(`Current policy denies this activity grant (${decision.reasons.map((reason) => reason.code).filter((code) => /^[a-z0-9_]{1,64}$/.test(code)).join(", ") || "no reason code"}).`);
       if (decision.outcome === "require_approval") {
         if (!decision.approval || !(await approvals(broker, op, decision.approval)).approved) throw new StepFailedError("Current policy requires human approval of this exact proposal and plan in the current round.");
       }

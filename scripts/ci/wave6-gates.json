@@ -176,6 +176,7 @@
     "tests/plugins/service.test.ts",
     "tests/providers/aws/drivers/compute/lambda-ec2.test.ts",
     "tests/providers/azure/live.test.ts",
+    "tests/providers/kubernetes/adoption-kind.test.ts",
     "tests/providers/kubernetes/build/contracts.test.ts",
     "tests/providers/kubernetes/build/dispatch.test.ts",
     "tests/providers/kubernetes/build/graph.test.ts",
@@ -4837,6 +4838,21 @@
       "prerequisites": [
         "ZENITH_JOURNEY_RECEIPT (new absolute owner-private J2 receipt in an owner-only mode-0700 directory, file mode 0600, outside checkout)"
       ]
+    },
+    {
+      "file": "tests/providers/kubernetes/adoption-kind.test.ts",
+      "suite": "Kubernetes adopted-object teardown against a disposable kind cluster (ZENITH_TEST_KIND_ADOPTION=1)",
+      "test": "retains, plans, then deletes exactly the adopted StatefulSet and its template claims",
+      "fullName": "Kubernetes adopted-object teardown against a disposable kind cluster (ZENITH_TEST_KIND_ADOPTION=1) retains, plans, then deletes exactly the adopted StatefulSet and its template claims",
+      "id": "wave6-63ad274188ce3c88",
+      "lane": "kind",
+      "gates": [
+        "ZENITH_TEST_KIND",
+        "ZENITH_TEST_KIND_ADOPTION"
+      ],
+      "prerequisites": [
+        "KUBECONFIG"
+      ]
     }
   ],
   "requirements": {
@@ -6630,6 +6646,7 @@
       "tests/execution/portability.test.ts",
       "tests/portability/adoption-decommission.test.ts",
       "tests/portability/store.test.ts",
+      "tests/providers/kubernetes/adoption-kind.test.ts",
       "tests/providers/kubernetes/teardown.test.ts",
       "tests/release/drivers/d4.test.ts",
       "tests/release/drivers/export-data.test.ts"

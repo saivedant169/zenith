@@ -34,7 +34,7 @@ function seedEnvironment(namespace = NS): void {
 }
 
 const teardown = async (overrides: Partial<KubernetesTeardownInput> = {}) => teardownKubernetesEnvironment({
-  workspaceId: "ws-1", environmentId: ENV_ID, session: await sessionFor(fake), retainStateful: true, ...overrides,
+  workspaceId: "ws-1", environmentId: ENV_ID, session: await sessionFor(fake), retainStateful: true, confirmWaitMs: 0, ...overrides,
 });
 const deletes = () => fake.requests.filter((request) => request.method === "DELETE");
 
@@ -283,6 +283,25 @@ describe("teardownKubernetesEnvironment (contract)", () => {
     expect(report.uncertain).toEqual([`Service/${NS}/pending`]);
     expect(report.deleted).toEqual([]);
     expect(deletes()).toHaveLength(1);
+  });
+
+  it("waits, bounded, for an accepted delete a finalizer holds briefly, then reports it deleted", async () => {
+    fake.seed(owned("Namespace", NS));
+    const claim = fake.seed(owned("Service", "finalized"));
+    let reads = 0;
+    fake.inject({
+      match: (request) => {
+        if (request.method !== "GET" || !request.path.endsWith("/services/finalized") || !deletes().length) return false;
+        // Two reads still see the same terminating object; then the finalizer is gone.
+        if (++reads <= 2) { const held = owned("Service", "finalized"); held.metadata.uid = claim.metadata.uid; held.metadata.deletionTimestamp = "2026-10-01T00:00:00Z"; fake.seed(held); }
+        else fake.remove("Service", NS, "finalized");
+        return false;
+      }, status: 200, message: "",
+    });
+    const report = await teardown({ confirmWaitMs: 5_000 });
+    expect(report.deleted).toEqual([`Service/${NS}/finalized`]);
+    expect(report.uncertain).toEqual([]);
+    expect(reads).toBeGreaterThanOrEqual(3);
   });
 
   it("sends the read resourceVersion to protect against same-UID ownership changes", async () => {

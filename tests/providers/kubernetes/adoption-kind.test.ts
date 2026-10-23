@@ -68,8 +68,9 @@ describe.skipIf(!enabled)("Kubernetes adopted-object teardown against a disposab
     expect(await exists(pvc("data-legacy-db-0"))).toBe(true);
 
     const applied = await teardown({ retainStateful: false });
-    // A claim's protection finalizer can outlive the confirmation read; absence below is the proof.
-    expect([...applied.deleted, ...applied.uncertain].sort()).toEqual([...planned.deleted].sort());
+    // The claims' protection finalizer is waited out (bounded), so every planned object is confirmed absent.
+    expect([...applied.deleted].sort()).toEqual([...planned.deleted].sort());
+    expect(applied.uncertain).toEqual([]);
     for (const ref of [sts("legacy-db"), pvc("data-legacy-db-0"), pvc("data-legacy-db-1")]) expect(await gone(ref)).toBe(true);
     for (const ref of [sts("kept-db"), pvc("data-kept-db-0"), pvc("data-legacy-db-x"), pvc("unrelated")]) expect(await exists(ref)).toBe(true);
 

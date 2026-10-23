@@ -56,6 +56,8 @@ export interface KubernetesTeardownInput {
   adopted?: readonly AdoptedTeardownRef[];
   dryRun?: boolean;
   signal?: AbortSignal;
+  /** How long to wait for an accepted delete held by a finalizer (e.g. pvc-protection) to disappear. Default 15 s. */
+  confirmWaitMs?: number;
 }
 
 export interface KubernetesTeardownReport {
@@ -101,7 +103,7 @@ async function confirmedAbsent(client: K8sClient, kind: SupportedKind | "VolumeS
 }
 
 /** Read, guard, delete once, then confirm absence. Never return provider text. */
-async function deleteCandidate(client: K8sClient, ref: ObjectRef, environmentId: string, dryRun: boolean, adopted = false): Promise<Outcome> {
+async function deleteCandidate(client: K8sClient, ref: ObjectRef, environmentId: string, dryRun: boolean, adopted = false, confirmWaitMs = 15_000): Promise<Outcome> {
   let live;
   try {
     if (ref.namespace) await client.guard.assert(ref.namespace);
@@ -130,10 +132,14 @@ async function deleteCandidate(client: K8sClient, ref: ObjectRef, environmentId:
     // A 404 is also checked below: absence, rather than acceptance, is proof.
     if (code !== "not_found") return "uncertain";
   }
-  try {
-    return await readObject(client, ref) ? "uncertain" : "deleted";
-  } catch {
-    return "uncertain";
+  // A finalizer can hold the same object briefly after the delete is accepted. Absence is proof; a new uid is not ours.
+  const deadline = Date.now() + confirmWaitMs;
+  for (;;) {
+    let current;
+    try { current = await readObject(client, ref); } catch { return "uncertain"; }
+    if (!current) return "deleted";
+    if (dig(current, "metadata", "uid") !== uid || Date.now() >= deadline || client.signal?.aborted) return "uncertain";
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
 }
 
@@ -245,7 +251,7 @@ export async function teardownKubernetesEnvironment(input: KubernetesTeardownInp
   const order: readonly string[] = [...APPLY_ORDER].reverse();
   const ordered = [...candidates.values()].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind) || key(a).localeCompare(key(b)));
   for (const ref of ordered) {
-    record(ref, input.signal?.aborted ? "skipped" : await deleteCandidate(client, ref, input.environmentId, dryRun, adoptedKeys.has(key(ref))));
+    record(ref, input.signal?.aborted ? "skipped" : await deleteCandidate(client, ref, input.environmentId, dryRun, adoptedKeys.has(key(ref)), input.confirmWaitMs));
   }
 
   // Prune omits already-terminating objects. Reconcile its plan with what remains

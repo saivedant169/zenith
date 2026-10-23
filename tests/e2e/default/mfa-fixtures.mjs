@@ -16,10 +16,11 @@ import { chromium } from '@playwright/test';
 import { Config, browserRequest, ensure, ok, operator, prerequisites, privateFile } from './support.mjs';
 import { sourceBinding } from '../../../scripts/acceptance/source-binding.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 
 export async function main(argv = process.argv.slice(2)) {
   ensure(process.env.ZENITH_DEFAULT_JOURNEY === '1', 'mfa-fixtures-opt-in');
+  ensure(fs.existsSync(path.join(root, 'package.json')) && fs.existsSync(path.join(root, 'scripts/acceptance/source-binding.mjs')), 'mfa-fixtures-repository-root');
   const args = {};
   while (argv.length) { const flag = argv.shift(), value = argv.shift(); ensure(flag?.startsWith('--') && value, 'mfa-fixtures-usage'); args[flag.slice(2)] = value; }
   ensure(args.config && args.receipt && args.out, 'mfa-fixtures-usage');

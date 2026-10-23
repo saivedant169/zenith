@@ -72,6 +72,12 @@ async function teardown(ctx: OperatedContext, tenant: Tenant): Promise<void> {
     await approveOperation(ctx, tenant, id);
   }
   const done = await until(() => detailOf(tenant, id), (d: { operation: { status: string } }) => terminal.includes(d.operation.status), 300_000);
+  if (done.operation.status !== "succeeded" && ctx.input.env.ZENITH_OPERATED_DIAGNOSTICS === "1") {
+    // Status, authority phase and the product's own sentence, with URLs and long tokens elided.
+    const raw = (done.operation as { error?: unknown }).error;
+    const error = typeof raw === "string" ? raw.replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 400) : null;
+    process.stderr.write(`operated outside-step failed: journey:teardown-terminal ${JSON.stringify({ status: done.operation.status, phase: done.authority?.phase ?? null, round: done.operation.approvalRound ?? null, error })}\n`);
+  }
   ensure(done.operation.status === "succeeded", "teardown-terminal");
 }
 

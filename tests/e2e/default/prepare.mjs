@@ -111,9 +111,13 @@ export async function prepare(args) {
           roleRef: { kind: 'ClusterRole', name: 'j2-namespace', apiGroup: 'rbac.authorization.k8s.io' } },
       ]),
       { apiVersion: 'rbac.authorization.k8s.io/v1', kind: 'Role', metadata: { name: 'j2-deployer', namespace: 'zenith-j2' },
-        rules: [{ apiGroups: ['', 'apps', 'networking.k8s.io', 'batch', 'policy'], resources: ['*'], verbs: ['get', 'list', 'watch', 'create', 'patch', 'update', 'delete'] }] },
+        rules: [{ apiGroups: ['', 'apps', 'networking.k8s.io', 'batch', 'policy'], resources: ['*'], verbs: ['get', 'list', 'watch', 'create', 'patch', 'update', 'delete'] },
+          // Teardown must prove absence of every kind Zenith manages; read and delete only, never create (no escalation).
+          { apiGroups: ['autoscaling', 'rbac.authorization.k8s.io'], resources: ['horizontalpodautoscalers', 'roles', 'rolebindings'], verbs: ['get', 'list', 'watch', 'delete'] }] },
       { apiVersion: 'rbac.authorization.k8s.io/v1', kind: 'ClusterRole', metadata: { name: 'j2-namespace' },
-        rules: [{ apiGroups: [''], resources: ['namespaces'], resourceNames: ['zenith-j2'], verbs: ['get', 'patch', 'update'] }] },
+        rules: [{ apiGroups: [''], resources: ['namespaces'], resourceNames: ['zenith-j2'], verbs: ['get', 'patch', 'update'] },
+          // Teardown discovers Zenith-created namespaces and confirms the environment's default namespace is absent.
+          { apiGroups: [''], resources: ['namespaces'], verbs: ['get', 'list', 'watch'] }] },
     ],
   };
   save('rbac.json', JSON.stringify(manifest));

@@ -219,7 +219,9 @@ async function directPlanStage(rt: Runtime, ec: ExecContext, graph: ResourceGrap
   // list, so an approval-policy database is shown here as a deletion; apply re-checks the approval before passing approved=true.
   const result = await directCall(rt, ec, graph, lease, ports, true, true);
   await rt.d.leases.assertFence(lease.scope, lease.fenceToken);
-  if (result.uncertain.length || blockingSkips(result.skipped).length) throw new StepFailedError("The provider could not completely review teardown; skipped or uncertain objects require investigation.");
+  const unreviewed = [...result.uncertain, ...blockingSkips(result.skipped)];
+  // Object refs (kind/namespace/name) only, so an operator can see which permission or object blocks the review.
+  if (unreviewed.length) throw new StepFailedError(`The provider could not completely review teardown; skipped or uncertain objects require investigation: ${unreviewed.slice(0, 8).join(", ")}${unreviewed.length > 8 ? ` and ${unreviewed.length - 8} more` : ""}.`);
   const plan = await directPlan(rt, ec, graph, result), facts = extractPlanFacts(plan);
   const evidence = planEvidence({ plan, facts, cost: {}, graphDigest: graph.graphDigest, stage: approvedDigest ? "final_plan" : "plan", approvedDigest });
   await rt.evidence(ec.scope, { kind: "tofu_plan", digest: plan.planDigest, key: `destroy:${evidence.key}`, simulated: false,

@@ -36,6 +36,14 @@ variable "dec_cloud_approved" {
   type    = bool
   default = false
 }
+variable "github_repository" {
+  description = "The GitHub owner/name whose protected live-sandbox environment may assume the role (the repository that runs live acceptance)."
+  type        = string
+  validation {
+    condition     = can(regex("^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$", var.github_repository))
+    error_message = "GitHub repository must be exactly owner/name."
+  }
+}
 variable "github_oidc_provider_arn" {
   description = "Existing GitHub OIDC provider ARN, or empty to create it in this new sandbox."
   type        = string
@@ -87,7 +95,7 @@ resource "aws_iam_role" "acceptance" {
       Principal = { Federated = var.github_oidc_provider_arn != "" ? var.github_oidc_provider_arn : aws_iam_openid_connect_provider.github[0].arn }
       Condition = { StringEquals = {
         "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-        "token.actions.githubusercontent.com:sub" = "repo:GODOSTROYER/zenith:environment:live-sandbox"
+        "token.actions.githubusercontent.com:sub" = "repo:${var.github_repository}:environment:live-sandbox"
       } }
     }]
   })

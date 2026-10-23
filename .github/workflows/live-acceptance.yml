@@ -35,7 +35,8 @@ name: Live acceptance (sandbox AWS)
 #      https://token.actions.githubusercontent.com (audience sts.amazonaws.com)
 #      and a role whose trust policy requires BOTH
 #        token.actions.githubusercontent.com:aud = sts.amazonaws.com
-#        token.actions.githubusercontent.com:sub = repo:GODOSTROYER/zenith:environment:live-sandbox
+#        token.actions.githubusercontent.com:sub = repo:<owner>/<repo>:environment:live-sandbox
+#      (<owner>/<repo> is the repository running this workflow; main.tf github_repository)
 #      (GitHub puts the environment name in `sub` when the job uses one, so the
 #      role can only be assumed by a job that passed the environment's
 #      protection rules). Give the role a permissions policy scoped to what the

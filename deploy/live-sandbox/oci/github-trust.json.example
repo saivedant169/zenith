@@ -8,9 +8,9 @@
   "claimValidations": [
     { "name": "repository_owner_id", "value": "REPLACE_NUMERIC_OWNER_ID" },
     { "name": "repository_id", "value": "REPLACE_NUMERIC_REPOSITORY_ID" },
-    { "name": "sub", "value": "repo:GODOSTROYER/zenith:environment:REPLACE_PROTECTED_ENVIRONMENT" },
+    { "name": "sub", "value": "repo:REPLACE_OWNER/REPLACE_REPOSITORY:environment:REPLACE_PROTECTED_ENVIRONMENT" },
     { "name": "ref", "value": "refs/heads/REPLACE_APPROVED_REF" },
-    { "name": "job_workflow_ref", "value": "GODOSTROYER/zenith/.github/workflows/REPLACE_REVIEWED_WORKFLOW@refs/heads/REPLACE_APPROVED_REF" }
+    { "name": "job_workflow_ref", "value": "REPLACE_OWNER/REPLACE_REPOSITORY/.github/workflows/REPLACE_REVIEWED_WORKFLOW@refs/heads/REPLACE_APPROVED_REF" }
   ],
   "claimPropagations": ["ext_repository_id", "ext_repository_owner_id", "ext_job_workflow_ref"],
   "subjectType": "Resource",

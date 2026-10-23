@@ -62,6 +62,21 @@ legacy deployment projection; and the MFA enrolment and step-up dialogs. You dri
 focus lands after each action, from its caption panel, and fix any defect it finds. This is the one accessibility check
 automation cannot do.
 
+## Decision needed: teardown after deploy (added 2026-10-24)
+
+An environment that has been deployed cannot be torn down through the product today. Destroy is refused before
+anything is deleted, and on the OpenTofu path a refused teardown appears to leave the environment permanently
+undeployable. Both come from a deliberately strict "every earlier writer must be proven finished" barrier. Read
+[TEARDOWN-AFTER-DEPLOY-DESIGN-2026-10-24.md](TEARDOWN-AFTER-DEPLOY-DESIGN-2026-10-24.md) (with its independent review
+findings), then decide:
+
+1. Is a refused teardown meant to freeze the environment for good?
+2. Do you accept the revised settlement approach: proof by terminal state and database-clock expiry, credential
+   rotation for static or customer-held identities, and a 1 to 2 hour wait after a deploy? Do you accept its residual
+   risk that a slow cloud operation started earlier can finish after teardown verified absence?
+
+No barrier code changes until you decide. PROD-LIFE-07, PROD-LIFE-11 and PROD-MIX-04 stay open meanwhile.
+
 ## Still open after setup
 
 - Static secrets that remain by design: the GCP catalog key, the Anthropic key, the Supabase service-role key and DB

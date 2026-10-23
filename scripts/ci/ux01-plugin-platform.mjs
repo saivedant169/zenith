@@ -14,7 +14,7 @@
  * certificate, runs the gated case and verifies it. Passwords, cookies and tokens stay in the private dir,
  * which is removed afterwards. Nothing secret is printed.
  */
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createHash, generateKeyPairSync, createPrivateKey, X509Certificate, randomBytes } from "node:crypto";
 import fs from "node:fs"; import https from "node:https"; import path from "node:path"; import os from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -72,7 +72,12 @@ if (phase === "publishers") {
   try {
     const user = await support.operator(stack, state.mailpitUrl, "p", users);
     const context = await browser.newContext(); const page = await context.newPage();
-    await support.login(page, stack, user);
+    // Sign in as mfa-fixtures does: a new operator has no workspace yet, so bootstrap follows workspace creation.
+    await page.goto(plugin.origin + "/login?next=/overview");
+    await page.getByLabel("Email", { exact: true }).fill(user.email);
+    await page.getByLabel("Password", { exact: true }).fill(user.password);
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await page.waitForURL((url) => url.origin === plugin.origin && url.pathname !== "/login");
     const workspace = support.ok(await support.browserRequest(page, "/api/workspace", { name: "Zenith UX-01 plugin " + Date.now() })).workspace;
     support.ok(await support.browserRequest(page, "/api/bootstrap"));
     await enrollOperator(page, stack);
@@ -97,13 +102,16 @@ if (phase === "publishers") {
     const report = path.join(out, `${CASE}.json`);
     const argv = [process.execPath, "node_modules/vitest/vitest.mjs", "run", "tests/cli/plugin-platform-live.test.ts", "--reporter=default", "--reporter=json", "--outputFile", report];
     const started = new Date().toISOString();
-    const r = spawnSync(argv[0], argv.slice(1), { encoding: "utf8", maxBuffer: 64 << 20, env: { ...process.env,
+    // Async: this process serves the artifact while the case runs.
+    const r = await new Promise((resolve) => { const child = spawn(argv[0], argv.slice(1), { env: { ...process.env,
       NODE_OPTIONS: `--import ${path.join(repo, "scripts/acceptance/loopback-docker-host.mjs")}`,
       ZENITH_TEST_PLUGIN_PLATFORM: "1", ZENITH_PLUGIN_PLATFORM_ORIGIN: plugin.origin, ZENITH_PLUGIN_PLATFORM_MANIFEST_FILE: manifestFile,
       ZENITH_PLUGIN_PLATFORM_BROWSER_COOKIE_FILE: cookieFile, ZENITH_PLUGIN_PLATFORM_WORKSPACE: workspace.id,
       ZENITH_PLUGIN_PLATFORM_PARENT_ID: parent.credentialId, ZENITH_PLUGIN_PLATFORM_PROJECT: created.projectId,
       ZENITH_PLUGIN_PLATFORM_ENVIRONMENT: created.environmentId, ZENITH_PLUGIN_SANDBOX_IMAGE: SANDBOX, ZENITH_PLUGIN_PLATFORM_SERVER: "zenith",
       ZENITH_PLUGIN_TEST_TLS_CERT_FILE: plugin.caFile, ZENITH_PLUGIN_TRUSTED_PUBLISHERS: JSON.stringify(trust) } });
+      let stdout = "", stderr = ""; child.stdout.on("data", (d) => { stdout += d; }); child.stderr.on("data", (d) => { stderr += d; });
+      child.on("close", (status) => resolve({ status, stdout, stderr })); });
     // Test output names no secret: the fixture inputs are files, and the case prints only its own assertions.
     fs.writeFileSync(path.join(out, "plugin-platform.log"), (r.stdout ?? "") + (r.stderr ?? ""));
     const v = spawnSync(process.execPath, ["scripts/ci/wave6-gates.mjs", "--case", CASE, "--report", report], { encoding: "utf8" });

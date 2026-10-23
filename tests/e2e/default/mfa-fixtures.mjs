@@ -14,7 +14,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 import { Config, browserRequest, ensure, ok, operator, prerequisites, privateFile } from './support.mjs';
-import { sourceBinding } from '../../scripts/acceptance/source-binding.mjs';
+import { sourceBinding } from '../../../scripts/acceptance/source-binding.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 

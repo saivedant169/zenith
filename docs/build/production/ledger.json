@@ -7511,7 +7511,16 @@
       ],
       "implementationStatus": "implementation_complete_verification_pending",
       "implementationNote": "L3 gated observation/cleanup/inventory harness built; live and operational evidence plus owner fixtures/decisions pending. No verification claimed. DEC-RETENTION approved 2026-10-13: default policy ships logs at 30 days with a built-in approval; audit-evidence classes cannot be pruned before 365 days; legal holds now stop archive copies (the watermark never passes a held row); the job pages through workspaces so held workspaces cannot starve others. Deletion still needs ZENITH_RETENTION_APPLY=1.",
-      "evidence": [],
+      "evidence": [
+        {
+          "level": "local_engine",
+          "commit": "0e3a22a3997b65540b79712828974eb1d380fd73",
+          "command": "ZENITH_TEST_RETENTION_PG=1 vitest run tests/retention/retention.test.ts tests/retention/restore-destination.test.ts; ZENITH_TEST_RETENTION_S3=1 vitest run tests/retention/archive-s3.engine.test.ts (PGlite and ZENITH_TEST_RETENTION_PG=1); node scripts/ci/wave6-gates.mjs --case wave6-81ffca3fe5514c3d",
+          "environment": "Mac mini Darwin arm64, Node 22.23.3; disposable PostgreSQL 16.15-alpine (pinned digest), freshly migrated per lane; disposable MinIO cgr.dev/chainguard/minio@sha256:ad134b2d (the operated-gate pin), random root credentials, loopback only; both removed afterwards",
+          "logs": "docs/build/production/evidence/PROD-OPS-07/2026-10-23-real-engines-0e3a22a3/",
+          "result": "Retention on real engines for the 2026-10-13 decision: retention.test.ts + restore-destination.test.ts 42/0/0 on PostgreSQL (legal holds by tenant, resource and time block archive and prune and release resumes without skipping; archive watermarks; bounded pruning; staging/source restore; tenant destinations); the S3 archive case 1/0 on PGlite and 1/0 on PostgreSQL against a real MinIO through the production S3 target (sealed objects under retention/<workspace>/<class>/, verifyArchive right-key ok and wrong-key refused, staging restore 3/3, pruning removes only archived rows, in-window workspace untouched); wave6 case verified for both reports. Source unchanged across the run. Depends on the PostgreSQL parameter fix 7ec7dcf9 (before it, the PostgreSQL lane failed 11 of 53). Not covered: deletion apply against any existing installation (deliberately not done), archive object expiry (bucket lifecycle), Temporal critical-job scheduling of retention on a live stack. Not a promotion."
+        }
+      ],
       "requiredEvidence": [
         "contract",
         "local_engine",

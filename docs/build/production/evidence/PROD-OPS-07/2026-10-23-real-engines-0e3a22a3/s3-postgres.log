@@ -1,0 +1,13 @@
+
+ RUN  v4.1.12 /Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith
+
+(node:12284) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ |node| tests/retention/archive-s3.engine.test.ts (1 test) 110ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  22:44:45
+   Duration  1.80s (transform 1.15s, setup 0ms, import 1.65s, tests 110ms, environment 0ms)
+
+JSON report written to /private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/hold/ops07-0e3a22a3/s3-postgres.json

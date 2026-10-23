@@ -1,0 +1,16 @@
+
+ RUN  v4.1.12 /Users/saivedanthava/.codex/worktrees/dev-port-offset/zenith
+
+(node:12271) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ |node| tests/retention/retention.test.ts (29 tests) 743ms
+(node:12272) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ |node| tests/retention/restore-destination.test.ts (13 tests) 477ms
+
+ Test Files  2 passed (2)
+      Tests  42 passed (42)
+   Start at  22:44:38
+   Duration  3.96s (transform 1.39s, setup 0ms, import 2.64s, tests 1.22s, environment 0ms)
+
+JSON report written to /private/tmp/claude-501/-Users-saivedanthava-Documents-zenith/a1f512a2-c1b2-4cd7-8abd-d24b57e0dfd5/scratchpad/hold/ops07-0e3a22a3/retention-postgres.json

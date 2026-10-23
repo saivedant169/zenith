@@ -21,22 +21,30 @@ on:
           - drv1-update-rollback
           - drv1-private-source
         default: drv2-drift-repair
+      arch:
+        description: Runner architecture (drv1-* gates always run on arm64)
+        type: choice
+        options:
+          - amd64
+          - arm64
+        default: amd64
 
 permissions:
   contents: read
 
 concurrency:
-  group: operated-gate-linux-${{ github.ref }}-${{ inputs.gate }}
+  group: operated-gate-linux-${{ github.ref }}-${{ inputs.gate }}-${{ inputs.arch }}
   cancel-in-progress: false
 
 jobs:
   operated-gate:
-    # DRV-1 runs on native arm64 with AppArmor (owner decision 2026-10-22, verify/DRV-1-DECLARATIONS.md).
-    runs-on: ${{ startsWith(inputs.gate, 'drv1-') && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    # DRV-1 runs on native arm64 with AppArmor (owner decision 2026-10-22, verify/DRV-1-DECLARATIONS.md); any other
+    # gate may be run on native arm64 too (for example D-4 export's MinIO and MySQL on Linux/ARM64, PROD-LIFE-11).
+    runs-on: ${{ (startsWith(inputs.gate, 'drv1-') || inputs.arch == 'arm64') && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     timeout-minutes: 150
     env:
       GATE: ${{ inputs.gate }}
-      ARCH: ${{ startsWith(inputs.gate, 'drv1-') && 'arm64' || 'amd64' }}
+      ARCH: ${{ (startsWith(inputs.gate, 'drv1-') || inputs.arch == 'arm64') && 'arm64' || 'amd64' }}
       ZENITH_DATA: ${{ github.workspace }}/.data-ci-operated-gate-linux
       ZENITH_TEST_DRV2_OPERATED: "1"
       ZENITH_LOCAL_DRIVER_D4: "1"

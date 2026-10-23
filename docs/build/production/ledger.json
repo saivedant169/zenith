@@ -2711,6 +2711,14 @@
           "environment": "GitHub-hosted native Linux arm64 (owner-approved 2026-10-22); lean disposable J1 stack, Temporal mTLS, owned kind target, Chromium",
           "result": "DRV-1 update-rollback passed 8/8 with a matched current-source receipt: browser-approved baseline deploy with independent digest/pod/application readback; a distinct compatible image update deployed through two human approval rounds with stable workload identity; a real failed rollout (empty-nonce witness in CrashLoopBackOff while the previous ready pod kept serving) confirmed as a failed operation; a browser-approved rollback to the exact original revision; release rows and the release API agree (baseline and rollback readback_verified, the superseded update rolled_back with its verified readback, failure persisted); product record preserved; owned cleanup. Product fix found by this gate: in-place Kubernetes updates had no reviewable plan (forcesReplacement missing), so every update failed at approval (5e1bec82). Limits: local disposable engines on a hosted runner, not live cloud; stateless witness only.",
           "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-22-5d9bf648-drv1-update-rollback-hosted-arm64.json"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "5b75f356c08f54da6d9a15a28d99569085195e1f",
+          "command": "CI workflow push run 40032073219 (GitHub-hosted)",
+          "environment": "GitHub-hosted runners; exact source after the zod 4.6.7 migration",
+          "result": "Exact-source CI success: 21 success / 8 conditional operated-dispatch skips / 0 failure. The prior run 40027243777 on a7a9c4a3 failed supply-chain on GHSA-mrhx-c7xc-m3w5 (zod < 4.6.6, memory exhaustion validating large arrays); 5b75f356 moves zod to 4.6.7 tree-wide with zod 3 semantics kept (prefault, partialRecord, guid, legacy issue codes) and bounded boundary arrays. Earlier failures on 190db611 and bb8b6314 (agent approval browser request, owned Temporal start) were infrastructure flakes; 68002e65 and b87f4504 passed. Operated gates were not re-run on 5b75f356; the D-4 export lane still fails at adopt-destroy-teardown by the documented cleanup-writer barrier. No promotion.",
+          "logs": "https://github.com/saivedant169/zenith/actions/runs/40032073219"
         }
       ],
       "requiredEvidence": [

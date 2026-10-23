@@ -43,6 +43,8 @@ umask 077; mkdir -p ~/.config/zenith-secrets
    (any charge counts against the $100). Put its values in `~/.config/zenith-secrets/supabase-pkg06.env`:
    `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL` (transaction pooler, port 6543,
    `sslmode=verify-full`), `SUPABASE_PROJECT_REF`.
+6a. **Stripe test mode** (pricing verification only). A Stripe **test-mode** secret key (`sk_test_...`) from the
+   Stripe test dashboard: `pbpaste > ~/.config/zenith-secrets/stripe-test.key`. A live key is refused by the adapter.
 7. Tell me "setup done" and the profile names if you changed them. I read only identifiers (account, project,
    subscription, tenancy and compartment IDs, regions) and post them for your confirmation before any mutation.
 8. After you confirm, I write them into `permissions.json`; you approve that exact content in a terminal:

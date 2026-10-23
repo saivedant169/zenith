@@ -71,3 +71,15 @@ node scripts/ci/wave6-gates.mjs --requirement PROD-MACH-05 --print > /tmp/zenith
 ```
 
 This prints the exact argv for each contract batch and required engine case, its gate names, private prerequisites, and its strict report-validation command. Set only the gates for the selected lane after preparing its owned fixture; a skip cannot satisfy that lane. Run each `argv` sequentially and then its `verify` argv. [Final integration setup and results](FINAL-INTEGRATION.md), [canonical inventory](../../../../scripts/ci/wave6-gates.json), [owner live runbook](../LIVE-ACCEPTANCE.md).
+
+## Owner scope decision, 2026-10-23
+
+- Verify with the existing AWS customer-side runner first (`aws.http`, `go/internal/awsauth`), then the required OCI
+  runner (`oci.http`). Both need the owner-confirmed sandboxes in `docs/build/production/permissions.json`.
+- No Kubernetes runner transport is built to close this requirement. Kubernetes runner mode stays **unsupported and
+  deferred** for deployment and credential custody: `createKubernetesSession` refuses runner mode
+  (`src/lib/providers/kubernetes/session.ts:206`), the credential broker denies non-OCI runner sessions
+  (`src/lib/platform/credentials.ts:485`), and the connection form says the Kubernetes transport is unavailable and that
+  a readiness pass does not enable it (`connection-admin.tsx`). The read-only `k8s.http` GET proxy used by the J2
+  journey is a separate, existing read path and is not evidence for this requirement.
+- If promised runner coverage beyond AWS and OCI remains unmet, that portion of PROD-MACH-05 stays open.

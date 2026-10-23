@@ -1,6 +1,6 @@
 # Isolated-build security profiles: owner review
 
-**APPROVED by the owner on 2026-10-21. Linux-runner validation and wiring are tracked separately.** Nothing here is installed, enabled or wired. `ZENITH_ISOLATED_BUILD_PROFILES` is not set anywhere, and no product code or workflow changed.
+**APPROVED by the owner on 2026-10-21; runc fallback for disposable verification approved 2026-10-23 (last section).** The profiles are wired only into the `drv1-private-source` lane of `operated-gate-linux.yml`. `ZENITH_ISOLATED_BUILD_PROFILES` is not set in any product deployment.
 
 Untrusted-source builds run in a rootless BuildKit pod. The pod needs three node-side things before it will start: a seccomp profile (which system calls are allowed), an AppArmor profile (which files, networks and capabilities are allowed) and a RuntimeClass (which sandbox runs the pod). The drafts are in `deploy/zenith-managed/build/profiles/`.
 
@@ -88,14 +88,37 @@ What changes:
   `profileDigest: 559c4102…de47`; the gVisor archive download is removed from this lane.
 
 What does not change: rootless BuildKit; `hostUsers: false`; the `zenith-build` seccomp profile and AppArmor profile
-(enforced, loaded into the runner kernel); default-deny NetworkPolicy with the pinned egress proxy as the only route;
-resource limits; no privileged mode or added capabilities; the admission checks; every negative isolation probe. The
-build pod still carries no cloud credentials; its only authority is the run's source and registry access.
+(loaded into the runner kernel); default-deny NetworkPolicy with the pinned egress proxy as the only route; resource
+limits; `privileged: false`; the admission checks; every negative isolation probe. The build container keeps the
+capabilities the 2026-10-21 approval already allows for rootless BuildKit and nothing more: all dropped, then
+`SETUID` and `SETGID` added for the UID helpers, `allowPrivilegeEscalation: true` (setuid helpers inside the pod user
+namespace), `procMount: Unmasked`, and `sys_admin` allowed by the AppArmor profile for mounts inside the nested
+namespace (`src/lib/providers/kubernetes/build/render.ts:62`, `zenith-build.apparmor`). The build pod carries no cloud
+credentials; its only authority is the run's source secret and the local registry (no push secret in this lane).
 
-Residual risk accepted for this scope: with runc the build shares the host kernel, and the seccomp profile must allow
-mount and user-namespace syscalls for rootless BuildKit. A kernel escape is therefore not contained by a user-space
-kernel. That is why execution is limited to a fresh GitHub-hosted runner VM that exists only for the run, holds no
-control plane, customer workload or unrelated secret, and is destroyed afterwards.
+Enforcement is now measured, not assumed (security review, 2026-10-23):
+- Two probe checks read the kernel's view inside the probe container: `seccompEnforced` (`Seccomp: 2` in
+  `/proc/self/status`) and `appArmorEnforced` (`zenith-build (enforce)` in `/proc/self/attr/apparmor/current` or
+  `/proc/self/attr/current`). Admission requires every check (`PROBE_CHECKS` in `admission.ts`).
+- The readback inspects the build and probe containers through containerd's CRI on the dedicated worker
+  (`crictl inspect`) and requires the `zenith-build` AppArmor profile, the Localhost seccomp filter
+  (`SCMP_ACT_ERRNO` default with its syscall list), a bounding set of only `CAP_SETUID`/`CAP_SETGID`, and a non-root
+  user-namespace mapping (`scripts/release/drivers/source-build-readback.ts`, `assertNodeRuntimeSpec`).
+- `registryDirectDenied` no longer passes when its probe endpoint is unset.
+
+Residual risk accepted for this scope:
+- With runc the build shares the runner's kernel. The seccomp profile allows `clone`/`unshare` (including
+  `CLONE_NEWUSER`) and mount calls for rootless BuildKit, the AppArmor profile allows `sys_admin` inside the nested
+  namespace, and `procMount: Unmasked` lifts the runtime's `/proc` masking (the AppArmor profile still denies writes
+  under `/proc/sys`, `/sys` and `/proc/sysrq-trigger`). A kernel escape is not contained by a user-space kernel.
+- kind node containers are themselves privileged Docker containers on the runner (kind's design, not checked here),
+  so a build-pod escape that also escapes the node container reaches the runner VM.
+- The runner is not empty: the same job runs a disposable J1 control-plane stack with per-run random secrets
+  (`scripts/acceptance/default-stack/up.mjs`), and the build worker node is joined to that stack's network
+  (`source-build-fixture.ts`). An escape could reach that disposable stack. It holds no cloud credentials, customer
+  workload or reusable secret, and is destroyed with the VM.
+- Runner single-tenancy and destruction are GitHub-hosted runner properties, not something this repository verifies.
+Execution is therefore limited to a fresh GitHub-hosted runner VM created for the run and destroyed afterwards.
 
 Required before execution: an independent security review of this change (recorded below). Production build isolation
 needs its own demonstrated security acceptance.

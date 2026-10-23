@@ -151,7 +151,8 @@ single-tenant GitHub-hosted runner:
 - `nodeIsolation.profileDigest`: `559c41027d4793561f860cc1ab5aaebd8dab04a2766a26961973ba1f1151de47` (was
   `897374eb…db6e`), recomputed with `review-profile.ts`'s method; seccomp and AppArmor hashes are unchanged, only the
   RuntimeClass manifest differs.
-- `DRV1_RUNTIME_MANIFEST`: `deploy/zenith-managed/build/profiles/zenith-build-runc.runtimeclass.json`; no gVisor archive.
+- Runtime selection: `DRV1_RUNTIME=runc` (`drv1-isolation.ts` creates `zenith-build-runc.runtimeclass.json`; there is no
+  `DRV1_RUNTIME_MANIFEST` variable, the paths are fixed in the driver); no gVisor archive.
 
 All other fields are unchanged. Reasoning, residual risk and the required independent security review are in
 [ISOLATED-BUILD-PROFILES-REVIEW.md](ISOLATED-BUILD-PROFILES-REVIEW.md) ("runc fallback for disposable build

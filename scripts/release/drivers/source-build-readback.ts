@@ -76,12 +76,14 @@ export async function builtReadback(ctx: Operated, source: ApprovedSourceSnapsho
   const buildPods = JSON.parse(await ctx.kubectl(["-n", jobNamespace, "get", "pods", "-l", "job-name=" + buildJobs[0]!.metadata.name, "-o", "json"]));
   ensure(buildPods.items.length === 1 && buildPods.items[0].spec.nodeName === "zenith-j2-worker" && buildPods.items[0].status.phase === "Succeeded"
     && buildPods.items[0].status.containerStatuses?.[0]?.imageID?.endsWith(profile.config.builderImage.slice(profile.config.builderImage.lastIndexOf("@"))), "actual-native-builder-on-dedicated-worker");
+  await assertNodeRuntimeSpec(ctx, buildPods.items[0], profile);
   const builderId = buildJobs[0]!.spec.template.spec.containers[0]!.env.find(e => e.name === "ZENITH_BUILD_ID")!.value;
   const probeJobs = jobs.items.filter(j => j.spec.template.spec.containers[0]!.args?.[0] === "probe");
   ensure(probeJobs.length === 1 && probeJobs[0].status.succeeded === 1, "completed-fresh-isolation-probe");
   const probePods = JSON.parse(await ctx.kubectl(["-n", jobNamespace, "get", "pods", "-l", "job-name=" + probeJobs[0].metadata.name, "-o", "json"]));
   ensure(probePods.items.length === 1 && probePods.items[0].spec.nodeName === "zenith-j2-worker", "probe-on-dedicated-worker");
   verifyProbe(probePods.items[0].status.containerStatuses?.[0]?.state?.terminated?.message);
+  await assertNodeRuntimeSpec(ctx, probePods.items[0], profile);
   await verifyPublishedArtifact(reader, built.digest, builderId);
   const platform = (index.manifests as {platform?: {os: string; architecture: string}; digest: string}[]).find(m => m.platform?.os === "linux" && m.platform.architecture === NATIVE?.image);
   ensure(platform && /^sha256:[a-f0-9]{64}$/.test(platform.digest), "verified-native-artifact");
@@ -92,4 +94,20 @@ export async function builtReadback(ctx: Operated, source: ApprovedSourceSnapsho
   ensure((await ctx.kubectl(["get", "--raw", `/api/v1/namespaces/zenith-j2/pods/${pod}:8080/proxy/`])).trim() === "zenith-j6-source-release", "independent-built-http-response");
   await ctx.eventReadback(source.operationId);
   return { uid: deployment.metadata.uid as string, image: built.image, platformDigest: platform!.digest };
+}
+
+/**
+ * The runtime's own record of the container (containerd CRI on the dedicated worker), not the pod spec: the AppArmor
+ * profile and the Localhost seccomp filter it actually installed. The probe's in-container checks prove the kernel
+ * enforces them; this proves they are the reviewed ones.
+ */
+async function assertNodeRuntimeSpec(ctx: Operated, pod: { status: { containerStatuses?: { containerID?: string }[] } }, profile: TenantBuildProfile): Promise<void> {
+  const id = /^containerd:\/\/([a-f0-9]{64})$/.exec(pod.status.containerStatuses?.[0]?.containerID ?? "")?.[1];
+  ensure(id, "runtime-spec-container-id");
+  const inspected = JSON.parse(await ctx.stack!.modules.docker(["exec", "zenith-j2-worker", "crictl", "inspect", id!]));
+  const spec = inspected?.info?.runtimeSpec;
+  ensure(spec?.process?.apparmorProfile === profile.config.appArmorProfile, "runtime-spec-apparmor");
+  ensure(spec?.linux?.seccomp?.defaultAction === "SCMP_ACT_ERRNO" && Array.isArray(spec.linux.seccomp.syscalls) && spec.linux.seccomp.syscalls.length > 0, "runtime-spec-seccomp");
+  ensure(spec?.process?.capabilities?.bounding?.every((c: string) => c === "CAP_SETUID" || c === "CAP_SETGID") === true, "runtime-spec-capabilities");
+  ensure(Array.isArray(spec?.linux?.uidMappings) && spec.linux.uidMappings.length > 0 && spec.linux.uidMappings.every((m: { hostID: number }) => m.hostID !== 0), "runtime-spec-user-namespace");
 }

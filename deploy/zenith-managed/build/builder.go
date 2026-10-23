@@ -106,6 +106,30 @@ func deniedAddress(address string) bool {
 	}
 	return true
 }
+// seccompEnforced: the kernel reports filter mode (2) for this process, so the Localhost profile is applied, not just requested.
+func seccompEnforced() bool {
+	b, e := os.ReadFile("/proc/self/status")
+	if e != nil {
+		return false
+	}
+	for _, line := range strings.Split(string(b), "\n") {
+		if strings.HasPrefix(line, "Seccomp:") {
+			return strings.TrimSpace(strings.TrimPrefix(line, "Seccomp:")) == "2"
+		}
+	}
+	return false
+}
+
+// appArmorEnforced: this process is confined by the zenith-build profile in enforce mode (newer kernels expose the
+// AppArmor-specific attribute; older ones only the shared one).
+func appArmorEnforced() bool {
+	for _, file := range []string{"/proc/self/attr/apparmor/current", "/proc/self/attr/current"} {
+		if b, e := os.ReadFile(file); e == nil {
+			return strings.TrimRight(string(b), "\x00\n") == "zenith-build (enforce)"
+		}
+	}
+	return false
+}
 func userNamespace() bool {
 	data, e := os.ReadFile("/proc/self/uid_map")
 	if e != nil {
@@ -194,7 +218,8 @@ func outerChecks() map[string]bool {
 		"noDeploymentEnv": noDeploymentEnv(), "rootReadOnly": writeDenied("/zenith-root-probe"),
 		"sourceReadOnly": writeDenied("/source/zenith-source-probe"), "metadataDenied": deniedAddress("169.254.169.254:80") && deniedAddress("[fd00:ec2::254]:80"),
 		"credentialsEndpointDenied": deniedAddress("169.254.170.2:80"), "directEgressDenied": deniedAddress("1.1.1.1:443"),
-		"proxyDenied": proxyDenied(), "proxyAllowed": proxyAllowed(), "registryDirectDenied": deniedAddress(os.Getenv("ZENITH_REGISTRY_PROBE_ENDPOINT")), "resourcesBounded": boundedResources(),
+		"proxyDenied": proxyDenied(), "proxyAllowed": proxyAllowed(), "registryDirectDenied": os.Getenv("ZENITH_REGISTRY_PROBE_ENDPOINT") != "" && deniedAddress(os.Getenv("ZENITH_REGISTRY_PROBE_ENDPOINT")), "resourcesBounded": boundedResources(),
+		"seccompEnforced": seccompEnforced(), "appArmorEnforced": appArmorEnforced(),
 	}
 }
 func fullProcessSandbox() error {

@@ -7,7 +7,9 @@ import { configDigest, type IsolatedBuildConfig } from "./config";
 import { LIMITS, renderBaseline, renderProxy } from "./render";
 
 export const PROBE_CHECKS = ["nonRoot", "userNamespace", "noToken", "noDeploymentEnv", "rootReadOnly", "sourceReadOnly",
-  "metadataDenied", "credentialsEndpointDenied", "directEgressDenied", "proxyDenied", "proxyAllowed", "registryDirectDenied", "resourcesBounded", "processSandbox"] as const;
+  "metadataDenied", "credentialsEndpointDenied", "directEgressDenied", "proxyDenied", "proxyAllowed", "registryDirectDenied", "resourcesBounded", "processSandbox",
+  // The kernel's view, not the pod spec: the Localhost seccomp filter and the zenith-build AppArmor profile are applied.
+  "seccompEnforced", "appArmorEnforced"] as const;
 export const ProbeSchema = z.object({ version: z.literal(1), checks: z.object(Object.fromEntries(PROBE_CHECKS.map(k => [k, z.literal(true)])) as Record<typeof PROBE_CHECKS[number], z.ZodLiteral<true>>).strict() }).strict();
 
 /** Kubernetes adds defaults; compare every requested field, every list element and list length. */

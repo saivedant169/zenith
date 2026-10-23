@@ -108,6 +108,73 @@ describe("teardownKubernetesEnvironment (contract)", () => {
     expect(report.retained).toContain(`Namespace//${NS}`);
   });
 
+  describe("adopted objects (PROD-LIFE-11)", () => {
+    const adoptedPvc = (name: string, labels?: Record<string, string>): K8sObject => ({
+      apiVersion: "v1", kind: "PersistentVolumeClaim", metadata: { name, namespace: NS, ...(labels ? { labels } : {}) }, spec: {},
+    });
+    const claim = (name: string) => [{ kind: "PersistentVolumeClaim" as const, namespace: NS, name }];
+
+    it("deletes an unlabeled adopted claim exactly when its claim allows destruction", async () => {
+      seedEnvironment();
+      fake.seed(adoptedPvc("adopted-data"));
+      fake.seed(adoptedPvc("never-adopted"));
+      const report = await teardown({ retainStateful: false, adopted: claim("adopted-data") });
+      expect(report.deleted).toContain(`PersistentVolumeClaim/${NS}/adopted-data`);
+      expect(fake.get("PersistentVolumeClaim", NS, "adopted-data")).toBeUndefined();
+      expect(fake.get("PersistentVolumeClaim", NS, "never-adopted")).toBeDefined();
+      expect(JSON.stringify(report)).not.toContain("never-adopted");
+      const request = deletes().find((entry) => entry.path.endsWith("/persistentvolumeclaims/adopted-data"));
+      expect(request?.body?.preconditions?.uid).toMatch(/^uid-/);
+    });
+
+    it("deletes an adopted StatefulSet with exactly the claims its templates created", async () => {
+      fake.seed({ apiVersion: "apps/v1", kind: "StatefulSet", metadata: { name: "legacy-db", namespace: NS }, spec: { volumeClaimTemplates: [{ metadata: { name: "data" } }] } });
+      fake.seed(adoptedPvc("data-legacy-db-0"));
+      fake.seed(adoptedPvc("data-legacy-db-1"));
+      fake.seed(adoptedPvc("data-legacy-db-x"));
+      fake.seed(adoptedPvc("data-other-db-0"));
+      const report = await teardown({ retainStateful: false, adopted: [{ kind: "StatefulSet", namespace: NS, name: "legacy-db" }] });
+      expect(report.deleted).toEqual(expect.arrayContaining([`StatefulSet/${NS}/legacy-db`, `PersistentVolumeClaim/${NS}/data-legacy-db-0`, `PersistentVolumeClaim/${NS}/data-legacy-db-1`]));
+      expect(fake.get("StatefulSet", NS, "legacy-db")).toBeUndefined();
+      expect(fake.get("PersistentVolumeClaim", NS, "data-legacy-db-0")).toBeUndefined();
+      expect(fake.get("PersistentVolumeClaim", NS, "data-legacy-db-x")).toBeDefined();
+      expect(fake.get("PersistentVolumeClaim", NS, "data-other-db-0")).toBeDefined();
+      expect(report.uncertain).toEqual([]);
+    });
+
+    it("retains an adopted claim while stateful data is retained", async () => {
+      fake.seed(adoptedPvc("adopted-data"));
+      const report = await teardown({ retainStateful: true, adopted: claim("adopted-data") });
+      expect(report.retained).toContain(`PersistentVolumeClaim/${NS}/adopted-data`);
+      expect(fake.get("PersistentVolumeClaim", NS, "adopted-data")).toBeDefined();
+      expect(deletes()).toEqual([]);
+    });
+
+    it("never deletes an adopted name that another Zenith environment owns", async () => {
+      const other = owned("PersistentVolumeClaim", "shared-data");
+      other.metadata.annotations = { [ANNOTATION.environment]: OTHER_ENV };
+      fake.seed(other);
+      const report = await teardown({ retainStateful: false, adopted: claim("shared-data") });
+      expect(report.skipped).toContain(`PersistentVolumeClaim/${NS}/shared-data`);
+      expect(fake.get("PersistentVolumeClaim", NS, "shared-data")).toBeDefined();
+    });
+
+    it("plans an adopted deletion in a dry run without writing", async () => {
+      fake.seed(adoptedPvc("adopted-data"));
+      const report = await teardown({ retainStateful: false, dryRun: true, adopted: claim("adopted-data") });
+      expect(report.deleted).toContain(`PersistentVolumeClaim/${NS}/adopted-data`);
+      expect(deletes()).toEqual([]);
+      expect(fake.get("PersistentVolumeClaim", NS, "adopted-data")).toBeDefined();
+    });
+
+    it("reports a malformed adopted reference as uncertain and deletes nothing for it", async () => {
+      fake.seed(adoptedPvc("adopted-data"));
+      const report = await teardown({ retainStateful: false, adopted: [{ kind: "PersistentVolumeClaim", namespace: NS, name: "Bad/Name" }] });
+      expect(report.uncertain).toContain(`PersistentVolumeClaim/${NS}/*`);
+      expect(deletes()).toEqual([]);
+    });
+  });
+
   it("does not use a namespace's foreign ownership as an excuse to delete it", async () => {
     const namespace = owned("Namespace", NS);
     namespace.metadata.annotations = { [ANNOTATION.environment]: OTHER_ENV };

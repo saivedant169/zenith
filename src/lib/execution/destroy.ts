@@ -46,6 +46,8 @@ const HEX64 = /^[0-9a-f]{64}$/;
 /** C1 object references; injected transports are contract fakes, never live proof. */
 export interface TeardownInput {
   workspaceId: string; environmentId: string; session: unknown; retainStateful: boolean;
+  /** Adopted objects whose active claim allows destruction; named exactly, since Zenith never labelled them. */
+  adopted?: readonly { kind: "StatefulSet" | "PersistentVolumeClaim"; namespace: string; name: string }[];
   dryRun?: boolean; signal?: AbortSignal;
 }
 export interface TeardownResult { deleted: string[]; retained: string[]; skipped: string[]; uncertain: string[] }
@@ -133,10 +135,28 @@ async function zenithDatabaseInventory(rt: Runtime, ec: ExecContext, graph: Reso
   return inventory;
 }
 
+/**
+ * PROD-LIFE-11: the Kubernetes objects named by an ACTIVE manage_and_destroy adoption claim whose node is managed
+ * (adopted) in this graph. `assertTeardownOwnership` has already refused any adopted node whose claim forbids it.
+ */
+async function adoptedTeardownRefs(rt: Runtime, ec: ExecContext, graph: ResourceGraph): Promise<NonNullable<TeardownInput["adopted"]>> {
+  if (ec.product.environment.provider !== "kubernetes" || !rt.d.portability) return [];
+  const facts = await rt.d.portability.adoptionFacts(ec.workspaceId, ec.environmentId);
+  return facts.filter((fact) => fact.status === "active" && fact.lifecycle === "manage_and_destroy").flatMap((fact) => {
+    const node = graph.nodes.find((candidate) => candidate.address === fact.address);
+    const kind = node?.nativeType === "k8s:StatefulSet" ? "StatefulSet" : node?.nativeType === "k8s:PersistentVolumeClaim" ? "PersistentVolumeClaim" : undefined;
+    if (!node || node.ownership !== "managed" || !kind) return [];
+    // A malformed identity still reaches teardown, which reports it uncertain rather than silently dropping it.
+    const [namespace = "", name = "", ...rest] = fact.externalId.split("/");
+    return [{ kind, namespace, name: rest.length ? "*" : name }];
+  });
+}
+
 async function directCall(rt: Runtime, ec: ExecContext, graph: ResourceGraph, lease: LeaseRef, ports: DestroyProviderPorts, dryRun: boolean, approved: boolean): Promise<TeardownResult> {
+  const adopted = await adoptedTeardownRefs(rt, ec, graph);
   return withKeepAlive(rt, { lease, detail: dryRun ? "provider destroy review" : "provider teardown", operation: { workspaceId: ec.workspaceId, operationId: ec.op.id } }, async (signal) => {
     const invoke = (session: unknown) => teardown(ports, ec.product.environment.provider,
-      { workspaceId: ec.workspaceId, environmentId: ec.environmentId, session, retainStateful: retainStateful(ec, graph), dryRun, signal });
+      { workspaceId: ec.workspaceId, environmentId: ec.environmentId, session, retainStateful: retainStateful(ec, graph), ...(adopted.length ? { adopted } : {}), dryRun, signal });
     if (ec.product.environment.provider === "zenith") {
       const inventory = (await zenithDatabaseInventory(rt, ec, graph)).map((db) => ({ ...db, approved }));
       const invokeManaged = (session: unknown) => invoke(typeof session === "object" && session !== null ? { ...session, teardown: { databases: inventory } } : session);
@@ -220,7 +240,13 @@ async function context(rt: Runtime, operationId: string, lease: LeaseRef, planni
   const nodes = new Map(graph.nodes.map((node) => [node.address, node]));
   // Retain removed nodes from earlier revisions, using workspace-scoped rows.
   for (const row of await rt.d.resources.list(ec.workspaceId, ec.environmentId)) {
-    if (nodes.has(row.address)) continue;
+    const declared = nodes.get(row.address);
+    if (declared) {
+      // An adopted resource is managed in the store while its manifest still declares it referenced (PROD-LIFE-11);
+      // the store is the ownership authority, so the decommission gate below sees it.
+      if (declared.ownership === "referenced" && row.ownership === "managed") nodes.set(row.address, { ...declared, ownership: "managed" });
+      continue;
+    }
     if (![...PORTABLE_KINDS, "provider_native"].includes(row.kind as ResourceNode["kind"]) || row.provider !== ec.product.environment.provider) throw new StepFailedError("A stored resource cannot be safely compiled for teardown.");
     nodes.set(row.address, { address: row.address, kind: row.kind as ResourceNode["kind"], provider: ec.product.environment.provider, region: row.region ?? ec.product.environment.region, nativeType: row.nativeType, ownership: row.ownership, spec: row.spec, origin: row.origin, dependsOn: row.dependsOn, specDigest: row.specDigest, labels: row.labels, ...(row.externalId ? { externalRef: row.externalId } : {}) });
   }

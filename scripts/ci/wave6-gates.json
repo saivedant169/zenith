@@ -6625,6 +6625,12 @@
       "tests/auth/life10-migration-approval-browser.test.ts"
     ],
     "PROD-LIFE-11": [
+      "tests/capabilities/portability-broker.test.ts",
+      "tests/execution/destroy-providers.test.ts",
+      "tests/execution/portability.test.ts",
+      "tests/portability/adoption-decommission.test.ts",
+      "tests/portability/store.test.ts",
+      "tests/providers/kubernetes/teardown.test.ts",
       "tests/release/drivers/d4.test.ts",
       "tests/release/drivers/export-data.test.ts"
     ],

@@ -37,11 +37,23 @@ import { listOwnedSnapshots } from "./snapshots";
 import { APPLY_ORDER, K8sError, KIND_INFO, LABEL, MANAGED_BY_VALUE, refOf, type ObjectRef, type SupportedKind } from "./types";
 import { dig, isRecord, sortedUnique } from "./util";
 
+/**
+ * An object Zenith adopted (not created) whose active claim allows destruction (PROD-LIFE-11). An adopted
+ * StatefulSet takes the claims its volumeClaimTemplates created with it: destroying the data service destroys its data.
+ */
+export interface AdoptedTeardownRef {
+  kind: "StatefulSet" | "PersistentVolumeClaim";
+  namespace: string;
+  name: string;
+}
+
 export interface KubernetesTeardownInput {
   workspaceId: string;
   environmentId: string;
   session: unknown;
   retainStateful: boolean;
+  /** Exact adopted objects to delete; they carry no Zenith label, so the owned-object scan never finds them. */
+  adopted?: readonly AdoptedTeardownRef[];
   dryRun?: boolean;
   signal?: AbortSignal;
 }
@@ -89,7 +101,7 @@ async function confirmedAbsent(client: K8sClient, kind: SupportedKind | "VolumeS
 }
 
 /** Read, guard, delete once, then confirm absence. Never return provider text. */
-async function deleteCandidate(client: K8sClient, ref: ObjectRef, environmentId: string, dryRun: boolean): Promise<Outcome> {
+async function deleteCandidate(client: K8sClient, ref: ObjectRef, environmentId: string, dryRun: boolean, adopted = false): Promise<Outcome> {
   let live;
   try {
     if (ref.namespace) await client.guard.assert(ref.namespace);
@@ -98,7 +110,8 @@ async function deleteCandidate(client: K8sClient, ref: ObjectRef, environmentId:
     return "uncertain";
   }
   if (!live) return dryRun ? "skipped" : "deleted";
-  if (!ownedBy(live, environmentId).owned) return "skipped";
+  // An adopted object is unlabeled by design; one that another Zenith environment labels as its own is never ours to delete.
+  if (adopted ? dig(live, "metadata", "labels", LABEL.managedBy) === MANAGED_BY_VALUE && !ownedBy(live, environmentId).owned : !ownedBy(live, environmentId).owned) return "skipped";
   if (dig(live, "metadata", "deletionTimestamp")) return "uncertain";
   const uid = dig(live, "metadata", "uid");
   const resourceVersion = dig(live, "metadata", "resourceVersion");
@@ -197,11 +210,42 @@ export async function teardownKubernetesEnvironment(input: KubernetesTeardownInp
     }
   }
 
+  // Adopted objects named exactly by an active manage_and_destroy claim (stateful: retained while data is retained).
+  const adoptedKeys = new Set<string>();
+  const adopt = (ref: ObjectRef) => {
+    if (input.retainStateful) { record(ref, "retained"); return; }
+    adoptedKeys.add(key(ref));
+    candidates.set(key(ref), ref);
+  };
+  for (const item of input.adopted ?? []) {
+    const kind = item.kind === "StatefulSet" || item.kind === "PersistentVolumeClaim" ? item.kind : "PersistentVolumeClaim";
+    const ref: ObjectRef = { apiVersion: KIND_INFO[kind].apiVersion, kind, namespace: isDnsLabel(item.namespace) ? item.namespace : "invalid", name: item.name };
+    if (kind !== item.kind || !isDnsLabel(item.namespace) || !isDnsLabel(item.name)) { record({ ...ref, name: "*" }, "uncertain"); continue; }
+    adopt(ref);
+    if (kind !== "StatefulSet") continue;
+    // The claims a StatefulSet's templates created are named <template>-<statefulset>-<ordinal> and carry no Zenith label.
+    const claims: ObjectRef = { apiVersion: "v1", kind: "PersistentVolumeClaim", namespace: item.namespace, name: `*-${item.name}-*` };
+    try {
+      await client.guard.assert(item.namespace);
+      const live = await readObject(client, ref);
+      const templates = (dig(live, "spec", "volumeClaimTemplates") as unknown[] | undefined ?? []).map((t) => dig(t, "metadata", "name")).filter((n): n is string => typeof n === "string");
+      if (!templates.length) continue;
+      const listing = await listObjects(client, "PersistentVolumeClaim", item.namespace);
+      if (listing.truncated || listing.unavailable) record(claims, "uncertain");
+      for (const pvc of listing.items) {
+        const pvcRef = refOf(pvc);
+        if (templates.some((t) => pvcRef.name.startsWith(`${t}-${item.name}-`) && /^\d+$/.test(pvcRef.name.slice(t.length + item.name.length + 2)))) adopt(pvcRef);
+      }
+    } catch {
+      record(claims, "uncertain");
+    }
+  }
+
   // Include deliberate stateful deletions in the existing children-first order.
   const order: readonly string[] = [...APPLY_ORDER].reverse();
   const ordered = [...candidates.values()].sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind) || key(a).localeCompare(key(b)));
   for (const ref of ordered) {
-    record(ref, input.signal?.aborted ? "skipped" : await deleteCandidate(client, ref, input.environmentId, dryRun));
+    record(ref, input.signal?.aborted ? "skipped" : await deleteCandidate(client, ref, input.environmentId, dryRun, adoptedKeys.has(key(ref))));
   }
 
   // Prune omits already-terminating objects. Reconcile its plan with what remains

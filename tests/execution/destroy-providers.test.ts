@@ -121,3 +121,33 @@ describe.each(["kubernetes", "zenith"] as const)("%s C1 destroy", (provider) => 
     expect(s.w.ops.ops.get(OP)?.status).toBe("uncertain");
   });
 });
+
+describe("kubernetes C1 destroy of an adopted data service (PROD-LIFE-11)", () => {
+  async function adopted(lifecycle: "manage" | "manage_and_destroy", storedOwnership: "managed" | "referenced" = "managed") {
+    const s = setup("kubernetes");
+    const manifest = webDbManifest(); manifest.routes = []; manifest.bindings = [];
+    manifest.resources = [{ id: "res-db", name: "legacy-db", kind: "postgres", config: {}, size: "small", ownership: "referenced", externalRef: "zenith-ns/legacy-db" }] as typeof manifest.resources;
+    s.w.product.setManifest(manifest);
+    s.w.deps.portability = { adoptionFacts: async () => [{ address: "postgres/legacy-db", externalId: "zenith-ns/legacy-db", status: "active", lifecycle, approvalId: "apr-1" }] } as unknown as typeof s.w.deps.portability;
+    // The adoption store flips the stored row to managed; the manifest still declares it referenced.
+    s.w.resources.rows.set(`${ENV}|postgres/legacy-db`, { id: "res-adopted", workspaceId: WS, environmentId: ENV, address: "postgres/legacy-db", kind: "postgres", provider: "kubernetes",
+      nativeType: "k8s:StatefulSet", ownership: storedOwnership, externalId: "zenith-ns/legacy-db", specDigest: "d".repeat(64), spec: {}, dependsOn: [], origin: [], labels: {}, status: "ready" } as never);
+    return { ...s, lease: await s.w.lease() };
+  }
+  it("passes exactly the adopted claim to teardown when destruction is allowed", async () => {
+    const s = await adopted("manage_and_destroy");
+    await s.activities.planDestroyInfrastructure({ operationId: OP, lease: s.lease });
+    expect(s.calls[0].adopted).toEqual([{ kind: "StatefulSet", namespace: "zenith-ns", name: "legacy-db" }]);
+  });
+  it("refuses teardown of an adopted data service whose claim forbids destruction, before any provider call", async () => {
+    const s = await adopted("manage");
+    await expect(s.activities.planDestroyInfrastructure({ operationId: OP, lease: s.lease })).rejects.toThrow(/was adopted, not created by Zenith/);
+    expect(s.calls).toHaveLength(0);
+  });
+  it("passes nothing for a referenced object that was never adopted", async () => {
+    const s = await adopted("manage_and_destroy", "referenced");
+    s.w.deps.portability = { adoptionFacts: async () => [] } as unknown as typeof s.w.deps.portability;
+    await s.activities.planDestroyInfrastructure({ operationId: OP, lease: s.lease });
+    expect(s.calls[0].adopted).toBeUndefined();
+  });
+});

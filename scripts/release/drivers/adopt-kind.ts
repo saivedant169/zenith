@@ -55,7 +55,7 @@ async function teardown(ctx: OperatedContext, tenant: Tenant): Promise<void> {
     // The review's status and the product's own refusal sentence, with addresses, URLs and long tokens elided.
     const failed = await detailOf(tenant, requested.reviewOperationId).catch(() => undefined) as { operation?: { status?: string; error?: unknown } } | undefined;
     const raw = failed?.operation?.error;
-    const error = typeof raw === "string" ? raw.replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 300) : null;
+    const error = typeof raw === "string" ? raw.replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/(?=[A-Za-z0-9_+/=-]*[A-Z0-9+/=])[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 300) : null;
     process.stderr.write(`operated outside-step failed: journey:teardown-review ${JSON.stringify({ status: reviewed.status, error })}\n`);
   }
   ensure(typeof reviewed.operationId === "string", "teardown-review-proposal");
@@ -73,9 +73,9 @@ async function teardown(ctx: OperatedContext, tenant: Tenant): Promise<void> {
   }
   const done = await until(() => detailOf(tenant, id), (d: { operation: { status: string } }) => terminal.includes(d.operation.status), 300_000);
   if (done.operation.status !== "succeeded" && ctx.input.env.ZENITH_OPERATED_DIAGNOSTICS === "1") {
-    // Status, authority phase and the product's own sentence, with URLs and long tokens elided.
+    // Status, authority phase and the product's own sentence, with URLs and long token-like strings elided (lowercase rule codes stay readable).
     const raw = (done.operation as { error?: unknown }).error;
-    const error = typeof raw === "string" ? raw.replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 400) : null;
+    const error = typeof raw === "string" ? raw.replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/(?=[A-Za-z0-9_+/=-]*[A-Z0-9+/=])[A-Za-z0-9_+/=-]{24,}/g, "…").slice(0, 400) : null;
     process.stderr.write(`operated outside-step failed: journey:teardown-terminal ${JSON.stringify({ status: done.operation.status, phase: done.authority?.phase ?? null, round: done.operation.approvalRound ?? null, error })}\n`);
   }
   ensure(done.operation.status === "succeeded", "teardown-terminal");

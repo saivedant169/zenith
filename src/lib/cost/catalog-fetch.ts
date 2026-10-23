@@ -24,6 +24,8 @@ import { RefreshError, type RefreshProvider, type SnapshotEntry, type SnapshotFo
 
 export const MAX_FILE_BYTES = 450 * 1024 * 1024;
 const TIMEOUT_MS = 120_000;
+const MAX_RETRIES = 6;
+const sleep = (ms: number) => new Promise<void>((done) => setTimeout(done, ms));
 
 export const GCP_SERVICES: Readonly<Record<string, string>> = {
   "Compute Engine": "6F81-5844-456A",
@@ -47,6 +49,8 @@ export interface FetchDeps {
   /** YYYY-MM-DD stamped on every file */
   today: string;
   readFile?: (path: string) => string;
+  /** test seam for rate-limit backoff */
+  sleep?: (ms: number) => Promise<void>;
 }
 
 export interface FetchRequest {
@@ -68,7 +72,13 @@ const slug = (s: string) => s.replace(/[^A-Za-z0-9._-]+/g, "_").slice(0, 80);
 async function download(deps: FetchDeps, url: string, headers: Record<string, string> = {}): Promise<{ bytes: Buffer }> {
   const u = new URL(url);
   if (u.protocol !== "https:") throw new RefreshError("gate", "Only https price endpoints are fetched.");
-  const response = await deps.fetch(url, { headers, redirect: "error", signal: AbortSignal.timeout(TIMEOUT_MS) });
+  let response = await deps.fetch(url, { headers, redirect: "error", signal: AbortSignal.timeout(TIMEOUT_MS) });
+  // Public price APIs rate-limit bulk reads (Azure Retail Prices answers 429): bounded retries, honoring Retry-After.
+  for (let attempt = 1; (response.status === 429 || response.status === 503) && attempt <= MAX_RETRIES; attempt++) {
+    const after = Number(response.headers.get("retry-after"));
+    await (deps.sleep ?? sleep)(Math.min(Number.isFinite(after) && after > 0 ? after * 1000 : 2000 * 2 ** attempt, 60_000));
+    response = await deps.fetch(url, { headers, redirect: "error", signal: AbortSignal.timeout(TIMEOUT_MS) });
+  }
   if (!response.ok) throw new RefreshError("format", `${u.host} answered HTTP ${response.status}.`);
   const declared = Number(response.headers.get("content-length") ?? "0");
   if (Number.isFinite(declared) && declared > MAX_FILE_BYTES) throw new RefreshError("format", `${u.host} file is larger than ${MAX_FILE_BYTES} bytes; use a pre-filtered copy.`);

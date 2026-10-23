@@ -6,9 +6,12 @@
  *       provider normalizers and writes a NEW catalog JSON plus a report. Never edits the bundled
  *       catalog: a human reviews the report and the diff, then adopts the file.
  *
- *   tsx scripts/cost/refresh-catalog.ts fetch --providers aws,gcp,azure,oci --out <abs dir> [--base <catalog.json>]
+ *   tsx scripts/cost/refresh-catalog.ts fetch --providers aws,gcp,azure,oci --out <abs dir> [--base <catalog.json>] [--prefilter-aws]
  *       LIVE and GATED: refuses unless ZENITH_LIVE_CATALOG_REFRESH=1 (and, for gcp,
  *       ZENITH_LIVE_GCP_CATALOG_API_KEY_FILE). Downloads public price files into <dir> with checksums.
+ *       --prefilter-aws keeps only the products the AWS rules read (scripts/cost/prefilter-aws-offer.ts),
+ *       so regional EC2 offers above the size cap can be saved; <dir>/prefilter.json records each original
+ *       file's SHA-256 and size. Needs a large heap (NODE_OPTIONS=--max-old-space-size=8192).
  *
  *   tsx scripts/cost/refresh-catalog.ts age [--now <ISO>] [--max-days <n>]
  *       OFFLINE. Prints the bundled catalog age; exits 1 when older than --max-days (default 45).
@@ -20,6 +23,9 @@ import { loadSnapshotDirectory } from "@/lib/placement/catalog-refresh/snapshots
 import { catalogAgeDays, refreshFromSnapshots } from "@/lib/placement/catalog-refresh/refresh";
 import { formatRefreshReport } from "@/lib/placement/catalog-refresh/merge";
 import { fetchOfficialSnapshots } from "@/lib/cost/catalog-fetch";
+import { sha256Hex } from "@/lib/controlplane/digest";
+import { join } from "node:path";
+import { prefilterAwsOffer } from "./prefilter-aws-offer";
 
 function parseArgs(argv: string[]): Map<string, string> {
   const out = new Map<string, string>();
@@ -67,10 +73,20 @@ async function main(): Promise<number> {
     for (const p of providers) if (!REFRESH_PROVIDERS.includes(p)) throw new Error(`Unknown provider ${p}.`);
     const regions: Record<string, string[]> = {};
     for (const p of providers) regions[p] = [...new Set(base.entries.filter((e) => e.provider === p).map((e) => e.region))].sort();
+    const prefiltered: { url: string; sourceSha256: string; sourceBytes: number; filteredSha256: string; filteredBytes: number }[] = [];
+    const prefilterFetch: typeof fetch = async (input, init) => {
+      const response = await fetch(input, init), url = String(input);
+      if (!response.ok || !url.startsWith("https://pricing.us-east-1.amazonaws.com/offers/")) return response;
+      const raw = Buffer.from(await response.arrayBuffer());
+      const filtered = Buffer.from(JSON.stringify(prefilterAwsOffer(JSON.parse(raw.toString("utf8")))));
+      prefiltered.push({ url, sourceSha256: sha256Hex(raw), sourceBytes: raw.byteLength, filteredSha256: sha256Hex(filtered), filteredBytes: filtered.byteLength });
+      return new Response(filtered, { status: 200, headers: { "content-length": String(filtered.byteLength) } });
+    };
     const manifest = await fetchOfficialSnapshots(
       { providers, regions, outDir: need(a, "out") },
-      { env: process.env, fetch, today: new Date().toISOString().slice(0, 10) },
+      { env: process.env, fetch: a.has("prefilter-aws") ? prefilterFetch : fetch, today: new Date().toISOString().slice(0, 10) },
     );
+    if (prefiltered.length) writeFileSync(join(need(a, "out"), "prefilter.json"), `${JSON.stringify({ schema: 1, tool: "scripts/cost/prefilter-aws-offer.ts", files: prefiltered }, null, 2)}\n`);
     console.log(`Saved ${manifest.snapshots.length} file(s) with checksums to ${need(a, "out")}.`);
     return 0;
   }

@@ -316,6 +316,23 @@ describe("catalog age and the gated download", () => {
     expect(loadSnapshotDirectory(dir)[0]!.entry.sha256).toBe(manifest.snapshots[0]!.sha256);
   });
 
+  it("retries a rate-limited price endpoint with bounded backoff, honoring Retry-After, and still refuses a persistent limit", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "zenith-fetch-"));
+    temps.push(dir);
+    const body = readFileSync(join(DIR, "oci-price-list.json"), "utf8");
+    const waits: number[] = [];
+    let calls = 0;
+    const limited = (async () => ++calls <= 2 ? new Response("{}", { status: 429, headers: { "retry-after": "3" } }) : new Response(body, { status: 200 })) as unknown as typeof fetch;
+    const env = { ZENITH_LIVE_CATALOG_REFRESH: "1" };
+    const manifest = await fetchOfficialSnapshots({ providers: ["oci"], regions: {}, outDir: dir }, { env, fetch: limited, today: "2026-10-06", sleep: async (ms) => { waits.push(ms); } });
+    expect(manifest.snapshots).toHaveLength(1); expect(calls).toBe(3); expect(waits).toEqual([3000, 3000]);
+    const always = (async () => new Response("{}", { status: 429 })) as unknown as typeof fetch;
+    waits.length = 0;
+    await expect(fetchOfficialSnapshots({ providers: ["oci"], regions: {}, outDir: dir }, { env, fetch: always, today: "2026-10-06", sleep: async (ms) => { waits.push(ms); } }))
+      .rejects.toMatchObject({ code: "format" });
+    expect(waits).toHaveLength(6); expect(Math.max(...waits)).toBeLessThanOrEqual(60_000);
+  });
+
   it("refuses a GCP download without an absolute API key file reference", async () => {
     const dir = mkdtempSync(join(tmpdir(), "zenith-fetch-"));
     temps.push(dir);

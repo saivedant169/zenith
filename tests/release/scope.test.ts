@@ -207,13 +207,14 @@ describe("permissions-cli", () => {
 });
 
 describe("owner-confirmed sandboxes and shared allowances (2026-10-23 authorization)", () => {
-  it("ships every cloud sandbox identity unconfirmed, so no cloud action is authorized even once approved", () => {
+  it("ships only owner-confirmed sandbox identities, so an unconfirmed cloud stays refused even once approved", () => {
     const shipped = parseManifest(shippedRaw());
-    for (const provider of ["aws", "gcp", "azure", "oci", "supabase"] as const) {
+    // Owner-confirmed 2026-10-24: AWS sandbox account 361646636162 in ap-south-1. Every other identity stays unconfirmed.
+    expect(shipped.sandboxes.aws).toEqual({ accountId: "361646636162", regions: ["ap-south-1"] });
+    for (const provider of ["gcp", "azure", "oci", "supabase"] as const) {
       expect(Object.entries(shipped.sandboxes[provider]).filter(([key]) => !key.startsWith("region")).every(([, value]) => value === null)).toBe(true);
     }
     const unconfirmed = new Scope(parseManifest({ ...parseManifest(shippedRaw()), approval: { status: "approved", approvedBy: "Test Person", approvedAt: NOW.toISOString(), expiresAt: new Date(NOW.getTime() + 86_400_000).toISOString(), approvedDigest: contentDigest(parseManifest(shippedRaw())) } }), () => NOW);
-    expect(code(() => unconfirmed.authorize({ harness: "aws-iam-live", provider: "aws", action: "read" }))).toBe("sandbox_unconfirmed");
     expect(code(() => unconfirmed.assertGrant("mixed-traffic-live", "gcp", "read"))).toBe("sandbox_unconfirmed");
     expect(code(() => unconfirmed.authorize({ harness: "release-acceptance", provider: "control_plane", action: "read" }))).toBeUndefined();
   });

@@ -24,9 +24,9 @@
   },
   "sandboxes": {
     "aws": {
-      "accountId": null,
+      "accountId": "361646636162",
       "regions": [
-        "us-east-1"
+        "ap-south-1"
       ]
     },
     "gcp": {

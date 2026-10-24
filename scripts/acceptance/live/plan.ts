@@ -23,7 +23,7 @@ export function digest(value: unknown): string {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
 export function allCalls(plan: Plan): Call[] {
-  return [...plan.preflight, ...plan.fixtures.flatMap(f => [...f.setup, ...f.observe, f.ownership, ...f.teardown, ...f.leak])];
+  return [...plan.preflight, ...plan.fixtures.flatMap(f => [...f.setup, ...f.observe, f.ownership, ...f.teardown, ...f.leak, ...(f.product ?? [])])];
 }
 export function teardownOrder(fixtures: Fixture[]): Fixture[] {
   const ordered: Fixture[] = [], visiting = new Set<Family>(), done = new Set<Family>();
@@ -88,6 +88,12 @@ export function buildPlan(input: Settings): Plan {
     call("s3-retention-list", "s3", "ListObjectsV2", bucketArn, { Bucket: bucket, Prefix: "retention/", MaxKeys: 1000 }, 6),
     call("s3-retention-delete", "s3", "DeleteObjects", `${bucketArn}/retention/*`, { Bucket: bucket, Delete: { Objects: { $keys: "s3-retention-list" }, Quiet: true } }, 5),
   ] : [];
+  // Independent readback of the product's archive objects, through the guard only. Object bodies are sealed and
+  // larger than the transport's 2 KiB readback cap, so the listing is the S3 evidence; SQL proves the rest.
+  const retentionReadback: Call[] = scenario === "retention-s3" ? [
+    call("s3-retention-readback-runner", "s3", "ListObjectsV2", bucketArn, { Bucket: bucket, Prefix: `retention/${runId}/runner_job_logs/`, MaxKeys: 100 }, 2),
+    call("s3-retention-readback-machine", "s3", "ListObjectsV2", bucketArn, { Bucket: bucket, Prefix: `retention/${runId}/machine_request_logs/`, MaxKeys: 100 }, 2),
+  ] : [];
   const allFixtures: Fixture[] = [
     { family: "s3", dependsOn: [], setup: [
       call("s3-create", "s3", "CreateBucket", bucketArn, { Bucket: bucket, ...(region === "us-east-1" ? {} : { CreateBucketConfiguration: { LocationConstraint: region } }) }),
@@ -98,7 +104,8 @@ export function buildPlan(input: Settings): Plan {
     ], observe: [call("s3-read", "s3", "GetObject", `${bucketArn}/probe`, { Bucket: bucket, Key: "probe" }), call("s3-read-private", "s3", "GetPublicAccessBlock", bucketArn, { Bucket: bucket })],
     ownership: ownership("s3", "s3", "GetBucketTagging", bucketArn, { Bucket: bucket }),
     teardown: [...retention, call("s3-delete-object", "s3", "DeleteObject", `${bucketArn}/probe`, { Bucket: bucket, Key: "probe" }), call("s3-delete", "s3", "DeleteBucket", bucketArn, { Bucket: bucket }, 4)],
-    leak: [call("s3-leak", "s3", "HeadBucket", bucketArn, { Bucket: bucket }, 4)] },
+    leak: [call("s3-leak", "s3", "HeadBucket", bucketArn, { Bucket: bucket }, 4)],
+    ...(scenario === "retention-s3" ? { product: retentionReadback } : {}) },
     { family: "iam", dependsOn: [], setup: [call("iam-create", "iam", "CreateRole", roleArn, { RoleName: role, Tags, PermissionsBoundary: settings.workloadBoundaryArn, AssumeRolePolicyDocument: JSON.stringify({ Version: "2012-10-17", Statement: [{ Effect: "Allow", Principal: { Service: "lambda.amazonaws.com" }, Action: "sts:AssumeRole" }] }) })],
     observe: [call("iam-read", "iam", "GetRole", roleArn, { RoleName: role })], ownership: ownership("iam", "iam", "ListRoleTags", roleArn, { RoleName: role }),
     teardown: [call("iam-delete", "iam", "DeleteRole", roleArn, { RoleName: role }, 4)], leak: [call("iam-leak", "iam", "GetRole", roleArn, { RoleName: role }, 4)] },

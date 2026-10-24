@@ -35,6 +35,9 @@ const COVERED_BY: Record<string, string> = {
   "scripts/acceptance/live/sdk.ts": "scripts/acceptance/live/scope.ts",
   "tests/acceptance/aws-production.test.ts": "scripts/acceptance/live/scope.ts",
   "tests/acceptance/aws-production.live.test.ts": "scripts/acceptance/live/scope.ts",
+  "tests/acceptance/aws-retention-port.test.ts": "scripts/acceptance/live/scope.ts",
+  // The retention-s3 port runs only behind the production CLI, which loads and enforces the scope before it is reached.
+  "scripts/acceptance/live/product/retention-s3.ts": "scripts/acceptance/live/cli.ts",
   "scripts/acceptance/aws-iam-permissions.ts": "scripts/acceptance/aws-iam-permissions-cli.ts",
   "scripts/acceptance/azure-live.ts": "tests/providers/azure/live.test.ts",
   "scripts/acceptance/non-aws-dns-live.ts": "tests/acceptance/non-aws-dns-live.test.ts",

@@ -24,6 +24,7 @@ import { redactAcceptance } from "./redact";
 import { ScopeError, requireScope } from "../release/scope";
 import { runProductionCli } from "./live/cli";
 import { SCENARIOS } from "./live/contracts";
+import { retentionS3Port } from "./live/product/retention-s3";
 
 export const LIVE_USAGE = `Usage: npx tsx scripts/acceptance/aws-live.ts --scenario A[,B,...] [options]
   --dry-run                 Print actions/prerequisites; no cloud calls
@@ -79,7 +80,12 @@ export async function runLiveCli(argv: readonly string[], env: EnvLike = process
   // Keep legacy A-J journeys intact. Invocations without --scenario, or naming only
   // production scenarios, use the explicit-budget envelope; --plan is credential-free.
   const named = argv.flatMap((arg, i) => arg === "--scenario" ? [argv[i + 1] ?? ""] : arg.startsWith("--scenario=") ? [arg.slice("--scenario=".length)] : []);
-  if (named.every(name => (SCENARIOS as readonly string[]).includes(name))) return runProductionCli(argv, env, io);
+  if (named.every(name => (SCENARIOS as readonly string[]).includes(name))) {
+    // The retention-s3 product path runs only when the workflow started the Zenith stack on this runner (ZENITH_LIVE_PRODUCT=1).
+    const selected = named.length ? named.join(",") : (env.ZENITH_LIVE_AWS_SCENARIO ?? "fixtures");
+    const product = selected === "retention-s3" && env.ZENITH_LIVE_PRODUCT === "1" ? retentionS3Port(env) : undefined;
+    return runProductionCli(argv, env, io, { product });
+  }
   try {
     const args = parseArgs(argv, { booleans: ["dry-run", "confirm-billable", "check-control-plane", "help"], strings: ["scenario", "region", "out"] });
     if (args.flags.has("help")) { io.out(LIVE_USAGE); return 0; }

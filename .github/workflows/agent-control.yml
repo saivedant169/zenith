@@ -42,7 +42,11 @@ jobs:
           node-version: '22.23.3'
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: npm run typecheck
+      - name: Typecheck
+        # The complete current source graph exceeds Node's default heap.
+        env:
+          NODE_OPTIONS: --max-old-space-size=5120
+        run: npm run typecheck
       - run: node scripts/test-agent-reader.mjs
       # `tests/agent-control` is a path filter, not a file: it matches the
       # `tests/agent-control-*.test.ts` files and the `tests/agent-control/`

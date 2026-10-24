@@ -4,7 +4,7 @@
   "runId": "znlive-0000000000000000",
   "commit": "0000000000000000000000000000000000000000",
   "account": "REPLACE_SUBSCRIPTION_ID",
-  "region": "eastus",
+  "region": "eastasia",
   "workspaceId": "REPLACE_WORKSPACE",
   "environmentIds": [
     "REPLACE_PRODUCER",

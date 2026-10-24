@@ -17,14 +17,19 @@ const code = (fn: () => unknown): string | undefined => {
 const create = (over: Partial<ScopeRequest> = {}): ScopeRequest => ({ harness: "mixed-traffic-live", provider: "gcp", action: "create_disposable", estimatedUsd: 5, runId: RUN, resourceName: `zenith-${RUN}-web`, ttlMinutes: 60, ...over });
 
 describe("the shipped manifest", () => {
-  it("parses, names every live harness and carries the owner's approval of exactly this content", () => {
+  it("parses, names every live harness and either carries the owner's approval of exactly this content or refuses it as stale", () => {
     const manifest = loadManifestFile(shippedManifestPath());
     expect(manifest.approval.status).toBe("approved");
     expect(manifest.approval.approvedBy).toMatch(/\S/);
-    expect(manifest.approval.approvedDigest).toBe(contentDigest(manifest));
     expect(Date.parse(manifest.approval.expiresAt!)).toBeGreaterThan(Date.parse(manifest.approval.approvedAt!));
     // The same check every harness runs, pinned to the approval instant so the test never depends on the wall clock.
-    expect(() => new Scope(manifest, () => new Date(manifest.approval.approvedAt!)).assertApproved()).not.toThrow();
+    // Between a manifest edit and the owner's re-approval the shipped approval is stale and must refuse.
+    const atApproval = new Scope(manifest, () => new Date(manifest.approval.approvedAt!));
+    if (manifest.approval.approvedDigest === contentDigest(manifest)) {
+      expect(() => atApproval.assertApproved()).not.toThrow();
+    } else {
+      expect(code(() => atApproval.assertApproved())).toBe("approval_stale");
+    }
     for (const id of ["aws-live", "aws-cleanup", "aws-iam-live", "azure-live", "non-aws-dns-live", "billing-live", "mixed-evidence-live", "mixed-traffic-live", "mixed-recovery-live", "mixed-connectivity-live", "release-acceptance"]) {
       expect(manifest.harnesses[id], id).toBeDefined();
     }
@@ -215,9 +220,11 @@ describe("permissions-cli", () => {
 describe("owner-confirmed sandboxes and shared allowances (2026-10-23 authorization)", () => {
   it("ships only owner-confirmed sandbox identities, so an unconfirmed cloud stays refused even once approved", () => {
     const shipped = parseManifest(shippedRaw());
-    // Owner-confirmed 2026-10-24: AWS sandbox account 361646636162 in ap-south-1. Every other identity stays unconfirmed.
+    // Owner-confirmed 2026-10-24: AWS sandbox account 361646636162 in ap-south-1. Owner-confirmed 2026-10-25: Azure for Students subscription in eastasia.
+    // Every other identity stays unconfirmed.
     expect(shipped.sandboxes.aws).toEqual({ accountId: "361646636162", regions: ["ap-south-1"] });
-    for (const provider of ["gcp", "azure", "oci", "supabase"] as const) {
+    expect(shipped.sandboxes.azure).toEqual({ subscriptionId: "cacfdf22-d95d-48b8-b245-a6ed8c985a84", tenantId: "03cb5f0c-1f82-4993-9621-36330f6309ec", regions: ["eastasia"] });
+    for (const provider of ["gcp", "oci", "supabase"] as const) {
       expect(Object.entries(shipped.sandboxes[provider]).filter(([key]) => !key.startsWith("region")).every(([, value]) => value === null)).toBe(true);
     }
     const unconfirmed = new Scope(parseManifest({ ...parseManifest(shippedRaw()), approval: { status: "approved", approvedBy: "Test Person", approvedAt: NOW.toISOString(), expiresAt: new Date(NOW.getTime() + 86_400_000).toISOString(), approvedDigest: contentDigest(parseManifest(shippedRaw())) } }), () => NOW);

@@ -138,6 +138,16 @@ All L1/L2/L3 commands use one absolute `ZENITH_LIVE_BUDGET_FILE` below the owner
 
 Build packet for L2-LIVE-CLOUDS. No cloud, DNS, ACME, browser or paid action was executed on this PC. Offline tests model responses; they are contract evidence only. No requirement or release flag is promoted.
 
+## Azure sandbox (2026-10-25)
+
+- Subscription: Azure for Students, `cacfdf22-d95d-48b8-b245-a6ed8c985a84`, tenant `03cb5f0c-1f82-4993-9621-36330f6309ec`, single region `eastasia`. The subscription policy allows only polandcentral, eastasia, austriaeast, indiasouthcentral and koreacentral.
+- App registrations are disallowed in this tenant. That is fine: the bootstrap in `deploy/live-sandbox/azure/main.tf` uses a user-assigned managed identity with a federated credential.
+- Set `github_oidc_subject_prefix` to the immutable prefix `repo:saivedant169@88630924/zenith@1417385376`, and set `owner_tag` (the `zenith_owner` tag value; no default).
+- Resource providers, registered by the owner on 2026-10-25: Microsoft.ManagedIdentity, Storage, KeyVault, ContainerRegistry, Network, Consumption, DBforPostgreSQL.
+- The bootstrap needs existing blob container, key vault and container registry scopes (`blob_container_scope`, `key_vault_scope`, `registry_scope`). It does not create them.
+- The container registry (Basic) bills about USD 5 per month while it exists. Create it just before a run and delete it after.
+- Editing `docs/build/production/permissions.json` makes its approval stale until the owner re-approves after merge: `npx tsx scripts/release/permissions-cli.ts approve --by "Saivedant Hava" --days 30`.
+
 ## Entry points and authority
 
 `npx tsx scripts/acceptance/live/{azure,gcp,oci}/run.ts` and `npx tsx scripts/acceptance/live/dns/run.ts <provider>` are real entry points. They check Node 22, a clean checkout at the packet's exact commit, provider opt-in and an owner-approved `permissions.json` before opening credential files or making a request. DNS also needs `ZENITH_LIVE_DNS=1`. Missing opt-in exits 3 (NOT RUN); invalid configuration exits 2; failed/incomplete evidence exits 1. Exit 0 means the selected checks and scoped cleanup passed, never that an entire requirement is verified.

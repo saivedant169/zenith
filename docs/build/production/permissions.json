@@ -36,10 +36,10 @@
       ]
     },
     "azure": {
-      "subscriptionId": null,
-      "tenantId": null,
+      "subscriptionId": "cacfdf22-d95d-48b8-b245-a6ed8c985a84",
+      "tenantId": "03cb5f0c-1f82-4993-9621-36330f6309ec",
       "regions": [
-        "eastus"
+        "eastasia"
       ]
     },
     "oci": {

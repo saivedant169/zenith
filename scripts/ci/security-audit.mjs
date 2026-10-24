@@ -54,7 +54,7 @@ export function assessAudit(report, status) {
           advisoryContent.set(via.url, content);
         }
       }
-      catch { throw new Error("Malformed vulnerability scope."); }
+      catch { throw new Error(`Malformed vulnerability scope for ${name}.`); }
     }
     const advisoryIds = (name, visiting = new Set()) => {
       if (idsByPackage.has(name)) return idsByPackage.get(name);

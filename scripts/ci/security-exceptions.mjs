@@ -94,7 +94,9 @@ export function securityFindingScope(finding) {
     require(exact(advisory.cvss, ["score", "vectorString"]) && typeof advisory.cvss.score === "number" && Number.isFinite(advisory.cvss.score) && advisory.cvss.score >= 0 && advisory.cvss.score <= 10 && (advisory.cvss.vectorString === null || (typeof advisory.cvss.vectorString === "string" && /^CVSS:[0-9.]+\/[A-Za-z0-9:/.-]+$/.test(advisory.cvss.vectorString))));
     return { source: advisory.source, name: advisory.name, dependency: advisory.dependency, title: advisory.title, url: advisory.url, severity: advisory.severity, cwe: sorted(advisory.cwe), cvss: { score: advisory.cvss.score, vectorString: advisory.cvss.vectorString }, range: normalizedRange(advisory.range) };
   }).sort((a, b) => compare(JSON.stringify(a), JSON.stringify(b)));
-  return { package: finding.name, severity: finding.severity, range: normalizedRange(finding.range), isDirect: finding.isDirect, nodes: sorted(finding.nodes), effects: sorted(finding.effects), fixAvailable: typeof fix === "boolean" ? fix : { name: fix.name, version: fix.version, isSemVerMajor: fix.isSemVerMajor }, via };
+  // npm reports an entry affected only through vulnerable dependencies (every via a package name) with an empty range.
+  const effectOnly = finding.range === "" && via.every((v) => typeof v === "string");
+  return { package: finding.name, severity: finding.severity, range: effectOnly ? "" : normalizedRange(finding.range), isDirect: finding.isDirect, nodes: sorted(finding.nodes), effects: sorted(finding.effects), fixAvailable: typeof fix === "boolean" ? fix : { name: fix.name, version: fix.version, isSemVerMajor: fix.isSemVerMajor }, via };
 }
 
 /** Canonical UTF-8 signed request. Both roles authorize the same complete record, including

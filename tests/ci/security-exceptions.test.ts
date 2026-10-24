@@ -182,7 +182,7 @@ describe("reviewed expiring development-only exception policy", () => {
     signRecord(f, r);
     const current = assessAudit(f.report, 1), bytes = fs.readFileSync(path.join(f.root, "package-lock.json"));
     const registry = { schemaVersion: 1, exceptions: [r] };
-    expect(current).toMatchObject({ validated: false, ok: false, reason: "Malformed vulnerability scope." });
+    expect(current).toMatchObject({ validated: false, ok: false, reason: expect.stringMatching(/^Malformed vulnerability scope for [a-z0-9@/._-]+\.$/) });
     expect(applySecurityExceptions(current, f.report, bytes, registry, f.root)).toEqual(current);
     expect(evaluateSecurityExceptions(current, f.report, bytes, registry, f.root, NOW, f.authority)).toEqual(current);
     expect(evaluateSecurityExceptions(previouslyValid, f.report, bytes, registry, f.root, NOW, f.authority)).toMatchObject({ ok: false, accepted: [] });

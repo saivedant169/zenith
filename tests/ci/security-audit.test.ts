@@ -61,6 +61,14 @@ describe("mandatory dependency audit", () => {
     expect(result.findings[1]).toMatchObject({ package: "parent", advisoryIds: ["GHSA-abcd-2345-ghjk"], scope: { severity: "high", range: "*", via: ["example", "example"] } });
   });
 
+  it("accepts npm's empty range on an entry affected only through a vulnerable dependency", () => {
+    const result = assessAudit(report({
+      example: direct(), parent: { name: "parent", severity: "high", range: "", isDirect: true, nodes: ["node_modules/parent"], effects: [], fixAvailable: true, via: ["example"] },
+    }), 1);
+    expect(result).toMatchObject({ validated: true, ok: false });
+    expect(result.findings[1]).toMatchObject({ package: "parent", advisoryIds: ["GHSA-abcd-2345-ghjk"], scope: { range: "", via: ["example"] } });
+  });
+
   it.each(["missing range", "empty range", "malformed range", "missing advisory range", "missing severity", "missing title", "missing remediation", "inconsistent advisory"])("rejects incomplete or inconsistent advisory scope: %s", (kind) => {
     const finding = direct();
     if (kind === "missing range") Reflect.deleteProperty(finding, "range");
@@ -71,7 +79,7 @@ describe("mandatory dependency audit", () => {
     if (kind === "missing title") Reflect.deleteProperty(finding.via[0], "title");
     if (kind === "missing remediation") Reflect.deleteProperty(finding, "fixAvailable");
     if (kind === "inconsistent advisory") finding.via.push({ ...finding.via[0], range: "<2.0.0" });
-    expect(assessAudit(report({ example: finding }), 1)).toMatchObject({ ok: false, validated: false, reason: "Malformed vulnerability scope." });
+    expect(assessAudit(report({ example: finding }), 1)).toMatchObject({ ok: false, validated: false, reason: "Malformed vulnerability scope for example." });
   });
 
   const malformedVersions = ["1.0.0-.", "1.0.0+.", "1.0.0-01", "1.0.0 - <=2.0.0", "1.0.0-alpha..1", "1.0.0+build..1", "01.0.0"];
@@ -81,7 +89,7 @@ describe("mandatory dependency audit", () => {
     if (field === "advisory range") finding.via[0].range = value;
     if (field === "fix version") Object.assign(finding, { fixAvailable: { name: "example", version: value, isSemVerMajor: false } });
     child(JSON.stringify(report({ example: finding })), 1);
-    expect(runSecurityAudit(root)).toMatchObject({ ok: false, validated: false, findings: [], reason: "Malformed vulnerability scope." });
+    expect(runSecurityAudit(root)).toMatchObject({ ok: false, validated: false, findings: [], reason: "Malformed vulnerability scope for example." });
   });
 
   it.each(["<=3.0.3", "*", ">=1.0.0 <2.0.0", "1.0.0-alpha.1+build.01", "1.0.0-0+001", ">=1.0.0-alpha.1 <2.0.0 || ^3.0.0", "1.0.0 - 2.0.0", "1.2 - 2.3", "~1.2.x"])("preserves supported complete npm scope for %s", (range) => {

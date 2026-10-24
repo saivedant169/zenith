@@ -17,19 +17,14 @@ const code = (fn: () => unknown): string | undefined => {
 const create = (over: Partial<ScopeRequest> = {}): ScopeRequest => ({ harness: "mixed-traffic-live", provider: "gcp", action: "create_disposable", estimatedUsd: 5, runId: RUN, resourceName: `zenith-${RUN}-web`, ttlMinutes: 60, ...over });
 
 describe("the shipped manifest", () => {
-  it("parses, names every live harness and either carries the owner's approval of exactly this content or refuses it as stale", () => {
+  it("parses, names every live harness and carries the owner's approval of exactly this content", () => {
     const manifest = loadManifestFile(shippedManifestPath());
     expect(manifest.approval.status).toBe("approved");
     expect(manifest.approval.approvedBy).toMatch(/\S/);
+    expect(manifest.approval.approvedDigest).toBe(contentDigest(manifest));
     expect(Date.parse(manifest.approval.expiresAt!)).toBeGreaterThan(Date.parse(manifest.approval.approvedAt!));
     // The same check every harness runs, pinned to the approval instant so the test never depends on the wall clock.
-    // Between a manifest edit and the owner's re-approval the shipped approval is stale and must refuse.
-    const atApproval = new Scope(manifest, () => new Date(manifest.approval.approvedAt!));
-    if (manifest.approval.approvedDigest === contentDigest(manifest)) {
-      expect(() => atApproval.assertApproved()).not.toThrow();
-    } else {
-      expect(code(() => atApproval.assertApproved())).toBe("approval_stale");
-    }
+    expect(() => new Scope(manifest, () => new Date(manifest.approval.approvedAt!)).assertApproved()).not.toThrow();
     for (const id of ["aws-live", "aws-cleanup", "aws-iam-live", "azure-live", "non-aws-dns-live", "billing-live", "mixed-evidence-live", "mixed-traffic-live", "mixed-recovery-live", "mixed-connectivity-live", "release-acceptance"]) {
       expect(manifest.harnesses[id], id).toBeDefined();
     }

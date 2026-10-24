@@ -12,6 +12,8 @@ provider "azurerm" {
   use_oidc        = true
 }
 variable "subscription_id" { type = string }
+# The Azure for Students subscription only allows these regions: polandcentral, eastasia, austriaeast, indiasouthcentral, koreacentral.
+# The owner confirmed eastasia for this sandbox (2026-10-25); any other region is refused by the subscription policy.
 variable "region" { type = string }
 variable "name" { type = string }
 variable "github_repository" {
@@ -19,6 +21,23 @@ variable "github_repository" {
   validation {
     condition     = can(regex("^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$", var.github_repository))
     error_message = "Use the exact approved owner/repository."
+  }
+}
+variable "github_oidc_subject_prefix" {
+  description = "Subject prefix GitHub puts in this repository's OIDC tokens, or empty for repo:<github_repository>. Repositories using immutable subjects send repo:<owner>@<owner_id>/<name>@<repo_id> (gh api repos/<owner>/<name>/actions/oidc/customization/sub)."
+  type        = string
+  default     = ""
+  validation {
+    condition     = var.github_oidc_subject_prefix == "" || can(regex("^repo:[A-Za-z0-9-]+(@[0-9]+)?/[A-Za-z0-9._-]+(@[0-9]+)?$", var.github_oidc_subject_prefix))
+    error_message = "Subject prefix must be repo:owner/name, optionally with @id suffixes."
+  }
+}
+variable "owner_tag" {
+  description = "Value of the zenith_owner resource group tag."
+  type        = string
+  validation {
+    condition     = can(regex("^[A-Za-z0-9._-]{1,64}$", var.owner_tag))
+    error_message = "Owner tag must be 1-64 characters of letters, digits, dot, underscore or hyphen."
   }
 }
 variable "github_environment" {
@@ -42,7 +61,7 @@ variable "alert_email" { type = string }
 resource "azurerm_resource_group" "sandbox" {
   name     = var.name
   location = var.region
-  tags     = { zenith_sandbox = "true", zenith_owner = "arnav.bule05" }
+  tags     = { zenith_sandbox = "true", zenith_owner = var.owner_tag }
 }
 resource "azurerm_user_assigned_identity" "observer" {
   name                = "${var.name}-observer"
@@ -55,7 +74,7 @@ resource "azurerm_federated_identity_credential" "github" {
   user_assigned_identity_id = azurerm_user_assigned_identity.observer.id
   issuer                    = "https://token.actions.githubusercontent.com"
   audience                  = ["api://AzureADTokenExchange"]
-  subject                   = "repo:${var.github_repository}:environment:${var.github_environment}"
+  subject                   = "${var.github_oidc_subject_prefix != "" ? var.github_oidc_subject_prefix : "repo:${var.github_repository}"}:environment:${var.github_environment}"
 }
 resource "azurerm_role_definition" "observer" {
   name              = "${var.name}-acceptance-readback"

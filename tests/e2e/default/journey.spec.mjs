@@ -65,8 +65,13 @@ const CONTROL_KEYS = () => {
   const ACTIONS = new Set(['button', 'link', 'checkbox', 'radio', 'switch', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'tab', 'option',
     'combobox', 'slider', 'spinbutton', 'treeitem', 'searchbox', 'textbox', 'menu', 'menubar', 'listbox', 'tree', 'grid', 'scrollbar']);
   // Every visible element that claims a widget role, focusable or not: a div role=button without tabindex is a miss too.
-  const nonNative = [...document.querySelectorAll('[role]')].filter(element => visible(element) && ACTIONS.has(element.getAttribute('role') ?? '') && !native(element))
-    .map(element => keys.get(element) ?? [element.tagName, element.getAttribute('role'), 'unfocusable'].join('|'));
+  // A focusable non-native element with no role at all is a miss as well, unless it is a scrollable region (focusable so
+  // keyboard users can scroll it, not a control).
+  const scrollable = element => element.scrollHeight > element.clientHeight || element.scrollWidth > element.clientWidth;
+  const nonNative = [...new Set([
+    ...[...document.querySelectorAll('[role]')].filter(element => visible(element) && ACTIONS.has(element.getAttribute('role') ?? '') && !native(element)),
+    ...controls.filter(element => !element.hasAttribute('role') && !native(element) && !scrollable(element)),
+  ])].map(element => keys.get(element) ?? [element.tagName, element.getAttribute('role'), 'unfocusable'].join('|'));
   const active = document.activeElement;
   return { keys: [...new Set(keys.values())], active: keys.get(active) ?? null, nonNative,
     shapes: Object.fromEntries([...[...keys].map(([element, key]) => [key, shape(element)]),
@@ -876,14 +881,16 @@ test('default operated browser, REST, MCP and customer machine journey', async (
     if (UX_ENABLED) await uxCase('ux01-legacy-cancel-a11y', async () => {
       const fixtureId = 'dep_ux01_legacy_' + runId;
       const scans = uxCases.find(row => row.id === 'ux01-legacy-cancel-a11y').scans;
-      // A SELECT around the insert: psql -At prints a command tag after a bare INSERT, which is not JSON.
-      const inserted = await psqlRead(`with ins as (insert into public.deployments (id, workspace_id, project_id, environment_id, revision_id, status, created_at, data)
-        select :'fixture_id', workspace_id, project_id, environment_id, revision_id, 'awaiting_approval', now(),
-          (data - 'executor' - 'operationId' - 'workflowStartedAt') || jsonb_build_object('id', :'fixture_id', 'status', 'awaiting_approval', 'changeSummary', 'UX-01 legacy-cancel accessibility fixture')
-        from public.deployments where id = :'deployment_id' returning id) select json_build_object('id', (select id from ins))::text`, { fixture_id: fixtureId, deployment_id: deploymentId });
-      ensure(inserted?.id === fixtureId, 'ux01-legacy-fixture');
-      let viewer;
+      // Inside the try, so a failed check after a committed insert still deletes the fixture.
+      let viewer, created = false;
       try {
+        // A SELECT around the insert: psql -At prints a command tag after a bare INSERT, which is not JSON.
+        const inserted = await psqlRead(`with ins as (insert into public.deployments (id, workspace_id, project_id, environment_id, revision_id, status, created_at, data)
+          select :'fixture_id', workspace_id, project_id, environment_id, revision_id, 'awaiting_approval', now(),
+            (data - 'executor' - 'operationId' - 'workflowStartedAt') || jsonb_build_object('id', :'fixture_id', 'status', 'awaiting_approval', 'changeSummary', 'UX-01 legacy-cancel accessibility fixture')
+          from public.deployments where id = :'deployment_id' returning id) select json_build_object('id', (select id from ins))::text`, { fixture_id: fixtureId, deployment_id: deploymentId });
+        ensure(inserted?.id === fixtureId, 'ux01-legacy-fixture');
+        created = true;
         await uxA.goto(stack.apiUrl + '/platform/deployments/' + fixtureId);
         await uxA.getByRole('heading', { name: 'Cancel deployment', exact: true }).waitFor();
         await auditUx(uxA, 'legacy-cancel-offered', axeSource, scans);
@@ -900,7 +907,8 @@ test('default operated browser, REST, MCP and customer machine journey', async (
       } finally {
         await viewer?.context().close();
         const removed = await psqlRead(`with d as (delete from public.deployments where id = :'fixture_id' returning id) select json_build_object('removed', (select count(*) from d))::text`, { fixture_id: fixtureId });
-        ensure(removed?.removed === 1, 'ux01-legacy-fixture-cleanup');
+        // A lost insert acknowledgement can leave the row without `created`; never more than the one fixture.
+        ensure(created ? removed?.removed === 1 : [0, 1].includes(removed?.removed), 'ux01-legacy-fixture-cleanup');
       }
     });
     await step('rest-proposal-execution-readback', async () => {

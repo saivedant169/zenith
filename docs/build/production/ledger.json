@@ -7822,6 +7822,16 @@
           "url": "https://github.com/saivedant169/zenith/actions/runs/39984298051",
           "logs": "docs/build/production/evidence/PROD-UX-01/2026-10-23-local-lanes-587bc530/receipt.json",
           "result": "Every PROD-UX-01 registered lane on one source commit 587bc530. Hosted J2 21/21 on both architectures (journey receipts committed); UX receipt schema 4, 12/12 cases on both architectures: axe WCAG 2.0/2.1 A+AA with no violations (axe 'incomplete' results, including colour contrast it could not decide, are not recorded) or overflow at 1280 and 375 px, and on every scan Tab reaches every present control (late-rendered included), each shows a focus-indicator change between focused and unfocused (change detection only; indicator contrast is not measured) and every visible widget-role element is native (links need an href; non-focusable role elements are checked too). Includes AWS onboarding and legacy cancellation in a real browser (labelled fixture: offered, confirming, and as an invited viewer, disabled; fixture deleted; confirm never clicked). MFA browser 2/2 per architecture (verdicts.txt). Receipt gate verified per architecture; MFA PostgreSQL 46 passed; plugin lanes and the six plugin Docker/PostgreSQL cases verified; operated plugin-platform case verified on a clean J1 stack built from 587bc530. Source unchanged; cleanup clean. Earlier attempts preserved (8b9a4fb0 passed before the review widened the checks; ca8fe49e and 7e611e2e failed in the new legacy-cancel case: psql command tag in the fixture insert, then the late viewer invite). Not covered: a real screen-reader pass, scheduled with the owner. Not a promotion."
+        },
+        {
+          "level": "local_engine",
+          "commit": "fe5d81c1601b808d761ec0cc086cd5a13fbbd6a2",
+          "command": "clean-host-journey.yml -f ux=true (run 40061657924, amd64+arm64)",
+          "environment": "GitHub-hosted ubuntu-latest and ubuntu-24.04-arm; real browser, Supabase Auth, registered zenithd, owned kind target; zod 4.6.7 source",
+          "result": "J2 journey and UX receipt schema 4 passed on both architectures: 12/12 cases, every scan with no axe A/AA violation, no horizontal overflow, full keyboard reach and visible focus, and zero non-native controls under the widened check (fe5d81c1 also counts focusable non-native elements without a role, scrollable regions excepted). The legacy-cancel fixture insert now sits inside its try. Hosted only; the Mac receipt gate, MFA PostgreSQL, plugin and plugin-platform lanes were not re-run on this commit. Still open: the supervised screen-reader walk. No promotion.",
+          "artifact": "docs/build/production/evidence/PROD-UX-01/2026-10-24-hosted-40061657924/clean-host-ux-amd64.ux-receipt.json",
+          "runId": 40061657924,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/40061657924"
         }
       ],
       "requiredEvidence": [

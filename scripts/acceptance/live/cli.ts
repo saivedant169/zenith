@@ -99,7 +99,7 @@ export async function runProductionCli(argv: readonly string[], env: EnvLike = p
   } catch (error) {
     // Only our deterministic guard errors may be printed; SDK/file parse errors
     // could contain secret text. No provider exception or credential value leaves.
-    const safe = error instanceof Error && /^(ZENITH_|Explicit |Approved |Permission |Missing bounded permission|Plan integrity|Short-lived |Use an owner|One absolute|Alternate |Journal |Live evidence|Exact source|Duration |Commercial |Malformed |permissions.json|Invalid arguments)/.test(error.message) ? error.message : "AWS acceptance refused or failed before completion; inspect local configuration and journal";
+    const safe = error instanceof Error && /^(ZENITH_|Explicit |Approved |Permission |Missing bounded permission|Plan integrity|Short-lived |Use an owner|Use one absolute|One absolute|Run already reserved|Persistent total budget|Alternate |Journal |Live evidence|Exact source|Duration |Commercial |Malformed |permissions.json|Invalid arguments)/.test(error.message) ? error.message : "AWS acceptance refused or failed before completion; inspect local configuration and journal";
     io.err(safe);
     return 2;
   } finally {

@@ -134,6 +134,8 @@ jobs:
         run: |
           set -euo pipefail
           {
+            # shortcut: hosted runners keep no state, so this ledger only covers one run; the per-run envelope, root per-run cap and the AWS budget alarm bound spend. Upgrade to a persisted ledger before running several live jobs in parallel.
+            echo "ZENITH_LIVE_BUDGET_FILE=$RUNNER_TEMP/zenith-live-budget/ledger.json"
             echo "ZENITH_LIVE_AWS_PERMISSIONS=$RUNNER_TEMP/zenith-aws-permissions.json"
             echo "ZENITH_LIVE_SCOPE_FILE=$RUNNER_TEMP/zenith-live-scope.json"
             echo "ZENITH_LIVE_AWS_OUT=$RUNNER_TEMP/zenith-aws-production"

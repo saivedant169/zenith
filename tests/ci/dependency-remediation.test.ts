@@ -13,21 +13,22 @@ describe("approved dependency remediation", () => {
   it("preserves the supported runtime and pins both major migrations", () => {
     expect(pkg.engines.node).toBe(">=22.22.2 <23");
     expect(lock.packages[""].engines.node).toBe(pkg.engines.node);
-    expect(pkg.dependencies.nodemailer).toBe("10.0.10");
+    expect(pkg.dependencies.nodemailer).toBe("10.2.1");
     expect(pkg.devDependencies.vitest).toBe("4.1.12");
-    expect(require("nodemailer/package.json").version).toBe("10.0.10");
+    expect(require("nodemailer/package.json").version).toBe("10.2.1");
     expect(require("vitest/package.json").version).toBe("4.1.12");
     expect(require("@vitest/mocker/package.json").version).toBe("4.1.12");
   });
 
-  it("resolves the root HTTP client and the E2B alias to the fixed branch without replacing Undici 7", () => {
-    expect(require("undici/package.json").version).toBe("8.10.2");
-    expect(require("undici8/package.json").version).toBe("8.10.2");
+  it("resolves the root HTTP client and the E2B alias to the fixed branch and keeps E2B on fixed Undici 7", () => {
+    expect(require("undici/package.json").version).toBe("8.12.3");
+    expect(require("undici8/package.json").version).toBe("8.12.3");
     expect(typeof require("undici").fetch).toBe("function");
     expect(typeof require("undici8").fetch).toBe("function");
     const e2bRequire = createRequire(require.resolve("e2b/package.json"));
-    expect(e2bRequire("undici/package.json").version).toBe("7.29.1");
-    expect(pkg.overrides.e2b.undici8).toBe("npm:undici@8.10.2");
+    // GHSA-4qv8-2p9j-2685, GHSA-f72v-6w45-q472, GHSA-xjj6-f33q-929c (2026-10-24): Undici 7 needs 7.30.1.
+    expect(e2bRequire("undici/package.json").version).toBe("7.30.1");
+    expect(pkg.overrides.e2b.undici8).toBe("npm:undici@8.12.3");
   });
 
   it.each([

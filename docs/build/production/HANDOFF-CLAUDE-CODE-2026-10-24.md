@@ -19,6 +19,8 @@ PROD-LIFE-11, PROD-REL-01 (hosted D-4 runs and CI below).
 | J2 kind fixture | `b87f4504` | namespaced deployer gets read on namespaces, HPAs, Roles, RoleBindings (no create); documented in `docs/platform/KUBERNETES-CONNECTIONS.md` |
 | zod 3.25 to 4.6.7 (GHSA-mrhx-c7xc-m3w5) | `5b75f356` | zod 3 semantics kept; one real regression (tracker patch defaults) fixed; see LIMITATIONS "Validation library upgrade" |
 | Advisories published 2026-10-24 | `91693673` | undici 8.12.3 / 7.30.1, fast-uri 3.1.9, nodemailer 10.2.1 |
+| Security audit names transitive findings | `c2701f71` | npm's empty range on effect-only entries is accepted; a malformed scope names its package |
+| Worker readiness after a partition | `a29de738` | a check older than its timeout is abandoned and retried (at most two outstanding) |
 | Ledger hygiene | `4127aa4d` | 38 short evidence SHAs expanded; 20 multi-commit Wave6 summaries and 2 `native_runtime` levels still make `scripts/build/production-ledger.mjs` refuse, so REQUIREMENTS.md was not regenerated |
 
 ## Hosted gates on current source
@@ -31,7 +33,10 @@ PROD-LIFE-11, PROD-REL-01 (hosted D-4 runs and CI below).
 | drivers-d4-adopt | fails at `adopt-destroy-teardown` by design until the owner decision below (run 40038490208) |
 | clean-host-kind-adoption | passed on `bb8b6314` with post-deletion verification |
 
-Other gates (drift-repair, crash-partition, upgrade, restore, drv1-*) were not re-run on today's source.
+| drv2-drift-repair, j15-operated-upgrade, j15-operated-restore | passed on `1639cba4` (runs 40053381399, 40053386191, 40053387915) |
+| drv1-update-rollback (arm64) | passed on `1639cba4` (run 40053390040) |
+| drv2-crash-partition | failed twice on `1639cba4` (readiness reused a store check stuck on a dead connection); passed on `a29de738` after the fix (run 40057912317) |
+| drv1-private-source (arm64) | fails at runtime isolation probes (run 40053392247); runc lane awaits the owner's runner-egress decision |
 
 ## Blocked on the owner
 
@@ -46,8 +51,6 @@ Other gates (drift-repair, crash-partition, upgrade, restore, drv1-*) were not r
 
 - UX-01 follow-ups (widen the native-control check, record axe incomplete results, keep the MFA browser raw report,
   move the legacy fixture insert inside its try): need a receipt schema bump and a full receipt rerun.
-- `scripts/ci/security-audit.mjs` stops with "Malformed vulnerability scope" on some advisory batches instead of
-  naming them (it fails closed).
 - Local runs of `tests/deploy/default-stack-j4.test.ts` and `tests/acceptance/maintenance-cli-diagnostics.test.ts`
   fail on macOS unless `TMPDIR` is a real path (the private-path guard refuses the `/var` symlink).
 - Lint changed files with `npx eslint <files>` before pushing: the Next build runs ESLint and fails the hosted stack

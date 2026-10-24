@@ -23,6 +23,7 @@ import { settleRunOperations, trackControlPlane } from "./lifecycle";
 import { redactAcceptance } from "./redact";
 import { ScopeError, requireScope } from "../release/scope";
 import { runProductionCli } from "./live/cli";
+import { SCENARIOS } from "./live/contracts";
 
 export const LIVE_USAGE = `Usage: npx tsx scripts/acceptance/aws-live.ts --scenario A[,B,...] [options]
   --dry-run                 Print actions/prerequisites; no cloud calls
@@ -75,9 +76,10 @@ export async function executeScenarios(ctx: ScenarioContext, defs: readonly Scen
 }
 
 export async function runLiveCli(argv: readonly string[], env: EnvLike = process.env, io: CliIO = consoleIO): Promise<number> {
-  // Keep legacy A-J journeys intact. Dispatch/no-argument invocations use the
-  // explicit-budget production envelope; --plan is strictly credential-free.
-  if (!argv.includes("--scenario")) return runProductionCli(argv, env, io);
+  // Keep legacy A-J journeys intact. Invocations without --scenario, or naming only
+  // production scenarios, use the explicit-budget envelope; --plan is credential-free.
+  const named = argv.flatMap((arg, i) => arg === "--scenario" ? [argv[i + 1] ?? ""] : arg.startsWith("--scenario=") ? [arg.slice("--scenario=".length)] : []);
+  if (named.every(name => (SCENARIOS as readonly string[]).includes(name))) return runProductionCli(argv, env, io);
   try {
     const args = parseArgs(argv, { booleans: ["dry-run", "confirm-billable", "check-control-plane", "help"], strings: ["scenario", "region", "out"] });
     if (args.flags.has("help")) { io.out(LIVE_USAGE); return 0; }

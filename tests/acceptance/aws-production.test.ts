@@ -12,7 +12,8 @@ import { ResourceNotFoundException as LambdaNotFound } from "@aws-sdk/client-lam
 import { DBInstanceNotFoundFault } from "@aws-sdk/client-rds";
 import { NoSuchHostedZone } from "@aws-sdk/client-route-53";
 import { ResourceNotFoundException as SecretNotFound } from "@aws-sdk/client-secrets-manager";
-import { buildPlan, allCalls, digest, FAMILIES, teardownOrder } from "../../scripts/acceptance/live/plan";
+import { buildPlan, allCalls, digest, FAMILIES, scopedRequirementIds, teardownOrder } from "../../scripts/acceptance/live/plan";
+import { runLiveCli } from "../../scripts/acceptance/aws-live";
 import { Guard, grantsFor, readPermission } from "../../scripts/acceptance/live/guard";
 import { execute, newJournal, missing, absent, owned, checkReadback, executionProvenance } from "../../scripts/acceptance/live/execute";
 import { evidencePacket } from "../../scripts/acceptance/live/evidence";
@@ -20,7 +21,7 @@ import { runProductionCli } from "../../scripts/acceptance/live/cli";
 import { requireProductionScope } from "../../scripts/acceptance/live/scope";
 import { approvedManifest } from "../release/_support";
 import { nonceZip, resolveInput, sessionCredentials } from "../../scripts/acceptance/live/sdk";
-import type { AwsPermission, Call, Family, Plan, Transport } from "../../scripts/acceptance/live/contracts";
+import type { AwsPermission, Call, Family, Journal, Json, Plan, Transport } from "../../scripts/acceptance/live/contracts";
 
 const now = () => new Date("2026-10-08T00:00:00Z");
 const settings = { accountId: "123456789012", region: "ap-south-1", runId: "zlive-202610080000-abcd", durationMinutes: 15, dbSubnetGroup: "zenith-live-sandbox", dbSecurityGroup: "sg-12345678", workloadBoundaryArn: "arn:aws:iam::123456789012:policy/ZenithLiveWorkloadBoundary" };
@@ -432,4 +433,137 @@ it("keeps pre-OIDC permission admission and an unconditional hard failure gate a
   expect(gate.env).toEqual({ ACCEPTANCE_OUTCOME: "${{ steps.acceptance.outcome }}", RECOVERY_OUTCOME: "${{ steps.recovery.outcome }}" });
   expect(gate.run).toContain('test "$ACCEPTANCE_OUTCOME" = success');
   expect(gate.run).toContain('test "$RECOVERY_OUTCOME" = success');
+});
+
+describe("scenario-specific plans and scoped verdict (offline)", () => {
+  const retention = () => buildPlan({ ...settings, scenario: "retention-s3" });
+  const bucket = `zenith-${settings.runId}-${settings.accountId}`;
+  // Finished modeled run for any plan; product checks are added by each test.
+  async function finished(p: Plan, fail?: (c: Call) => boolean) {
+    const guard = makeGuard(p), model = modeled(p, fail), journal = newJournal(p, guard, "a".repeat(40), now());
+    await execute(p, guard, model.transport, journal, { now, sleep: async () => undefined, save: async () => undefined });
+    return journal;
+  }
+  // Replaces execute's pending placeholders, as a complete ProductScenarioPort result would.
+  const passProduct = (journal: Journal, ids: string[]) => {
+    journal.provenance = "live_sandbox";
+    journal.checks = journal.checks.filter(c => !(c.scope === "product_requirement" && ids.includes(c.id)));
+    for (const id of ids) journal.checks.push({ id, scope: "product_requirement", status: "passed", reason: "independent readback" });
+  };
+
+  it("keeps the default fixtures digest identical to the pre-scenario planner", () => {
+    expect(plan().sha256).toBe("6210d2bc95f43662df549ecc0ad2b152291a95064f6ef33727ebd3f8de3805a2");
+    expect(buildPlan({ ...settings, scenario: "fixtures" }).sha256).toBe(plan().sha256);
+  });
+  it("retention-s3 plans only the S3 family and the preflight calls that apply to it", () => {
+    const p = retention(), calls = allCalls(p);
+    expect(p.sha256).not.toBe(plan().sha256);
+    expect(p.fixtures.map(f => f.family)).toEqual(["s3"]);
+    expect(p.preflight.map(c => c.id)).toEqual(["identity", "marker", "run-claim", "run-claim-read", "prior-leaks", "s3-preexist"]);
+    expect(calls.some(c => ["rds", "ecs", "route53", "iam", "lambda", "secretsmanager", "ec2"].includes(c.service))).toBe(false);
+    expect(calls.some(c => /Create(Role|Function|Cluster|DBInstance|HostedZone)|Delete(Role|Function|Cluster|DBInstance|HostedZone)/.test(c.command))).toBe(false);
+    expect(scopedRequirementIds(p.settings, p.requirements.map(r => r.id))).toEqual(["PROD-OPS-07"]);
+    expect(p.estimate.usd).toBeLessThan(plan().estimate.usd);
+    expect(p.estimate.usd).toBeGreaterThan(p.estimate.cleanupReserveUsd);
+  });
+  it("teardown lists and deletes only retention/ objects, bounded, before DeleteBucket", () => {
+    const teardown = retention().fixtures[0].teardown;
+    const ids = teardown.map(c => c.id);
+    expect(ids.indexOf("s3-retention-list")).toBeLessThan(ids.indexOf("s3-delete"));
+    expect(ids.indexOf("s3-retention-delete")).toBeLessThan(ids.indexOf("s3-delete"));
+    const list = teardown.find(c => c.id === "s3-retention-list")!, remove = teardown.find(c => c.id === "s3-retention-delete")!;
+    expect(list).toMatchObject({ action: "s3:ListBucket", resource: `arn:aws:s3:::${bucket}`, input: { Bucket: bucket, Prefix: "retention/" } });
+    expect(remove).toMatchObject({ action: "s3:DeleteObject", resource: `arn:aws:s3:::${bucket}/retention/*` });
+    expect(list.maximumCalls).toBeGreaterThan(0); expect(remove.maximumCalls).toBeGreaterThan(0);
+    // The fixtures plan has no retention drain: its digest and calls are unchanged.
+    expect(plan().fixtures[0].teardown.some(c => c.id.startsWith("s3-retention"))).toBe(false);
+  });
+  it("drains exactly the listed retention/ page before DeleteBucket", async () => {
+    const p = retention(), guard = makeGuard(p), model = modeled(p), journal = newJournal(p, guard, "a".repeat(40), now());
+    const listings: { Key: string }[][] = [[{ Key: "retention/ws/class/0001" }], []], inputs: Record<string, Json>[] = [];
+    const transport: Transport = { send: (c, input, signal) => {
+      if (c.id === "s3-retention-list") { model.calls.push(c); return Promise.resolve({ Contents: listings.shift() ?? [] }); }
+      if (c.id === "s3-retention-delete") { model.calls.push(c); inputs.push(input); return Promise.resolve({ Deleted: [] }); }
+      return model.transport.send(c, input, signal);
+    } };
+    await execute(p, guard, transport, journal, { now, sleep: async () => undefined, save: async () => undefined });
+    expect(inputs).toEqual([{ Bucket: bucket, Delete: { Objects: [{ Key: "retention/ws/class/0001" }], Quiet: true } }]);
+    expect(journal.closed).toBe(true); expect(model.present.size).toBe(0);
+    expect(model.calls.findIndex(c => c.id === "s3-retention-delete")).toBeLessThan(model.calls.findIndex(c => c.id === "s3-delete"));
+  });
+  it("refuses a retention listing outside retention/ before any delete, leaving cleanup open", async () => {
+    const p = retention(), guard = makeGuard(p), model = modeled(p), journal = newJournal(p, guard, "a".repeat(40), now());
+    const inputs: Record<string, Json>[] = [];
+    const transport: Transport = { send: (c, input, signal) => {
+      if (c.id === "s3-retention-list") { model.calls.push(c); return Promise.resolve({ Contents: [{ Key: "probe" }] }); }
+      if (c.id === "s3-retention-delete") { inputs.push(input); return Promise.resolve({}); }
+      return model.transport.send(c, input, signal);
+    } };
+    await execute(p, guard, transport, journal, { now, sleep: async () => undefined, save: async () => undefined });
+    expect(inputs).toHaveLength(0); expect(model.calls.some(c => c.id === "s3-delete")).toBe(false);
+    expect(journal.closed).toBe(false);
+  });
+  it("bounds retention key resolution to one listing page of owned keys", () => {
+    expect(resolveInput({ $keys: "list" }, { list: { Contents: [{ Key: "retention/a" }] } })).toEqual([{ Key: "retention/a" }]);
+    expect(() => resolveInput({ $keys: "list" }, { list: { Contents: [] } })).toThrow(/Unbounded/);
+    expect(() => resolveInput({ $keys: "list" }, { list: { Contents: Array.from({ length: 1001 }, (_, i) => ({ Key: `retention/${i}` })) } })).toThrow(/Unbounded/);
+    expect(() => resolveInput({ $keys: "list" }, { list: { Contents: [{ Key: "other/a" }] } })).toThrow(/outside owned retention/);
+  });
+  it("binds each permission to its scenario and refuses the other scenario's plan", () => {
+    const f = plan(), r = retention();
+    expect(() => new Guard(r, permission(f), 10, now)).toThrow(/exact plan/);
+    expect(() => new Guard(f, permission(r), 10, now)).toThrow(/exact plan/);
+    expect(() => new Guard(r, permission(r), 10, now)).not.toThrow();
+  });
+  it("refuses unknown scenarios before any plan, credential or transport", async () => {
+    expect(() => buildPlan({ ...settings, scenario: "bogus" as never })).toThrow(/Unknown AWS live scenario/);
+    const lines: string[] = []; let constructed = 0;
+    const code = await runProductionCli(["--plan", "--run-id", settings.runId], { ZENITH_LIVE_AWS_SCENARIO: "bogus" }, { out: s => lines.push(s), err: s => lines.push(s) }, { transport: async () => { constructed++; throw new Error("must not run"); } });
+    expect(code).toBe(2); expect(constructed).toBe(0); expect(lines.join("")).toContain("Unknown AWS live scenario");
+  });
+  it("--scenario selects the production plan and the proposal shows its scenario and scope", async () => {
+    const out: string[] = [];
+    const io = { out: (s: string) => out.push(s), err: () => undefined };
+    expect(await runLiveCli(["--plan", "--run-id", settings.runId, "--scenario", "retention-s3"], {}, io)).toBe(0);
+    const proposal = JSON.parse(out.join("\n"));
+    expect(proposal).toMatchObject({ scenario: "retention-s3", scope: ["PROD-OPS-07"] });
+    expect(proposal.plan.fixtures.map((f: { family: string }) => f.family)).toEqual(["s3"]);
+    out.length = 0;
+    expect(await runLiveCli(["--plan", "--run-id", settings.runId], {}, io)).toBe(0);
+    expect(JSON.parse(out.join("\n"))).toMatchObject({ scenario: "fixtures", scope: plan().requirements.map(r => r.id) });
+  });
+  it("keeps legacy A-J selection for non-production scenario names", async () => {
+    expect(await runLiveCli(["--scenario", "bogus"], {}, { out: () => undefined, err: () => undefined })).toBe(2);
+  });
+  it("retention-s3 verdict is incomplete without a product port and pending out of scope", async () => {
+    const journal = await finished(retention()), packet = evidencePacket(journal, now());
+    expect(packet.verdict).toBe("incomplete"); expect(packet.scope).toEqual(["PROD-OPS-07"]);
+    expect(packet.requirements.find(r => r.id === "PROD-OPS-07")).toMatchObject({ status: "pending" });
+    expect(packet.requirements.find(r => r.id === "PROD-OPS-07")!.reason).toContain("Wave 5");
+    expect(packet.requirements.filter(r => r.id !== "PROD-OPS-07").every(r => r.status === "pending" && r.reason === "outside this run's scope" && r.evidence.length === 0)).toBe(true);
+  });
+  it("retention-s3 verdict is passed when every in-scope requirement passed live", async () => {
+    const journal = await finished(retention());
+    passProduct(journal, ["PROD-OPS-07"]);
+    const packet = evidencePacket(journal, now());
+    expect(packet.verdict).toBe("passed");
+    expect(packet.requirements.find(r => r.id === "PROD-OPS-07")!.evidence).toHaveLength(1);
+  });
+  it("retention-s3 verdict is failed on a failed check or an open journal even when in scope passed", async () => {
+    const failedCheck = await finished(retention());
+    passProduct(failedCheck, ["PROD-OPS-07"]);
+    failedCheck.checks.push({ id: "archive", scope: "product_requirement", status: "failed", reason: "restore mismatch" });
+    expect(evidencePacket(failedCheck).verdict).toBe("failed");
+    const open = await finished(retention(), c => c.id === "s3-delete");
+    passProduct(open, ["PROD-OPS-07"]);
+    expect(open.closed).toBe(false);
+    expect(evidencePacket(open).verdict).toBe("failed");
+  });
+  it("fixtures verdict is passed only when all 27 in-scope requirements passed live, else incomplete", async () => {
+    const journal = await finished(plan());
+    passProduct(journal, plan().requirements.map(r => r.id));
+    expect(evidencePacket(journal).verdict).toBe("passed");
+    journal.checks.pop();
+    expect(evidencePacket(journal).verdict).toBe("incomplete");
+  });
 });

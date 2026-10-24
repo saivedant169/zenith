@@ -4,7 +4,7 @@ DEC-CLOUD is **unapproved**. No live cloud call or spend was performed by this j
 
 ## What this source can prove
 
-`scripts/acceptance/aws-live.ts --plan` prints every SDK command, IAM action, exact request input, resource scope and maximum attempt count, with a plan SHA-256 and provisional cost. It does not resolve credentials, construct an SDK client or contact a control plane. Existing A-J planning and local J remain reachable with `--scenario`; legacy real AWS journeys explicitly refuse until their clients join the exact production permission envelope. Their authority/quiescence cleanup refusals are preserved.
+`scripts/acceptance/aws-live.ts --plan` prints every SDK command, IAM action, exact request input, resource scope and maximum attempt count, with a plan SHA-256 and provisional cost. It does not resolve credentials, construct an SDK client or contact a control plane. Production scenarios are chosen with `--scenario fixtures` (the default: every fixture family, all 27 requirements in scope) or `--scenario retention-s3` (S3 fixture only, scope PROD-OPS-07; the other rows are reported pending as "outside this run's scope"). `ZENITH_LIVE_AWS_SCENARIO` is the equivalent input. The scenario is part of the plan digest and therefore of the owner's signed envelope; a permission for one scenario is refused for the other. The packet verdict is `failed` on any failure or open journal, `passed` when every in-scope requirement passed live, otherwise `incomplete`. Existing A-J planning and local J remain reachable with `--scenario` letters; legacy real AWS journeys explicitly refuse until their clients join the exact production permission envelope. Their authority/quiescence cleanup refusals are preserved.
 
 Live provider fixtures create one private encrypted S3 bucket and nonce object, a bounded IAM nonce-function role, one ARM64 128MiB Lambda echo function, an **empty** ECS cluster, a private encrypted 20GiB PostgreSQL RDS instance and a disposable reserved `.invalid` Route53 zone/TXT record. They independently read ownership and provider state; Lambda invokes real code and S3 compares real object bytes. Empty ECS cluster state is not a running application. RDS configuration is not SQL traffic or restore proof. Reserved-zone readback is not public DNS, domain ownership, ACME or TLS evidence.
 
@@ -65,7 +65,7 @@ npx tsx scripts/acceptance/aws-live.ts --plan \
   --account "$AWS_SANDBOX_ACCOUNT_ID" --region "$AWS_SANDBOX_REGION" \
   --run-id "$AWS_ACCEPTANCE_RUN_ID" --minutes 15 \
   --db-subnet-group "$AWS_SANDBOX_DB_SUBNET_GROUP" \
-  --db-security-group "$AWS_SANDBOX_DB_SECURITY_GROUP" --out "$AWS_ACCEPTANCE_PLAN_DIR"
+  --db-security-group "$AWS_SANDBOX_DB_SECURITY_GROUP" --scenario fixtures --out "$AWS_ACCEPTANCE_PLAN_DIR"
 ```
 
 Inspect `plan.json`, approve the exact plan hash/calls/cost/clean source, then either dispatch the workflow or invoke the CLI once:
@@ -76,6 +76,7 @@ ZENITH_LIVE_AWS=1 \
 ZENITH_LIVE_AWS_ACCOUNT_ID="$AWS_SANDBOX_ACCOUNT_ID" \
 ZENITH_LIVE_REGION="$AWS_SANDBOX_REGION" \
 ZENITH_LIVE_AWS_RUN_ID="$AWS_ACCEPTANCE_RUN_ID" \
+ZENITH_LIVE_AWS_SCENARIO="fixtures" \
 ZENITH_LIVE_AWS_DB_SUBNET_GROUP="$AWS_SANDBOX_DB_SUBNET_GROUP" \
 ZENITH_LIVE_AWS_DB_SECURITY_GROUP="$AWS_SANDBOX_DB_SECURITY_GROUP" \
 ZENITH_LIVE_AWS_BUDGET_USD="$AWS_ACCEPTANCE_BUDGET_USD" \

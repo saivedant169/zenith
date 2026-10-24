@@ -89,6 +89,17 @@ export function resolveInput(input: Json, responses: Record<string, Record<strin
       if (!valid || typeof value !== "string") throw new Error("Unresolved or invalid resource identity");
       return value.replace(/^\/hostedzone\//, "");
     }
+    if ("$keys" in input) {
+      // Keys of one bounded listing page only: a DeleteObjects request can never exceed that page, and only retention/ keys are admitted.
+      if (typeof input.$keys !== "string") throw new Error("Malformed key reference");
+      const listed = responses[input.$keys]?.Contents;
+      if (!Array.isArray(listed) || listed.length === 0 || listed.length > 1000) throw new Error("Unbounded or empty key listing");
+      return listed.map(item => {
+        const key = (item as { Key?: unknown } | null)?.Key;
+        if (typeof key !== "string" || !key.startsWith("retention/") || key.length > 1024) throw new Error("Key outside owned retention prefix");
+        return { Key: key };
+      });
+    }
     return Object.fromEntries(Object.entries(input).map(([key, value]) => [key, resolveInput(value, responses)]));
   }
   return input;

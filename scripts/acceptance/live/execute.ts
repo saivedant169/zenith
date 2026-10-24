@@ -1,5 +1,5 @@
 import { Guard } from "./guard";
-import { digest, teardownOrder } from "./plan";
+import { digest, scopedRequirementIds, teardownOrder } from "./plan";
 import { isNativeTransport, resolveInput } from "./sdk";
 import { tagsMatch, inventoryEmpty, teardownUntilFailure } from "./shared";
 import type { Call, Check, Family, Journal, Json, Plan, ProductScenarioPort, Transport } from "./contracts";
@@ -99,6 +99,15 @@ export async function execute(plan: Plan, guard: Guard, transport: Transport, jo
       await save();
     }
   };
+  // Retention drain: list one page under retention/, delete exactly that page, repeat until an
+  // empty listing. Guard counts bound the rounds; any leftover or partial failure throws.
+  const drainRetention = async (list: Call, remove: Call) => {
+    for (;;) {
+      if (!rows((await call(list)).Contents).length) return;
+      const removed = await call(remove);
+      if (rows(removed.Errors).length) throw new Error("Retention object deletion incomplete");
+    }
+  };
   try {
     // Identity and marker are required for cleanup as well as execution.
     cleanup = !!options.cleanupOnly;
@@ -107,9 +116,11 @@ export async function execute(plan: Plan, guard: Guard, transport: Transport, jo
     if (record((await call(plan.preflight[1])).Parameter).Value !== "true") throw new Error("Sandbox opt-in marker absent");
     if (options.cleanupOnly && journal.attempted.length && record((await call(plan.preflight.find(c => c.id === "run-claim-read")!)).Parameter).Value !== plan.settings.runId) throw new Error("Account run receipt unavailable; cleanup authority unproven");
     if (!options.cleanupOnly) {
-      const network = rows((await call(plan.preflight.find(c => c.id === "db-network")!)).DBSubnetGroups);
-      const groups = rows((await call(plan.preflight.find(c => c.id === "db-security")!)).SecurityGroups);
-      if (network.length !== 1 || groups.length !== 1 || network[0].VpcId !== groups[0].VpcId || rows(network[0].Subnets).length < 2 || rows(groups[0].IpPermissions).length !== 0 || !rows(groups[0].Tags).some(t => t.Key === "zenith:bootstrap" && t.Value === "live-sandbox")) throw new Error("Private owned DB network proof missing");
+      if (plan.fixtures.some(f => f.family === "rds")) {
+        const network = rows((await call(plan.preflight.find(c => c.id === "db-network")!)).DBSubnetGroups);
+        const groups = rows((await call(plan.preflight.find(c => c.id === "db-security")!)).SecurityGroups);
+        if (network.length !== 1 || groups.length !== 1 || network[0].VpcId !== groups[0].VpcId || rows(network[0].Subnets).length < 2 || rows(groups[0].IpPermissions).length !== 0 || !rows(groups[0].Tags).some(t => t.Key === "zenith:bootstrap" && t.Value === "live-sandbox")) throw new Error("Private owned DB network proof missing");
+      }
       const inventory = plan.preflight.find(c => c.id === "prior-leaks")!;
       let page: string | undefined;
       do {
@@ -121,7 +132,7 @@ export async function execute(plan: Plan, guard: Guard, transport: Transport, jo
         page = typeof out.PaginationToken === "string" && out.PaginationToken ? out.PaginationToken : undefined;
       } while (page);
       for (const c of plan.preflight.filter(c => c.id.endsWith("-preexist"))) if (await available(c)) throw new Error("Planned resource already exists; refusing adoption/mutation");
-      await discoverDns();
+      if (plan.fixtures.some(f => f.family === "dns")) await discoverDns();
       if (responses["dns-create"]) throw new Error("Planned DNS zone already exists");
       // Atomic, account-side no-overwrite claim. A new directory or another
       // machine cannot reset the budget and rerun this same approved run ID.
@@ -150,7 +161,8 @@ export async function execute(plan: Plan, guard: Guard, transport: Transport, jo
         if (!owned(await call(fixture.ownership), plan) || !checkReadback(fixture.family, responses, plan)) throw new Error(`Independent ${fixture.family} readback failed`);
         add({ id: fixture.family, status: "passed", scope: "aws_fixture", reason: fixture.family === "ecs" ? "Owned empty cluster readback only; no managed substrate/traffic proof" : fixture.family === "dns" ? "Owned reserved .invalid TXT readback only; no public DNS/TLS proof" : "Actual provider readback; product acceptance remains separate" });
       }
-      for (const requirement of plan.requirements) {
+      const scope = new Set(scopedRequirementIds(plan.settings, plan.requirements.map(r => r.id)));
+      for (const requirement of plan.requirements.filter(r => scope.has(r.id))) {
         const result = options.product ? await options.product.verify(requirement, { plan, commit: journal.commit, call }) : { complete: false, reason: requirement.join };
         add({ id: requirement.id, status: result.complete ? "passed" : "pending", scope: "product_requirement", reason: result.reason });
       }
@@ -182,6 +194,9 @@ export async function execute(plan: Plan, guard: Guard, transport: Transport, jo
           }
           if (!owned(await call(fixture.ownership), plan)) throw new Error("Ownership tags missing; refusing deletion");
           for (const c of fixture.teardown) {
+            // The retention delete is driven by its listing; the listing must run before bucket deletion.
+            if (c.id === "s3-retention-delete") continue;
+            if (c.id === "s3-retention-list") { await drainRetention(c, fixture.teardown.find(t => t.id === "s3-retention-delete")!); continue; }
             for (let attempt = 0; ; attempt++) {
               try { await call(c); break; } catch (error) {
                 if (missing(error)) break;

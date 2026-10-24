@@ -74,7 +74,7 @@ Owner Arnav Bule decided launch pricing under DEC-BUSINESS on 2026-10-13. What i
 | ZCU definition: one resource managed by Zenith for one hour (the `managed_resource_hours` meter); build minutes and storage included, bounded by fair-use caps | DECIDED |
 | Payment account, live Stripe keys, terms of service, tax handling | NOT decided. Live charging stays off; the adapter refuses live keys |
 | Fair-use limits (active operations 3 / 15 / 60, build and storage caps) | carried forward from the earlier catalog, adjustable |
-| Destructive retention (DEC-RETENTION) | unchanged, still pending |
+| Destructive retention (DEC-RETENTION) | approved 2026-10-13 (windows, holds); deletion stays off until operators set the apply switches |
 
 Nonpayment still never silently destroys data: suspension stops NEW provisioning work only, and export and destroy stay available.
 

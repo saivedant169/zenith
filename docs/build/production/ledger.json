@@ -8927,7 +8927,7 @@
     },
     {
       "id": "DEC-RETENTION",
-      "scope": "Retention/archive/legal holds/pruning configuration; implementation/dry-run continues, deletion disabled pending approval",
+      "scope": "Retention/archive/legal holds/pruning configuration; deletion stays off on each installation until its operator sets the apply switches",
       "state": "approved",
       "blocks": [
         "PROD-OPS-07"

@@ -2745,6 +2745,15 @@
           "environment": "GitHub-hosted runners; exact source after the 2026-10-24 dependency advisories",
           "result": "Exact-source CI success (9 skipped / 21 success). The prior run 40045075149 on 57a3b7d9 failed supply-chain on advisories published 2026-10-24 (undici 7/8 high, fast-uri, nodemailer); 91693673 moves undici to 8.12.3/7.30.1, fast-uri to 3.1.9 and nodemailer to 10.2.1. Hosted D-4 on this day: two-tenants passed (1714283e), export passed on amd64 (51aa67b7) and arm64 (57a3b7d9), adopt fails at the documented cleanup-writer barrier. No promotion.",
           "logs": "https://github.com/saivedant169/zenith/actions/runs/40047211175"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "1639cba49a53d6748c0e4f6fe5af3af4b178158a",
+          "command": "operated-gate-linux.yml on GitHub-hosted runners: drv2-drift-repair (run 40053381399), j15-operated-upgrade (40053386191), j15-operated-restore (40053387915) on amd64; drv1-update-rollback (40053390040) on native arm64",
+          "environment": "GitHub-hosted Linux; lean disposable J1 stack, Temporal mTLS, owned kind target, Chromium; source after the zod 4.6.7 migration and the 2026-10-24 dependency advisories",
+          "result": "Four operated gates passed with matched current-source receipts on 1639cba4. On the same source drv2-crash-partition failed at writers-serialized: the rejoined worker stayed unhealthy with store readiness unavailable after the network reconnect (run 40053383486, under investigation), and drv1-private-source failed at isolated-private-build because runtime isolation probes failed (run 40053392247; the known runc lane awaiting the owner runner-egress decision). D-4 two-tenants and export passed earlier on this day; adopt fails at the documented cleanup-writer barrier. No promotion.",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-24-hosted-gates-1639cba4/drv2-drift-repair-amd64-run40053381399.json",
+          "logs": "https://github.com/saivedant169/zenith/actions/runs/40053381399"
         }
       ],
       "requiredEvidence": [

@@ -1,0 +1,244 @@
+{
+  "schemaVersion": 1,
+  "lane": "drv1-update-rollback",
+  "validatedAt": "2026-10-24T02:42:50.932Z",
+  "verdict": "passed",
+  "provenance": {
+    "commit": "1639cba49a53d6748c0e4f6fe5af3af4b178158a",
+    "trackedChangesSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "untrackedContentSha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "worktreeDirty": false,
+    "sourceBindingComplete": true,
+    "index": {
+      "inventoryComplete": true,
+      "assumeUnchanged": 0,
+      "skipWorktree": 0,
+      "unmerged": 0
+    },
+    "gateSources": [
+      {
+        "file": "scripts/ci/gate-manifest.mjs",
+        "sha256": "910d2d2ca9e2215f47e32f054113d57f65d1f701816721631d09b8768adbe46e"
+      },
+      {
+        "file": "scripts/ci/run-gate.mjs",
+        "sha256": "6bdb58c3153be9d6ccc0f383a02fd48866a018fc87fc737395e465c5ecd052fc"
+      },
+      {
+        "file": "scripts/ci/sanitize-evidence.mjs",
+        "sha256": "46100a42f23954ac95b2bc9e708b3d80fb58a06e73a954c6ed83d6020897a01f"
+      },
+      {
+        "file": "scripts/ci/lane-report.mjs",
+        "sha256": "b01f5a530992e61817d9a62ceaaa71a938d9eed74ecebff2df418d4a1ca180d8"
+      },
+      {
+        "file": "tests/ci/assert-lane-report.mjs",
+        "sha256": "1d1438808c1875067fc660851afca3e20bee4664e1b2e546df40384bd5e94c70"
+      },
+      {
+        "file": "vitest.config.ts",
+        "sha256": "989f8b075986c64a2b4b70b66defc288a84ccc2a5f1b26a33ebe61e62d24fd08"
+      }
+    ],
+    "lockfileSha256": "9a95910893d10c6a3195300fb464d2519e8a972d1764b16c1b2c0da2797e5635",
+    "dependencies": [
+      {
+        "name": "vitest",
+        "locked": "4.1.12",
+        "installed": "4.1.12"
+      },
+      {
+        "name": "postgres",
+        "locked": "3.4.7",
+        "installed": "3.4.7"
+      },
+      {
+        "name": "@electric-sql/pglite",
+        "locked": "0.5.8",
+        "installed": "0.5.8"
+      },
+      {
+        "name": "@temporalio/worker",
+        "locked": "1.24.0",
+        "installed": "1.24.0"
+      },
+      {
+        "name": "@temporalio/testing",
+        "locked": "1.24.0",
+        "installed": "1.24.0"
+      },
+      {
+        "name": "@open-policy-agent/opa-wasm",
+        "locked": null,
+        "installed": null
+      }
+    ],
+    "vendoredDependencies": [
+      {
+        "component": "@open-policy-agent/opa-wasm",
+        "storage": "vendored-modified-source",
+        "upstreamVersion": "1.10.0",
+        "securityPatch": "numeric-precision-validation-1",
+        "status": "matched",
+        "complete": true,
+        "provenanceSha256": "54abbbc7cf09a635c7fc24a66c547b023c7d82737dc4e98ca1fa2a1584245cd3",
+        "sources": [
+          {
+            "file": "index.mjs",
+            "sha256": "db7b1eaf9bd4828d0c50f43440c525110b47310b9aa4e39606c5450c474286e2"
+          },
+          {
+            "file": "index.d.mts",
+            "sha256": "7dfa87edb2b08a15879377c26aea551c24ab9f2314bc833b5a82df3cd53c5a91"
+          },
+          {
+            "file": "opa.js",
+            "sha256": "18a4b7e888b356d937a8423859a3bc3f2fae2ac664b81d860dfa5771d3228a5e"
+          },
+          {
+            "file": "opa.d.ts",
+            "sha256": "254d8538f955f1e34341eb76b64d71f2fa0137add7f96fa046cbc76e6f89ab7d"
+          },
+          {
+            "file": "builtins/index.js",
+            "sha256": "68309c2a9e6a93a6cebc156f5febbe534365f42272670b8dc93cb4afb795a3f0"
+          },
+          {
+            "file": "builtins/json.js",
+            "sha256": "23312c75897dea6e270a1f05593d4eb6a00266be729d287923cb621f85f99c46"
+          },
+          {
+            "file": "builtins/regex.js",
+            "sha256": "f33d0938a3ce676450c20f2a46bfedafe97c0fd6a946744c00ca4b68dd9adba5"
+          },
+          {
+            "file": "builtins/strings.js",
+            "sha256": "6390fc0618ae1f3fc0e8cc3d2a35c8ba38a2d890435aaa3a113af563973606ed"
+          },
+          {
+            "file": "builtins/yaml.js",
+            "sha256": "469c2c58b2d14ac932509a66cba0bb7f2ec44fbce61da828bd4a26bfa66f84d7"
+          },
+          {
+            "file": "builtins/sprintf.js",
+            "sha256": "3a3dcc5199af5b2f762a016991a7f335108d1d6f8c8980fe454ee228a3e36b78"
+          },
+          {
+            "file": "LICENSE-OPA",
+            "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+          },
+          {
+            "file": "LICENSE-SPRINTF",
+            "sha256": "f8287e4dd9480be58c56aca4a55c23b782c43a86e69aabad78fff4df0d29edef"
+          }
+        ]
+      }
+    ],
+    "environment": {
+      "sha256": "341c7ff376fbc67fe0a9d1a1a1e7ecb0b7551d25f8cabbd2711d688a5ad38b4b",
+      "inventorySha256": "c9fbcfa7f6894744e85d169ea1637ceeaf4b3f81b7965a91f454af57cc82c004",
+      "shellContextSha256": "487f210e52323568be676148048f5eff8890a4f628ce7634d56aa9cf55d5f23d",
+      "shellLevelSha256": "391552c099c101b131feaf24c5795a6a15bc8ec82015424e0d2b4274a369a0bf",
+      "shellCommandSha256": "6954589b8731207b20cb54b68e4a8c7d642a5454f83162e20cd04f1bcaeb6696",
+      "excludedKeys": [
+        "GITHUB_ACTION",
+        "GITHUB_ENV",
+        "GITHUB_PATH",
+        "GITHUB_OUTPUT",
+        "GITHUB_STEP_SUMMARY",
+        "GITHUB_STATE",
+        "GITHUB_ARTIFACTS",
+        "GITHUB_ARTIFACTS_LIST"
+      ],
+      "platform": "linux",
+      "architecture": "arm64",
+      "node": "22.23.3"
+    }
+  },
+  "reportSha256": "f1fd7faf3b5b0d7a0216a628b21fafea04222d1781c14c7b486af6e03d8cb982",
+  "manifestSha256": "ea6df77e7bf77fac86f4b183a6cde585543d15bf12720ac5195b6f9751f0a9ba",
+  "expectedTools": {
+    "node": "22.23.3"
+  },
+  "counts": {
+    "total": 1,
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "unknown": 0
+  },
+  "required": [
+    {
+      "id": "drv1-update-rollback:tests/acceptance/drv1-update-rollback.operated.test.ts:070712c8d51f",
+      "file": "tests/acceptance/drv1-update-rollback.operated.test.ts",
+      "backend": null,
+      "counts": {
+        "total": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "unknown": 0
+      },
+      "status": "passed"
+    }
+  ],
+  "validation": {
+    "failureCount": 0,
+    "complete": true,
+    "caseIdentity": "not-exported-by-standard-vitest-json"
+  },
+  "execution": {
+    "exitCode": 0,
+    "termination": "exit",
+    "signal": null,
+    "observed": true,
+    "binding": "matched",
+    "receiptSha256": "cc628e668384b795955be6d02959a6df42a599efe2703734d9117206311487f9",
+    "originReceipt": {
+      "schemaVersion": 2,
+      "lane": "drv1-update-rollback",
+      "reportSha256": "f1fd7faf3b5b0d7a0216a628b21fafea04222d1781c14c7b486af6e03d8cb982",
+      "manifestSha256": "ea6df77e7bf77fac86f4b183a6cde585543d15bf12720ac5195b6f9751f0a9ba",
+      "sourceSha256": "85d0830c813e00a535bce4dd71cc9728b3cc6a4f7243c1891a00d14445c73613",
+      "sourceBindingComplete": true,
+      "effectiveEnvironmentSha256": "341c7ff376fbc67fe0a9d1a1a1e7ecb0b7551d25f8cabbd2711d688a5ad38b4b",
+      "environmentInventorySha256": "c9fbcfa7f6894744e85d169ea1637ceeaf4b3f81b7965a91f454af57cc82c004",
+      "shellContextSha256": "487f210e52323568be676148048f5eff8890a4f628ce7634d56aa9cf55d5f23d",
+      "shellLevelSha256": "391552c099c101b131feaf24c5795a6a15bc8ec82015424e0d2b4274a369a0bf",
+      "shellCommandSha256": "6954589b8731207b20cb54b68e4a8c7d642a5454f83162e20cd04f1bcaeb6696",
+      "runtimeSha256": "d557243e1eda3511b14a941be9e23c121ad6da04cb764e0d9eb8a93abaa2f4eb",
+      "exitCode": 0,
+      "termination": "exit",
+      "signal": null
+    },
+    "checks": {
+      "lane": true,
+      "reportSha256": true,
+      "manifestSha256": true,
+      "sourceSha256": true,
+      "sourceBindingComplete": true,
+      "effectiveEnvironmentSha256": true,
+      "environmentInventorySha256": true,
+      "shellContextSha256": true,
+      "shellLevelSha256": true,
+      "shellCommandSha256": true,
+      "runtimeSha256": true,
+      "environmentInventoryIntegrity": true
+    },
+    "environmentComparison": {
+      "complete": true,
+      "status": "matched",
+      "originSha256": "c9fbcfa7f6894744e85d169ea1637ceeaf4b3f81b7965a91f454af57cc82c004",
+      "counts": {
+        "unchanged": 145,
+        "changed": 0,
+        "added": 0,
+        "removed": 0
+      },
+      "changes": [],
+      "truncated": false
+    }
+  },
+  "externalAcceptance": []
+}

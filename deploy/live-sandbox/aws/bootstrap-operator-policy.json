@@ -77,11 +77,10 @@
       "Resource": "arn:aws:iam::*:role/ZenithLiveAcceptance"
     },
     {
-      "Sid": "ServiceLinkedRoles",
+      "Sid": "ServiceLinkedRolesCreate",
       "Effect": "Allow",
       "Action": [
-        "iam:CreateServiceLinkedRole",
-        "iam:GetRole"
+        "iam:CreateServiceLinkedRole"
       ],
       "Resource": [
         "arn:aws:iam::*:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS",
@@ -95,6 +94,17 @@
           ]
         }
       }
+    },
+    {
+      "Sid": "ServiceLinkedRolesRead",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetRole"
+      ],
+      "Resource": [
+        "arn:aws:iam::*:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS",
+        "arn:aws:iam::*:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS"
+      ]
     },
     {
       "Sid": "SandboxMarker",

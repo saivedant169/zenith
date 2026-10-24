@@ -7832,6 +7832,16 @@
           "artifact": "docs/build/production/evidence/PROD-UX-01/2026-10-24-hosted-40061657924/clean-host-ux-amd64.ux-receipt.json",
           "runId": 40061657924,
           "url": "https://github.com/saivedant169/zenith/actions/runs/40061657924"
+        },
+        {
+          "level": "local_engine",
+          "commit": "d941e7a51972288b2812ef6f90b351a7cbb4310a",
+          "command": "clean-host-journey.yml -f ux=true (run 40089140508, amd64 ubuntu-24.04 + arm64 ubuntu-24.04-arm)",
+          "environment": "GitHub-hosted ubuntu-24.04 and ubuntu-24.04-arm; real browser, Supabase Auth, registered zenithd, owned kind target",
+          "result": "J2 journey and UX receipt schema 5 passed on both architectures: 12/12 cases with zero violations, no overflow, full keyboard reach, visible focus and zero non-native controls (widened check). Schema 5 records axe incomplete rule ids per scan without failing them: aria-prohibited-attr, color-contrast and link-in-text-block on both, plus duplicate-id-aria on amd64. The prior amd64 leg (run 40087214215) failed only because ubuntu-latest moved to Ubuntu 26.04, which the pinned Playwright refuses. Still open: the supervised screen-reader walk, and review of the axe incomplete rules. No promotion.",
+          "artifact": "docs/build/production/evidence/PROD-UX-01/2026-10-24-hosted-40089140508-schema5/clean-host-ux-amd64.ux-receipt.json",
+          "runId": 40089140508,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/40089140508"
         }
       ],
       "requiredEvidence": [

@@ -1,0 +1,715 @@
+{
+  "schemaVersion": 5,
+  "requirementId": "PROD-UX-01",
+  "kind": "actual_browser",
+  "browser": "Chromium 141.0.7390.37 via Playwright",
+  "viewports": [
+    "1280x900",
+    "375x900"
+  ],
+  "axeTags": [
+    "wcag2a",
+    "wcag2aa",
+    "wcag21a",
+    "wcag21aa"
+  ],
+  "source": {
+    "commit": "d941e7a51972288b2812ef6f90b351a7cbb4310a",
+    "sourceDigest": "635c0be471e18ef026943264f398b835d734f481f853099b7c95a8189b7d0a23",
+    "dirty": false
+  },
+  "counts": {
+    "passed": 12,
+    "failed": 0,
+    "not_run": 0
+  },
+  "result": "passed",
+  "cases": [
+    {
+      "id": "ux01-operation-review-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "operation-requester-review",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 46,
+            "reached": 46,
+            "focusVisible": 46,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "aria-prohibited-attr",
+            "color-contrast"
+          ]
+        },
+        {
+          "pageId": "operation-requester-review",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 28,
+            "reached": 28,
+            "focusVisible": 28,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "color-contrast"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ux01-independent-approval-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "operation-before-independent-approval",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 50,
+            "reached": 50,
+            "focusVisible": 50,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "aria-prohibited-attr",
+            "color-contrast"
+          ]
+        },
+        {
+          "pageId": "operation-before-independent-approval",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 32,
+            "reached": 32,
+            "focusVisible": 32,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "color-contrast"
+          ]
+        },
+        {
+          "pageId": "operation-after-independent-approval",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 48,
+            "reached": 48,
+            "focusVisible": 48,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "aria-prohibited-attr",
+            "color-contrast"
+          ]
+        },
+        {
+          "pageId": "operation-after-independent-approval",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 30,
+            "reached": 30,
+            "focusVisible": 30,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "color-contrast"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ux01-replan-reapproval-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "operation-reapproval-required",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 63,
+            "reached": 63,
+            "focusVisible": 63,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "aria-prohibited-attr",
+            "color-contrast"
+          ]
+        },
+        {
+          "pageId": "operation-reapproval-required",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 45,
+            "reached": 45,
+            "focusVisible": 45,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "color-contrast"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ux01-cancel-operation-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "operation-pending-cancel",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 45,
+            "reached": 45,
+            "focusVisible": 45,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "aria-prohibited-attr",
+            "color-contrast"
+          ]
+        },
+        {
+          "pageId": "operation-pending-cancel",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 27,
+            "reached": 27,
+            "focusVisible": 27,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "color-contrast"
+          ]
+        },
+        {
+          "pageId": "operation-cancelled",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 45,
+            "reached": 45,
+            "focusVisible": 45,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "aria-prohibited-attr",
+            "color-contrast"
+          ]
+        },
+        {
+          "pageId": "operation-cancelled",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 27,
+            "reached": 27,
+            "focusVisible": 27,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "color-contrast"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ux01-legacy-projection-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "linked-workflow-deployment",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 39,
+            "reached": 39,
+            "focusVisible": 39,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "color-contrast"
+          ]
+        },
+        {
+          "pageId": "linked-workflow-deployment",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 21,
+            "reached": 21,
+            "focusVisible": 21,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "color-contrast"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ux01-runbook-approval-progress-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "runbook-pending-approval",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 44,
+            "reached": 44,
+            "focusVisible": 44,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "aria-prohibited-attr"
+          ]
+        },
+        {
+          "pageId": "runbook-pending-approval",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 26,
+            "reached": 26,
+            "focusVisible": 26,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "color-contrast"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ux01-readiness-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "platform-readiness",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 42,
+            "reached": 42,
+            "focusVisible": 42,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "aria-prohibited-attr",
+            "color-contrast",
+            "link-in-text-block"
+          ]
+        },
+        {
+          "pageId": "platform-readiness",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 24,
+            "reached": 24,
+            "focusVisible": 24,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "color-contrast"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ux01-uncertainty-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "operation-uncertain",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 51,
+            "reached": 51,
+            "focusVisible": 51,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "aria-prohibited-attr",
+            "color-contrast"
+          ]
+        },
+        {
+          "pageId": "operation-uncertain",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 33,
+            "reached": 33,
+            "focusVisible": 33,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "color-contrast"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ux01-connection-onboarding-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "connection-change-review",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 39,
+            "reached": 39,
+            "focusVisible": 39,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "aria-prohibited-attr"
+          ]
+        },
+        {
+          "pageId": "connection-change-review",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 21,
+            "reached": 21,
+            "focusVisible": 21,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "color-contrast"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ux01-connection-admin-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "connection-admin",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 57,
+            "reached": 57,
+            "focusVisible": 57,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "aria-prohibited-attr"
+          ]
+        },
+        {
+          "pageId": "connection-admin",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 39,
+            "reached": 39,
+            "focusVisible": 39,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "color-contrast"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ux01-aws-onboarding-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "connection-aws-onboarding",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 44,
+            "reached": 44,
+            "focusVisible": 44,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "aria-prohibited-attr"
+          ]
+        },
+        {
+          "pageId": "connection-aws-onboarding",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 26,
+            "reached": 26,
+            "focusVisible": 26,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "color-contrast"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ux01-legacy-cancel-a11y",
+      "status": "passed",
+      "scans": [
+        {
+          "pageId": "legacy-cancel-offered",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 40,
+            "reached": 40,
+            "focusVisible": 40,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "aria-prohibited-attr",
+            "color-contrast"
+          ]
+        },
+        {
+          "pageId": "legacy-cancel-offered",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 22,
+            "reached": 22,
+            "focusVisible": 22,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "color-contrast"
+          ]
+        },
+        {
+          "pageId": "legacy-cancel-confirming",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 41,
+            "reached": 41,
+            "focusVisible": 41,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "aria-prohibited-attr",
+            "color-contrast"
+          ]
+        },
+        {
+          "pageId": "legacy-cancel-confirming",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 23,
+            "reached": 23,
+            "focusVisible": 23,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "color-contrast"
+          ]
+        },
+        {
+          "pageId": "legacy-cancel-viewer",
+          "viewport": "1280x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 39,
+            "reached": 39,
+            "focusVisible": 39,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "aria-prohibited-attr",
+            "color-contrast"
+          ]
+        },
+        {
+          "pageId": "legacy-cancel-viewer",
+          "viewport": "375x900",
+          "violations": [],
+          "horizontalOverflow": false,
+          "keyboard": {
+            "total": 21,
+            "reached": 21,
+            "focusVisible": 21,
+            "nonNative": 0
+          },
+          "incomplete": [
+            "color-contrast"
+          ]
+        }
+      ]
+    }
+  ],
+  "uncertainty": {
+    "source": {
+      "commit": "d941e7a51972288b2812ef6f90b351a7cbb4310a",
+      "sourceDigest": "635c0be471e18ef026943264f398b835d734f481f853099b7c95a8189b7d0a23",
+      "imageDigest": "610dcd6c11e47f08c6fd2e4c9730ce9f81ab8a10beefaefdacaad293d2fa63a8",
+      "fixtureRunId": "9967d686023f7b68475ce25f"
+    },
+    "scheduler": {
+      "mode": "existing_critical_job",
+      "budgetMs": 15000,
+      "preflightSha256": "0772dcf0b572c665ed48da9bb825fb9fadf3c076c57b29292a05ba62c3d45a50",
+      "claimableRunIds": [],
+      "dueScheduleIds": [],
+      "exclusiveWindowId": "j2-ux-40089140508-arm64"
+    },
+    "approval": {
+      "requesterId": "c0cd3450-2236-4e65-8a43-ee2fc3cec6ba",
+      "approverId": "95748592-86c3-4600-bba6-64921276092a",
+      "bindingDigest": "75ba06471abca78e4e72bfd931f7bb1138ec242a79f3d6788059d32109826609",
+      "selfApprovalStatus": 403,
+      "approvalStatus": 200
+    },
+    "run": {
+      "id": "rbr_dc3a9657-9879-4c31-9f70-ea454b1c667b",
+      "runbookId": "j2-uncertainty-9967d686023f7b68475ce25f",
+      "version": 1,
+      "definitionDigest": "0707ca85bf914afbca4ec05f795aba813633340a3e6a190429740f6270df8f1f",
+      "bindingDigest": "75ba06471abca78e4e72bfd931f7bb1138ec242a79f3d6788059d32109826609",
+      "workspaceId": "mvmbjk5nssypya",
+      "projectId": "mvmbjng9ds4zqn",
+      "environmentId": "mvmbjp4fp9ivz2",
+      "resourceId": "res_e15accab-fd75-4b39-ae2a-f28b3a5fca74",
+      "targetIndex": 0,
+      "statusBefore": "running",
+      "statusAfter": "running",
+      "releasedReason": "caller_abort"
+    },
+    "step": {
+      "id": "hold",
+      "targetIndex": 0,
+      "statusBefore": "started",
+      "statusAfter": "uncertain",
+      "errorCode": "uncertain",
+      "deterministicOperationId": "rbs_c1119e7b439365a9aeee1b48dc8f74be822e52316d366de6"
+    },
+    "audit": {
+      "sha256": "93aaa15cb3701ad57b5b011f3a3af0f92c0ee1677d52fe80d9628bd1deb0bb05",
+      "authorizationCount": 1,
+      "operationId": "op_6f9334495da741598cb05aacf95b9009",
+      "stepOperationId": "rbs_c1119e7b439365a9aeee1b48dc8f74be822e52316d366de6"
+    },
+    "broker": {
+      "operationId": "op_6f9334495da741598cb05aacf95b9009",
+      "statusBefore": "running",
+      "statusAfter": "uncertain",
+      "workspaceId": "mvmbjk5nssypya",
+      "projectId": "mvmbjng9ds4zqn",
+      "environmentId": "mvmbjp4fp9ivz2",
+      "resourceId": "res_e15accab-fd75-4b39-ae2a-f28b3a5fca74",
+      "runbookStep": {
+        "runId": "rbr_dc3a9657-9879-4c31-9f70-ea454b1c667b",
+        "stepId": "hold",
+        "targetIndex": 0,
+        "target": {
+          "address": "container_service/witness",
+          "targetId": "mac_f410ef02-7814-4462-ab62-edbd57762a9f",
+          "transport": "zenithd",
+          "resourceId": "res_e15accab-fd75-4b39-ae2a-f28b3a5fca74",
+          "workspaceId": "mvmbjk5nssypya",
+          "environmentId": "mvmbjp4fp9ivz2"
+        },
+        "bindingDigest": "75ba06471abca78e4e72bfd931f7bb1138ec242a79f3d6788059d32109826609"
+      }
+    },
+    "request": {
+      "id": "mreq_a870de7316f3a40ec3a29e655e469b1c",
+      "machineId": "mac_f410ef02-7814-4462-ab62-edbd57762a9f",
+      "workspaceId": "mvmbjk5nssypya",
+      "operationId": "op_6f9334495da741598cb05aacf95b9009",
+      "operation": "machine.exec",
+      "capability": "machine.exec",
+      "statusBefore": "running",
+      "startedAt": "2026-10-24T11:36:00.711Z",
+      "settledAt": null
+    },
+    "marker": {
+      "sha256": "67c01ddfd1ec4f6b2a1685aa2bf4b49679e4aefc949a15f5920d19f9d1e8914a",
+      "nonceMatch": true
+    },
+    "order": {
+      "authorization": 15750,
+      "requestStarted": 15882,
+      "markerObserved": 15929,
+      "abort": 30160,
+      "uncertainReadback": 30672,
+      "ui": 33618
+    },
+    "ui": {
+      "operationId": "op_6f9334495da741598cb05aacf95b9009",
+      "persistedStatus": "uncertain",
+      "uncertainState": true,
+      "callout": "Outcome uncertain: do not assume it failed or succeeded",
+      "nextSteps": [
+        "Do not retry yet: the change may already have been applied.",
+        "Open the resource state and wait for the next reconciliation, or check the cloud console directly.",
+        "When you know the real state, propose a new operation for whatever is still missing."
+      ]
+    },
+    "closeout": {
+      "runStatus": "cancelled",
+      "stepStatus": "uncertain",
+      "brokerStatus": "uncertain",
+      "machineId": "mac_f410ef02-7814-4462-ab62-edbd57762a9f",
+      "machineStatus": "revoked",
+      "containerId": "2644d572ceda17813a6ba6db9301b82a983425e7e7a86ba87c29b406b5cc4269",
+      "containerRunLabel": "9967d686023f7b68475ce25f-obs",
+      "containerRunning": false,
+      "requestCount": 1,
+      "authorizationCount": 1,
+      "observed": 197992
+    }
+  }
+}

@@ -120,6 +120,7 @@ locals {
     { Sid = "PrivateDBSubnetRead", Effect = "Allow", Action = ["rds:DescribeDBSubnetGroups"], Resource = "${local.base}:rds:${var.region}:${var.account_id}:subgrp:zenith-live-sandbox" },
     { Sid = "OwnedS3", Effect = "Allow", Action = ["s3:CreateBucket", "s3:PutBucketTagging", "s3:GetBucketTagging", "s3:PutBucketPublicAccessBlock", "s3:GetBucketPublicAccessBlock", "s3:PutEncryptionConfiguration", "s3:ListBucket", "s3:DeleteBucket"], Resource = "${local.base}:s3:::zenith-zlive-*-${var.account_id}" },
     { Sid = "OwnedS3Probe", Effect = "Allow", Action = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"], Resource = "${local.base}:s3:::zenith-zlive-*-${var.account_id}/probe" },
+    { Sid = "RetentionArchiveObjects", Effect = "Allow", Action = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"], Resource = "${local.base}:s3:::zenith-zlive-*-${var.account_id}/retention/*" },
     { Sid = "BoundedRoleCreate", Effect = "Allow", Action = ["iam:CreateRole"], Resource = local.workload_role, Condition = merge(local.request_tags, { ArnEquals = { "iam:PermissionsBoundary" = local.boundary } }) },
     { Sid = "RoleCreationTags", Effect = "Allow", Action = ["iam:TagRole"], Resource = local.workload_role, Condition = local.request_tags },
     { Sid = "RoleRead", Effect = "Allow", Action = ["iam:GetRole", "iam:ListRoleTags"], Resource = local.workload_role },

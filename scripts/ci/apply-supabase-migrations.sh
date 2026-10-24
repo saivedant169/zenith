@@ -266,7 +266,7 @@ AGENT_INDEXES=(
 present="$(psql_safe --no-align --tuples-only --set ON_ERROR_STOP=1 \
   --command "select indexname from pg_indexes where schemaname = 'agent' order by 1" "$SUPABASE_DB_URL")"
 for index in "${AGENT_INDEXES[@]}"; do
-  if ! printf '%s\n' "$present" | grep -qx -- "$index"; then
+  if ! grep -qx -- "$index" <<<"$present"; then
     echo "::error::agent.${index} is missing; the canonical agent migrations did not apply the required index." >&2
     exit 1
   fi
@@ -430,7 +430,7 @@ PLATFORM_TABLES=(
 platform_present="$(psql_safe --no-align --tuples-only --set ON_ERROR_STOP=1 \
   --command "select tablename from pg_tables where schemaname = 'platform' order by 1" "$SUPABASE_DB_URL")"
 for table in "${PLATFORM_TABLES[@]}"; do
-  if ! printf '%s\n' "$platform_present" | grep -qx -- "$table"; then
+  if ! grep -qx -- "$table" <<<"$platform_present"; then
     echo "::error::platform.${table} is missing after the full platform migration chain." >&2
     exit 1
   fi

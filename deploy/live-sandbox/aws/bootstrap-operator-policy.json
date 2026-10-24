@@ -96,10 +96,13 @@
       }
     },
     {
-      "Sid": "ServiceLinkedRolesRead",
+      "Sid": "ServiceLinkedRolesReadTag",
       "Effect": "Allow",
       "Action": [
-        "iam:GetRole"
+        "iam:GetRole",
+        "iam:TagRole",
+        "iam:UntagRole",
+        "iam:ListRoleTags"
       ],
       "Resource": [
         "arn:aws:iam::*:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS",

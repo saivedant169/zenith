@@ -5,6 +5,13 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { load } from "js-yaml";
+// Real installed SDK v3 error classes: `name` is what the harness matches.
+import { DeleteConflictException, NoSuchEntityException } from "@aws-sdk/client-iam";
+import { NotFound } from "@aws-sdk/client-s3";
+import { ResourceNotFoundException as LambdaNotFound } from "@aws-sdk/client-lambda";
+import { DBInstanceNotFoundFault } from "@aws-sdk/client-rds";
+import { NoSuchHostedZone } from "@aws-sdk/client-route-53";
+import { ResourceNotFoundException as SecretNotFound } from "@aws-sdk/client-secrets-manager";
 import { buildPlan, allCalls, digest, FAMILIES, teardownOrder } from "../../scripts/acceptance/live/plan";
 import { Guard, grantsFor, readPermission } from "../../scripts/acceptance/live/guard";
 import { execute, newJournal, missing, absent, owned, checkReadback, executionProvenance } from "../../scripts/acceptance/live/execute";
@@ -44,7 +51,8 @@ function modeled(p: Plan, fail?: (call: Call) => boolean) {
     if (c.id.endsWith("-preexist") || c.id.endsWith("-leak")) {
       if (!present.has(family)) {
         if (family === "ecs") return { clusters: [], failures: [{ reason: "MISSING" }] };
-        throw error({ s3: "NoSuchBucket", iam: "NoSuchEntity", lambda: "ResourceNotFoundException", rds: "DBInstanceNotFoundFault", dns: "NoSuchHostedZone", ecs: "unused" }[family]);
+        // HeadBucket has no body, so the SDK reports a 404 as "NotFound".
+        throw error({ s3: "NotFound", iam: "NoSuchEntityException", lambda: "ResourceNotFoundException", rds: "DBInstanceNotFoundFault", dns: "NoSuchHostedZone", ecs: "unused" }[family]);
       }
       return family === "ecs" ? { clusters: [{ status: "ACTIVE" }], failures: [] } : family === "dns" ? { HostedZone: { Name: `zenith-${settings.runId}.invalid.`, CallerReference: settings.runId } } : family === "rds" ? { DBInstances: [{ MasterUserSecret: { SecretArn: `arn:aws:secretsmanager:${settings.region}:${settings.accountId}:secret:rds!db-contract` } }] } : {};
     }
@@ -253,6 +261,39 @@ describe("execution, cleanup and evidence (modeled contracts only)", () => {
     expect(absent(plan().fixtures.find(f => f.family === "ecs")!.leak[0], {})).toBe(false);
     expect(owned({ Tags: { ...plan().tags, "zenith:live-run": "foreign" } }, plan())).toBe(false);
     expect(checkReadback("rds", { "rds-ready": { DBInstances: [{ DBInstanceStatus: "available", PubliclyAccessible: true }] } }, plan())).toBe(false);
+  });
+  it.each([
+    ["IAM", new NoSuchEntityException({ $metadata: {}, message: "Role not found" })],
+    ["S3 HeadBucket", new NotFound({ $metadata: {}, message: "Not Found" })],
+    ["Lambda", new LambdaNotFound({ $metadata: {}, message: "missing" })],
+    ["RDS", new DBInstanceNotFoundFault({ $metadata: {}, message: "missing" })],
+    ["Route 53", new NoSuchHostedZone({ $metadata: {}, message: "missing" })],
+    ["Secrets Manager", new SecretNotFound({ $metadata: {}, message: "missing" })],
+  ])("treats the installed SDK %s not-found error as absence", (_, sdkError) => {
+    expect(missing(sdkError)).toBe(true);
+  });
+  it("lets preflight proceed past an absent planned role (real SDK NoSuchEntityException)", async () => {
+    const p = plan(), guard = makeGuard(p), model = modeled(p), journal = newJournal(p, guard, "a".repeat(40), now());
+    const transport: Transport = { send: (c, input, signal) => c.id === "iam-preexist" ? Promise.reject(new NoSuchEntityException({ $metadata: {}, message: "Role not found" })) : model.transport.send(c, input, signal) };
+    await execute(p, guard, transport, journal, { now, sleep: async () => undefined, save: async () => undefined });
+    expect(journal.checks.some(c => c.id === "execution")).toBe(false);
+    expect(model.calls.some(c => c.id === "iam-create")).toBe(true);
+    expect(journal.closed).toBe(true);
+  });
+  it("retries a real SDK IAM DeleteConflictException during teardown until the role is gone", async () => {
+    const p = plan(), guard = makeGuard(p), model = modeled(p), journal = newJournal(p, guard, "a".repeat(40), now());
+    const attempts: string[] = [];
+    const transport: Transport = { send: (c, input, signal) => {
+      if (c.id === "iam-delete") { attempts.push(c.id); if (attempts.length === 1) return Promise.reject(new DeleteConflictException({ $metadata: {}, message: "Role has attached policies" })); }
+      return model.transport.send(c, input, signal);
+    } };
+    await execute(p, guard, transport, journal, { now, sleep: async () => undefined, save: async () => undefined });
+    expect(attempts).toHaveLength(2); expect(journal.closed).toBe(true); expect(model.present.size).toBe(0);
+  });
+  it("treats a Secrets Manager secret scheduled for deletion (DeletedDate) as absent for the leak proof", () => {
+    const secretLeak = plan().fixtures.find(f => f.family === "rds")!.leak[1];
+    expect(absent(secretLeak, { DeletedDate: new Date("2026-10-20T00:00:00Z") })).toBe(true);
+    expect(absent(secretLeak, { ARN: "arn:aws:secretsmanager:ap-south-1:123456789012:secret:rds!db-contract" })).toBe(false);
   });
   it("resumes a failed cleanup journal without rerunning setup; preserves the earlier failure", async () => {
     const first = await run(c => c.id === "lambda-delete");

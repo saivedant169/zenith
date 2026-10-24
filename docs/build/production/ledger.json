@@ -2737,6 +2737,14 @@
           "result": "D-4 export passed all 17 checks with a matched current-source receipt on zod 4.6.7 source: PostgreSQL, MySQL over TLS and object-store data roundtrips through browser-approved data.export/data.import with tenant scoping; LocalStack revision export, file readback, credential absence, browser-approved teardown, portable OpenTofu plan and apply readback; owned cleanup. arm64 runs on b249d7d9 and 51aa67b7 passed every functional check but failed owned cleanup at agent-link revoke (identity provider refusal mapped to 400; fixed in 623e7df6). No promotion.",
           "artifact": "docs/build/production/evidence/PROD-LIFE-11/2026-10-24-hosted-d4-51aa67b7/drivers-d4-export-amd64-run40038487612.json",
           "logs": "https://github.com/saivedant169/zenith/actions/runs/40038487612"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "603f64a63c8e3ff078735a86e41bf78a281399eb",
+          "command": "CI workflow push run 40047211175 (GitHub-hosted)",
+          "environment": "GitHub-hosted runners; exact source after the 2026-10-24 dependency advisories",
+          "result": "Exact-source CI success (9 skipped / 21 success). The prior run 40045075149 on 57a3b7d9 failed supply-chain on advisories published 2026-10-24 (undici 7/8 high, fast-uri, nodemailer); 91693673 moves undici to 8.12.3/7.30.1, fast-uri to 3.1.9 and nodemailer to 10.2.1. Hosted D-4 on this day: two-tenants passed (1714283e), export passed on amd64 (51aa67b7) and arm64 (57a3b7d9), adopt fails at the documented cleanup-writer barrier. No promotion.",
+          "logs": "https://github.com/saivedant169/zenith/actions/runs/40047211175"
         }
       ],
       "requiredEvidence": [

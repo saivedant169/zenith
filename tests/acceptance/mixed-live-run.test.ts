@@ -16,7 +16,7 @@ import { expectedChecksum, expectedPriceCents, type ReadbackSource, type StoredO
 import type { Requester } from "../../scripts/acceptance/mixed/traffic";
 import { memoryStore } from "../../scripts/release/checkpoint";
 import { Scope, ScopeError, loadManifestFile } from "../../scripts/release/scope";
-import { approvedScope, shippedManifestPath } from "../release/_support";
+import { approvedScope, unapprovedShippedFile } from "../release/_support";
 
 const RUN = "zlive-202610071200-abcd";
 const INSIDE_TTL = new Date("2026-10-07T12:30:00.000Z");
@@ -142,7 +142,7 @@ const byStep = (report: Awaited<ReturnType<typeof runMixedLive>>, step: string) 
 
 describe("the harness", () => {
   it("refuses without an approved scope and makes no call", async () => {
-    const r = rig({ scope: new Scope(loadManifestFile(shippedManifestPath()), () => INSIDE_TTL) });
+    const r = rig({ scope: new Scope(loadManifestFile(unapprovedShippedFile()), () => INSIDE_TTL) });
     await expect(runMixedLive(r.config, r.deps)).rejects.toMatchObject({ code: "not_approved" });
     expect(r.calls).toEqual([]);
     expect(r.sent).toBe(0);
@@ -282,7 +282,7 @@ describe("the harness", () => {
 
 describe("scope errors are typed", () => {
   it("is a ScopeError that callers can tell apart", async () => {
-    const r = rig({ scope: new Scope(loadManifestFile(shippedManifestPath()), () => INSIDE_TTL) });
+    const r = rig({ scope: new Scope(loadManifestFile(unapprovedShippedFile()), () => INSIDE_TTL) });
     await expect(runMixedLive(r.config, r.deps)).rejects.toBeInstanceOf(ScopeError);
   });
 });

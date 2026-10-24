@@ -20,7 +20,7 @@ import { Scope, loadManifestFile } from "../../scripts/release/scope";
 import { createEnricherServer } from "../../fixtures/mixed-app/enricher/server.mjs";
 import { createMemoryStore } from "../../fixtures/mixed-app/web/stores.mjs";
 import { createWebServer } from "../../fixtures/mixed-app/web/server.mjs";
-import { approvedScope, shippedManifestPath } from "../release/_support";
+import { approvedScope, unapprovedShippedFile } from "../release/_support";
 
 const RUN = "zlive-202610071200-abcd";
 const NOW = new Date("2026-10-07T12:30:00.000Z");
@@ -209,7 +209,7 @@ describe("the revoke-connection drill (control plane faked)", () => {
 describe("scope", () => {
   it("refuses without an approved scope before any traffic or fault", async () => {
     const app = fakeApp();
-    await expect(runRecoveryDrill(config(), deps({ scope: new Scope(loadManifestFile(shippedManifestPath()), () => NOW), requester: app.requester }))).rejects.toMatchObject({ code: "not_approved" });
+    await expect(runRecoveryDrill(config(), deps({ scope: new Scope(loadManifestFile(unapprovedShippedFile()), () => NOW), requester: app.requester }))).rejects.toMatchObject({ code: "not_approved" });
     expect(app.rows).toEqual([]);
   });
 

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { ZodError } from 'zod';
+import { HostedError } from '@/lib/hosted/contracts/errors';
 import { log } from '@/lib/log';
 import { ControlError, type Principal } from './journal';
 import { AgentError, type SelectedScope } from '../security';
@@ -100,7 +101,8 @@ export function failure(error:unknown):Response{
   // A request that fails validation says which field, so an agent can correct it
   // instead of retrying blind. Anything else unexpected is logged with the id the
   // caller sees, and still answered without internal detail.
-  const e=error instanceof ControlError?error:error instanceof AgentError?new ControlError(error.code,error.message,error.status)
+  // A hosted identity refusal keeps its own code and status (a provider outage is 503, an ended session 401), never a 400.
+  const e=error instanceof ControlError?error:error instanceof AgentError||error instanceof HostedError?new ControlError(error.code,error.message,error.status)
     :error instanceof ZodError?new ControlError('invalid_input',error.issues.map(i=>`${i.path.join('.')||'(request)'}: ${i.message}`).join('; ').slice(0,2000),400)
     :new ControlError('request_failed','The request was refused. Check configuration or server diagnostics.',400);
   if(e.code==='request_failed')log.error('agent control request failed',{scope:'agent',requestId,error});

@@ -27,6 +27,7 @@ umask 077; mkdir -p ~/.config/zenith-secrets
    `aws configure sso --profile zenith-sandbox` and `aws sso login --profile zenith-sandbox`.
    I then read the account ID with `sts get-caller-identity`, plan `deploy/live-sandbox/aws` (GitHub OIDC trust for
    `repo:saivedant169/zenith:environment:live-sandbox`, no access keys) and show you the plan before applying.
+   _Owner answer 2026-10-24 (DEC-CLOUD): AWS sandbox approved only, $10 per run; GCP, Azure, OCI, Supabase, owned DNS and private GitHub fixtures still pending._
 2. **GCP** (your user account). Install the Google Cloud CLI, then `gcloud auth login` and
    `gcloud config set project <sandbox project>`. I then enable `cloudbilling.googleapis.com`, create one API key
    restricted to that API, and write it straight to `~/.config/zenith-secrets/gcp-catalog.key` without printing it

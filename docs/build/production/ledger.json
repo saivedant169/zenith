@@ -8901,7 +8901,7 @@
     {
       "id": "DEC-CLOUD",
       "scope": "Dedicated cloud accounts, owned DNS/private GitHub fixtures, explicit regions and approved test budget; credential file references only, no secrets in chat",
-      "state": "pending",
+      "state": "partially_approved",
       "blocks": [
         "PROD-MIX-06",
         "PROD-LIFE-03",
@@ -8910,7 +8910,20 @@
         "PROD-REL-03"
       ],
       "requested": "2026-10-02",
-      "status": "pending"
+      "status": "partially_approved",
+      "approved": "2026-10-24",
+      "approvedBy": "Saivedant Hava",
+      "description": "Partly approved 2026-10-24 by Saivedant Hava for the AWS sandbox only: account 361646636162, region ap-south-1, bootstrapped by deploy/live-sandbox/aws/main.tf (OIDC role ZenithLiveAcceptance trusting repo:saivedant169@88630924/zenith@1417385376:environment:live-sandbox). Budget $10 per AWS run and $100 aggregate; each run also needs an owner-signed per-run awsLive envelope. GitHub environment live-sandbox with the owner as sole required reviewer (self-review exception documented in LIVE-ACCEPTANCE.md). Still pending: owned public DNS domain, private GitHub fixture repos, GCP, Azure, OCI, Supabase sandboxes.",
+      "approvalScope": "AWS sandbox only (account 361646636162, ap-south-1): $10 per AWS run, $100 aggregate, per-run owner-signed awsLive envelope bound to plan digest and source commit, GitHub environment live-sandbox with owner as sole required reviewer. Not approved: owned public DNS domain, private GitHub fixture repos, GCP, Azure, OCI and Supabase sandboxes.",
+      "pending": [
+        "Owned public DNS domain",
+        "Private GitHub fixture repositories",
+        "GCP sandbox",
+        "Azure sandbox",
+        "OCI sandbox",
+        "Supabase sandboxes"
+      ],
+      "acceptance": "Decision record only: no live AWS call or spend performed by this change. Blocks unchanged, so dependent PROD requirements stay open until their own evidence exists."
     },
     {
       "id": "DEC-RETENTION",

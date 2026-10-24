@@ -122,3 +122,13 @@ requirements pass.
 - D2. Accept OPS-07 first, knowing it exercises retention's operator gates rather than the proposal/approval flow?
 - D3. Accept scenario-specific plans (runs without RDS when not needed) and the scoped workflow outcome in section 7?
 - D4. Accept the OPS-07 IAM additions above?
+
+## Decisions recorded (Saivedant Hava, 2026-10-25)
+
+- D1 accepted: in-product approvals use a CI-created test approver; evidence labels it "automated test approver". The
+  owner's GitHub deployment approval and signed per-run envelope remain the human approvals.
+- D2 accepted: PROD-OPS-07 first, then PROD-REL-04, then PROD-MIX-03.
+- D3 accepted: scenario-specific plans, and a run is green only when every requirement in its declared scope passes;
+  requirements outside the scope are reported pending, not failed.
+- D4 accepted: `s3:PutObject`, `s3:GetObject`, `s3:DeleteObject` on `zenith-zlive-*-<account>/retention/*` for
+  `ZenithLiveAcceptance`, applied by the owner after review of the plan.

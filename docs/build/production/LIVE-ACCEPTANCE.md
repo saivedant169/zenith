@@ -93,8 +93,11 @@ Equivalent dispatch after external environment approval:
 
 ```bash
 gh workflow run live-acceptance.yml --ref "$AWS_ACCEPTANCE_APPROVED_REF" \
-  -f run_id="$AWS_ACCEPTANCE_RUN_ID" -f budget_usd="$AWS_ACCEPTANCE_BUDGET_USD"
+  -f run_id="$AWS_ACCEPTANCE_RUN_ID" -f budget_usd="$AWS_ACCEPTANCE_BUDGET_USD" \
+  -f scenario=fixtures
 ```
+
+The dispatch `scenario` input is `fixtures` (default) or `retention-s3` (PROD-OPS-07, S3 retention archive; scope and cost are in the signed envelope, and the envelope preflight refuses a mismatch). For `retention-s3` the job starts the lean Zenith stack on the hosted runner **before** the OIDC step, with the same profile and host environment as `operated-gate-linux.yml`, and exports `ZENITH_LIVE_PRODUCT=1`, `ZENITH_LIVE_PRODUCT_DIR`, `ZENITH_LIVE_PRODUCT_DATABASE_URL` (the stack's platform database URL) and `ZENITH_LIVE_AWS_SCENARIO` to the harness. No AWS credential exists during stack start-up. The stack is torn down with `if: always()` before the final gate; a teardown failure is a visible warning and does not change the acceptance outcome. The job timeout is 90 minutes so stack start-up does not eat the one-hour AWS session. The fixtures path is unchanged and starts no stack.
 
 The full fixture test is separate, real and gated. It expects exit 3/incomplete for this source, then independently inspects 6 actual fixture checks, 6 teardown checks, zero failed checks and 27 pending product rows. It cannot certify those product rows. Do not run both CLI and test for the same run ID:
 

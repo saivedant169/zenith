@@ -543,6 +543,7 @@ const lines = (text: string | undefined): string[] => (text ?? "").split(/\r?\n/
  */
 const DOWNLOADS = [
   { job: "product-store-postgrest", url: "https://github.com/supabase/cli/releases/download/v2.75.0/supabase_linux_amd64.tar.gz", file: "supabase.tar.gz", sha256: "e5597462f865d5ac72af0453358e37ecb0d85962ad6914a114a53de847303bde" },
+  { job: "aws-live", url: "https://github.com/supabase/cli/releases/download/v2.75.0/supabase_linux_amd64.tar.gz", file: "supabase.tar.gz", sha256: "e5597462f865d5ac72af0453358e37ecb0d85962ad6914a114a53de847303bde" },
   { job: "recovery", url: "https://github.com/temporalio/cli/releases/download/v1.9.1/temporal_cli_1.9.1_linux_amd64.tar.gz", file: "temporal_cli.tar.gz", sha256: "09a0326a51db84d02735e53542b9ebd8c4758daf47482a9ab0abce15844e60d5" },
   {
     job: "verify",
@@ -595,6 +596,9 @@ interface Fetch {
 }
 
 /** Every `curl` that downloads something (tick.yml only POSTs to the project's own deployment). */
+/** The step a download sits in, in whichever workflow declares it (the live job is not in ci.yml). */
+const stepOf = (one: Fetch): Step => stepNamed(ALL_WORKFLOWS[one.workflow].jobs[one.job], one.step);
+
 function fetches(): Fetch[] {
   const found: Fetch[] = [];
   for (const [file, w] of Object.entries(ALL_WORKFLOWS)) {
@@ -635,7 +639,7 @@ describe("downloaded tools are checksum-verified before anything touches them", 
   it("downloads only over https from github.com releases, bounded, with retries and redirects explicit", () => {
     for (const one of fetches()) {
       expect(one.url, `${one.job}: ${one.step}`).toMatch(/^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/releases\/download\/v[\d.]+\/[\w.-]+$/);
-      const line = lines(stepNamed(jobOf(one.job), one.step).run).find((candidate) => candidate.startsWith("curl "));
+      const line = lines(stepOf(one).run).find((candidate) => candidate.startsWith("curl "));
       for (const flag of ["--fail", "--location", "--retry 3", "--connect-timeout 15", "--max-time"])
         expect(line, `${one.job}: ${one.step} must pass ${flag}`).toContain(flag);
       expect(line).not.toMatch(/(--insecure|\s-k\s|--proto-redir|--no-verify)/);
@@ -648,7 +652,7 @@ describe("downloaded tools are checksum-verified before anything touches them", 
       expect(one.sha256, `${label} must verify its download`).toMatch(/^[0-9a-f]{64}$/);
       expect(one.verifiedFile, `${label} must verify the file it downloaded`).toBe(one.output);
 
-      const body = lines(stepNamed(jobOf(one.job), one.step).run);
+      const body = lines(stepOf(one).run);
       const curl = body.findIndex((line) => line.startsWith("curl "));
       const verified = body.findIndex((line) => VERIFY_LINE.test(line));
       expect(verified, label).toBeGreaterThan(curl);
@@ -1342,6 +1346,11 @@ describe("the Azure sandbox sign-in check", () => {
 describe("the live acceptance workflow", () => {
   const live = (): Job => liveAcceptance.jobs["aws-live"];
   const GUARD = "hashFiles('scripts/acceptance/aws-live.ts') != ''";
+  // Scenario runs only: the Zenith stack steps and their teardown.
+  const SCENARIO_GUARD = `${GUARD} && inputs.scenario != 'fixtures'`;
+  const STACK_STEPS = ["Free runner disk for the Zenith stack", "Install the pinned Supabase CLI", "Start the Zenith stack and verify readiness before OIDC"];
+  const TEARDOWN = "Tear down the Zenith stack";
+  const assumeStep = (): Step => live().steps.find((step) => step.uses?.startsWith("aws-actions/configure-aws-credentials@")) as Step;
 
   it("can be started only by workflow_dispatch", () => {
     expect(Object.keys(liveAcceptance.on)).toEqual(["workflow_dispatch"]);
@@ -1375,7 +1384,9 @@ describe("the live acceptance workflow", () => {
   it("never runs two live suites at once, and never cancels one half way", () => {
     expect(liveAcceptance.concurrency).toEqual({ group: "live-acceptance", "cancel-in-progress": false });
     expect(typeof live()["timeout-minutes"]).toBe("number");
-    expect(Number(live()["timeout-minutes"])).toBeLessThanOrEqual(60);
+    // Owner-approved raise from 60 (AWS-PRODUCT-HOOK-DESIGN section 1): the stack starts before the one-hour OIDC session.
+    expect(Number(live()["timeout-minutes"])).toBe(90);
+    expect(assumeStep().with?.["role-duration-seconds"]).toBe(3600);
   });
 
   it("assumes the role through the official action, pinned, from a variable, with no stored credentials", () => {
@@ -1407,8 +1418,63 @@ describe("the live acceptance workflow", () => {
       live().steps.findIndex((step) => step.uses?.startsWith("aws-actions/configure-aws-credentials@"))
     );
     // Every later step is behind the same guard, so reordering cannot request credentials for a script that is not there.
+    // The only additions are the scenario-only stack steps and their teardown, each also behind the same guard.
     const afterCheckout = live().steps.slice(1).filter((step) => step !== missing);
-    for (const step of afterCheckout) expect(step.if, `${step.name ?? step.uses}`).toBe(GUARD);
+    for (const step of afterCheckout) {
+      const stack = STACK_STEPS.includes(step.name ?? "") ? SCENARIO_GUARD : step.name === TEARDOWN ? `always() && ${SCENARIO_GUARD}` : GUARD;
+      expect(step.if, `${step.name ?? step.uses}`).toBe(stack);
+    }
+  });
+
+  it("exposes the scenario input, defaulting to fixtures, to the envelope preflight and the harness", () => {
+    const input = (liveAcceptance.on.workflow_dispatch as { inputs: Record<string, unknown> }).inputs.scenario;
+    expect(input).toEqual({ description: expect.any(String), required: false, default: "fixtures", type: "choice", options: ["fixtures", "retention-s3"] });
+    expect(live().env?.ZENITH_LIVE_AWS_SCENARIO).toBe("${{ inputs.scenario }}");
+    const preflight = stepNamed(live(), "Validate the approved permission envelope before OIDC");
+    expect(preflight.run).toContain("scripts/acceptance/live/preflight.ts");
+  });
+
+  it("starts the Zenith stack for scenario runs before any AWS credential exists, then exports the harness contract", () => {
+    const steps = live().steps;
+    const start = steps.findIndex((step) => step.name === "Start the Zenith stack and verify readiness before OIDC");
+    const preflight = steps.findIndex((step) => step.name === "Validate the approved permission envelope before OIDC");
+    const oidc = steps.indexOf(assumeStep());
+    expect(start).toBeGreaterThan(preflight);
+    expect(start).toBeLessThan(oidc);
+    // Disk, then Supabase CLI, then the stack: in that order, and all before OIDC.
+    const order = STACK_STEPS.map((name) => steps.findIndex((step) => step.name === name));
+    expect(order.every((at) => at > preflight && at < oidc)).toBe(true);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+    const stack = steps[start];
+    expect(stack.run).toContain("node scripts/acceptance/default-stack/up.mjs --profile lean --directory \"$RUNNER_TEMP/zenith/stack\"");
+    expect(stack.run).toContain("scripts/acceptance/default-stack/env.mjs");
+    expect(stack.run).toContain("readiness.receipt.json");
+    for (const line of [
+      'echo "ZENITH_LIVE_PRODUCT=1"',
+      'echo "ZENITH_LIVE_PRODUCT_DIR=$GITHUB_WORKSPACE"',
+      "printf 'ZENITH_LIVE_PRODUCT_DATABASE_URL=%s\\n' \"$value\" >> \"$GITHUB_ENV\"",
+      'if [ "$key" = ZENITH_PLATFORM_DB_URL ]',
+    ]) expect(stack.run, line).toContain(line);
+    // Every exported value is masked first, as operated-gate-linux.yml does on this public repository.
+    expect(stack.run).toContain('echo "::add-mask::$value"');
+    // Stack steps use no action of their own: pinned actions are reused, never added.
+    expect(steps.slice(preflight, oidc).filter((step) => step.uses).map((step) => step.uses)).toEqual([]);
+  });
+
+  it("tears the stack down always, after acceptance, recovery and publication, before the final gate, and never masks the outcome", () => {
+    const steps = live().steps;
+    const teardown = stepNamed(live(), TEARDOWN);
+    expect(teardown.if).toBe(`always() && ${SCENARIO_GUARD}`);
+    expect(teardown["continue-on-error"] ?? false).toBe(false);
+    const index = steps.indexOf(teardown);
+    expect(index).toBeGreaterThan(steps.findIndex((step) => step.id === "acceptance"));
+    expect(index).toBeGreaterThan(steps.findIndex((step) => step.id === "recovery"));
+    expect(index).toBeGreaterThan(steps.findIndex((step) => step.name === "Publish sanitized AWS evidence and recovery journal"));
+    expect(index).toBe(steps.length - 2);
+    expect(teardown.run).toContain("down.mjs");
+    expect(teardown.run).toContain("::warning::");
+    // The gate reads only the acceptance and recovery outcomes, so a teardown failure cannot turn it red or green on its own.
+    expect(steps.at(-1)!.env).toEqual({ ACCEPTANCE_OUTCOME: "${{ steps.acceptance.outcome }}", RECOVERY_OUTCOME: "${{ steps.recovery.outcome }}" });
   });
 
   it("checks the account configuration before requesting a token", () => {

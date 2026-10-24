@@ -21,6 +21,8 @@ export interface Fixture {
   teardown: Call[];
   leak: Call[];
   ownership: Call;
+  /** Independent readback calls a ProductScenarioPort makes after product work. Never run automatically; absent in "fixtures". */
+  product?: Call[];
 }
 export interface Settings {
   accountId: string;

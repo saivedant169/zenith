@@ -1,6 +1,9 @@
 /** AWS fixtures are provider acceptance, never substitutes for product journeys. */
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 export type Family = "s3" | "iam" | "lambda" | "ecs" | "rds" | "dns";
+/** Scenario-specific plans (owner decision D3). "fixtures" is the full plan and the default. */
+export const SCENARIOS = ["fixtures", "retention-s3"] as const;
+export type Scenario = (typeof SCENARIOS)[number];
 export interface Call {
   id: string;
   service: string;
@@ -27,6 +30,8 @@ export interface Settings {
   dbSubnetGroup: string;
   dbSecurityGroup: string;
   workloadBoundaryArn: string;
+  /** Absent means "fixtures", so existing fixtures digests stay byte-identical. */
+  scenario?: Scenario;
 }
 export interface Plan {
   schema: 1;

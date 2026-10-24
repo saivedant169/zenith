@@ -5,7 +5,7 @@ import path from "node:path";
 import { parseArgs } from "../args";
 import { newRunId } from "../safety";
 import { redactAcceptance } from "../redact";
-import { buildPlan } from "./plan";
+import { buildPlan, parseScenario, scopedRequirementIds } from "./plan";
 import { grantsFor, Guard, readPermission } from "./guard";
 import { execute, newJournal } from "./execute";
 import { evidencePacket } from "./evidence";
@@ -21,6 +21,7 @@ export const PRODUCTION_USAGE = `Production AWS acceptance (DEC-CLOUD is deferre
   ZENITH_LIVE_AWS=1 ZENITH_LIVE_AWS_BUDGET_USD=<USD> npx tsx scripts/acceptance/aws-live.ts --permissions <permissions.json> [same plan inputs]
   ZENITH_LIVE_AWS=1 ZENITH_LIVE_AWS_BUDGET_USD=<USD> npx tsx scripts/acceptance/aws-live.ts --permissions <permissions.json> --cleanup <journal.json>
 Options: --minutes <5..20> --db-subnet-group <zenith-live-...> --db-security-group <sg-...> --out <directory> --budget-usd <USD>
+  --scenario <fixtures|retention-s3> (or ZENITH_LIVE_AWS_SCENARIO; default fixtures; part of the signed plan digest)
 --plan never reads credentials or calls AWS. Live needs approved awsLive in permissions.json and an explicit budget.
 Root scope approval is also required (ZENITH_LIVE_SCOPE_FILE, or the shipped manifest).
 ProductScenarioPort joins Wave 5 release scenarios; absent product journeys remain pending and exit 3.
@@ -41,7 +42,7 @@ export async function runProductionCli(argv: readonly string[], env: EnvLike = p
   let abort: AbortController | undefined;
   const interrupt = () => abort?.abort();
   try {
-    const args = parseArgs(argv, { booleans: ["plan", "help"], strings: ["account", "region", "run-id", "minutes", "db-subnet-group", "db-security-group", "permissions", "budget-usd", "out", "cleanup"] });
+    const args = parseArgs(argv, { booleans: ["plan", "help"], strings: ["account", "region", "run-id", "minutes", "db-subnet-group", "db-security-group", "permissions", "budget-usd", "out", "cleanup", "scenario"] });
     if (args.flags.has("help")) { io.out(PRODUCTION_USAGE); return 0; }
     if (args.positional.length || (args.flags.has("plan") && args.values.has("cleanup"))) throw new Error("Invalid arguments");
     const value = (key: string, name: string, fallback = "") => args.values.get(key) ?? env[name] ?? fallback;
@@ -56,9 +57,10 @@ export async function runProductionCli(argv: readonly string[], env: EnvLike = p
       dbSubnetGroup: value("db-subnet-group", "ZENITH_LIVE_AWS_DB_SUBNET_GROUP", "zenith-live-sandbox"),
       dbSecurityGroup: value("db-security-group", "ZENITH_LIVE_AWS_DB_SECURITY_GROUP", "sg-00000000"),
       workloadBoundaryArn: `arn:aws:iam::${value("account", "ZENITH_LIVE_AWS_ACCOUNT_ID", "000000000000")}:policy/ZenithLiveWorkloadBoundary`,
+      scenario: parseScenario(value("scenario", "ZENITH_LIVE_AWS_SCENARIO", "fixtures")),
     });
     if (args.flags.has("plan")) {
-      const proposal = { plan, permissionsProposal: { awsLive: { schema: 1, decision: "DEC-CLOUD", approvedBy: null, approvedAt: null, expiresAt: null, sourceCommit: null, accountId: plan.settings.accountId, region: plan.settings.region, runId: plan.settings.runId, planSha256: plan.sha256, maxUsd: plan.estimate.usd, maxMinutes: plan.settings.durationMinutes, grants: grantsFor(plan) } }, statement: "PLAN ONLY: no credentials read, no calls made, no live evidence. Estimated cost is provisional. Owner approval required." };
+      const proposal = { scenario: plan.settings.scenario ?? "fixtures", scope: scopedRequirementIds(plan.settings, plan.requirements.map(r => r.id)), plan, permissionsProposal: { awsLive: { schema: 1, decision: "DEC-CLOUD", approvedBy: null, approvedAt: null, expiresAt: null, sourceCommit: null, accountId: plan.settings.accountId, region: plan.settings.region, runId: plan.settings.runId, planSha256: plan.sha256, maxUsd: plan.estimate.usd, maxMinutes: plan.settings.durationMinutes, grants: grantsFor(plan) } }, statement: "PLAN ONLY: no credentials read, no calls made, no live evidence. Estimated cost is provisional. Owner approval required." };
       io.out(JSON.stringify(proposal, null, 2));
       if (args.values.has("out")) {
         await mkdir(args.values.get("out")!, { recursive: true, mode: 0o700 });
@@ -99,7 +101,7 @@ export async function runProductionCli(argv: readonly string[], env: EnvLike = p
   } catch (error) {
     // Only our deterministic guard errors may be printed; SDK/file parse errors
     // could contain secret text. No provider exception or credential value leaves.
-    const safe = error instanceof Error && /^(ZENITH_|Explicit |Approved |Permission |Missing bounded permission|Plan integrity|Short-lived |Use an owner|Use one absolute|One absolute|Run already reserved|Persistent total budget|Alternate |Journal |Live evidence|Exact source|Duration |Commercial |Malformed |permissions.json|Invalid arguments)/.test(error.message) ? error.message : "AWS acceptance refused or failed before completion; inspect local configuration and journal";
+    const safe = error instanceof Error && /^(ZENITH_|Explicit |Approved |Permission |Missing bounded permission|Plan integrity|Short-lived |Use an owner|Use one absolute|One absolute|Run already reserved|Persistent total budget|Alternate |Journal |Live evidence|Exact source|Duration |Commercial |Malformed |permissions.json|Invalid arguments|Unknown AWS live scenario)/.test(error.message) ? error.message : "AWS acceptance refused or failed before completion; inspect local configuration and journal";
     io.err(safe);
     return 2;
   } finally {

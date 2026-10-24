@@ -44,6 +44,15 @@ variable "github_repository" {
     error_message = "GitHub repository must be exactly owner/name."
   }
 }
+variable "github_oidc_subject_prefix" {
+  description = "Subject prefix GitHub puts in this repository's OIDC tokens, or empty for repo:<github_repository>. Repositories using immutable subjects send repo:<owner>@<owner_id>/<name>@<repo_id> (gh api repos/<owner>/<name>/actions/oidc/customization/sub)."
+  type        = string
+  default     = ""
+  validation {
+    condition     = var.github_oidc_subject_prefix == "" || can(regex("^repo:[A-Za-z0-9-]+(@[0-9]+)?/[A-Za-z0-9._-]+(@[0-9]+)?$", var.github_oidc_subject_prefix))
+    error_message = "Subject prefix must be repo:owner/name, optionally with @id suffixes."
+  }
+}
 variable "github_oidc_provider_arn" {
   description = "Existing GitHub OIDC provider ARN, or empty to create it in this new sandbox."
   type        = string
@@ -95,7 +104,7 @@ resource "aws_iam_role" "acceptance" {
       Principal = { Federated = var.github_oidc_provider_arn != "" ? var.github_oidc_provider_arn : aws_iam_openid_connect_provider.github[0].arn }
       Condition = { StringEquals = {
         "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-        "token.actions.githubusercontent.com:sub" = "repo:${var.github_repository}:environment:live-sandbox"
+        "token.actions.githubusercontent.com:sub" = "${var.github_oidc_subject_prefix != "" ? var.github_oidc_subject_prefix : "repo:${var.github_repository}"}:environment:live-sandbox"
       } }
     }]
   })

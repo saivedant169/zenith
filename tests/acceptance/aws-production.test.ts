@@ -311,6 +311,23 @@ describe("CLI admission and explicit credentials (offline)", () => {
     expect(constructed).toBe(1); expect(model.calls.length).toBeGreaterThan(0);
     expect(model.present.size).toBe(0);
   });
+  it("shows the missing budget ledger refusal before any transport is constructed", async () => {
+    const directory = await mkdtemp(path.join(os.tmpdir(), "aws-production-cli-budget-")); directories.push(directory);
+    const p = plan(), perm = permission(p), permissionFile = path.join(directory, "permissions.json");
+    perm.approvedAt = new Date(Date.now() - 60_000).toISOString();
+    perm.expiresAt = new Date(Date.now() + 60_000).toISOString();
+    await writeFile(permissionFile, JSON.stringify({ awsLive: perm }));
+    const argv = ["--account", settings.accountId, "--run-id", settings.runId, "--db-security-group", settings.dbSecurityGroup, "--permissions", permissionFile, "--out", directory];
+    const rootFile = await rootScopeFile();
+    const root = JSON.parse(await readFile(rootFile.ZENITH_LIVE_SCOPE_FILE, "utf8"));
+    root.approval.expiresAt = new Date(Date.now() + 60_000).toISOString();
+    await writeFile(rootFile.ZENITH_LIVE_SCOPE_FILE, JSON.stringify(root));
+    const model = modeled(p); let constructed = 0; const errors: string[] = [];
+    const deps = { source: () => perm.sourceCommit, transport: async () => { constructed++; return model.transport; } };
+    expect(await runProductionCli(argv, { ZENITH_LIVE_AWS: "1", ZENITH_LIVE_AWS_BUDGET_USD: "10", ...rootFile }, { out: () => undefined, err: s => errors.push(s) }, deps)).toBe(2);
+    expect(constructed).toBe(0); expect(model.calls).toHaveLength(0);
+    expect(errors.join("\n")).toContain("Use one absolute owner budget FILE");
+  });
   it("refuses recovery from a different executing source before constructing credentials", async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "aws-production-test-")); directories.push(dir);
     const p = plan(), perm = permission(p);

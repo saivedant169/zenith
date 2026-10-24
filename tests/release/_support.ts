@@ -1,5 +1,6 @@
 /** Shared helpers for the release-governance tests (PROD-REL-01/02/04). No cloud, no network. */
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { Scope, contentDigest, parseManifest, type ScopeManifest } from "../../scripts/release/scope";
 
@@ -8,6 +9,19 @@ export const NOW = new Date("2026-10-08T00:00:00.000Z");
 
 export const shippedManifestPath = (): string => path.resolve("docs/build/production/permissions.json");
 export const shippedRaw = (): Record<string, unknown> => JSON.parse(readFileSync(shippedManifestPath(), "utf8")) as Record<string, unknown>;
+
+/** The shipped content with its approval reset, for refusal paths. The shipped file itself is owner-approved and must not be edited. */
+export const unapprovedShippedRaw = (): Record<string, unknown> => ({
+  ...shippedRaw(),
+  approval: { status: "not_approved", approvedBy: null, approvedAt: null, expiresAt: null, approvedDigest: null },
+});
+
+/** A fresh file holding `unapprovedShippedRaw()`, for loaders that take a manifest path (ZENITH_LIVE_SCOPE_FILE). */
+export function unapprovedShippedFile(): string {
+  const file = path.join(mkdtempSync(path.join(os.tmpdir(), "zenith-unapproved-")), "scope.json");
+  writeFileSync(file, JSON.stringify(unapprovedShippedRaw()));
+  return file;
+}
 
 /** Test identities for every cloud sandbox (the shipped manifest leaves them null until the owner confirms real ones). */
 export function confirmSandboxes(raw: Record<string, unknown>): void {

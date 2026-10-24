@@ -75,13 +75,24 @@ afterEach(async () => { for (const directory of directories.splice(0)) await rm(
 async function rootScopeFile(edit?: (raw: Record<string, unknown>) => void) {
   const directory = await mkdtemp(path.join(os.tmpdir(), "aws-production-scope-")); directories.push(directory);
   const file = path.join(directory, "scope.json");
-  await writeFile(file, JSON.stringify(approvedManifest(edit)));
+  // The fixture's plan runs in ap-south-1; the test sandbox must confirm that region for the root to admit it.
+  await writeFile(file, JSON.stringify(approvedManifest(raw => { (raw.sandboxes as { aws: { regions: string[] } }).aws.regions = ["ap-south-1"]; edit?.(raw); })));
   return { ZENITH_LIVE_SCOPE_FILE: file };
 }
 
 describe("production root scope join (offline)", () => {
-  it("refuses the unapproved shipped root even when the exact AWS envelope is valid", () => {
-    expect(() => requireProductionScope(plan(), 10, {}, false, now)).toThrow(/not been approved/);
+  it("refuses a plan whose account is not the shipped root's confirmed sandbox", () => {
+    expect(() => requireProductionScope(plan(), 10, {}, false, () => new Date("2026-10-25T00:00:00Z"))).toThrow(/not the owner-confirmed sandbox/);
+  });
+  it("refuses a plan in an account other than the confirmed sandbox, including recovery", async () => {
+    const env = await rootScopeFile();
+    const other = buildPlan({ ...settings, accountId: "210987654321", workloadBoundaryArn: "arn:aws:iam::210987654321:policy/ZenithLiveWorkloadBoundary" });
+    expect(() => requireProductionScope(other, 10, env, false, now)).toThrow(/not the owner-confirmed sandbox/);
+    expect(() => requireProductionScope(other, 10, env, true, now)).toThrow(/not the owner-confirmed sandbox/);
+  });
+  it("refuses a plan in a region the confirmed sandbox does not list", async () => {
+    const env = await rootScopeFile();
+    expect(() => requireProductionScope(buildPlan({ ...settings, region: "us-west-2" }), 10, env, false, now)).toThrow(/not the owner-confirmed sandbox/);
   });
   it("admits the approved run and separately grants owned recovery", async () => {
     const env = await rootScopeFile();

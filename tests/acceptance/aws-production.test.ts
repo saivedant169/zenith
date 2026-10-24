@@ -18,8 +18,7 @@ import { execute, newJournal, missing, absent, owned, checkReadback, executionPr
 import { evidencePacket } from "../../scripts/acceptance/live/evidence";
 import { runProductionCli } from "../../scripts/acceptance/live/cli";
 import { requireProductionScope } from "../../scripts/acceptance/live/scope";
-import { approvedManifest, shippedManifestPath } from "../release/_support";
-import { contentDigest, loadManifestFile, ScopeError } from "../../scripts/release/scope";
+import { approvedManifest } from "../release/_support";
 import { nonceZip, resolveInput, sessionCredentials } from "../../scripts/acceptance/live/sdk";
 import type { AwsPermission, Call, Family, Plan, Transport } from "../../scripts/acceptance/live/contracts";
 
@@ -91,16 +90,7 @@ async function rootScopeFile(edit?: (raw: Record<string, unknown>) => void) {
 
 describe("production root scope join (offline)", () => {
   it("refuses a plan whose account is not the shipped root's confirmed sandbox", () => {
-    const run = () => requireProductionScope(plan(), 10, {}, false, () => new Date("2026-10-25T00:00:00Z"));
-    // Between a manifest edit and the owner's re-approval the shipped approval is stale and must refuse first.
-    const shipped = loadManifestFile(shippedManifestPath());
-    if (shipped.approval.approvedDigest === contentDigest(shipped)) {
-      expect(run).toThrow(/not the owner-confirmed sandbox/);
-    } else {
-      let refusal: unknown;
-      try { run(); } catch (e) { refusal = e; }
-      expect(refusal instanceof ScopeError ? refusal.code : undefined).toBe("approval_stale");
-    }
+    expect(() => requireProductionScope(plan(), 10, {}, false, () => new Date("2026-10-25T00:00:00Z"))).toThrow(/not the owner-confirmed sandbox/);
   });
   it("refuses a plan in an account other than the confirmed sandbox, including recovery", async () => {
     const env = await rootScopeFile();

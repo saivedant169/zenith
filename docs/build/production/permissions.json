@@ -239,8 +239,8 @@
   "approval": {
     "status": "approved",
     "approvedBy": "Saivedant Hava",
-    "approvedAt": "2026-10-24T14:27:13.336Z",
-    "expiresAt": "2026-11-23T14:27:13.336Z",
-    "approvedDigest": "d769308317dc6fa2e2e2e8626bffd03ed848fe1194913c25d12a55c7325a97c4"
+    "approvedAt": "2026-10-24T19:18:28.748Z",
+    "expiresAt": "2026-11-23T19:18:28.748Z",
+    "approvedDigest": "804c6aaf7ac08aa72b28b2112a1b1862079fe23dff87d36fabce076013efa1fd"
   }
 }

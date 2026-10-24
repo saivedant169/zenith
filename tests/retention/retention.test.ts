@@ -278,7 +278,20 @@ describe("archive: copy only, sealed, read back", () => {
     expect(archiveTargetFromEnv({ ZENITH_RETENTION_ARCHIVE_TARGET: "s3" }).ok).toBe(false);
     expect(archiveTargetFromEnv({ ZENITH_RETENTION_ARCHIVE_TARGET: "ftp" }).ok).toBe(false);
     expect(archiveTargetFromEnv({ ZENITH_RETENTION_ARCHIVE_TARGET: "filesystem", ZENITH_RETENTION_ARCHIVE_DIR: dir })).toMatchObject({ ok: true, kind: "filesystem" });
-    expect(archiveTargetFromEnv({ ZENITH_RETENTION_ARCHIVE_TARGET: "s3", ZENITH_RETENTION_ARCHIVE_S3_BUCKET: "b" }, { send: async () => ({}) })).toMatchObject({ ok: true, kind: "s3" });
+    expect(archiveTargetFromEnv({ ZENITH_RETENTION_ARCHIVE_TARGET: "s3", ZENITH_RETENTION_ARCHIVE_S3_BUCKET: "b", ZENITH_RETENTION_ARCHIVE_S3_REGION: "us-east-1" }, { send: async () => ({}) })).toMatchObject({ ok: true, kind: "s3" });
+  });
+
+  it("resolves the S3 archive bucket region and refuses S3 without one", () => {
+    const s3 = { ZENITH_RETENTION_ARCHIVE_TARGET: "s3", ZENITH_RETENTION_ARCHIVE_S3_BUCKET: "b" };
+    const client = { send: async () => ({}) };
+    expect(archiveTargetFromEnv({ ...s3, ZENITH_RETENTION_ARCHIVE_S3_REGION: "ap-south-1" }, client)).toMatchObject({ ok: true, target: { region: "ap-south-1" } });
+    expect(archiveTargetFromEnv({ ...s3, AWS_REGION: "eu-west-1", AWS_DEFAULT_REGION: "us-west-2" }, client)).toMatchObject({ ok: true, target: { region: "eu-west-1" } });
+    expect(archiveTargetFromEnv({ ...s3, AWS_DEFAULT_REGION: "us-west-2" }, client)).toMatchObject({ ok: true, target: { region: "us-west-2" } });
+    expect(archiveTargetFromEnv({ ...s3, ZENITH_RETENTION_ARCHIVE_S3_REGION: "ap-south-1", AWS_REGION: "eu-west-1" }, client)).toMatchObject({ target: { region: "ap-south-1" } });
+    expect(archiveTargetFromEnv({ ...s3, AWS_REGION: "  " }, client)).toEqual({ ok: false, reason: "ZENITH_RETENTION_ARCHIVE_TARGET=s3 needs ZENITH_RETENTION_ARCHIVE_S3_REGION (or AWS_REGION)." });
+    expect(archiveTargetFromEnv(s3, client)).toEqual({ ok: false, reason: "ZENITH_RETENTION_ARCHIVE_TARGET=s3 needs ZENITH_RETENTION_ARCHIVE_S3_REGION (or AWS_REGION)." });
+    // A custom endpoint (MinIO, LocalStack) keeps working without a region; the target then uses us-east-1.
+    expect(archiveTargetFromEnv({ ...s3, ZENITH_RETENTION_ARCHIVE_S3_ENDPOINT: "http://localhost:9000" }, client)).toMatchObject({ ok: true, target: { endpoint: "http://localhost:9000", region: "us-east-1" } });
   });
 
   it("does nothing without archive storage or with an invalid policy, and reports why", async () => {

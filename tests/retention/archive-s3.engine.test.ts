@@ -2,8 +2,10 @@
  * PROD-OPS-07: the retention archive against a real S3-compatible object store (a disposable local MinIO), through the
  * production S3 target and AWS SDK: sealed objects under retention/<workspace>/<class>/, verifyArchive, a staging
  * restore with read-back, and pruning that removes only the archived rows. Gated by ZENITH_TEST_RETENTION_S3=1 with
- * ZENITH_TEST_RETENTION_S3_ENDPOINT and ZENITH_TEST_RETENTION_S3_BUCKET (an empty, disposable bucket) and the SDK's
- * standard AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY for that store. PGlite by default; real PostgreSQL with
+ * ZENITH_TEST_RETENTION_S3_BUCKET (an empty, disposable bucket) plus either ZENITH_TEST_RETENTION_S3_ENDPOINT (emulator
+ * such as MinIO) or ZENITH_TEST_RETENTION_S3_REGION (a real AWS bucket in that region). The SDK's standard credentials
+ * (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY, or its usual provider chain) apply. Skips with a printed reason otherwise.
+ * PGlite by default; real PostgreSQL with
  * ZENITH_TEST_RETENTION_PG=1 and an owned disposable ZENITH_TEST_PLATFORM_PG_URL.
  */
 import { randomBytes } from "node:crypto";
@@ -20,7 +22,13 @@ import { newWorkspace, seedApprovedOperation, uid } from "../controlplane/_suppo
 
 const endpoint = process.env.ZENITH_TEST_RETENTION_S3_ENDPOINT;
 const bucket = process.env.ZENITH_TEST_RETENTION_S3_BUCKET;
-const enabled = process.env.ZENITH_TEST_RETENTION_S3 === "1" && !!endpoint && !!bucket;
+const region = process.env.ZENITH_TEST_RETENTION_S3_REGION;
+const skipReason = process.env.ZENITH_TEST_RETENTION_S3 !== "1" ? "ZENITH_TEST_RETENTION_S3=1 is not set"
+  : !bucket ? "ZENITH_TEST_RETENTION_S3_BUCKET is not set"
+  : !endpoint && !region ? "neither ZENITH_TEST_RETENTION_S3_ENDPOINT (emulator) nor ZENITH_TEST_RETENTION_S3_REGION (real bucket) is set"
+  : undefined;
+if (skipReason) console.warn(`[retention archive-s3 engine suite] skipped: ${skipReason}`);
+const enabled = !skipReason;
 const nativePostgres = process.env.ZENITH_TEST_RETENTION_PG === "1";
 const PUBKEY = "A".repeat(43);
 const KEY = randomBytes(32);
@@ -38,7 +46,7 @@ describe.skipIf(!enabled)("retention archive on a real S3-compatible store (ZENI
     const pgUrl = process.env.ZENITH_TEST_PLATFORM_PG_URL;
     if (nativePostgres && !pgUrl) throw new Error("Explicit retention PostgreSQL gate requires an owned disposable ZENITH_TEST_PLATFORM_PG_URL.");
     db = await openPlatformDb(nativePostgres ? { kind: "postgres", url: pgUrl!, max: 2 } : { kind: "pglite" });
-    const choice = archiveTargetFromEnv({ ZENITH_RETENTION_ARCHIVE_TARGET: "s3", ZENITH_RETENTION_ARCHIVE_S3_BUCKET: bucket, ZENITH_RETENTION_ARCHIVE_S3_ENDPOINT: endpoint });
+    const choice = archiveTargetFromEnv({ ZENITH_RETENTION_ARCHIVE_TARGET: "s3", ZENITH_RETENTION_ARCHIVE_S3_BUCKET: bucket, ZENITH_RETENTION_ARCHIVE_S3_ENDPOINT: endpoint, ZENITH_RETENTION_ARCHIVE_S3_REGION: region });
     if (!choice.ok) throw new Error(choice.reason);
     expect(choice.kind).toBe("s3");
     target = choice.target;
@@ -70,7 +78,7 @@ describe.skipIf(!enabled)("retention archive on a real S3-compatible store (ZENI
     await run();
     await run();
     // Sealed objects are in the real bucket under the workspace's class prefix.
-    const s3 = new S3Client({ region: "us-east-1", endpoint, forcePathStyle: true });
+    const s3 = new S3Client({ region: region ?? "us-east-1", ...(endpoint ? { endpoint, forcePathStyle: true } : {}) });
     const listed = await s3.send(new ListObjectsV2Command({ Bucket: bucket, Prefix: `retention/${old.ws}/runner_job_logs/` }));
     expect((listed.Contents ?? []).length).toBeGreaterThan(0);
     const [archive] = (await listArchives(db, { workspaceId: old.ws })).filter((a) => a.dataClass === "runner_job_logs");

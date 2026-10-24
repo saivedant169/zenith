@@ -43,7 +43,8 @@ export type ArchiveTargetChoice =
  * The archive object store, from configuration (it is separate from the backup target so an operator can point
  * archives at storage the tenant owns):
  *   ZENITH_RETENTION_ARCHIVE_TARGET=filesystem  ZENITH_RETENTION_ARCHIVE_DIR=<dir>
- *   ZENITH_RETENTION_ARCHIVE_TARGET=s3          ZENITH_RETENTION_ARCHIVE_S3_BUCKET=<bucket> [ZENITH_RETENTION_ARCHIVE_S3_ENDPOINT=<url>]
+ *   ZENITH_RETENTION_ARCHIVE_TARGET=s3          ZENITH_RETENTION_ARCHIVE_S3_BUCKET=<bucket> ZENITH_RETENTION_ARCHIVE_S3_REGION=<region> [ZENITH_RETENTION_ARCHIVE_S3_ENDPOINT=<url>]
+ *   (the region falls back to AWS_REGION, then AWS_DEFAULT_REGION; it may be omitted only with a custom endpoint)
  */
 export function archiveTargetFromEnv(env: Readonly<Record<string, string | undefined>> = process.env, s3Client?: S3Like): ArchiveTargetChoice {
   const kind = env.ZENITH_RETENTION_ARCHIVE_TARGET?.trim();
@@ -57,7 +58,11 @@ export function archiveTargetFromEnv(env: Readonly<Record<string, string | undef
   if (kind === "s3") {
     const bucket = env.ZENITH_RETENTION_ARCHIVE_S3_BUCKET?.trim();
     if (!bucket) return { ok: false, reason: "ZENITH_RETENTION_ARCHIVE_TARGET=s3 needs ZENITH_RETENTION_ARCHIVE_S3_BUCKET." };
-    const target = new S3Target({ bucket, endpoint: env.ZENITH_RETENTION_ARCHIVE_S3_ENDPOINT?.trim() || undefined, client: s3Client });
+    const endpoint = env.ZENITH_RETENTION_ARCHIVE_S3_ENDPOINT?.trim() || undefined;
+    // Without a region the SDK would talk to us-east-1, which fails for a bucket elsewhere (e.g. ap-south-1).
+    const region = [env.ZENITH_RETENTION_ARCHIVE_S3_REGION, env.AWS_REGION, env.AWS_DEFAULT_REGION].map((v) => v?.trim()).find(Boolean);
+    if (!region && !endpoint) return { ok: false, reason: "ZENITH_RETENTION_ARCHIVE_TARGET=s3 needs ZENITH_RETENTION_ARCHIVE_S3_REGION (or AWS_REGION)." };
+    const target = new S3Target({ bucket, endpoint, region, client: s3Client });
     return { ok: true, target, kind: "s3", label: target.label };
   }
   return { ok: false, reason: `ZENITH_RETENTION_ARCHIVE_TARGET must be filesystem or s3, not "${kind.slice(0, 20)}".` };

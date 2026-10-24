@@ -5747,7 +5747,7 @@
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "MinIO_LinuxARM64_runtime_object_roundtrip_passed_hosted_arm64; mysql_dns_tls_closed_62b70671; adopted_object_teardown_kind_verified_bb8b6314; operated_adopt_release_retains_passed_190db611; teardown_after_deploy_blocked_cleanup_writer_barrier_needs_authenticated_delivery_settlement_and_direct_path_origin; tenant_backup_beyond_export_open",
+      "implementationStatus": "MinIO_LinuxARM64_runtime_passed_hosted_arm64_57a3b7d9; mysql_dns_tls_closed_62b70671; adopted_object_teardown_kind_verified_bb8b6314; operated_adopt_release_retains_passed_190db611; teardown_after_deploy_blocked_cleanup_writer_barrier_needs_authenticated_delivery_settlement_and_direct_path_origin; tenant_backup_beyond_export_open",
       "evidence": [
         {
           "level": "local_engine",
@@ -5924,6 +5924,15 @@
           "result": "D-4 adopt failed as documented: preconditions, adopt-release-retains (adopt manage, release, same StatefulSet uid and claim survive) and owned cleanup passed; adopt-destroy-teardown ended uncertain before any deletion because destroy write grants require a held cleanup attempt that direct Kubernetes teardown cannot create and that unsettled earlier deliveries block (TEARDOWN-AFTER-DEPLOY-DESIGN-2026-10-24.md, owner decision pending). Adopted objects survived. Not promotable.",
           "artifact": "docs/build/production/evidence/PROD-LIFE-11/2026-10-24-hosted-d4-51aa67b7/drivers-d4-adopt-amd64-run40038490208.json",
           "logs": "https://github.com/saivedant169/zenith/actions/runs/40038490208"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "57a3b7d9b95a1fba11949ad9e979dcabfb9dd631",
+          "command": "operated-gate-linux.yml gate=drivers-d4-export arch=arm64 (GitHub-hosted ubuntu-24.04-arm, run 40045074838)",
+          "environment": "GitHub-hosted Linux ARM64; lean disposable J1 stack, Temporal mTLS, owned kind target, Chromium; digest-pinned PostgreSQL 17, MySQL 8.4, MinIO (Chainguard upstream build) and LocalStack owned containers on native arm64",
+          "result": "D-4 export passed all 17 checks on Linux/ARM64 with a matched current-source receipt, including the MinIO object-store data roundtrip running natively on Linux/ARM64 (closes the MinIO Linux/ARM64 runtime item), PostgreSQL and MySQL-over-TLS roundtrips, LocalStack export/portable apply and owned cleanup. The earlier arm64 cleanup failures were an identity-provider refusal mapped to 400 (fixed in 623e7df6, barrel import 57a3b7d9). No promotion: LIFE-11 decommissioning remains blocked by the cleanup-writer barrier.",
+          "artifact": "docs/build/production/evidence/PROD-LIFE-11/2026-10-24-hosted-d4-export-arm64-57a3b7d9/drivers-d4-export-arm64-run40045074838.json",
+          "logs": "https://github.com/saivedant169/zenith/actions/runs/40045074838"
         }
       ],
       "requiredEvidence": [

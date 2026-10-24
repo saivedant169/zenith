@@ -535,7 +535,7 @@ jobs:
           retention-days: 14
 
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Preserve the repository maximum while running every canonical core step.
     timeout-minutes: 45
 
@@ -667,7 +667,7 @@ jobs:
   # superuser before using SET ROLE for the product RPC privilege checks.
   # Nothing here proves Supabase's deployed role graph or PostgREST setup.
   postgres:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
 
     services:
@@ -748,7 +748,7 @@ jobs:
   # runs real Vite builds through the recipe-local runner and needs its own
   # data directory; a failure here is a hosted release gate, not a flake.
   hosted:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
 
     env:
@@ -810,7 +810,7 @@ jobs:
   # exists to prevent, and the approval screen is the one surface where the
   # user's consent is actually collected.
   agent:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
 
     env:
@@ -854,7 +854,7 @@ jobs:
 
   # Fonts ship in public/fonts, so this gate has no Google Fonts dependency.
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
 
     steps:
@@ -880,7 +880,7 @@ jobs:
   # a build tool the runner stage lacks) and nothing else in CI would notice.
   # Nothing is pushed — the image is built and discarded.
   docker:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     steps:
@@ -966,7 +966,7 @@ jobs:
   #   - Any other OPA version, or any platform but linux/amd64.
   #   - How the wasm behaves inside a serverless function (memory, cold start).
   policy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
 
     steps:
@@ -1052,7 +1052,7 @@ jobs:
   # provider. It is an optimisation, not a trust anchor: `init -lockfile=readonly`
   # still checks what it installs against the lockfile's hashes.
   tofu:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
 
     env:
@@ -1168,7 +1168,7 @@ jobs:
   # run, so a skipped lane is never mistaken for a green one. The moment go/go.mod
   # lands, every gate below is live with no edit to this file.
   go:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     defaults:
@@ -1431,7 +1431,7 @@ jobs:
   #     here is 1.9.1 (current at the time of writing), so the first run of this
   #     job on real tests is also the first time they meet 1.9.1.
   workflows:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     services:
@@ -1538,7 +1538,7 @@ jobs:
   # Replay the committed verifier corpus without a Temporal server. The manifest
   # requires all 34 named cases and refuses missing or tampered histories.
   workflow-history-replay:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -1567,7 +1567,7 @@ jobs:
   # Separate mandatory PG/Temporal contracts; each matrix item owns a fresh DB.
   # Exact named actual cases are independent of supplemental response/port models.
   operation-gates:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     strategy:
       fail-fast: false
@@ -1701,7 +1701,7 @@ jobs:
   # serve: a disposable pinned Supabase CLI stack on a fresh runner. Same
   # steps as .github/workflows/product-store-postgrest.yml (manual reruns).
   product-store-postgrest:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
       # Anonymous public.ecr.aws pulls hit 'toomanyrequests: Data limit exceeded'
@@ -1807,7 +1807,7 @@ jobs:
           retention-days: 30
 
   platform-postgres:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
 
     services:
@@ -1923,7 +1923,7 @@ jobs:
   # Generated SQL, capability documentation and operator-doc/link drift. The
   # check modes compare committed bytes without rewriting the checkout.
   generated:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
 
     steps:
@@ -1965,7 +1965,7 @@ jobs:
   #     commit SHA or a test count is whatever the last editor typed; nothing
   #     here runs the tests or resolves the commit.
   ledger:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
 
     steps:
@@ -1998,7 +1998,7 @@ jobs:
   #     before those updates are integrated. This gate reads the lockfile and
   #     never runs dependency installation scripts.
   supply-chain:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
 
     steps:
@@ -2017,7 +2017,7 @@ jobs:
         run: node scripts/ci/security-audit.mjs
 
   recovery:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     services:
@@ -2143,7 +2143,7 @@ jobs:
 
 
   wave5-contract:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
       ZENITH_DATA: ${{ github.workspace }}/.data-ci-wave5-contract
@@ -2185,7 +2185,7 @@ jobs:
           retention-days: 14
 
   adversarial:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
       ZENITH_DATA: ${{ github.workspace }}/.data-ci-adversarial

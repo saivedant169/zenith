@@ -91,7 +91,7 @@ concurrency:
 
 jobs:
   aws-live:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     # Pauses here for the environment's reviewers, and scopes `vars` to it.
     environment: live-sandbox

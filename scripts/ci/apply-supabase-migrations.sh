@@ -117,7 +117,7 @@ if [ -z "${SUPABASE_DB_URL:-}" ]; then
 fi
 
 if ! command -v psql >/dev/null 2>&1; then
-  echo "::error::psql is not on PATH. Install postgresql-client before this step (ubuntu-latest ships it)." >&2
+  echo "::error::psql is not on PATH. Install postgresql-client before this step (the ubuntu-24.04 runner image ships it)." >&2
   exit 1
 fi
 

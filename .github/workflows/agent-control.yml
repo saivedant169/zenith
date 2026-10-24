@@ -27,7 +27,7 @@ permissions:
   contents: read
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       # Same checkout SHA as ci.yml. This file used to pin 11d5960a (v4.2.2)

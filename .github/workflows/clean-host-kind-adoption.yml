@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   kind-adoption:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       KIND_VERSION: v0.33.0

@@ -49,6 +49,19 @@ name: Live acceptance (sandbox AWS)
 #      performs bounded AWS fixtures; full product journeys remain pending until
 #      the Wave 5 ProductScenarioPort is joined. Incomplete acceptance fails.
 #
+# ## Scenario runs start the Zenith stack before OIDC
+#
+# The `scenario` input selects what the harness proves. `fixtures` (default) is
+# the bounded AWS fixture run above and starts nothing on the runner. Any other
+# scenario (`retention-s3`) first starts the lean Zenith stack on this hosted
+# runner, with the same profile and disk freeing as operated-gate-linux.yml, and
+# only then requests the OIDC session, so the stack never consumes the one-hour
+# AWS session. The stack's platform database URL and the ZENITH_LIVE_PRODUCT*
+# variables are exported for the harness. The stack is torn down with
+# `if: always()` before the final gate; a teardown failure is a visible warning
+# and never changes the acceptance result. The job timeout is 90 minutes for this
+# reason; the AWS session stays one hour. Stack steps use no new actions.
+#
 # ## No long-lived credentials
 #
 # There is no access key, no secret and no stored token anywhere in this file or
@@ -76,6 +89,14 @@ on:
         description: 'Explicit USD ceiling including cleanup reserve, approved by DEC-CLOUD'
         required: true
         type: string
+      scenario:
+        description: 'fixtures (default: every AWS fixture family) or retention-s3 (starts the Zenith stack before OIDC; PROD-OPS-07 only). Bound into the signed envelope.'
+        required: false
+        default: fixtures
+        type: choice
+        options:
+          - fixtures
+          - retention-s3
 
 # Source read only at the workflow level; the one job that needs more asks for
 # it below.
@@ -92,7 +113,9 @@ concurrency:
 jobs:
   aws-live:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    # Owner-approved 90 minutes (docs/build/production/AWS-PRODUCT-HOOK-DESIGN-2026-10-25.md,
+    # section 1): a scenario run starts the Zenith stack before the one-hour OIDC session.
+    timeout-minutes: 90
     # Pauses here for the environment's reviewers, and scopes `vars` to it.
     environment: live-sandbox
 
@@ -113,6 +136,8 @@ jobs:
       ZENITH_LIVE_AWS_BUDGET_USD: ${{ inputs.budget_usd }}
       ZENITH_LIVE_AWS_DB_SUBNET_GROUP: ${{ vars.LIVE_SANDBOX_AWS_DB_SUBNET_GROUP }}
       ZENITH_LIVE_AWS_DB_SECURITY_GROUP: ${{ vars.LIVE_SANDBOX_AWS_DB_SECURITY_GROUP }}
+      # Read by the envelope preflight (it binds the scenario) and by the harness.
+      ZENITH_LIVE_AWS_SCENARIO: ${{ inputs.scenario }}
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -197,6 +222,57 @@ jobs:
           chmod 600 "$ZENITH_LIVE_SCOPE_FILE"
           npx tsx scripts/acceptance/live/preflight.ts
 
+      # Scenario runs only. The Zenith stack starts on this runner BEFORE the OIDC
+      # step, so no AWS credential exists while it is installed and started.
+      - name: Free runner disk for the Zenith stack
+        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario != 'fixtures'
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup
+          df -h /
+
+      - name: Install the pinned Supabase CLI
+        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario != 'fixtures'
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/bin"
+          cd "$RUNNER_TEMP"
+          curl --fail --silent --show-error --location --retry 3 --connect-timeout 15 --max-time 120 --output supabase.tar.gz https://github.com/supabase/cli/releases/download/v2.75.0/supabase_linux_amd64.tar.gz
+          # Official supabase_2.75.0_checksums.txt.
+          printf '%s  %s\n' 'e5597462f865d5ac72af0453358e37ecb0d85962ad6914a114a53de847303bde' 'supabase.tar.gz' | sha256sum --check --strict
+          tar -xzf supabase.tar.gz -C "$RUNNER_TEMP/bin" supabase
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Start the Zenith stack and verify readiness before OIDC
+        # Same lean profile and host environment as operated-gate-linux.yml.
+        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario != 'fixtures'
+        env:
+          REGISTRY_IMAGE: registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: docker.io
+          NEXT_TELEMETRY_DISABLED: '1'
+        run: |
+          set -euo pipefail
+          umask 077
+          # Private root for the stack, its TMPDIR and the host environment file.
+          mkdir -m 700 "$RUNNER_TEMP/zenith" "$RUNNER_TEMP/zenith/tmp"
+          ZENITH_ACCEPTANCE_DEFAULT_STACK=1 TMPDIR="$RUNNER_TEMP/zenith/tmp" ZENITH_DEFAULT_STACK_REGISTRY_IMAGE="$REGISTRY_IMAGE" \
+            node scripts/acceptance/default-stack/up.mjs --profile lean --directory "$RUNNER_TEMP/zenith/stack"
+          # up.mjs fails unless readiness passes; re-check the receipt it wrote.
+          node -e 'const r = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")); if (r.failed !== 0 || !(r.passed > 0)) process.exit(1)' "$RUNNER_TEMP/zenith/stack/readiness.receipt.json"
+          host_env="$RUNNER_TEMP/zenith/host.env"
+          ZENITH_ACCEPTANCE_DEFAULT_STACK=1 node scripts/acceptance/default-stack/env.mjs "$RUNNER_TEMP/zenith/stack" "$host_env"
+          trap 'rm -f -- "$host_env"' EXIT
+          # Public repository: mask every value before later steps can echo their env.
+          while IFS='=' read -r key value; do
+            if [ "${#value}" -ge 8 ]; then echo "::add-mask::$value"; fi
+            printf '%s=%s\n' "$key" "$value" >> "$GITHUB_ENV"
+            # The platform database the harness reaches: the stack's pooler URL, as the app uses it.
+            if [ "$key" = ZENITH_PLATFORM_DB_URL ]; then printf 'ZENITH_LIVE_PRODUCT_DATABASE_URL=%s\n' "$value" >> "$GITHUB_ENV"; fi
+          done < "$host_env"
+          {
+            echo "ZENITH_LIVE_PRODUCT=1"
+            echo "ZENITH_LIVE_PRODUCT_DIR=$GITHUB_WORKSPACE"
+          } >> "$GITHUB_ENV"
+
       - name: Assume the sandbox role through GitHub OIDC
         if: hashFiles('scripts/acceptance/aws-live.ts') != ''
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
@@ -206,7 +282,8 @@ jobs:
           # Refuse credentials for any account but the declared sandbox.
           allowed-account-ids: ${{ vars.LIVE_SANDBOX_AWS_ACCOUNT_ID }}
           role-session-name: zenith-live-acceptance-${{ github.run_id }}
-          # Matches the job timeout and the role's one-hour maximum session.
+          # Matches the role's one-hour maximum session. The job timeout is longer
+          # only because the Zenith stack starts before this session (see the header).
           role-duration-seconds: 3600
 
       - name: Live acceptance against the sandbox account
@@ -243,6 +320,23 @@ jobs:
           path: ${{ runner.temp }}/zenith-aws-production/${{ inputs.run_id }}/*.json
           if-no-files-found: error
           retention-days: 7
+
+      - name: Tear down the Zenith stack
+        # Runs after success and failure alike. A failure here is a visible warning
+        # and never changes the acceptance outcome the final gate reads.
+        if: always() && hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario != 'fixtures'
+        run: |
+          set -uo pipefail
+          stack="$RUNNER_TEMP/zenith/stack"
+          if [ ! -f "$stack/state.json" ]; then
+            echo "No owned Zenith stack was started; nothing to tear down."
+            exit 0
+          fi
+          if ZENITH_ACCEPTANCE_DEFAULT_STACK=1 TMPDIR="$RUNNER_TEMP/zenith/tmp" node scripts/acceptance/default-stack/down.mjs "$stack"; then
+            rm -rf -- "$RUNNER_TEMP/zenith"
+          else
+            echo "::warning::Zenith stack teardown failed. Owned containers, network or volumes may remain on this runner. The acceptance outcome is unchanged."
+          fi
 
       - name: Require complete acceptance and successful cleanup
         if: hashFiles('scripts/acceptance/aws-live.ts') != ''

@@ -2754,6 +2754,15 @@
           "result": "Four operated gates passed with matched current-source receipts on 1639cba4. On the same source drv2-crash-partition failed at writers-serialized: the rejoined worker stayed unhealthy with store readiness unavailable after the network reconnect (run 40053383486, under investigation), and drv1-private-source failed at isolated-private-build because runtime isolation probes failed (run 40053392247; the known runc lane awaiting the owner runner-egress decision). D-4 two-tenants and export passed earlier on this day; adopt fails at the documented cleanup-writer barrier. No promotion.",
           "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-24-hosted-gates-1639cba4/drv2-drift-repair-amd64-run40053381399.json",
           "logs": "https://github.com/saivedant169/zenith/actions/runs/40053381399"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "a29de73833a1ad60892bc799dfb7df855938e9a1",
+          "command": "operated-gate-linux.yml gate=drv2-crash-partition (GitHub-hosted, run 40057912317)",
+          "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, two joined execution workers, real network partition and rejoin",
+          "result": "drv2-crash-partition passed with a matched current-source receipt after a29de738. On 1639cba4 it failed twice at writers-serialized: the rejoined worker reported store readiness unavailable forever because the readiness probe kept reusing a store check stuck on a connection that died in the partition; a29de738 abandons a check older than its timeout (at most two outstanding per dependency) so a later probe retries. No promotion.",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-24-hosted-crash-partition-a29de738/drv2-crash-partition-amd64-run40057912317.json",
+          "logs": "https://github.com/saivedant169/zenith/actions/runs/40057912317"
         }
       ],
       "requiredEvidence": [

@@ -7,9 +7,11 @@ import type { Call, Check, Family, Journal, Json, Plan, ProductScenarioPort, Tra
 const record = (v: unknown): Record<string, unknown> => v && typeof v === "object" ? v as Record<string, unknown> : {};
 const rows = (v: unknown): Record<string, unknown>[] => Array.isArray(v) ? v.map(record) : [];
 export function missing(error: unknown): boolean {
-  return ["NoSuchBucket", "NotFound", "NoSuchEntity", "ResourceNotFoundException", "DBInstanceNotFoundFault", "NoSuchHostedZone"].includes(record(error).name as string);
+  return ["NoSuchBucket", "NotFound", "NoSuchEntityException", "ResourceNotFoundException", "DBInstanceNotFoundFault", "NoSuchHostedZone"].includes(record(error).name as string);
 }
 export function absent(call: Call, response: Record<string, unknown>): boolean {
+  // A secret scheduled for deletion still describes, with DeletedDate set.
+  if (call.service === "secretsmanager") return !!response.DeletedDate;
   return call.service === "ecs" && Array.isArray(response.clusters) && Array.isArray(response.failures) && (response.clusters.length + response.failures.length > 0) && rows(response.clusters).every(c => c.status === "INACTIVE") && rows(response.failures).every(f => f.reason === "MISSING");
 }
 export function owned(response: Record<string, unknown>, plan: Plan): boolean {
@@ -185,7 +187,7 @@ export async function execute(plan: Plan, guard: Guard, transport: Transport, jo
                 if (missing(error)) break;
                 // DELETE TXT after partial setup: InvalidChangeBatch is NOT
                 // silently swallowed, because it can mean unrelated DNS drift.
-                if (!["InvalidDBInstanceStateFault", "HostedZoneNotEmpty", "DeleteConflict"].includes(record(error).name as string) || attempt >= c.maximumCalls - 1) throw error;
+                if (!["InvalidDBInstanceStateFault", "HostedZoneNotEmpty", "DeleteConflictException"].includes(record(error).name as string) || attempt >= c.maximumCalls - 1) throw error;
                 await io.sleep(5000);
               }
             }

@@ -2719,6 +2719,24 @@
           "environment": "GitHub-hosted runners; exact source after the zod 4.6.7 migration",
           "result": "Exact-source CI success: 21 success / 8 conditional operated-dispatch skips / 0 failure. The prior run 40027243777 on a7a9c4a3 failed supply-chain on GHSA-mrhx-c7xc-m3w5 (zod < 4.6.6, memory exhaustion validating large arrays); 5b75f356 moves zod to 4.6.7 tree-wide with zod 3 semantics kept (prefault, partialRecord, guid, legacy issue codes) and bounded boundary arrays. Earlier failures on 190db611 and bb8b6314 (agent approval browser request, owned Temporal start) were infrastructure flakes; 68002e65 and b87f4504 passed. Operated gates were not re-run on 5b75f356; the D-4 export lane still fails at adopt-destroy-teardown by the documented cleanup-writer barrier. No promotion.",
           "logs": "https://github.com/saivedant169/zenith/actions/runs/40032073219"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "1714283e57a4e28217fe7f8a370845aa8e2d9383",
+          "command": "operated-gate-linux.yml gate=drivers-d4-two-tenants (GitHub-hosted, run 40035554222)",
+          "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, Temporal mTLS, owned kind target, Chromium; zod 4.6.7 source",
+          "result": "D-4 two-tenants passed with a matched current-source receipt after the zod 4.6.7 migration: independent tenants, browser-approved deployments, provider readback, browser/MCP read and write isolation, foreign approval refused, no cross-tenant effects, owned cleanup. No promotion.",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-24-hosted-d4-two-tenants-1714283e/drivers-d4-two-tenants-amd64-run40035554222.json",
+          "logs": "https://github.com/saivedant169/zenith/actions/runs/40035554222"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "51aa67b7085e4c027c063adf44164f03c1d7780f",
+          "command": "operated-gate-linux.yml gate=drivers-d4-export (GitHub-hosted, run 40038487612)",
+          "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, Temporal mTLS, owned kind target, Chromium; zod 4.6.7 source; digest-pinned PostgreSQL 17, MySQL 8.4, MinIO and LocalStack owned containers",
+          "result": "D-4 export passed all 17 checks with a matched current-source receipt on zod 4.6.7 source: PostgreSQL, MySQL over TLS and object-store data roundtrips through browser-approved data.export/data.import with tenant scoping; LocalStack revision export, file readback, credential absence, browser-approved teardown, portable OpenTofu plan and apply readback; owned cleanup. arm64 runs on b249d7d9 and 51aa67b7 passed every functional check but failed owned cleanup at agent-link revoke (identity provider refusal mapped to 400; fixed in 623e7df6). No promotion.",
+          "artifact": "docs/build/production/evidence/PROD-LIFE-11/2026-10-24-hosted-d4-51aa67b7/drivers-d4-export-amd64-run40038487612.json",
+          "logs": "https://github.com/saivedant169/zenith/actions/runs/40038487612"
         }
       ],
       "requiredEvidence": [
@@ -5888,6 +5906,24 @@
           "url": "https://github.com/saivedant169/zenith/actions/runs/39946208786",
           "logs": "docs/build/production/evidence/PROD-LIFE-11/2026-10-23-kind-adoption-45af29ee/clean-host-kind-adoption-vitest.json",
           "result": "Adopted-object decommissioning on a disposable kind cluster: 1 passed/0 failed/0 skipped; registered case verified on the runner (1/0). Retained while stateful data is retained, dry run planned exactly the adopted StatefulSet and its two template claims, deletion removed them, unrelated StatefulSet and claims survived, repeat teardown clean. Engine-level teardown only; the adopt/release journey through the product API, tenant backup, MinIO ARM64 runtime and MySQL DNS/TLS remain open. Not a promotion."
+        },
+        {
+          "level": "remote_ci",
+          "commit": "51aa67b7085e4c027c063adf44164f03c1d7780f",
+          "command": "operated-gate-linux.yml gate=drivers-d4-export (GitHub-hosted, run 40038487612)",
+          "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, Temporal mTLS, owned kind target, Chromium; zod 4.6.7 source; digest-pinned PostgreSQL 17, MySQL 8.4, MinIO and LocalStack owned containers",
+          "result": "D-4 export passed all 17 checks with a matched current-source receipt on zod 4.6.7 source: PostgreSQL, MySQL over TLS and object-store data roundtrips through browser-approved data.export/data.import with tenant scoping; LocalStack revision export, file readback, credential absence, browser-approved teardown, portable OpenTofu plan and apply readback; owned cleanup. arm64 runs on b249d7d9 and 51aa67b7 passed every functional check but failed owned cleanup at agent-link revoke (identity provider refusal mapped to 400; fixed in 623e7df6). No promotion.",
+          "artifact": "docs/build/production/evidence/PROD-LIFE-11/2026-10-24-hosted-d4-51aa67b7/drivers-d4-export-amd64-run40038487612.json",
+          "logs": "https://github.com/saivedant169/zenith/actions/runs/40038487612"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "51aa67b7085e4c027c063adf44164f03c1d7780f",
+          "command": "operated-gate-linux.yml gate=drivers-d4-adopt (GitHub-hosted, run 40038490208)",
+          "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, Temporal mTLS, owned kind target, Chromium; zod 4.6.7 source",
+          "result": "D-4 adopt failed as documented: preconditions, adopt-release-retains (adopt manage, release, same StatefulSet uid and claim survive) and owned cleanup passed; adopt-destroy-teardown ended uncertain before any deletion because destroy write grants require a held cleanup attempt that direct Kubernetes teardown cannot create and that unsettled earlier deliveries block (TEARDOWN-AFTER-DEPLOY-DESIGN-2026-10-24.md, owner decision pending). Adopted objects survived. Not promotable.",
+          "artifact": "docs/build/production/evidence/PROD-LIFE-11/2026-10-24-hosted-d4-51aa67b7/drivers-d4-adopt-amd64-run40038490208.json",
+          "logs": "https://github.com/saivedant169/zenith/actions/runs/40038490208"
         }
       ],
       "requiredEvidence": [
@@ -8132,6 +8168,24 @@
           "environment": "GitHub-hosted native Linux arm64 (owner-approved 2026-10-22); lean disposable J1 stack, Temporal mTLS, owned kind target, Chromium",
           "result": "DRV-1 update-rollback passed 8/8 with a matched current-source receipt: browser-approved baseline deploy with independent digest/pod/application readback; a distinct compatible image update deployed through two human approval rounds with stable workload identity; a real failed rollout (empty-nonce witness in CrashLoopBackOff while the previous ready pod kept serving) confirmed as a failed operation; a browser-approved rollback to the exact original revision; release rows and the release API agree (baseline and rollback readback_verified, the superseded update rolled_back with its verified readback, failure persisted); product record preserved; owned cleanup. Product fix found by this gate: in-place Kubernetes updates had no reviewable plan (forcesReplacement missing), so every update failed at approval (5e1bec82). Limits: local disposable engines on a hosted runner, not live cloud; stateless witness only.",
           "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-22-5d9bf648-drv1-update-rollback-hosted-arm64.json"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "1714283e57a4e28217fe7f8a370845aa8e2d9383",
+          "command": "operated-gate-linux.yml gate=drivers-d4-two-tenants (GitHub-hosted, run 40035554222)",
+          "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, Temporal mTLS, owned kind target, Chromium; zod 4.6.7 source",
+          "result": "D-4 two-tenants passed with a matched current-source receipt after the zod 4.6.7 migration: independent tenants, browser-approved deployments, provider readback, browser/MCP read and write isolation, foreign approval refused, no cross-tenant effects, owned cleanup. No promotion.",
+          "artifact": "docs/build/production/evidence/PROD-CI-08/2026-10-24-hosted-d4-two-tenants-1714283e/drivers-d4-two-tenants-amd64-run40035554222.json",
+          "logs": "https://github.com/saivedant169/zenith/actions/runs/40035554222"
+        },
+        {
+          "level": "remote_ci",
+          "commit": "51aa67b7085e4c027c063adf44164f03c1d7780f",
+          "command": "operated-gate-linux.yml gate=drivers-d4-export (GitHub-hosted, run 40038487612)",
+          "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, Temporal mTLS, owned kind target, Chromium; zod 4.6.7 source; digest-pinned PostgreSQL 17, MySQL 8.4, MinIO and LocalStack owned containers",
+          "result": "D-4 export passed all 17 checks with a matched current-source receipt on zod 4.6.7 source: PostgreSQL, MySQL over TLS and object-store data roundtrips through browser-approved data.export/data.import with tenant scoping; LocalStack revision export, file readback, credential absence, browser-approved teardown, portable OpenTofu plan and apply readback; owned cleanup. arm64 runs on b249d7d9 and 51aa67b7 passed every functional check but failed owned cleanup at agent-link revoke (identity provider refusal mapped to 400; fixed in 623e7df6). No promotion.",
+          "artifact": "docs/build/production/evidence/PROD-LIFE-11/2026-10-24-hosted-d4-51aa67b7/drivers-d4-export-amd64-run40038487612.json",
+          "logs": "https://github.com/saivedant169/zenith/actions/runs/40038487612"
         }
       ],
       "requiredEvidence": [

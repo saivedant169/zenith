@@ -1,0 +1,99 @@
+name: Live Azure sandbox sign-in check
+
+# Proves that a GitHub run can sign in to the Azure sandbox (resource group
+# `zenith-live-sandbox`) through GitHub OIDC, and that the signed-in identity
+# can read the sandbox. It changes nothing in Azure: every Azure call is a read.
+#
+# Dispatch only. This workflow is triggered by `workflow_dispatch` and nothing
+# else. It never runs on pull requests, pushes, schedules or
+# `pull_request_target`, and tests/ci/release-gates.test.ts fails if that
+# changes. A person starts it by hand from the Actions tab.
+#
+# The `live-sandbox` environment holds the gate. Its required reviewers must
+# approve the run before the job starts, and only then does GitHub mint the
+# OIDC token that `azure/login` exchanges for Azure access. Its deployment
+# branch rules refuse runs from unprotected branches. Nothing here is a secret:
+# the client, tenant, subscription, region and resource group are environment
+# variables. The trust is the federated credential on the managed identity, not
+# a stored key. No token or credential is printed.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-azure-signin
+  cancel-in-progress: false
+
+jobs:
+  azure-signin:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: live-sandbox
+
+    permissions:
+      contents: read
+      # Lets this job request the GitHub OIDC token that azure/login exchanges.
+      id-token: write
+
+    env:
+      AZ_CLIENT_ID: ${{ vars.LIVE_SANDBOX_AZURE_CLIENT_ID }}
+      AZ_TENANT_ID: ${{ vars.LIVE_SANDBOX_AZURE_TENANT_ID }}
+      AZ_SUBSCRIPTION_ID: ${{ vars.LIVE_SANDBOX_AZURE_SUBSCRIPTION_ID }}
+      AZ_REGION: ${{ vars.LIVE_SANDBOX_AZURE_REGION }}
+      AZ_RESOURCE_GROUP: ${{ vars.LIVE_SANDBOX_AZURE_RESOURCE_GROUP }}
+
+    steps:
+      - name: Validate the sandbox variables before requesting a token
+        shell: bash
+        run: |
+          set -euo pipefail
+          guid='^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+          fail() { echo "::error::$1"; exit 1; }
+          [[ "$AZ_CLIENT_ID" =~ $guid ]] || fail "LIVE_SANDBOX_AZURE_CLIENT_ID must be a GUID set on the live-sandbox environment."
+          [[ "$AZ_TENANT_ID" =~ $guid ]] || fail "LIVE_SANDBOX_AZURE_TENANT_ID must be a GUID set on the live-sandbox environment."
+          [[ "$AZ_SUBSCRIPTION_ID" =~ $guid ]] || fail "LIVE_SANDBOX_AZURE_SUBSCRIPTION_ID must be a GUID set on the live-sandbox environment."
+          [ "$AZ_REGION" = eastasia ] || fail "LIVE_SANDBOX_AZURE_REGION must be eastasia (the only region the sandbox subscription allows here)."
+          [[ "$AZ_RESOURCE_GROUP" =~ ^[A-Za-z0-9._()-]{1,90}$ ]] || fail "LIVE_SANDBOX_AZURE_RESOURCE_GROUP must be a valid Azure resource group name."
+          echo "Sandbox variables are present and well formed."
+
+      - name: Sign in to Azure through GitHub OIDC
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
+        with:
+          client-id: ${{ vars.LIVE_SANDBOX_AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.LIVE_SANDBOX_AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.LIVE_SANDBOX_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Read-only checks of the sandbox
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Read-only: every command below only queries.
+          signed_in="$(az account show --query id --output tsv)"
+          if [ "${signed_in,,}" != "${AZ_SUBSCRIPTION_ID,,}" ]; then
+            echo "::error::Signed in to a subscription other than the declared sandbox subscription."
+            exit 1
+          fi
+          echo "Signed in to the declared sandbox subscription."
+
+          location="$(az group show --name "$AZ_RESOURCE_GROUP" --query location --output tsv)"
+          if [ "$location" != eastasia ]; then
+            echo "::error::Resource group location is '$location', expected eastasia."
+            exit 1
+          fi
+          sandbox_tag="$(az group show --name "$AZ_RESOURCE_GROUP" --query "tags.zenith_sandbox" --output tsv)"
+          if [ "$sandbox_tag" != true ]; then
+            echo "::error::Resource group is missing the tag zenith_sandbox=true."
+            exit 1
+          fi
+          echo "Resource group is in eastasia and carries zenith_sandbox=true."
+
+          echo "Role assignments for the sign-in identity (role and scope):"
+          az role assignment list --assignee "$AZ_CLIENT_ID" --all \
+            --query "[].[roleDefinitionName, scope]" --output tsv
+
+      - name: Sign out of Azure
+        if: always()
+        run: az logout --only-show-errors || true

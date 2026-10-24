@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { ZodError } from 'zod';
-import { HostedError } from '@/lib/hosted/contracts/errors';
+import { HostedError } from '@/lib/hosted/contracts';
 import { log } from '@/lib/log';
 import { ControlError, type Principal } from './journal';
 import { AgentError, type SelectedScope } from '../security';

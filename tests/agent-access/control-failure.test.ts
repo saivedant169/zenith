@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { failure } from "@/lib/agent-access/control/boundary";
-import { HostedError } from "@/lib/hosted/contracts/errors";
+import { HostedError } from "@/lib/hosted/contracts";
 
 describe("agent control error boundary", () => {
   it("keeps a hosted identity refusal's code and status instead of a generic 400", async () => {

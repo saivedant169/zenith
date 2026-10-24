@@ -41,7 +41,7 @@ jobs:
   operated-gate:
     # DRV-1 runs on native arm64 with AppArmor (owner decision 2026-10-22, verify/DRV-1-DECLARATIONS.md); any other
     # gate may be run on native arm64 too (for example D-4 export's MinIO and MySQL on Linux/ARM64, PROD-LIFE-11).
-    runs-on: ${{ (startsWith(inputs.gate, 'drv1-') || inputs.arch == 'arm64') && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    runs-on: ${{ (startsWith(inputs.gate, 'drv1-') || inputs.arch == 'arm64') && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 150
     env:
       GATE: ${{ inputs.gate }}

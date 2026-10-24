@@ -1,6 +1,6 @@
 /**
  * PROD-REL-04: the scope permission manifest. Contract level: pure rules over the shipped manifest; nothing here reaches
- * a cloud. The shipped manifest must be unapproved, so every live harness refuses until a person approves it.
+ * a cloud. The shipped manifest is owner-approved; refusal and approve-flow paths start from an unapproved copy.
  */
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";
@@ -8,7 +8,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { runPermissionsCli } from "../../scripts/release/permissions-cli";
 import { FORBIDDEN_ACTIONS, Scope, ScopeError, ScopeLedger, authorizeModelSpend, committedSpend, contentDigest, loadManifestFile, parseManifest, requireScope, runLedger, scopeSkipReason, type ScopeProvider, type ScopeRequest } from "../../scripts/release/scope";
-import { NOW, RUN, approvedManifest, approvedScope, shippedManifestPath, shippedRaw } from "./_support";
+import { NOW, RUN, approvedManifest, approvedScope, shippedManifestPath, shippedRaw, unapprovedShippedFile, unapprovedShippedRaw } from "./_support";
 
 const code = (fn: () => unknown): string | undefined => {
   try { fn(); } catch (e) { return e instanceof ScopeError ? e.code : "other"; }
@@ -17,9 +17,14 @@ const code = (fn: () => unknown): string | undefined => {
 const create = (over: Partial<ScopeRequest> = {}): ScopeRequest => ({ harness: "mixed-traffic-live", provider: "gcp", action: "create_disposable", estimatedUsd: 5, runId: RUN, resourceName: `zenith-${RUN}-web`, ttlMinutes: 60, ...over });
 
 describe("the shipped manifest", () => {
-  it("parses, names every live harness and is NOT approved", () => {
+  it("parses, names every live harness and carries the owner's approval of exactly this content", () => {
     const manifest = loadManifestFile(shippedManifestPath());
-    expect(manifest.approval).toEqual({ status: "not_approved", approvedBy: null, approvedAt: null, expiresAt: null, approvedDigest: null });
+    expect(manifest.approval.status).toBe("approved");
+    expect(manifest.approval.approvedBy).toMatch(/\S/);
+    expect(manifest.approval.approvedDigest).toBe(contentDigest(manifest));
+    expect(Date.parse(manifest.approval.expiresAt!)).toBeGreaterThan(Date.parse(manifest.approval.approvedAt!));
+    // The same check every harness runs, pinned to the approval instant so the test never depends on the wall clock.
+    expect(() => new Scope(manifest, () => new Date(manifest.approval.approvedAt!)).assertApproved()).not.toThrow();
     for (const id of ["aws-live", "aws-cleanup", "aws-iam-live", "azure-live", "non-aws-dns-live", "billing-live", "mixed-evidence-live", "mixed-traffic-live", "mixed-recovery-live", "mixed-connectivity-live", "release-acceptance"]) {
       expect(manifest.harnesses[id], id).toBeDefined();
     }
@@ -27,11 +32,12 @@ describe("the shipped manifest", () => {
   });
 
   it("refuses every live harness until a person approves it", () => {
-    const scope = new Scope(loadManifestFile(shippedManifestPath()), () => NOW);
+    const env = { ZENITH_LIVE_SCOPE_FILE: unapprovedShippedFile() };
+    const scope = new Scope(loadManifestFile(env.ZENITH_LIVE_SCOPE_FILE), () => NOW);
     expect(code(() => scope.assertApproved())).toBe("not_approved");
     expect(code(() => scope.authorize({ harness: "mixed-traffic-live", provider: "control_plane", action: "read" }))).toBe("not_approved");
-    expect(scopeSkipReason("mixed-traffic-live", "control_plane", {}, () => NOW)).toContain("not been approved");
-    expect(code(() => requireScope("aws-live", "aws", {}, () => NOW))).toBe("not_approved");
+    expect(scopeSkipReason("mixed-traffic-live", "control_plane", env, () => NOW)).toContain("not been approved");
+    expect(code(() => requireScope("aws-live", "aws", env, () => NOW))).toBe("not_approved");
   });
 
   it("every harness grant fits inside the per-run budget and grants no forbidden capability", () => {
@@ -145,7 +151,7 @@ describe("authorize", () => {
     expect(() => scope.assertGrant("aws-cleanup", "aws", "teardown_run_tagged")).not.toThrow();
     expect(code(() => scope.assertGrant("aws-cleanup", "gcp" as ScopeProvider, "read"))).toBe("provider_not_granted");
     expect(code(() => scope.assertGrant("aws-cleanup", "aws", "create_disposable"))).toBe("action_not_granted");
-    expect(code(() => new Scope(loadManifestFile(shippedManifestPath()), () => NOW).assertGrant("aws-cleanup", "aws", "read"))).toBe("not_approved");
+    expect(code(() => new Scope(loadManifestFile(unapprovedShippedFile()), () => NOW).assertGrant("aws-cleanup", "aws", "read"))).toBe("not_approved");
   });
 });
 
@@ -167,7 +173,7 @@ describe("permissions-cli", () => {
   function sandbox(): { file: string; env: Record<string, string>; out: string[]; err: string[]; io: { out: (s: string) => void; err: (s: string) => void } } {
     const dir = mkdtempSync(path.join(os.tmpdir(), "zperm-"));
     const file = path.join(dir, "permissions.json");
-    writeFileSync(file, readFileSync(shippedManifestPath(), "utf8"));
+    writeFileSync(file, JSON.stringify(unapprovedShippedRaw()));
     const out: string[] = []; const err: string[] = [];
     return { file, env: { ZENITH_LIVE_SCOPE_FILE: file }, out, err, io: { out: (s) => { out.push(s); }, err: (s) => { err.push(s); } } };
   }

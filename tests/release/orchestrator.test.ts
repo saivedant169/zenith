@@ -11,7 +11,7 @@ import { classifyVitest, runAcceptance, runOrchestratorCli, scenarioStatus, type
 import { memoryStore } from "../../scripts/release/checkpoint";
 import { SCENARIOS, type Scenario } from "../../scripts/release/scenarios";
 import { Scope, loadManifestFile } from "../../scripts/release/scope";
-import { NOW, approvedScope, shippedManifestPath } from "./_support";
+import { NOW, approvedScope, unapprovedShippedFile } from "./_support";
 
 interface Plan { fail?: string[]; skip?: string[]; empty?: string[]; liveExit?: number }
 
@@ -92,7 +92,7 @@ describe("runAcceptance", () => {
   });
 
   it("does not run live lanes without --include-live, an approved scope and the harness gates", async () => {
-    const unapproved = new Scope(loadManifestFile(shippedManifestPath()), () => NOW);
+    const unapproved = new Scope(loadManifestFile(unapprovedShippedFile()), () => NOW);
     const a = fakeExec();
     const r1 = await runAcceptance(base({ only: ["mixed-recovery"], includeLive: true }), { exec: a.exec, store: memoryStore(), now: () => NOW, scope: unapproved, env: {} });
     const live1 = byId(r1, "mixed-recovery").lanes.find((l) => l.kind === "live_sandbox")!;

@@ -57,6 +57,7 @@ const read = (file: string): Workflow =>
 const workflow = read("ci.yml");
 const agentControl = read("agent-control.yml");
 const liveAcceptance = read("live-acceptance.yml");
+const liveAzureSignin = read("live-azure-signin.yml");
 
 /** Every workflow in the repository, by file name. */
 const ALL_WORKFLOWS: Record<string, Workflow> = {
@@ -64,6 +65,7 @@ const ALL_WORKFLOWS: Record<string, Workflow> = {
   "agent-control.yml": agentControl,
   "tick.yml": read("tick.yml"),
   "live-acceptance.yml": liveAcceptance,
+  "live-azure-signin.yml": liveAzureSignin,
   "skipped-platforms.yml": read("skipped-platforms.yml"),
   "release.yml": read("release.yml"),
 };
@@ -113,7 +115,7 @@ const coreRun = (step: string): string => `node scripts/ci/run-gate.mjs core --r
 
 const requiredCommands: Record<string, string[]> = {
   verify: [
-    '"$RUNNER_TEMP/actionlint" .github/workflows/ci.yml .github/workflows/tick.yml .github/workflows/agent-control.yml .github/workflows/live-acceptance.yml .github/workflows/packaged-workers.yml .github/workflows/skipped-platforms.yml .github/workflows/release.yml .github/workflows/clean-host-default-stack.yml .github/workflows/clean-host-journey.yml .github/workflows/clean-host-kind-guest.yml .github/workflows/clean-host-kind-adoption.yml .github/workflows/build-profiles-linux.yml .github/workflows/product-store-postgrest.yml .github/workflows/linux-runner-lifecycle.yml .github/workflows/operated-gate-linux.yml',
+    '"$RUNNER_TEMP/actionlint" .github/workflows/ci.yml .github/workflows/tick.yml .github/workflows/agent-control.yml .github/workflows/live-acceptance.yml .github/workflows/live-azure-signin.yml .github/workflows/packaged-workers.yml .github/workflows/skipped-platforms.yml .github/workflows/release.yml .github/workflows/clean-host-default-stack.yml .github/workflows/clean-host-journey.yml .github/workflows/clean-host-kind-guest.yml .github/workflows/clean-host-kind-adoption.yml .github/workflows/build-profiles-linux.yml .github/workflows/product-store-postgrest.yml .github/workflows/linux-runner-lifecycle.yml .github/workflows/operated-gate-linux.yml',
     INSTALL,
     coreRun("typecheck"),
     coreRun("lint"),
@@ -705,6 +707,7 @@ describe("toolchain and trust rules that hold for every workflow", () => {
       "actions/setup-node",
       "actions/upload-artifact",
       "aws-actions/configure-aws-credentials",
+      "azure/login",
     ]);
     for (const [action, shas] of byAction) expect([...shas], `${action} must have one pin`).toHaveLength(1);
   });
@@ -1324,6 +1327,18 @@ printf '%s\\n' "$@" > "$CAPTURE"
   });
 });
 
+describe("the Azure sandbox sign-in check", () => {
+  const job = (): Job => liveAzureSignin.jobs["azure-signin"];
+
+  it("runs only from workflow_dispatch, behind the live-sandbox environment, with no secrets", () => {
+    expect(Object.keys(liveAzureSignin.on)).toEqual(["workflow_dispatch"]);
+    expect(job().environment).toBe("live-sandbox");
+    expect(liveAzureSignin.permissions).toEqual({ contents: "read" });
+    expect(job().permissions).toEqual({ contents: "read", "id-token": "write" });
+    expect(code("live-azure-signin.yml")).not.toMatch(/secrets\./);
+  });
+});
+
 describe("the live acceptance workflow", () => {
   const live = (): Job => liveAcceptance.jobs["aws-live"];
   const GUARD = "hashFiles('scripts/acceptance/aws-live.ts') != ''";
@@ -1351,7 +1366,7 @@ describe("the live acceptance workflow", () => {
     expect(live().permissions).toEqual({ contents: "read", "id-token": "write" });
     // The only `id-token` in any workflow.
     for (const [file, w] of Object.entries(ALL_WORKFLOWS))
-      if (file !== "live-acceptance.yml") {
+      if (!["live-acceptance.yml", "live-azure-signin.yml"].includes(file)) {
         expect(JSON.stringify(w.permissions ?? {}), file).not.toContain("id-token");
         for (const j of Object.values(w.jobs)) expect(JSON.stringify(j.permissions ?? {}), file).not.toContain("id-token");
       }

@@ -54,11 +54,22 @@ describe("worker health", () => {
     const first = probe(); const overlapping = probe();
     await vi.advanceTimersByTimeAsync(100);
     expect(await first).toMatchObject({ ready: false, checks: { temporal: "unavailable" } }); await overlapping;
-    const third = probe(); await vi.advanceTimersByTimeAsync(100); await third;
     expect(check).toHaveBeenCalledOnce();
+    // Each check that outlived its timeout is abandoned and retried, but only two stay outstanding per dependency.
+    for (let i = 0; i < 4; i++) { const later = probe(); await vi.advanceTimersByTimeAsync(100); expect(await later).toMatchObject({ checks: { temporal: "unavailable" } }); }
+    expect(check).toHaveBeenCalledTimes(3);
     pending.resolve(true); await vi.advanceTimersByTimeAsync(0);
-    expect(await probe()).toMatchObject({ ready: true }); expect(check).toHaveBeenCalledTimes(2);
+    expect(await probe()).toMatchObject({ ready: true }); expect(check).toHaveBeenCalledTimes(4);
     expect(vi.getTimerCount()).toBe(0);
+  });
+  it("recovers when a check stuck on a dead connection never answers but a fresh attempt succeeds", async () => {
+    vi.useFakeTimers();
+    const never = new Promise<boolean>(() => {}); const store = vi.fn().mockReturnValueOnce(never).mockResolvedValue(true);
+    const probe = readinessProbe({ ...healthy(), store }, 100);
+    const stuck = probe(); await vi.advanceTimersByTimeAsync(100);
+    expect(await stuck).toMatchObject({ ready: false, checks: { store: "unavailable" } });
+    expect(await probe()).toMatchObject({ ready: true, checks: { store: "ok" } });
+    expect(store).toHaveBeenCalledTimes(2);
   });
 
   it("handles HEAD, unknown paths and invalid methods without triggering probes", async () => {

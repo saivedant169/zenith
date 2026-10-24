@@ -24,6 +24,7 @@ export interface ReadinessResult {
   checks: Record<"temporal" | "store" | "policy" | "drivers", CheckStatus> & { reconciliation?: CheckStatus };
 }
 export const HEALTH_CHECK_TIMEOUT_MS = 2000;
+const MAX_ABANDONED = 2;
 
 export function healthPortFromEnv(env: Readonly<Record<string, string | undefined>> = process.env): number {
   const raw = env.ZENITH_WORKER_HEALTH_PORT?.trim() || "9464";
@@ -37,14 +38,25 @@ export function readinessProbe(checks: ReadinessChecks, timeoutMs = HEALTH_CHECK
   if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 30_000) throw new Error("Health check timeout must be from 1 to 30000 milliseconds.");
   const keys: (keyof ReadinessChecks)[] = ["temporal", "store", "policy", "drivers"];
   if (checks.reconciliation) keys.push("reconciliation");
-  const pending = new Map<keyof ReadinessChecks, Promise<CheckStatus>>();
+  const pending = new Map<keyof ReadinessChecks, { check: Promise<CheckStatus>; started: number }>();
+  // A check that outlived its timeout (e.g. a query on a connection that died in a network partition and never
+  // answers) is abandoned so a later probe retries; at most MAX_ABANDONED per dependency stay outstanding.
+  const abandoned = new Map<keyof ReadinessChecks, number>();
   return async () => {
     const statuses = await Promise.all(keys.map(async (key): Promise<CheckStatus> => {
-      let check = pending.get(key);
+      let entry = pending.get(key);
+      if (entry && Date.now() - entry.started >= timeoutMs && (abandoned.get(key) ?? 0) < MAX_ABANDONED) {
+        abandoned.set(key, (abandoned.get(key) ?? 0) + 1);
+        void entry.check.then(() => abandoned.set(key, (abandoned.get(key) ?? 1) - 1));
+        pending.delete(key); entry = undefined;
+      }
+      let check = entry?.check;
       if (!check) {
+        const started = Date.now();
         check = Promise.resolve().then(() => checks[key]?.()).then((ok): CheckStatus => ok === undefined ? "unknown" : ok === true ? "ok" : "unavailable", (): CheckStatus => "unavailable");
-        pending.set(key, check);
-        void check.then(() => { if (pending.get(key) === check) pending.delete(key); });
+        const created = check;
+        pending.set(key, { check: created, started });
+        void created.then(() => { if (pending.get(key)?.check === created) pending.delete(key); });
       }
       let timer: ReturnType<typeof setTimeout> | undefined;
       try {

@@ -11,7 +11,7 @@ type UxCaseStatus = 'passed' | 'failed' | 'not_run';
 type UxInputCase = {
   id: string;
   status: UxCaseStatus;
-  scans: { pageId: string; viewport: string; violations: { id: string; impact?: string | null }[]; horizontalOverflow: boolean; keyboard?: { total: number; reached: number; focusVisible: number; nonNative: number } }[];
+  scans: { pageId: string; viewport: string; violations: { id: string; impact?: string | null }[]; horizontalOverflow: boolean; keyboard?: { total: number; reached: number; focusVisible: number; nonNative: number }; incomplete?: string[] }[];
 };
 type UxReceiptCase = {
   id: string;
@@ -35,7 +35,7 @@ type UxUncertaintyEvidence = {
 type UxInput = { source: typeof source; cases: UxInputCase[]; uncertainty: UxUncertaintyEvidence | null; browser: string };
 const BROWSER = 'Google Chrome 141.0.7390.54 via Playwright';
 const scan = (pageId: string, viewport: string) => ({ pageId, viewport, violations: [], horizontalOverflow: false,
-  keyboard: { total: 4, reached: 4, focusVisible: 4, nonNative: 0 } });
+  keyboard: { total: 4, reached: 4, focusVisible: 4, nonNative: 0 }, incomplete: [] as string[] });
 const uncertaintyEvidence = (): UxUncertaintyEvidence => {
   const runId = '11111111-1111-4111-8111-111111111111';
   const machineId = 'machine_test';
@@ -115,7 +115,7 @@ describe('PROD-UX-01 actual-browser receipt contract', () => {
     const firstScan = operationReview.scans[0];
     if (!firstScan) throw new Error('UX operation review case is missing its first viewport scan.');
     expect(firstScan).toEqual({
-      pageId: 'operation-requester-review', viewport: '1280x900', violations: [], horizontalOverflow: false, keyboard: { total: 4, reached: 4, focusVisible: 4, nonNative: 0 },
+      pageId: 'operation-requester-review', viewport: '1280x900', violations: [], horizontalOverflow: false, keyboard: { total: 4, reached: 4, focusVisible: 4, nonNative: 0 }, incomplete: [],
     });
     expect(validateUxReceipt(receipt)).toBe(receipt);
   });
@@ -148,7 +148,7 @@ describe('PROD-UX-01 actual-browser receipt contract', () => {
 
   it('requires a closed, joined uncertainty proof and both uncertainty viewport scans to pass', () => {
     const complete = makeUxReceipt(completeUxInput());
-    expect(complete).toMatchObject({ schemaVersion: 4, result: 'passed', counts: { passed: UX_CASES.length, failed: 0, not_run: 0 }, uncertainty: { marker: { nonceMatch: true } } });
+    expect(complete).toMatchObject({ schemaVersion: 5, result: 'passed', counts: { passed: UX_CASES.length, failed: 0, not_run: 0 }, uncertainty: { marker: { nonceMatch: true } } });
     expect(complete.cases.find((row: UxReceiptCase) => row.id === 'ux01-uncertainty-a11y')?.scans).toHaveLength(2);
     expect(assertUxAcceptance(complete, journey())).toBe(true);
 
@@ -252,7 +252,7 @@ describe('PROD-UX-01 actual-browser receipt contract', () => {
     if (!failedCase) throw new Error('UX input is missing the uncertainty case.');
     failedCase.status = 'failed';
     failedCase.scans = [{ pageId: 'operation-uncertain', viewport: '1280x900',
-      violations: [{ id: 'color-contrast', impact: 'serious' }], horizontalOverflow: false, keyboard: { total: 4, reached: 3, focusVisible: 3, nonNative: 0 } }];
+      violations: [{ id: 'color-contrast', impact: 'serious' }], horizontalOverflow: false, keyboard: { total: 4, reached: 3, focusVisible: 3, nonNative: 0 }, incomplete: [] }];
     failedPartial.uncertainty = null;
     const retainedFailure = makeUxReceipt(failedPartial);
     expect(retainedFailure).toMatchObject({ result: 'failed', counts: { passed: UX_CASES.length - 1, failed: 1, not_run: 0 } });
@@ -267,6 +267,17 @@ describe('PROD-UX-01 actual-browser receipt contract', () => {
       expect(() => validateCompletedJourney({ ...journey, telemetryStates: { ...journey.telemetryStates, metric: "not-a-state" } })).toThrow(/receipt-invalid/);
       expect(() => validateCompletedJourney({ ...journey, environment: { ...journey.environment, host: "Windows AMD64" } })).toThrow(/receipt-invalid/);
     }
+  });
+  it("schema 5: records axe incomplete rule ids sorted and unique, and refuses malformed ones", () => {
+    const input = completeUxInput();
+    input.cases[0].scans[0].incomplete = ["color-contrast", "aria-valid-attr-value", "color-contrast"];
+    const receipt = makeUxReceipt(input);
+    expect(receipt.schemaVersion).toBe(5);
+    expect(receipt.cases[0].scans[0].incomplete).toEqual(["aria-valid-attr-value", "color-contrast"]);
+    const bad = makeUxReceipt(completeUxInput()); bad.cases[0].scans[0].incomplete = ["Not A Rule"];
+    expect(() => validateUxReceipt(bad)).toThrow("ux01:receipt-invalid");
+    const missing = makeUxReceipt(completeUxInput()); Reflect.deleteProperty(missing.cases[0].scans[0], "incomplete");
+    expect(() => validateUxReceipt(missing)).toThrow("ux01:receipt-invalid");
   });
   it("schema 4: refuses a passed scan without a focus indicator on every reached control, with a non-native control, or without mobile keyboard data", () => {
     const unindicated = completeUxInput();

@@ -21,7 +21,7 @@ async function auditUx(page, pageId, axeSource, scans) {
     if (!(await page.evaluate(() => Boolean(window.axe)))) await page.addScriptTag({ content: axeSource });
     const result = await page.evaluate(async tags => {
       const scan = await window.axe.run(document, { runOnly: { type: 'tag', values: tags } });
-      return { violations: scan.violations.map(({ id, impact }) => ({ id, impact })),
+      return { violations: scan.violations.map(({ id, impact }) => ({ id, impact })), incomplete: scan.incomplete.map(({ id }) => id),
         horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth };
     }, UX_TAGS);
     // Every viewport proves keyboard operability: Tab reaches every visible control, each shows a focus indicator, and

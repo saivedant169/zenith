@@ -345,17 +345,19 @@ export function useLiquidGlass(ref: RefObject<HTMLElement | null>, material: Gla
       const next = readTone(target, target.dataset.tone);
       if (next !== target.dataset.tone) target.dataset.tone = next;
     };
-    const schedule = () => { if (frame === null) frame = requestAnimationFrame(retone); };
+    const schedule = () => { if (!disposed && frame === null) frame = requestAnimationFrame(retone); };
+    let settle: ReturnType<typeof setTimeout> | undefined;
     if (tone) {
       schedule();
       // Once more after the entrance and reveal animations have placed what sits behind.
-      setTimeout(schedule, 700);
+      settle = setTimeout(schedule, 700);
       window.addEventListener("scroll", schedule, { passive: true });
       window.addEventListener("resize", schedule);
     }
     return () => {
       disposed = true;
       clearTimeout(timer);
+      clearTimeout(settle);
       if (frame !== null) cancelAnimationFrame(frame);
       resize.disconnect();
       window.removeEventListener("scroll", schedule);

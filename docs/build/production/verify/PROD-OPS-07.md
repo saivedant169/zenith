@@ -1,6 +1,6 @@
 # PROD-OPS-07 Configurable non-destructive retention
 
-Status: built and typechecked. Local engine evidence exists (commit 69be83f8, disposable MinIO/PostgreSQL); live AWS S3 evidence is still pending. Branch `prod/ops-07-w5`, migration 45.
+Status: built and typechecked. Local engine evidence exists (commit 69be83f8, disposable MinIO/PostgreSQL); live AWS S3 sandbox evidence passed on 2026-10-26 (see the dated section at the end); the requirement stays in progress. Branch `prod/ops-07-w5`, migration 45.
 Approved baseline (DEC-RETENTION, Arnav Bule, 2026-10-13): production logs are kept 30 days; sensitive execution payloads are deleted within 72 hours after an operation finishes; essential audit records (approvals, infrastructure changes, outcomes) are kept at least one year and are not auto-deleted. These periods ship as the default policy. Approved does not mean running: nothing is deleted on an installation until its operator switches deletion on (`ZENITH_RETENTION_APPLY=1` for logs, `ZENITH_DATA_MINIMIZE_APPLY=1` for payloads).
 
 **Update 2026-10-13 (DEC-RETENTION decision implemented).** The built-in default policy is now: `runner_job_logs` and `machine_request_logs` archive and prune at 30 days; `resource_observations` and `drift_reports` retain (they record infrastructure changes and outcomes); the built-in approval covers only the built-in default, so an operator policy file without its own `approval` is still dry-run/copy-only. The policy loader refuses a `pruneAfterDays` below 365 on `resource_observations` and `drift_reports` (class or workspace override). Legal holds now also stop archive copies: `archiveBatch` reads its candidates and their hold flags under the holds lock and stops before the first held row, so the watermark never passes a held row and the row is archived normally after release (outcome `{ status: "blocked", reason: "legal_hold" }` when the first candidate is held). A hold placed while a copy is already in flight applies from the next batch. Pruning waits behind holds as before and only deletes archived rows. The payload minimizer (OPS-06) now sits behind the same approval gate and honours holds (see [PROD-OPS-05-06](PROD-OPS-05-06.md)). The admin page and `GET /api/admin/ops/retention` show the approved baseline, per-class eligible, held, archived and pruned counts, the minimizer gate with its eligible and held counts, and two fixed notices. Honest gaps: Zenith does not expire archive objects (the destination bucket lifecycle governs them), and backups taken before a deletion still contain the rows until the backup expires; backup expiry is not tracked. Count-based trims of observations and drift reports in the repositories are unchanged. Sections below describe the original build; where they say default retain forever or deletion pending, this update supersedes them.
@@ -160,3 +160,31 @@ node scripts/ci/wave6-gates.mjs --requirement PROD-OPS-07 --print > /tmp/zenith-
 ```
 
 This prints the exact argv for each contract batch and required engine case, its gate names, private prerequisites, and its strict report-validation command. Set only the gates for the selected lane after preparing its owned fixture; a skip cannot satisfy that lane. Run each `argv` sequentially and then its `verify` argv. [Final integration setup and results](FINAL-INTEGRATION.md), [canonical inventory](../../../../scripts/ci/wave6-gates.json), [owner live runbook](../LIVE-ACCEPTANCE.md).
+
+## Live AWS sandbox evidence (2026-10-26)
+
+Run: [GitHub Actions run 40234506190](https://github.com/saivedant169/zenith/actions/runs/40234506190) on `saivedant169/zenith`, workflow `live-acceptance.yml`, scenario `retention-s3`, run id `zlive-202610252113-f271`. Verdict `passed`: 3 passed, 0 failed, 0 pending. Cleanup complete.
+
+- Source commit: `722879ed81ae148c8e697e64bbdde53bf164df77` (the head of `codex/production-2026-10-02` after PR #23).
+- Plan digest `6e17ec204ae888d38e159dde1e4d68a6145b6677c0a88259851a873abc0cdb47`; permission digest `416a36df4915c9d9a1baa13101fa8582559112b527001ab48f4bd103e6bb28bc`.
+- AWS sandbox account `361646636162`, region `ap-south-1`. Budget cap USD 0.40 (a provisional estimate; billing was not measured). Duration 15 minutes (the harness default; see the gotcha in [LIVE-ACCEPTANCE.md](../LIVE-ACCEPTANCE.md)).
+- Approval: automated envelope, `approvedBy` "automation (delegated by Saivedant Hava on 2026-10-26)", under the owner decision recorded in LIVE-ACCEPTANCE.md.
+- Evidence kept in the repo: [`evidence/PROD-OPS-07/2026-10-26-live-aws-40234506190/`](../evidence/PROD-OPS-07/2026-10-26-live-aws-40234506190/) (`evidence.json` sha256 `360b129cb464d03632b616695e47e05c845f91e7ef6b76fc79e784e607ae002e`, `journal.json` sha256 `e9291ef79dd1824587f91bb6ddba2feb7e30330ae3083bbb92365bf35c91616b`). The GitHub artifact `aws-live-40234506190` expires 2026-11-01; the repo copy is the durable record.
+
+What the run proved (verbatim reason from `evidence.json`):
+
+> PROD-OPS-07 proven by independent readback: sealed objects are listed under retention/zlive-202610252113-f271/ for both classes and match their archive records; verify passes with the archive key and refuses a wrong key; the staging restore returns the unheld out-of-window ids; with ZENITH_RETENTION_APPLY unset nothing is removed; with it set, 6 archived unheld rows removed; 1 legal-hold row and 4 in-window rows kept; audit and receipt row counts are unchanged. Gates: built-in DEC-RETENTION baseline (approval recorded for Arnav Bule), the apply switch, and one legal hold. No in-product proposal or approval was used in this flow.
+
+Fixes that the earlier live attempts found before this run passed: #14 (S3 archive region), #20 (inactive ECS cluster leak scan), #21 (failure type/code reporting), #22 (stack CA passed to retention child processes), #23 (operator `--force` run-now and refusal to count a skipped pass).
+
+Ledger effect: a `live_sandbox` evidence entry was added to PROD-OPS-07. State stays `in_progress` and `implementationStatus` is unchanged. Live evidence is one of four required levels, and `operational_rehearsal` is still missing. `releaseStatus` flags are unchanged.
+
+Still missing for PROD-OPS-07:
+
+- `operational_rehearsal`: no operated-stack rehearsal has been recorded.
+- Real bucket lifecycle: Zenith does not expire archive objects; the destination bucket's lifecycle governs them, and it was not exercised.
+- Temporal critical-job scheduling of `data-retention` on a live stack: not covered by this run.
+- Deletion apply on any real installation: the deletion ran only in the disposable sandbox stack.
+- Backup expiry is not tracked: rows in backups taken before a deletion persist until those backups expire (existing gap above).
+- `production_signoff`: not requested, not recorded.
+- The harness `evidence.json` is not a `zenith.release-evidence.v1` receipt. The release validator reads receipts only when `sandboxVerified` is set, so this run does not satisfy that gate.

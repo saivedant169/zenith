@@ -118,6 +118,15 @@ describe("PROD-OPS-07 ProductScenarioPort refusals (no product work)", () => {
 });
 
 describe("PROD-OPS-07 ProductScenarioPort against a real migrated platform store (PGlite)", () => {
+  it("passes the stack CA file to every child so it trusts the platform database TLS, and nothing else from the harness", async () => {
+    const { result, commands } = await run(RUN(90), {}, { ...env, NODE_EXTRA_CA_CERTS: "/stack/tls/ca.crt", ZENITH_UNRELATED_SECRET: "must-not-pass" });
+    expect(result.complete).toBe(true);
+    expect(commands.length).toBeGreaterThan(0);
+    for (const command of commands) {
+      expect(command.env.NODE_EXTRA_CA_CERTS).toBe("/stack/tls/ca.crt");
+      expect(command.env.ZENITH_UNRELATED_SECRET).toBeUndefined();
+    }
+  });
   it("passes on the happy path with every claim read back, and never leaks the per-run archive key", async () => {
     const { result, commands, seen, sql, s3, plan } = await run(RUN(4));
     expect(result.complete).toBe(true);

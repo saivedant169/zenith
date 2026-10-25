@@ -22,7 +22,8 @@ export const PRODUCTION_USAGE = `Production AWS acceptance (DEC-CLOUD is deferre
   ZENITH_LIVE_AWS=1 ZENITH_LIVE_AWS_BUDGET_USD=<USD> npx tsx scripts/acceptance/aws-live.ts --permissions <permissions.json> [same plan inputs]
   ZENITH_LIVE_AWS=1 ZENITH_LIVE_AWS_BUDGET_USD=<USD> npx tsx scripts/acceptance/aws-live.ts --permissions <permissions.json> --cleanup <journal.json>
 Options: --minutes <5..20> --db-subnet-group <zenith-live-...> --db-security-group <sg-...> --out <directory> --budget-usd <USD>
-  --scenario <fixtures|retention-s3> (or ZENITH_LIVE_AWS_SCENARIO; default fixtures; part of the signed plan digest)
+  --scenario <fixtures|retention-s3|rel-04> (or ZENITH_LIVE_AWS_SCENARIO; default fixtures; part of the signed plan digest)
+  rel-04 is the PROD-REL-04 crash-and-resume drill: npx tsx scripts/acceptance/live/drill/rel-04.ts (see docs/build/production/verify/PROD-REL-04.md)
 --plan never reads credentials or calls AWS. Live needs approved awsLive in permissions.json and an explicit budget.
 Root scope approval is also required (ZENITH_LIVE_SCOPE_FILE, or the shipped manifest).
 ProductScenarioPort joins Wave 5 release scenarios; absent product journeys remain pending and exit 3.

@@ -476,9 +476,12 @@ it("keeps pre-OIDC permission admission and an unconditional hard failure gate a
   expect(recovery).toBeGreaterThan(acceptance);
   const gate = steps.at(-1)!;
   expect(gate["continue-on-error"] ?? false).toBe(false);
-  expect(gate.env).toEqual({ ACCEPTANCE_OUTCOME: "${{ steps.acceptance.outcome }}", RECOVERY_OUTCOME: "${{ steps.recovery.outcome }}" });
+  // rel-04 replaces the plain harness with the drill; the fixtures and retention-s3 gate is unchanged.
+  expect(gate.env).toEqual({ ACCEPTANCE_OUTCOME: "${{ steps.acceptance.outcome }}", RECOVERY_OUTCOME: "${{ steps.recovery.outcome }}", DRILL_OUTCOME: "${{ steps.drill.outcome }}", VERIFY_OUTCOME: "${{ steps.verify.outcome }}" });
   expect(gate.run).toContain('test "$ACCEPTANCE_OUTCOME" = success');
   expect(gate.run).toContain('test "$RECOVERY_OUTCOME" = success');
+  expect(gate.run).toContain('test "$DRILL_OUTCOME" = success');
+  expect(gate.run).toContain('test "$VERIFY_OUTCOME" = success');
 });
 
 describe("scenario-specific plans and scoped verdict (offline)", () => {

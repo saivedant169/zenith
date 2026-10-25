@@ -16,16 +16,21 @@ name: Live acceptance (sandbox AWS)
 #
 # ## What must exist OUTSIDE this repository (not created by this change)
 #
-#   1. A GitHub environment named `live-sandbox` (Settings > Environments) with
-#      protection rules. Both are required; the second is what actually stops a
-#      branch from minting a token:
-#        - Required reviewers: at least one person other than whoever dispatches
-#          the run ("Prevent self-review" on). The job waits for approval before
-#          it starts, so no credential exists until somebody has said yes.
-#        - Deployment branches: restricted to protected branches (or an explicit
-#          allow-list). Without this, anyone with write access could push a
-#          branch that edits THIS file and dispatch it from there; the
-#          environment rule is what refuses that run.
+#   1. A GitHub environment named `live-sandbox` (Settings > Environments) whose
+#      deployment-branch policy is restricted to protected branches (or an explicit
+#      allow-list). Without that policy, anyone with write access could push a
+#      branch that edits THIS file and dispatch it from there; the environment
+#      rule is what refuses that run, and it is the one GitHub setting that stops
+#      a branch from minting a token.
+#      The environment has NO required reviewer. Owner decision 2026-10-26
+#      (delegated automated approval; see docs/build/production/LIVE-ACCEPTANCE.md,
+#      "Owner decision (2026-10-26)"). The gates that remain, in order, are:
+#        - the protected-branch deployment policy above, before any credential;
+#        - the per-run envelope in LIVE_SANDBOX_AWS_PERMISSIONS_JSON, bound to the
+#          plan SHA-256, source commit, account, region, USD ceiling and duration,
+#          checked by scripts/acceptance/live/preflight.ts before OIDC;
+#        - the root scope approval in LIVE_SANDBOX_SCOPE_JSON (sandbox account and
+#          regions, per-run budget ceiling, expiry), checked before any cloud call.
 #      Optionally a wait timer. Environment variables (not secrets - nothing
 #      here is secret; see below): LIVE_SANDBOX_AWS_ROLE_ARN,
 #      LIVE_SANDBOX_AWS_ACCOUNT_ID and, optionally, LIVE_SANDBOX_AWS_REGION
@@ -52,8 +57,11 @@ name: Live acceptance (sandbox AWS)
 # ## Scenario runs start the Zenith stack before OIDC
 #
 # The `scenario` input selects what the harness proves. `fixtures` (default) is
-# the bounded AWS fixture run above and starts nothing on the runner. Any other
-# scenario (`retention-s3`) first starts the lean Zenith stack on this hosted
+# the bounded AWS fixture run above and starts nothing on the runner. `rel-04`
+# is the PROD-REL-04 crash-and-resume drill (S3 only, no stack): after OIDC it
+# runs scripts/acceptance/live/drill/rel-04.ts instead of the plain harness and
+# recovery steps, then the offline verifier, and the final gate requires the
+# verifier to pass. `retention-s3` first starts the lean Zenith stack on this hosted
 # runner, with the same profile and disk freeing as operated-gate-linux.yml, and
 # only then requests the OIDC session, so the stack never consumes the one-hour
 # AWS session. The stack's platform database URL and the ZENITH_LIVE_PRODUCT*
@@ -90,13 +98,14 @@ on:
         required: true
         type: string
       scenario:
-        description: 'fixtures (default: every AWS fixture family) or retention-s3 (starts the Zenith stack before OIDC; PROD-OPS-07 only). Bound into the signed envelope.'
+        description: 'fixtures (default: every AWS fixture family), retention-s3 (starts the Zenith stack before OIDC; PROD-OPS-07 only) or rel-04 (PROD-REL-04 crash-and-resume drill; S3 only, no stack). Bound into the signed envelope.'
         required: false
         default: fixtures
         type: choice
         options:
           - fixtures
           - retention-s3
+          - rel-04
 
 # Source read only at the workflow level; the one job that needs more asks for
 # it below.
@@ -225,13 +234,13 @@ jobs:
       # Scenario runs only. The Zenith stack starts on this runner BEFORE the OIDC
       # step, so no AWS credential exists while it is installed and started.
       - name: Free runner disk for the Zenith stack
-        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario != 'fixtures'
+        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario == 'retention-s3'
         run: |
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup
           df -h /
 
       - name: Install the pinned Supabase CLI
-        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario != 'fixtures'
+        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario == 'retention-s3'
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/bin"
@@ -244,7 +253,7 @@ jobs:
 
       - name: Start the Zenith stack and verify readiness before OIDC
         # Same lean profile and host environment as operated-gate-linux.yml.
-        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario != 'fixtures'
+        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario == 'retention-s3'
         env:
           REGISTRY_IMAGE: registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373
           SUPABASE_INTERNAL_IMAGE_REGISTRY: docker.io
@@ -288,7 +297,7 @@ jobs:
 
       - name: Live acceptance against the sandbox account
         id: acceptance
-        if: hashFiles('scripts/acceptance/aws-live.ts') != ''
+        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario != 'rel-04'
         # The final step remains a hard gate. Continuing here permits owned
         # recovery and artifact publication after failure; it never makes it green.
         continue-on-error: true
@@ -298,7 +307,7 @@ jobs:
 
       - name: Recover an incomplete owned journal
         id: recovery
-        if: hashFiles('scripts/acceptance/aws-live.ts') != ''
+        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario != 'rel-04'
         continue-on-error: true
         shell: bash
         run: |
@@ -313,7 +322,7 @@ jobs:
           fi
 
       - name: Publish sanitized AWS evidence and recovery journal
-        if: hashFiles('scripts/acceptance/aws-live.ts') != ''
+        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario != 'rel-04'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: aws-live-${{ github.run_id }}
@@ -321,10 +330,38 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      # Scenario rel-04 only. The drill is continue-on-error so its receipt, journals
+      # and the verifier still run and publish after a failed step; the final gate
+      # reads both outcomes and refuses unless the drill and the verifier passed.
+      - name: Run the PROD-REL-04 crash-and-resume drill
+        id: drill
+        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario == 'rel-04'
+        continue-on-error: true
+        run: npx tsx scripts/acceptance/live/drill/rel-04.ts
+
+      - name: Verify the PROD-REL-04 receipt offline
+        # No AWS call: re-derives every step from the journals, checkpoints, evidence
+        # and permission file on disk, and compares them with the receipt.
+        id: verify
+        if: always() && hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario == 'rel-04'
+        continue-on-error: true
+        run: npx tsx scripts/acceptance/live/drill/verify-rel-04.ts --run-id "$ZENITH_LIVE_AWS_RUN_ID" --out "$ZENITH_LIVE_AWS_OUT" --permissions "$ZENITH_LIVE_AWS_PERMISSIONS"
+
+      - name: Publish PROD-REL-04 drill journals, evidence and receipt
+        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario == 'rel-04'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: aws-live-rel04-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/zenith-aws-production/${{ inputs.run_id }}/*.json
+            ${{ runner.temp }}/zenith-aws-production-replay/${{ inputs.run_id }}/*.json
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Tear down the Zenith stack
         # Runs after success and failure alike. A failure here is a visible warning
         # and never changes the acceptance outcome the final gate reads.
-        if: always() && hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario != 'fixtures'
+        if: always() && hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario == 'retention-s3'
         run: |
           set -uo pipefail
           stack="$RUNNER_TEMP/zenith/stack"
@@ -343,7 +380,15 @@ jobs:
         env:
           ACCEPTANCE_OUTCOME: ${{ steps.acceptance.outcome }}
           RECOVERY_OUTCOME: ${{ steps.recovery.outcome }}
+          DRILL_OUTCOME: ${{ steps.drill.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
         run: |
           set -euo pipefail
-          test "$ACCEPTANCE_OUTCOME" = success
-          test "$RECOVERY_OUTCOME" = success
+          if [ "$ZENITH_LIVE_AWS_SCENARIO" = rel-04 ]; then
+            # The drill's own verdict and the offline verifier over its disk evidence must both pass.
+            test "$DRILL_OUTCOME" = success
+            test "$VERIFY_OUTCOME" = success
+          else
+            test "$ACCEPTANCE_OUTCOME" = success
+            test "$RECOVERY_OUTCOME" = success
+          fi

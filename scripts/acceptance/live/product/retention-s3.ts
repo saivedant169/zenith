@@ -62,7 +62,8 @@ async function hostRun(command: ProductCommand, cwd: string): Promise<ProductRun
 /** Only the session credentials, the product's own settings, and the per-run archive key. Nothing else from the harness. */
 function childEnv(env: EnvLike, cfg: { region: string; bucket: string; databaseUrl: string; backupKey: string; apply: boolean }): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const name of ["PATH", "HOME", "TMPDIR", "LANG", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]) if (env[name]) out[name] = env[name]!;
+  // NODE_EXTRA_CA_CERTS: the stack's own CA file, so the child trusts the platform database TLS (a path, not a secret).
+  for (const name of ["PATH", "HOME", "TMPDIR", "LANG", "NODE_EXTRA_CA_CERTS", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]) if (env[name]) out[name] = env[name]!;
   Object.assign(out, {
     AWS_REGION: cfg.region, ZENITH_PLATFORM_DB_URL: cfg.databaseUrl, ZENITH_BACKUP_KEY: cfg.backupKey,
     ZENITH_RETENTION_ARCHIVE_TARGET: "s3", ZENITH_RETENTION_ARCHIVE_S3_BUCKET: cfg.bucket, ZENITH_RETENTION_ARCHIVE_S3_REGION: cfg.region,

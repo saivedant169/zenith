@@ -171,6 +171,11 @@ export interface ScopeRequest {
 
 /** Teardown-only: a lapsed approval still admits owned cleanup. Content, approver and digest checks always apply; creation never passes it. */
 export interface ApprovalOptions { allowExpiredForTeardown?: boolean }
+/** The only actions that may ride a lapsed approval. Enforced here, so no caller can widen the carve-out to creation or mutation. */
+const LAPSED_OK_ACTIONS: readonly string[] = ["teardown_run_tagged", "read"];
+function lapsedAllowance(action: string, options: ApprovalOptions): ApprovalOptions {
+  return { allowExpiredForTeardown: !!options.allowExpiredForTeardown && LAPSED_OK_ACTIONS.includes(action) };
+}
 
 export interface SpendEntry { provider: ScopeProvider; usd: number; label: string }
 
@@ -217,7 +222,7 @@ export class Scope {
    * may start at all, before any step with an estimate exists. Steps that create or change things still call `authorize`.
    */
   assertGrant(harness: string, provider: ScopeProvider, action: ScopeAction, options: ApprovalOptions = {}): void {
-    this.assertApproved(options);
+    this.assertApproved(lapsedAllowance(action, options));
     const grant = this.manifest.harnesses[harness];
     if (!grant) throw new ScopeError("harness_unknown", `Harness "${harness}" has no grant in the scope manifest.`);
     if (!grant.providers.includes(provider)) throw new ScopeError("provider_not_granted", `Harness "${harness}" is not granted provider ${provider}.`);
@@ -247,7 +252,7 @@ export class Scope {
     if ((FORBIDDEN_ACTIONS as readonly string[]).includes(request.action) || this.manifest.forbiddenActions.includes(request.action)) {
       throw new ScopeError("action_forbidden", `"${request.action}" is a forbidden action; no live harness may do it.`);
     }
-    this.assertApproved(options);
+    this.assertApproved(lapsedAllowance(request.action, options));
     const grant = this.manifest.harnesses[request.harness];
     if (!grant) throw new ScopeError("harness_unknown", `Harness "${request.harness}" has no grant in the scope manifest.`);
     if (!grant.providers.includes(request.provider)) throw new ScopeError("provider_not_granted", `Harness "${request.harness}" is not granted provider ${request.provider}.`);

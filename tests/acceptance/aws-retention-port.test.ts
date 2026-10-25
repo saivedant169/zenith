@@ -198,11 +198,12 @@ describe("retention-s3 plan readback and digests (offline)", () => {
   it("keeps the fixtures digest and fixture shape unchanged, with no readback calls in fixtures", () => {
     // Same settings, in the same key order (the digest hashes insertion order), as tests/acceptance/aws-production.test.ts.
     const fixtures = buildPlan({ accountId: settings.accountId, region: settings.region, runId: "zlive-202610080000-abcd", durationMinutes: settings.durationMinutes, dbSubnetGroup: settings.dbSubnetGroup, dbSecurityGroup: settings.dbSecurityGroup, workloadBoundaryArn: settings.workloadBoundaryArn, scenario: "fixtures" });
-    expect(fixtures.sha256).toBe("d363bfdbc5ffca34c9daa680ada7b7e6b139b9b067d6129ab7be99eb817301f3");
+    // Re-pinned because s3-tag and dns-tag gained a second planned attempt for the cleanup-only untagged-create repair (G4).
+    expect(fixtures.sha256).toBe("2ddf24bebcf4c0d237dc71c3128439c7e38131b546538cff381321547748c717");
     expect(fixtures.fixtures.every(f => f.product === undefined)).toBe(true);
     expect(allCalls(fixtures).some(c => c.id.includes("readback"))).toBe(false);
   });
   it("changes only the retention-s3 digest", () => {
-    expect(retention().sha256).not.toBe("d363bfdbc5ffca34c9daa680ada7b7e6b139b9b067d6129ab7be99eb817301f3");
+    expect(retention().sha256).not.toBe("2ddf24bebcf4c0d237dc71c3128439c7e38131b546538cff381321547748c717");
   });
 });

@@ -12,7 +12,8 @@ import { evidencePacket } from "./evidence";
 import { sdkTransport } from "./sdk";
 import { requireProductionScope } from "./scope";
 import { reserveRunBudget } from "./shared";
-import { requireScope } from "../../release/scope";
+import { defaultManifestPath, requireScope } from "../../release/scope";
+import { RunCheckpoint, fileStore } from "../../release/checkpoint";
 import type { Journal, Plan, ProductScenarioPort, Transport } from "./contracts";
 import type { EnvLike } from "../config";
 
@@ -37,6 +38,20 @@ async function atomic(file: string, data: unknown) {
   const temporary = `${file}.tmp`;
   await writeFile(temporary, JSON.stringify(redactAcceptance(data), null, 2) + "\n", { mode: 0o600 });
   await rename(temporary, file);
+}
+const AWS_HARNESS = "aws-live", AWS_STEP = "run";
+/** Copy-paste cleanup command: every env assignment, then the single-quoted paths. Names no credential value. */
+export function resumeCommand(input: { cwd: string; budgetUsd: number; scopeFile: string; sessionFile: string; permissionsFile: string; journalFile: string }): string {
+  const quote = (value: string) => `'${value.replace(/'/g, "'\\''")}'`;
+  return `cd ${quote(input.cwd)} && ZENITH_LIVE_AWS=1 ZENITH_LIVE_AWS_BUDGET_USD=${input.budgetUsd} ZENITH_LIVE_SCOPE_FILE=${quote(input.scopeFile)} ZENITH_LIVE_AWS_SESSION_FILE=${quote(input.sessionFile)} npx tsx scripts/acceptance/aws-live.ts --permissions ${quote(input.permissionsFile)} --cleanup ${quote(input.journalFile)}`;
+}
+/** Refreshes next-command.txt and the checkpoint's next command on every journal save, so a SIGKILL leaves the command on disk. */
+async function recordResume(directory: string, state: Journal, command: string, checkpoint: RunCheckpoint): Promise<void> {
+  const next = state.closed ? undefined : command;
+  const temporary = path.join(directory, "next-command.txt.tmp");
+  await writeFile(temporary, next ? `${next}\n` : "# Journal closed: no further cloud calls required.\n", { mode: 0o600 });
+  await rename(temporary, path.join(directory, "next-command.txt"));
+  checkpoint.setNextCommands(next ? [next] : []);
 }
 export async function runProductionCli(argv: readonly string[], env: EnvLike = process.env, io: IO = defaultIO, deps: { transport?: (region: string, env: EnvLike) => Promise<Transport>; source?: () => string; product?: ProductScenarioPort } = {}): Promise<number> {
   let abort: AbortController | undefined;
@@ -82,26 +97,36 @@ export async function runProductionCli(argv: readonly string[], env: EnvLike = p
     if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error("Exact source commit required");
     if (commit !== permission.sourceCommit) throw new Error("Permission source commit mismatch");
     if (existing && existing.commit !== commit) throw new Error("Journal source commit mismatch");
-    requireProductionScope(plan, budget, env, !!existing);
+    const scope = requireProductionScope(plan, budget, env, !!existing);
     if (!existing) reserveRunBudget(env.ZENITH_LIVE_BUDGET_FILE ?? "", { runId: plan.settings.runId, planSha256: plan.sha256, usd: plan.estimate.usd }, requireScope("aws-live", "aws", env).manifest.budgets.totalUsd);
     const journal = existing ?? newJournal(plan, guard, commit);
     if (existing?.closed) throw new Error("Journal already closed; no further cloud calls required");
     const directory = existing ? path.dirname(path.resolve(cleanupFile!)) : path.join(args.values.get("out") ?? env.ZENITH_LIVE_AWS_OUT ?? path.join(os.tmpdir(), "zenith-aws-production"), plan.settings.runId);
     await mkdir(directory, { recursive: true, mode: 0o700 });
+    const journalFile = path.join(directory, "journal.json"), scopeFile = defaultManifestPath(env);
+    const command = resumeCommand({ cwd: process.cwd(), budgetUsd: budget, scopeFile, permissionsFile: path.resolve(permissionsFile), journalFile,
+      // Placeholder only when no session FILE was configured; the owner substitutes the short-lived session path.
+      sessionFile: env.ZENITH_LIVE_AWS_SESSION_FILE ?? "<absolute-session-file>" });
     // Finish local setup before resolving credentials or constructing SDK clients.
-    await atomic(path.join(directory, "journal.json"), journal);
+    const { checkpoint } = RunCheckpoint.open({ store: fileStore(path.join(directory, "checkpoint.json")), runId: plan.settings.runId, harness: AWS_HARNESS, scopeDigest: scope.digest, steps: [AWS_STEP] });
+    if (!existing) checkpoint.decide(permission.approvedBy, `plan=${plan.sha256} permission=${journal.permissionSha256} commit=${commit} budgetUsd=${budget} scenario=${plan.settings.scenario ?? "fixtures"} approval=awsLive:${path.basename(permissionsFile)} root:${path.basename(scopeFile)}`);
+    await atomic(journalFile, journal);
+    await recordResume(directory, journal, command, checkpoint);
     const transport = await (deps.transport ?? sdkTransport)(plan.settings.region, env);
     abort = new AbortController();
     process.on("SIGINT", interrupt); process.on("SIGTERM", interrupt);
-    await execute(plan, guard, transport, journal, { save: state => atomic(path.join(directory, "journal.json"), state), sleep: ms => new Promise(resolve => setTimeout(resolve, ms)), now: () => new Date() }, { signal: abort.signal, cleanupOnly: !!existing, product: deps.product });
+    checkpoint.begin(AWS_STEP);
+    await execute(plan, guard, transport, journal, { save: async state => { await atomic(journalFile, state); await recordResume(directory, state, command, checkpoint); }, sleep: ms => new Promise(resolve => setTimeout(resolve, ms)), now: () => new Date() }, { signal: abort.signal, cleanupOnly: !!existing, product: deps.product });
     const packet = evidencePacket(journal);
     await atomic(path.join(directory, "evidence.json"), packet);
-    io.out(JSON.stringify({ runId: plan.settings.runId, verdict: packet.verdict, counts: packet.counts, cleanupComplete: packet.cleanupComplete, evidence: path.join(directory, "evidence.json"), nextCommand: packet.cleanupComplete ? null : `npx tsx scripts/acceptance/aws-live.ts --permissions <same-approved-permissions.json> --cleanup ${JSON.stringify(path.join(directory, "journal.json"))}` }));
+    if (journal.closed) checkpoint.complete(AWS_STEP, "journal closed; cleanup complete", packet.sha256);
+    else checkpoint.fail(AWS_STEP, "journal open; run the recorded next command");
+    io.out(JSON.stringify({ runId: plan.settings.runId, verdict: packet.verdict, counts: packet.counts, cleanupComplete: packet.cleanupComplete, evidence: path.join(directory, "evidence.json"), nextCommand: packet.cleanupComplete ? null : command }));
     return packet.verdict === "passed" ? 0 : packet.verdict === "failed" ? 1 : 3;
   } catch (error) {
     // Only our deterministic guard errors may be printed; SDK/file parse errors
     // could contain secret text. No provider exception or credential value leaves.
-    const safe = error instanceof Error && /^(ZENITH_|Explicit |Approved |Permission |Missing bounded permission|Plan integrity|Short-lived |Use an owner|Use one absolute|One absolute|Run already reserved|Persistent total budget|Alternate |Journal |Live evidence|Exact source|Duration |Commercial |Malformed |permissions.json|Invalid arguments|Unknown AWS live scenario)/.test(error.message) ? error.message : "AWS acceptance refused or failed before completion; inspect local configuration and journal";
+    const safe = error instanceof Error && /^(ZENITH_|Explicit |Approved |Permission |Missing bounded permission|Plan integrity|Short-lived |Use an owner|Use one absolute|One absolute|Run already reserved|Persistent total budget|Alternate |Journal |Live evidence|Exact source|Duration |Commercial |Malformed |permissions.json|Invalid arguments|Unknown AWS live scenario|The checkpoint |The scope manifest changed)/.test(error.message) ? error.message : "AWS acceptance refused or failed before completion; inspect local configuration and journal";
     io.err(safe);
     return 2;
   } finally {

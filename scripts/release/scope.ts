@@ -169,6 +169,14 @@ export interface ScopeRequest {
   ttlMinutes?: number;
 }
 
+/** Teardown-only: a lapsed approval still admits owned cleanup. Content, approver and digest checks always apply; creation never passes it. */
+export interface ApprovalOptions { allowExpiredForTeardown?: boolean }
+/** The only actions that may ride a lapsed approval. Enforced here, so no caller can widen the carve-out to creation or mutation. */
+const LAPSED_OK_ACTIONS: readonly string[] = ["teardown_run_tagged", "read"];
+function lapsedAllowance(action: string, options: ApprovalOptions): ApprovalOptions {
+  return { allowExpiredForTeardown: !!options.allowExpiredForTeardown && LAPSED_OK_ACTIONS.includes(action) };
+}
+
 export interface SpendEntry { provider: ScopeProvider; usd: number; label: string }
 
 /** Per-run spend record shared by every step of one run; `priorUsd` is what earlier runs already committed (shared ledger). */
@@ -195,7 +203,7 @@ export class Scope {
   }
 
   /** Throws unless a person approved exactly this content and the approval is current. */
-  assertApproved(): void {
+  assertApproved(options: ApprovalOptions = {}): void {
     const { approval } = this.manifest;
     if (approval.status !== "approved" || !approval.approvedBy || !approval.approvedAt || !approval.approvedDigest) {
       throw new ScopeError("not_approved", "The live scope manifest has not been approved by a person (approval.status is not_approved). Review docs/build/production/permissions.json, then run: npx tsx scripts/release/permissions-cli.ts approve --by <your name>");
@@ -205,7 +213,7 @@ export class Scope {
     }
     if (approval.expiresAt !== null) {
       const expires = Date.parse(approval.expiresAt);
-      if (!Number.isFinite(expires) || expires <= this.#now().getTime()) throw new ScopeError("approval_expired", "The live scope approval has expired; a person must approve it again.");
+      if (!Number.isFinite(expires) || (expires <= this.#now().getTime() && !options.allowExpiredForTeardown)) throw new ScopeError("approval_expired", "The live scope approval has expired; a person must approve it again.");
     }
   }
 
@@ -213,8 +221,8 @@ export class Scope {
    * Approval, forbidden-action and grant checks only (no run id, no budget): for entry points that decide whether a harness
    * may start at all, before any step with an estimate exists. Steps that create or change things still call `authorize`.
    */
-  assertGrant(harness: string, provider: ScopeProvider, action: ScopeAction): void {
-    this.assertApproved();
+  assertGrant(harness: string, provider: ScopeProvider, action: ScopeAction, options: ApprovalOptions = {}): void {
+    this.assertApproved(lapsedAllowance(action, options));
     const grant = this.manifest.harnesses[harness];
     if (!grant) throw new ScopeError("harness_unknown", `Harness "${harness}" has no grant in the scope manifest.`);
     if (!grant.providers.includes(provider)) throw new ScopeError("provider_not_granted", `Harness "${harness}" is not granted provider ${provider}.`);
@@ -240,11 +248,11 @@ export class Scope {
    * The one question every live harness asks before acting. Returns normally only when the step is allowed;
    * on success a creating step is recorded in `ledger` so later steps see the spend.
    */
-  authorize(request: ScopeRequest, ledger?: ScopeLedger): void {
+  authorize(request: ScopeRequest, ledger?: ScopeLedger, options: ApprovalOptions = {}): void {
     if ((FORBIDDEN_ACTIONS as readonly string[]).includes(request.action) || this.manifest.forbiddenActions.includes(request.action)) {
       throw new ScopeError("action_forbidden", `"${request.action}" is a forbidden action; no live harness may do it.`);
     }
-    this.assertApproved();
+    this.assertApproved(lapsedAllowance(request.action, options));
     const grant = this.manifest.harnesses[request.harness];
     if (!grant) throw new ScopeError("harness_unknown", `Harness "${request.harness}" has no grant in the scope manifest.`);
     if (!grant.providers.includes(request.provider)) throw new ScopeError("provider_not_granted", `Harness "${request.harness}" is not granted provider ${request.provider}.`);
@@ -337,9 +345,9 @@ export function scopeSkipReason(harness: string, provider: ScopeProvider, env: R
 }
 
 /** Throwing variant for CLIs: returns the loaded scope or throws a `ScopeError`. */
-export function requireScope(harness: string, provider: ScopeProvider, env: Readonly<Record<string, string | undefined>> = process.env, now?: () => Date): Scope {
+export function requireScope(harness: string, provider: ScopeProvider, env: Readonly<Record<string, string | undefined>> = process.env, now?: () => Date, options: ApprovalOptions = {}): Scope {
   const scope = loadScope(defaultManifestPath(env), now);
-  scope.assertApproved();
-  scope.authorize({ harness, provider, action: "read" });
+  scope.assertApproved(options);
+  scope.authorize({ harness, provider, action: "read" }, undefined, options);
   return scope;
 }

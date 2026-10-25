@@ -69,6 +69,18 @@ describe("approval", () => {
     expect(code(() => approvedScope(undefined, later).assertApproved())).toBe("approval_expired");
   });
 
+  it("lets a lapsed approval admit only teardown and read when teardown is allowed; creation and mutation still expire", () => {
+    const scope = approvedScope(undefined, new Date(NOW.getTime() + 2 * 86_400_000));
+    const teardown = { allowExpiredForTeardown: true };
+    const tags = { "zenith:live-run": RUN };
+    expect(code(() => scope.assertGrant("aws-live", "aws", "teardown_run_tagged", teardown))).toBeUndefined();
+    expect(code(() => scope.assertGrant("aws-live", "aws", "mutate_run_tagged", teardown))).toBe("approval_expired");
+    expect(code(() => scope.authorize({ harness: "aws-live", provider: "aws", action: "teardown_run_tagged", runId: RUN, tags }, undefined, teardown))).toBeUndefined();
+    expect(code(() => scope.authorize({ harness: "aws-live", provider: "aws", action: "read" }, undefined, teardown))).toBeUndefined();
+    expect(code(() => scope.authorize(create({ harness: "aws-live", provider: "aws", resourceName: `zenith-${RUN}-x` }), undefined, teardown))).toBe("approval_expired");
+    expect(code(() => scope.authorize({ harness: "aws-live", provider: "aws", action: "mutate_run_tagged", runId: RUN, tags }, undefined, teardown))).toBe("approval_expired");
+  });
+
   it("refuses a half-filled approval", () => {
     const base = approvedManifest();
     expect(code(() => new Scope(parseManifest({ ...base, approval: { ...base.approval, approvedBy: null } }), () => NOW).assertApproved())).toBe("not_approved");

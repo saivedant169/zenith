@@ -28,6 +28,7 @@ export function grantsFor(plan: Plan): AwsPermission["grants"] {
   }
   return [...grants.values()];
 }
+const REPAIR_IDS: ReadonlySet<string> = new Set(["s3-tag", "dns-tag"]);
 /** No transport is constructed until this entire envelope passes. No wildcard
  * matching: the handful of AWS unscopable operations are exact reviewed entries. */
 export class Guard {
@@ -56,9 +57,10 @@ export class Guard {
     this.cleanupIds = new Set([...plan.preflight.filter(c => ["identity", "marker", "run-claim-read", "dns-discover"].includes(c.id)), ...plan.fixtures.flatMap(f => [f.ownership, ...f.teardown, ...f.leak])].map(c => c.id));
     freeze(plan); freeze(permission);
   }
-  consume(call: Call, cleanup = false): void {
+  consume(call: Call, cleanup = false, repair = false): void {
     if (this.approvedCalls.get(call.id) !== digest(call)) throw new Error("Unplanned AWS call refused");
-    if (cleanup && !this.cleanupIds.has(call.id)) throw new Error("Recovery cannot create or invoke resources");
+    // Recovery may re-apply a planned tag only through execute.ts's proven untagged-create repair; no create is ever in this set.
+    if (cleanup && !this.cleanupIds.has(call.id) && !(repair && REPAIR_IDS.has(call.id))) throw new Error("Recovery cannot create or invoke resources");
     if (!cleanup && Date.parse(this.permission.expiresAt) <= this.now().getTime()) throw new Error("Permission expired before call");
     const n = (this.counts[call.id] ?? 0) + 1;
     if (n > call.maximumCalls) throw new Error(`Request envelope exhausted: ${call.id}`);

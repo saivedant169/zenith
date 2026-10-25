@@ -44,6 +44,13 @@ const AUDIT_TABLES = [
 /** A fail-closed stop. The message is ours and safe to report; anything else is withheld. */
 class Refusal extends Error {}
 function refuse(message: string): never { throw new Refusal(message); }
+/** A pass that exited 0 but did not run (the CLI prints {"status":"skipped"|"busy"}) must never count as a pass. */
+function notSkipped(r: ProductRun, what: string): void {
+  if (r.code !== 0 || r.timedOut) return;
+  let status: unknown;
+  try { status = (JSON.parse(r.stdout.trim().split("\n").at(-1) ?? "") as { status?: unknown }).status; } catch { refuse(`${what} printed no result`); }
+  if (status !== undefined) refuse(`${what} did not run (status ${typeof status === "string" && /^[a-z_]{1,20}$/.test(status) ? status : "unknown"})`);
+}
 
 const execFileAsync = promisify(execFile);
 /** Host child process: `npx tsx <script>` in the product checkout. Output is returned for routing only. */
@@ -178,7 +185,7 @@ export function retentionS3Port(env: EnvLike = process.env, seams: RetentionS3Se
         })();
         handle = sql;
         const run = seams.run ?? hostRun;
-        const pass = (apply: boolean) => run({ script: "scripts/data-retention.ts", args: [], env: childEnv(env, { region, bucket, databaseUrl: databaseUrl!, backupKey, apply }), timeoutMs: ARCHIVE_TIMEOUT_MS }, cwd!);
+        const pass = (apply: boolean) => run({ script: "scripts/data-retention.ts", args: ["--force"], env: childEnv(env, { region, bucket, databaseUrl: databaseUrl!, backupKey, apply }), timeoutMs: ARCHIVE_TIMEOUT_MS }, cwd!);
         const archiveCli = (args: readonly string[], key: string) => run({ script: "scripts/retention-archive.ts", args, env: childEnv(env, { region, bucket, databaseUrl: databaseUrl!, backupKey: key, apply: false }), timeoutMs: CHECK_TIMEOUT_MS }, cwd!);
 
         step = "seed";
@@ -187,6 +194,7 @@ export function retentionS3Port(env: EnvLike = process.env, seams: RetentionS3Se
 
         step = "archive pass";
         const archived = await pass(false);
+        notSkipped(archived, "the archive pass");
         if (archived.code !== 0 || archived.timedOut) refuse(`the archive pass did not complete (${archived.timedOut ? "timed out" : archived.failure ?? "no failure kind reported"}; no completion claim)`);
         const archives = await sql.query<ArchiveRow>("select id, data_class, object_key, row_count, first_row_id, last_row_id, pruned_rows from platform.retention_archives where workspace_id = $1 order by data_class", [workspace]);
         const runnerArchive = archives.find(a => a.data_class === "runner_job_logs"), machineArchive = archives.find(a => a.data_class === "machine_request_logs");
@@ -232,6 +240,7 @@ export function retentionS3Port(env: EnvLike = process.env, seams: RetentionS3Se
         const expectedAll = { runner: [...seeded.runnerOld, seeded.runnerHeld, ...seeded.runnerRecent], machine: [...seeded.machineOld, ...seeded.machineRecent] };
         if (!sameIds(beforeClosed.runner, expectedAll.runner) || !sameIds(beforeClosed.machine, expectedAll.machine)) refuse("the seeded rows changed before the prune gate check");
         const closed = await pass(false);
+        notSkipped(closed, "the pass with the apply switch unset");
         if (closed.code !== 0 || closed.timedOut) refuse(`the pass with the apply switch unset did not complete (${closed.timedOut ? "timed out" : closed.failure ?? "no failure kind reported"})`);
         const afterClosed = await presentLogs(sql, workspace);
         if (!sameIds(afterClosed.runner, expectedAll.runner) || !sameIds(afterClosed.machine, expectedAll.machine)) refuse("rows were removed with the apply switch unset");
@@ -239,6 +248,7 @@ export function retentionS3Port(env: EnvLike = process.env, seams: RetentionS3Se
         step = "prune gate open";
         const auditBefore = await auditCounts(sql, workspace);
         const opened1 = await pass(true);
+        notSkipped(opened1, "the pass with the apply switch set");
         if (opened1.code !== 0 || opened1.timedOut) refuse(`the pass with the apply switch set did not complete (${opened1.timedOut ? "timed out" : opened1.failure ?? "no failure kind reported"})`);
         const afterOpen = await presentLogs(sql, workspace);
         if (!sameIds(afterOpen.runner, [seeded.runnerHeld, ...seeded.runnerRecent]) || !sameIds(afterOpen.machine, seeded.machineRecent)) {

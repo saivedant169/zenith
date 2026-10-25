@@ -46,6 +46,18 @@ describe("critical job runs", () => {
     } finally { vi.unstubAllEnvs(); }
   });
 
+  it("lets an operator's explicit run-now (force) skip the deferral, still under the lease", async () => {
+    vi.stubEnv("ZENITH_BILLING", "disabled");
+    try {
+      await runCriticalJob(db, "billing", "temporal", () => MAINTENANCE_JOBS.billing(db));
+      let dispatched = false;
+      const forced = await runCriticalJob(db, "billing", "fallback", async () => { dispatched = true; return ok(); }, { force: true });
+      expect(forced.status).toBe("ok");
+      expect(dispatched).toBe(true);
+      expect(await repos.leases.current(db, jobLeaseScope("billing"))).toBeNull();
+    } finally { vi.unstubAllEnvs(); }
+  });
+
   it("runs the runner reaper through the same wrapper", async () => {
     const result = await runCriticalJob(db, "runner-reaper", "temporal", () => MAINTENANCE_JOBS["runner-reaper"](db));
     expect(result).toMatchObject({ status: "ok", value: { ran: true, jobs: 0 } });

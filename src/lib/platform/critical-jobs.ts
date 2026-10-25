@@ -97,8 +97,9 @@ export async function recordLeasedRun<T>(db: Sql, job: CriticalJobName, source: 
 }
 
 /** Run one critical job exactly once from either trigger source. */
-export async function runCriticalJob<T>(db: Sql, job: CriticalJobName, source: JobSource, fn: (signal: AbortSignal) => Promise<JobOutcome<T>>): Promise<CriticalRunResult<T>> {
-  if (source === "fallback") {
+/** `force`: an operator's explicit run-now skips the deferral to a recent durable tick; the lease still applies, so it never runs concurrently. */
+export async function runCriticalJob<T>(db: Sql, job: CriticalJobName, source: JobSource, fn: (signal: AbortSignal) => Promise<JobOutcome<T>>, options: { force?: boolean } = {}): Promise<CriticalRunResult<T>> {
+  if (source === "fallback" && !options.force) {
     const row = await repos.scheduledJobs.getScheduledJob(db, job).catch(() => null);
     if (row && row.lastSuccessSource === "temporal" && row.lastSuccessAgeMs !== null && row.lastSuccessAgeMs < FALLBACK_DEFER_MS) {
       await repos.scheduledJobs.recordSkip(db, job).catch(() => undefined);

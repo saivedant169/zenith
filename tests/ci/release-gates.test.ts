@@ -1346,8 +1346,19 @@ describe("the Azure sandbox sign-in check", () => {
 describe("the live acceptance workflow", () => {
   const live = (): Job => liveAcceptance.jobs["aws-live"];
   const GUARD = "hashFiles('scripts/acceptance/aws-live.ts') != ''";
-  // Scenario runs only: the Zenith stack steps and their teardown.
-  const SCENARIO_GUARD = `${GUARD} && inputs.scenario != 'fixtures'`;
+  // retention-s3 only: the Zenith stack steps and their teardown. rel-04 needs no stack.
+  const SCENARIO_GUARD = `${GUARD} && inputs.scenario == 'retention-s3'`;
+  // The plain harness and its recovery never run for rel-04, whose drill owns resume and cleanup.
+  const NOT_REL04 = `${GUARD} && inputs.scenario != 'rel-04'`;
+  const REL04 = `${GUARD} && inputs.scenario == 'rel-04'`;
+  const guardFor = (step: Step): string => {
+    if (STACK_STEPS.includes(step.name ?? "")) return SCENARIO_GUARD;
+    if (step.name === TEARDOWN) return `always() && ${SCENARIO_GUARD}`;
+    if (step.id === "verify" || step.id === "recovery_rel04") return `always() && ${REL04}`;
+    if (step.id === "drill" || step.name === "Publish PROD-REL-04 drill journals, evidence and receipt") return REL04;
+    if (step.id === "acceptance" || step.id === "recovery" || step.name === "Publish sanitized AWS evidence and recovery journal") return NOT_REL04;
+    return GUARD;
+  };
   const STACK_STEPS = ["Free runner disk for the Zenith stack", "Install the pinned Supabase CLI", "Start the Zenith stack and verify readiness before OIDC"];
   const TEARDOWN = "Tear down the Zenith stack";
   const assumeStep = (): Step => live().steps.find((step) => step.uses?.startsWith("aws-actions/configure-aws-credentials@")) as Step;
@@ -1418,17 +1429,64 @@ describe("the live acceptance workflow", () => {
       live().steps.findIndex((step) => step.uses?.startsWith("aws-actions/configure-aws-credentials@"))
     );
     // Every later step is behind the same guard, so reordering cannot request credentials for a script that is not there.
-    // The only additions are the scenario-only stack steps and their teardown, each also behind the same guard.
+    // The only additions are scenario-only steps (retention-s3 stack, rel-04 drill and verifier), each behind its own scenario guard.
     const afterCheckout = live().steps.slice(1).filter((step) => step !== missing);
     for (const step of afterCheckout) {
-      const stack = STACK_STEPS.includes(step.name ?? "") ? SCENARIO_GUARD : step.name === TEARDOWN ? `always() && ${SCENARIO_GUARD}` : GUARD;
-      expect(step.if, `${step.name ?? step.uses}`).toBe(stack);
+      expect(step.if, `${step.name ?? step.uses}`).toBe(guardFor(step));
     }
+  });
+
+  it("runs the PROD-REL-04 drill and offline verifier only for rel-04, and the final gate requires both", () => {
+    const steps = live().steps;
+    const drill = stepNamed(live(), "Run the PROD-REL-04 crash-and-resume drill");
+    const verify = stepNamed(live(), "Verify the PROD-REL-04 receipt offline");
+    expect(drill.run).toBe("npx tsx scripts/acceptance/live/drill/rel-04.ts");
+    expect(verify.run).toContain("npx tsx scripts/acceptance/live/drill/verify-rel-04.ts");
+    expect(drill["continue-on-error"]).toBe(true);
+    expect(verify["continue-on-error"]).toBe(true);
+    expect(steps.indexOf(drill)).toBeGreaterThan(steps.indexOf(assumeStep()));
+    // The drill itself must never reach the plain harness entry point.
+    expect(drill.run).not.toContain("aws-live.ts");
+    const gate = steps.at(-1)!;
+    expect(gate.run).toContain('if [ "$ZENITH_LIVE_AWS_SCENARIO" = rel-04 ]');
+    expect(gate.env).toEqual({
+      ACCEPTANCE_OUTCOME: "${{ steps.acceptance.outcome }}", RECOVERY_OUTCOME: "${{ steps.recovery.outcome }}",
+      DRILL_OUTCOME: "${{ steps.drill.outcome }}", VERIFY_OUTCOME: "${{ steps.verify.outcome }}",
+      REL04_RECOVERY_OUTCOME: "${{ steps.recovery_rel04.outcome }}",
+    });
+    expect(gate.run).toContain('test "$DRILL_OUTCOME" = success');
+    expect(gate.run).toContain('test "$VERIFY_OUTCOME" = success');
+    expect(gate.run).toContain('test "$REL04_RECOVERY_OUTCOME" = success');
+    // Non-rel-04 scenarios keep the original hard gate.
+    expect(gate.run).toContain('test "$ACCEPTANCE_OUTCOME" = success');
+    expect(gate.run).toContain('test "$RECOVERY_OUTCOME" = success');
+  });
+
+  it("recovers any open rel-04 journal always, after the drill and verifier, before publishing, and the final gate requires it", () => {
+    const steps = live().steps;
+    const recovery = steps.find((step) => step.id === "recovery_rel04") as Step;
+    const drill = stepNamed(live(), "Run the PROD-REL-04 crash-and-resume drill");
+    const verify = stepNamed(live(), "Verify the PROD-REL-04 receipt offline");
+    const publish = stepNamed(live(), "Publish PROD-REL-04 drill journals, evidence and receipt");
+    expect(recovery.if).toBe(`always() && ${REL04}`);
+    expect(recovery["continue-on-error"]).toBe(true);
+    expect(steps.indexOf(recovery)).toBeGreaterThan(steps.indexOf(drill));
+    expect(steps.indexOf(recovery)).toBeGreaterThan(steps.indexOf(verify));
+    expect(steps.indexOf(recovery)).toBeLessThan(steps.indexOf(publish));
+    // Both rel-04 journal directories: the drill's D1 and its replay D2 (the same tree as the owner OUT parent, with -replay).
+    expect(recovery.run).toContain('"${RUNNER_TEMP}/zenith-aws-production/${ZENITH_LIVE_AWS_RUN_ID}/journal.json"');
+    expect(recovery.run).toContain('"${RUNNER_TEMP}/zenith-aws-production-replay/${ZENITH_LIVE_AWS_RUN_ID}/journal.json"');
+    // Only an open journal triggers cleanup; the same journal-only command as the fixtures recovery step.
+    expect(recovery.run).toContain("process.exit(JSON.parse(fs.readFileSync(process.argv[1],\"utf8\")).closed ? 0 : 1)");
+    expect(recovery.run).toContain('npx tsx scripts/acceptance/aws-live.ts --cleanup "$journal" || status=1');
+    // A failed cleanup in D1 must not skip D2, and the step fails at the end.
+    expect(recovery.run).toContain('exit "$status"');
+    expect(recovery.run).not.toMatch(/--cleanup[^\n]*\|\|\s*exit/);
   });
 
   it("exposes the scenario input, defaulting to fixtures, to the envelope preflight and the harness", () => {
     const input = (liveAcceptance.on.workflow_dispatch as { inputs: Record<string, unknown> }).inputs.scenario;
-    expect(input).toEqual({ description: expect.any(String), required: false, default: "fixtures", type: "choice", options: ["fixtures", "retention-s3"] });
+    expect(input).toEqual({ description: expect.any(String), required: false, default: "fixtures", type: "choice", options: ["fixtures", "retention-s3", "rel-04"] });
     expect(live().env?.ZENITH_LIVE_AWS_SCENARIO).toBe("${{ inputs.scenario }}");
     const preflight = stepNamed(live(), "Validate the approved permission envelope before OIDC");
     expect(preflight.run).toContain("scripts/acceptance/live/preflight.ts");
@@ -1474,7 +1532,11 @@ describe("the live acceptance workflow", () => {
     expect(teardown.run).toContain("down.mjs");
     expect(teardown.run).toContain("::warning::");
     // The gate reads only the acceptance and recovery outcomes, so a teardown failure cannot turn it red or green on its own.
-    expect(steps.at(-1)!.env).toEqual({ ACCEPTANCE_OUTCOME: "${{ steps.acceptance.outcome }}", RECOVERY_OUTCOME: "${{ steps.recovery.outcome }}" });
+    expect(steps.at(-1)!.env).toEqual({
+      ACCEPTANCE_OUTCOME: "${{ steps.acceptance.outcome }}", RECOVERY_OUTCOME: "${{ steps.recovery.outcome }}",
+      DRILL_OUTCOME: "${{ steps.drill.outcome }}", VERIFY_OUTCOME: "${{ steps.verify.outcome }}",
+      REL04_RECOVERY_OUTCOME: "${{ steps.recovery_rel04.outcome }}",
+    });
   });
 
   it("checks the account configuration before requesting a token", () => {

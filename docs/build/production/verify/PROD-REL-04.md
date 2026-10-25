@@ -21,6 +21,32 @@ ZENITH_LIVE_AWS=1 npx vitest run tests/acceptance/aws-production.live.test.ts --
 
 Expected offline: provider contracts pass; actual AWS test is skipped, never accepted as live evidence. Expected live for this source: six actual provider fixtures and native cleanup, zero failed checks, packet incomplete / exit 3 and this requirement pending until its full product journey is joined and independently verified. No actual AWS, real PostgreSQL, Temporal, kind or browser verification was run on the Windows builder. Status for the AWS harness slice: implementation_complete_verification_pending.
 
+## Live drill (scenario rel-04)
+
+**How to run.** Dispatch `live-acceptance.yml` with `scenario=rel-04` and a new run id, as in [LIVE-ACCEPTANCE.md](../LIVE-ACCEPTANCE.md). The job runs `scripts/acceptance/live/drill/rel-04.ts` after OIDC, then `scripts/acceptance/live/drill/verify-rel-04.ts`, then an always-run recovery of any rel-04 journal that is still open in either run directory (D1 and its replay D2), then publishes `aws-live-rel04-<run>` (journals, evidence, checkpoints, the receipt and the drill log, all JSON). The plain harness does not run for this scenario. The recovery never changes the drill verdict; its failure fails the final gate. Scenario `rel-04` plans one S3 fixture, scoped to PROD-REL-04, and has no product port, so the packet verdict stays `incomplete` by design.
+
+**What it proves, live, against the sandbox account.**
+
+- **A, real crash.** The harness is started in its own process group. The drill SIGKILLs that group as soon as the journal records the `s3-create` intent. It then snapshots the journal, `next-command.txt` and `checkpoint.json`. The snapshot must show an open journal, one create intent and a runnable `--cleanup` command that names every required env variable and the journal path. The checkpoint must carry the same command with `unattendedClaims: false`.
+- **B, journal-only resume.** The drill runs that recorded command semantics, `aws-live.ts --cleanup <journal>`, with the same environment. The journal must close, no `*-create` counter may grow, `evidence.json` must report `cleanupComplete`, and the checkpoint run step must be `done`.
+- **C, replay refusal.** A fresh budget book, `ZENITH_LIVE_BUDGET_FILE=<ledger>.replay.json`, lets the same run id reach the account-side SSM run claim (`PutParameter`, `Overwrite: false`). The claim must be refused exactly once. No S3 create may be attempted, and no fixture may pass. A second attempt with the original book must exit 2 before any journal is written.
+- **D, readback.** Read-only: `HeadBucket` on the run bucket must return NotFound, and `/zenith/live-runs/<runId>` must still equal the run id. These use the planned leak and run-claim-read call shapes through the native SDK transport, and the sandbox role already allows them (`s3:ListBucket` on `zenith-zlive-*`, `ssm:GetParameter` on `/zenith/live-runs/zlive-*`). No IAM change is needed.
+
+**Receipt.** `rel-04-receipt.json` records `schema`, `scenario`, `runId`, the source `commit`, `planSha256`, `permissionSha256`, one `passed` boolean with a short fixed reason per step, `verdict` and `notes`. It contains no credential, environment value or raw provider response. The receipt is written even when a step fails, and `verdict` is `passed` only when all four steps pass.
+
+**Offline verifier.** `verify-rel-04.ts` makes no AWS call. It re-derives each step from the journals, the kill snapshot, the checkpoints, `evidence.json`, the replay journal and the permission file, binds the receipt's plan, permission and commit to the permission file and the journal, and then compares each re-derived result with the recorded booleans. It exits 0 only when every step holds and the receipt says `passed`.
+
+**Honest limits.**
+
+- **Kill timing races `s3-tag`.** The kill can land before or after the provider accepted `CreateBucket`, and before or after `PutBucketTagging`. Resume handles all of these through the existing untagged-create repair, but the drill cannot choose which side it hits. Each run records what the snapshot showed, and it does not claim a particular ordering.
+- **The fresh budget book in C is deliberate.** It bypasses the local book so that the request reaches the account-side claim. The receipt records this in its notes. The account-side claim is the control under test; the local book is not.
+- **Not covered live.** Budget exhaustion and forbidden actions stay contract-level, as tested in `tests/acceptance/aws-production.test.ts`. The drill does not prove product behaviour, traffic, or the other 26 requirements.
+- **The 500-character next-command cap.** The shared checkpoint schema (`scripts/release/checkpoint.ts`) caps each next command at 500 characters, and a resume whose command exceeds that is refused as malformed. A CI-shaped command measures about 420 characters. A much longer checkout or temp path can reach the cap, and the resume then fails closed. Raising the cap is a shared-checkpoint change and is not part of this drill.
+- **One run id, one drill.** The run claim persists in the account. Reusing a run id for a second drill is refused by design, so the owner must start a new run id.
+- **No unattended claims.** The drill is a single automated sequence that the owner starts by hand. It does not claim that any step ran unattended, and the checkpoint records `unattendedClaims: false`.
+
+**Not run here.** No live drill, no AWS call and no workflow dispatch were run for this change. The offline tests are `tests/acceptance/aws-rel04-drill.test.ts`, and the workflow shape is pinned in `tests/ci/release-gates.test.ts`.
+
 ## L3 live and operational verification (2026-10-08)
 
 Acceptance contract: Approved budgets/disposable resources only; no unrelated services/purchases/terms/production/secret bypass/protected branches/history rewrites; consolidate decisions and checkpoint exact next commands without unattended-work claims.

@@ -2,7 +2,7 @@
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 export type Family = "s3" | "iam" | "lambda" | "ecs" | "rds" | "dns";
 /** Scenario-specific plans (owner decision D3). "fixtures" is the full plan and the default. */
-export const SCENARIOS = ["fixtures", "retention-s3"] as const;
+export const SCENARIOS = ["fixtures", "retention-s3", "rel-04"] as const;
 export type Scenario = (typeof SCENARIOS)[number];
 export interface Call {
   id: string;

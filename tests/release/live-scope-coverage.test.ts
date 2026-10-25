@@ -38,6 +38,9 @@ const COVERED_BY: Record<string, string> = {
   "tests/acceptance/aws-retention-port.test.ts": "scripts/acceptance/live/scope.ts",
   // The retention-s3 port runs only behind the production CLI, which loads and enforces the scope before it is reached.
   "scripts/acceptance/live/product/retention-s3.ts": "scripts/acceptance/live/cli.ts",
+  // The PROD-REL-04 drill only spawns the production CLI (which loads and enforces the root and envelope scope) and reads the journals it writes.
+  "scripts/acceptance/live/drill/rel-04.ts": "scripts/acceptance/live/cli.ts",
+  "tests/acceptance/aws-rel04-drill.test.ts": "scripts/acceptance/live/scope.ts",
   "scripts/acceptance/aws-iam-permissions.ts": "scripts/acceptance/aws-iam-permissions-cli.ts",
   "scripts/acceptance/azure-live.ts": "tests/providers/azure/live.test.ts",
   "scripts/acceptance/non-aws-dns-live.ts": "tests/acceptance/non-aws-dns-live.test.ts",

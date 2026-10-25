@@ -8,6 +8,7 @@ export const FAMILIES: Family[] = ["s3", "iam", "lambda", "ecs", "rds", "dns"];
 const scenarios: Record<Scenario, { families: Family[]; scope?: string[] }> = {
   fixtures: { families: FAMILIES },
   "retention-s3": { families: ["s3"], scope: ["PROD-OPS-07"] },
+  "rel-04": { families: ["s3"], scope: ["PROD-REL-04"] },
 };
 export function parseScenario(raw: string): Scenario {
   if (!(SCENARIOS as readonly string[]).includes(raw)) throw new Error("Unknown AWS live scenario");
@@ -155,7 +156,8 @@ export function buildPlan(input: Settings): Plan {
   // under 1 MiB for under an hour is far below a cent. The 0.25 base and 0.01/minute are generous
   // ceilings for a few dozen planned requests plus retries; the 0.25 reserve is kept for cleanup.
   // Duration bounds stay 5..20 because the product archive/restore path runs inside that window.
-  const estimate: Plan["estimate"] = scenario === "retention-s3" ? { usd: 0.25 + settings.durationMinutes * 0.01, cleanupReserveUsd: 0.25, provisional: true, basis: "Conservative provisional USD ceiling for one owned S3 bucket, a few sealed objects under retention/, a bounded list/delete drain and a few dozen planned S3 requests; includes 0.25USD cleanup reserve. No RDS, ECS, DNS, IAM or Lambda cost. Owner must validate regional S3 rates." } : { usd: 6 + settings.durationMinutes * 0.03, cleanupReserveUsd: 2, provisional: true, basis: "Conservative provisional USD ceiling: one private 20GiB db.t4g.micro <=45min including cleanup, one 128MiB Lambda invocation, one empty ECS cluster, <=1KiB S3, one disposable hosted zone, managed DB secret; includes 2USD cleanup reserve. Owner must validate regional rates; delayed deletion can exceed estimate." };
+  const estimate: Plan["estimate"] = scenario === "retention-s3" ? { usd: 0.25 + settings.durationMinutes * 0.01, cleanupReserveUsd: 0.25, provisional: true, basis: "Conservative provisional USD ceiling for one owned S3 bucket, a few sealed objects under retention/, a bounded list/delete drain and a few dozen planned S3 requests; includes 0.25USD cleanup reserve. No RDS, ECS, DNS, IAM or Lambda cost. Owner must validate regional S3 rates." }
+    : scenario === "rel-04" ? { usd: 0.25 + settings.durationMinutes * 0.01, cleanupReserveUsd: 0.25, provisional: true, basis: "Conservative provisional USD ceiling for the PROD-REL-04 drill: one owned S3 bucket with one probe object, a SIGKILL and journal-only resume, a refused replay claim and two read-only readbacks; same S3 envelope as retention-s3, includes 0.25USD cleanup reserve. No RDS, ECS, DNS, IAM or Lambda cost. Owner must validate regional S3 rates." } : { usd: 6 + settings.durationMinutes * 0.03, cleanupReserveUsd: 2, provisional: true, basis: "Conservative provisional USD ceiling: one private 20GiB db.t4g.micro <=45min including cleanup, one 128MiB Lambda invocation, one empty ECS cluster, <=1KiB S3, one disposable hosted zone, managed DB secret; includes 2USD cleanup reserve. Owner must validate regional rates; delayed deletion can exceed estimate." };
   const body: Omit<Plan, "sha256"> = {
     schema: 1, settings, tags, fixtures, preflight, estimate,
     requirements: ledger.requirements.filter(r => r.requiredEvidence.includes("live_sandbox")).map(r => ({ id: r.id, acceptance: r.acceptance, fixtures: requirements[r.id] ?? [], join: "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement." })),

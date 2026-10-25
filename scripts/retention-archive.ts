@@ -25,6 +25,15 @@ function flag(args: readonly string[], name: string): string | undefined {
   return i >= 0 ? args[i + 1] : undefined;
 }
 
+
+/** The error's type and code only (for example `HostedError:policy_unavailable` or `DatabaseError:42P01`). Both are fixed identifiers, never data. */
+function failureKind(error: unknown, depth = 0): string {
+  const r = (error && typeof error === "object" ? error : {}) as { name?: unknown; code?: unknown; cause?: unknown };
+  const name = typeof r.name === "string" && /^[A-Za-z]{1,40}$/.test(r.name) ? r.name : "Error";
+  const code = typeof r.code === "string" && /^[A-Za-z0-9_]{1,40}$/.test(r.code) ? `:${r.code}` : "";
+  const cause = depth < 2 && r.cause && typeof r.cause === "object" ? `<${failureKind(r.cause, depth + 1)}` : "";
+  return `${name}${code}${cause}`;
+}
 export async function retentionArchiveMain(
   args: readonly string[],
   output: (line: string) => void = (line) => process.stdout.write(`${line}\n`),
@@ -62,9 +71,9 @@ export async function retentionArchiveMain(
     const r = await restoreArchive(db, { archiveId: id!, mode: source ? "source" : "staging", stagingSuffix: staging, rowIds: ids, actor: "cli:operator", ...(legacyRequested ? { legacyKey: { originalPurpose: "enc:backup", keyId: legacyId!, reason: legacyReason! } as const } : {}) }, { deps, privileged: true, env });
     output(JSON.stringify(r));
     return r.verdict === "verified" ? 0 : 1;
-  } catch {
-    // Connection and query errors can carry URLs or row data; none is echoed.
-    error("Retention archive command failed. Check the platform store configuration and that the schema is migrated.");
+  } catch (failure) {
+    // Connection and query errors can carry URLs or row data; only the error type and code are echoed.
+    error(`Retention archive command failed (${failureKind(failure)}). Check the platform store configuration and that the schema is migrated.`);
     return 1;
   } finally {
     if (db) await db.close().catch(() => undefined);

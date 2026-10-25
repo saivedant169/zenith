@@ -2,7 +2,7 @@ import { Guard } from "./guard";
 import { digest, scopedRequirementIds, teardownOrder } from "./plan";
 import { isNativeTransport, resolveInput } from "./sdk";
 import { tagsMatch, inventoryEmpty, teardownUntilFailure } from "./shared";
-import type { Call, Check, Family, Journal, Json, Plan, ProductScenarioPort, Transport } from "./contracts";
+import type { Call, Check, Family, Fixture, Journal, Json, Plan, ProductScenarioPort, Transport } from "./contracts";
 
 const record = (v: unknown): Record<string, unknown> => v && typeof v === "object" ? v as Record<string, unknown> : {};
 const rows = (v: unknown): Record<string, unknown>[] => Array.isArray(v) ? v.map(record) : [];
@@ -55,10 +55,13 @@ export async function execute(plan: Plan, guard: Guard, transport: Transport, jo
   const add = (check: Check) => journal.checks.push(check);
   const started = io.now().getTime();
   const save = async () => { journal.counts = { ...guard.counts }; await io.save(journal); };
-  const call = async (c: Call) => {
+  const call = async (c: Call, repair = false) => {
     if (cleanupStarted && io.now().getTime() - cleanupStarted >= 25 * 60_000) throw new Error("Cleanup observation deadline reached; owner recovery required");
     if (!cleanup && (options.signal?.aborted || io.now().getTime() - started >= plan.settings.durationMinutes * 60_000)) throw new Error("Live run cancelled or duration envelope exhausted");
-    guard.consume(c, cleanup);
+    guard.consume(c, cleanup, repair);
+    // Intent markers persist BEFORE the request: a crash mid-request must still let recovery prove this run's create or put.
+    if (c.id === "s3-create") journal.responses[c.id] = { Bucket: String(c.input.Bucket) };
+    if (c.id === "dns-put") journal.responses[c.id] = { Attempted: true };
     await save();
     const input = resolveInput(c.input, responses) as Record<string, Json>;
     const out = await transport.send(c, input, cleanup ? undefined : options.signal);
@@ -99,6 +102,21 @@ export async function execute(plan: Plan, guard: Guard, transport: Transport, jo
       await save();
     }
   };
+  // S3 reports "no tag set" as an error and DNS as an empty tag list; both mean untagged, never "other tags".
+  const ownershipOf = async (fixture: Fixture): Promise<Record<string, unknown> | "untagged"> => {
+    try {
+      const response = await call(fixture.ownership);
+      const set = record(response.ResourceTagSet);
+      return fixture.family === "dns" && Array.isArray(set.Tags) && set.Tags.length === 0 ? "untagged" : response;
+    } catch (error) {
+      if (fixture.family === "s3" && record(error).name === "NoSuchTagSet") return "untagged";
+      throw error;
+    }
+  };
+  // Only a create this journal recorded (S3 intent marker, or a DNS zone whose exact identity was just proven) may be repaired.
+  const createdHere = (fixture: Fixture): boolean => fixture.family === "dns"
+    ? !!responses["dns-create"]
+    : journal.responses["s3-create"]?.Bucket === fixture.setup.find(c => c.id === "s3-create")!.input.Bucket;
   // Retention drain: list one page under retention/, delete exactly that page, repeat until an
   // empty listing. Guard counts bound the rounds; any leftover or partial failure throws.
   const drainRetention = async (list: Call, remove: Call) => {
@@ -205,10 +223,20 @@ export async function execute(plan: Plan, guard: Guard, transport: Transport, jo
             }
             if (!responses["rds-secret"]) throw new Error("Managed secret identity unproven before DB teardown");
           }
-          if (!owned(await call(fixture.ownership), plan)) throw new Error("Ownership tags missing; refusing deletion");
+          let read = await ownershipOf(fixture);
+          if (read === "untagged") {
+            // Crash between create and tag: re-apply only this run's planned tag, and only for a create this journal proves.
+            const tag = fixture.setup.find(c => c.id === `${fixture.family}-tag`);
+            if (!tag || !createdHere(fixture)) throw new Error("Ownership tags missing; refusing deletion");
+            await call(tag, true);
+            read = await ownershipOf(fixture);
+          }
+          if (read === "untagged" || !owned(read, plan)) throw new Error("Ownership tags missing; refusing deletion");
           for (const c of fixture.teardown) {
             // The retention delete is driven by its listing; the listing must run before bucket deletion.
             if (c.id === "s3-retention-delete") continue;
+            // A TXT record that was never sent cannot exist, and deleting it would be refused as drift.
+            if (c.id === "dns-remove-record" && !journal.responses["dns-put"]) continue;
             if (c.id === "s3-retention-list") { await drainRetention(c, fixture.teardown.find(t => t.id === "s3-retention-delete")!); continue; }
             for (let attempt = 0; ; attempt++) {
               try { await call(c); break; } catch (error) {

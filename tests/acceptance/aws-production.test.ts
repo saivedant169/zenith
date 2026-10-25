@@ -1,5 +1,6 @@
 /** CONTRACT ONLY: modeled transport, never AWS evidence. */
 import { randomBytes } from "node:crypto";
+import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -17,7 +18,7 @@ import { runLiveCli } from "../../scripts/acceptance/aws-live";
 import { Guard, grantsFor, readPermission } from "../../scripts/acceptance/live/guard";
 import { execute, newJournal, missing, absent, owned, checkReadback, executionProvenance } from "../../scripts/acceptance/live/execute";
 import { evidencePacket } from "../../scripts/acceptance/live/evidence";
-import { runProductionCli } from "../../scripts/acceptance/live/cli";
+import { resumeCommand, runProductionCli } from "../../scripts/acceptance/live/cli";
 import { requireProductionScope } from "../../scripts/acceptance/live/scope";
 import { approvedManifest } from "../release/_support";
 import { nonceZip, resolveInput, sessionCredentials } from "../../scripts/acceptance/live/sdk";
@@ -57,7 +58,12 @@ function modeled(p: Plan, fail?: (call: Call) => boolean) {
       }
       return family === "ecs" ? { clusters: [{ status: "ACTIVE" }], failures: [] } : family === "dns" ? { HostedZone: { Name: `zenith-${settings.runId}.invalid.`, CallerReference: settings.runId } } : family === "rds" ? { DBInstances: [{ MasterUserSecret: { SecretArn: `arn:aws:secretsmanager:${settings.region}:${settings.accountId}:secret:rds!db-contract` } }] } : {};
     }
-    if (c.id.endsWith("-ownership")) return { Tags: tags.has(family) ? p.tags : {} };
+    // Real shapes: S3 reports an untagged bucket as NoSuchTagSet; Route 53 returns an empty tag list.
+    if (c.id.endsWith("-ownership")) {
+      if (family === "s3" && !tags.has(family)) throw error("NoSuchTagSet");
+      if (family === "dns") return { ResourceTagSet: { Tags: tags.has(family) ? Object.entries(p.tags).map(([Key, Value]) => ({ Key, Value })) : [] } };
+      return { Tags: tags.has(family) ? p.tags : {} };
+    }
     if (c.id.endsWith("-delete")) { present.delete(family); return {}; }
     if (c.id === "s3-read") return { Body: p.settings.runId };
     if (c.id === "s3-read-private") return { PublicAccessBlockConfiguration: { BlockPublicAcls: true, IgnorePublicAcls: true, BlockPublicPolicy: true, RestrictPublicBuckets: true } };
@@ -351,7 +357,7 @@ describe("execution, cleanup and evidence (modeled contracts only)", () => {
     const fake = ["AKIA", randomBytes(8).toString("hex").toUpperCase()].join("");
     journal.checks.push({ id: "redaction", scope: "product_requirement", status: "pending", reason: `authorization: Bearer ${fake}` });
     expect(JSON.stringify(evidencePacket(journal))).not.toContain(fake);
-    expect(Object.keys(journal.responses).sort()).toEqual(["dns-create", "rds-secret"]);
+    expect(Object.keys(journal.responses).sort()).toEqual(["dns-create", "dns-put", "rds-secret", "s3-create"]);
   });
   it("cannot emit live evidence from a modeled transport, even when a check claims success", async () => {
     const { journal } = await run();
@@ -492,8 +498,9 @@ describe("scenario-specific plans and scoped verdict (offline)", () => {
   };
 
   it("keeps the default fixtures digest identical to the pre-scenario planner", () => {
-    // Changed deliberately when the prior-leak scan gained its bounded owned-ECS status read (prior-leaks-ecs).
-    expect(plan().sha256).toBe("d363bfdbc5ffca34c9daa680ada7b7e6b139b9b067d6129ab7be99eb817301f3");
+    // Changed deliberately when the prior-leak scan gained its bounded owned-ECS status read (prior-leaks-ecs), and again when
+    // s3-tag and dns-tag gained a second planned attempt for the cleanup-only repair of a proven untagged create (G4).
+    expect(plan().sha256).toBe("2ddf24bebcf4c0d237dc71c3128439c7e38131b546538cff381321547748c717");
     expect(buildPlan({ ...settings, scenario: "fixtures" }).sha256).toBe(plan().sha256);
   });
   it("retention-s3 plans only the S3 family and the preflight calls that apply to it", () => {
@@ -608,5 +615,146 @@ describe("scenario-specific plans and scoped verdict (offline)", () => {
     expect(evidencePacket(journal).verdict).toBe("passed");
     journal.checks.pop();
     expect(evidencePacket(journal).verdict).toBe("incomplete");
+  });
+});
+
+describe("untagged-create recovery (G4, offline)", () => {
+  // The journal a SIGKILL leaves between a planned create and its tag: the create intent is recorded, nothing else.
+  function crashedAfterCreate(family: "s3" | "dns") {
+    const p = plan(), guard = makeGuard(p), model = modeled(p), journal = newJournal(p, guard, "a".repeat(40), now());
+    journal.attempted = [family];
+    if (family === "s3") journal.responses["s3-create"] = { Bucket: String(p.fixtures.find(f => f.family === "s3")!.setup[0].input.Bucket) };
+    else journal.responses["dns-create"] = { HostedZone: { Id: "/hostedzone/ZCONTRACT" } };
+    model.present.add(family);
+    return { p, journal, model };
+  }
+  const recover = (p: Plan, journal: Journal, transport: Transport) => execute(p, new Guard(p, permission(p), 10, now, journal.counts, true), transport, journal, { now, sleep: async () => undefined, save: async () => undefined }, { cleanupOnly: true });
+
+  it("re-tags a bucket left untagged by a crash after create, then deletes it and closes the journal", async () => {
+    const { p, journal, model } = crashedAfterCreate("s3");
+    await recover(p, journal, model.transport);
+    const ids = model.calls.map(c => c.id);
+    expect(ids.indexOf("s3-tag")).toBeGreaterThanOrEqual(0);
+    expect(ids.indexOf("s3-tag")).toBeLessThan(ids.indexOf("s3-delete"));
+    expect(ids.some(id => id.endsWith("-create"))).toBe(false);
+    expect(journal.closed).toBe(true); expect(model.present.size).toBe(0);
+  });
+  it("re-tags a zone left untagged by a crash after create, and never removes a record it did not send", async () => {
+    const { p, journal, model } = crashedAfterCreate("dns");
+    await recover(p, journal, model.transport);
+    const ids = model.calls.map(c => c.id);
+    expect(ids).toContain("dns-tag"); expect(ids).not.toContain("dns-remove-record"); expect(ids).not.toContain("dns-put");
+    expect(ids.some(id => id.endsWith("-create"))).toBe(false);
+    expect(journal.closed).toBe(true); expect(model.present.size).toBe(0);
+  });
+  it("refuses a bucket whose tags are foreign: no re-tag, no deletion, journal stays open", async () => {
+    const { p, journal, model } = crashedAfterCreate("s3");
+    const foreign = { TagSet: [{ Key: "zenith:live-run", Value: "someone-else" }, { Key: "zenith:managed", Value: "true" }, { Key: "zenith:purpose", Value: "live-acceptance" }] };
+    const transport: Transport = { async send(c, input, signal) { if (c.id !== "s3-ownership") return model.transport.send(c, input, signal); model.calls.push(c); return foreign; } };
+    await recover(p, journal, transport);
+    expect(model.calls.some(c => c.id === "s3-tag")).toBe(false);
+    expect(model.calls.some(c => c.id === "s3-delete")).toBe(false);
+    expect(journal.closed).toBe(false);
+  });
+  it("refuses an untagged bucket that this journal never recorded creating", async () => {
+    const { p, journal, model } = crashedAfterCreate("s3");
+    delete journal.responses["s3-create"];
+    await recover(p, journal, model.transport);
+    expect(model.calls.some(c => c.id === "s3-tag" || c.id === "s3-delete")).toBe(false);
+    expect(journal.closed).toBe(false);
+  });
+  it("gives recovery authority only over the planned tag calls, bounded, and never over a create", () => {
+    const p = plan(), guard = new Guard(p, permission(p), 10, now, {}, true);
+    const s3Create = p.fixtures.find(f => f.family === "s3")!.setup.find(c => c.id === "s3-create")!;
+    const s3Tag = p.fixtures.find(f => f.family === "s3")!.setup.find(c => c.id === "s3-tag")!;
+    const dnsCreate = p.fixtures.find(f => f.family === "dns")!.setup.find(c => c.id === "dns-create")!;
+    expect(() => guard.consume(s3Create, true, true)).toThrow(/Recovery cannot create/);
+    expect(() => guard.consume(dnsCreate, true, true)).toThrow(/Recovery cannot create/);
+    expect(() => guard.consume(s3Tag, true, false)).toThrow(/Recovery cannot create/);
+    guard.consume(s3Tag, true, true); guard.consume(s3Tag, true, true);
+    expect(() => guard.consume(s3Tag, true, true)).toThrow(/exhausted/);
+  });
+});
+
+describe("expired root approval during teardown only (G3, offline)", () => {
+  // approvedManifest pins expiresAt to NOW + 1 day, so this instant is after the lapse.
+  const lapsed = () => new Date("2026-10-10T00:00:00Z");
+  it("lets owned teardown use the original approval after it lapses", async () => {
+    const env = await rootScopeFile();
+    expect(() => requireProductionScope(plan(), 10, env, true, lapsed)).not.toThrow();
+  });
+  it("still refuses fresh creation under the same lapsed approval", async () => {
+    const env = await rootScopeFile();
+    expect(() => requireProductionScope(plan(), 10, env, false, lapsed)).toThrow(/has expired/);
+  });
+  it("keeps the content and digest check for teardown", async () => {
+    const env = await rootScopeFile();
+    const raw = JSON.parse(await readFile(env.ZENITH_LIVE_SCOPE_FILE, "utf8"));
+    raw.budgets.totalUsd = 9;
+    await writeFile(env.ZENITH_LIVE_SCOPE_FILE, JSON.stringify(raw));
+    expect(() => requireProductionScope(plan(), 10, env, true, lapsed)).toThrow(/changed after it was approved/);
+  });
+  it("keeps the approver check for teardown", async () => {
+    const env = await rootScopeFile();
+    const raw = JSON.parse(await readFile(env.ZENITH_LIVE_SCOPE_FILE, "utf8"));
+    raw.approval.approvedBy = null;
+    await writeFile(env.ZENITH_LIVE_SCOPE_FILE, JSON.stringify(raw));
+    expect(() => requireProductionScope(plan(), 10, env, true, lapsed)).toThrow(/not been approved by a person/);
+  });
+});
+
+describe("AWS CLI resume command, next-command.txt and checkpoint (G1/G2, offline)", () => {
+  async function cli(fail?: (c: Call) => boolean) {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "aws-production-resume-")); directories.push(dir);
+    const p = plan(), perm = permission(p);
+    perm.approvedAt = new Date(Date.now() - 60_000).toISOString();
+    perm.expiresAt = new Date(Date.now() + 60_000).toISOString();
+    const permissionFile = path.join(dir, "permissions.json");
+    await writeFile(permissionFile, JSON.stringify({ awsLive: perm }));
+    const rootFile = await rootScopeFile();
+    const root = JSON.parse(await readFile(rootFile.ZENITH_LIVE_SCOPE_FILE, "utf8"));
+    root.approval.expiresAt = new Date(Date.now() + 60_000).toISOString();
+    await writeFile(rootFile.ZENITH_LIVE_SCOPE_FILE, JSON.stringify(root));
+    const env = { ZENITH_LIVE_AWS: "1", ZENITH_LIVE_AWS_BUDGET_USD: "10", ZENITH_LIVE_AWS_SESSION_FILE: path.join(dir, "session.json"), ZENITH_LIVE_BUDGET_FILE: path.join(dir, "run-budget.json"), ...rootFile };
+    const argv = ["--account", settings.accountId, "--run-id", settings.runId, "--db-security-group", settings.dbSecurityGroup, "--permissions", permissionFile, "--out", dir];
+    const model = modeled(p, fail), runDir = path.join(dir, settings.runId), seen: boolean[] = [];
+    // Nothing reaches AWS until the on-disk recovery command, journal and checkpoint exist.
+    const transport: Transport = { send(c, input, signal) {
+      if (!seen.length) seen.push(["journal.json", "next-command.txt", "checkpoint.json"].every(f => existsSync(path.join(runDir, f))));
+      return model.transport.send(c, input, signal);
+    } };
+    const out: string[] = [];
+    const code = await runProductionCli(argv, env, { out: s => out.push(s), err: s => out.push(s) }, { source: () => perm.sourceCommit, transport: async () => transport });
+    return { code, seen, runDir, permissionFile, packet: JSON.parse(out.join("\n")) as { nextCommand: string | null } };
+  }
+
+  it("builds a copy-paste resume command with quoted paths and every required env assignment", () => {
+    expect(resumeCommand({ cwd: "/work/my repo", budgetUsd: 6.45, scopeFile: "/s/scope.json", sessionFile: "/s/it's.json", permissionsFile: "/p/permissions.json", journalFile: "/j/journal.json" }))
+      .toBe("cd '/work/my repo' && ZENITH_LIVE_AWS=1 ZENITH_LIVE_AWS_BUDGET_USD=6.45 ZENITH_LIVE_SCOPE_FILE='/s/scope.json' ZENITH_LIVE_AWS_SESSION_FILE='/s/it'\\''s.json' npx tsx scripts/acceptance/aws-live.ts --permissions '/p/permissions.json' --cleanup '/j/journal.json'");
+  });
+  it("writes the command, journal and checkpoint before the first AWS call; a closed run leaves no resume command", async () => {
+    const run = await cli();
+    expect(run.code).toBe(3); expect(run.seen).toEqual([true]);
+    expect(run.packet.nextCommand).toBeNull();
+    expect(await readFile(path.join(run.runDir, "next-command.txt"), "utf8")).toContain("Journal closed");
+    const checkpoint = JSON.parse(await readFile(path.join(run.runDir, "checkpoint.json"), "utf8"));
+    expect(checkpoint).toMatchObject({ format: "zenith.run-checkpoint.v1", harness: "aws-live", runId: settings.runId, unattendedClaims: false, nextCommands: [] });
+    expect(checkpoint.steps).toMatchObject([{ id: "run", status: "done" }]);
+    expect(checkpoint.decisions[0].text).toContain(`plan=${plan().sha256}`);
+    expect(checkpoint.decisions[0].text).toContain(`commit=${"a".repeat(40)}`);
+    expect(checkpoint.decisions[0].text).toContain("budgetUsd=10");
+  });
+  it("leaves a runnable command on disk, in next-command.txt and the checkpoint, when cleanup stays open", async () => {
+    const run = await cli(c => c.id === "lambda-delete");
+    expect(run.code).toBe(1);
+    const command = run.packet.nextCommand!;
+    for (const required of ["ZENITH_LIVE_AWS=1", "ZENITH_LIVE_AWS_BUDGET_USD=10", "ZENITH_LIVE_SCOPE_FILE='", "ZENITH_LIVE_AWS_SESSION_FILE='", `--permissions '${run.permissionFile}'`, `--cleanup '${path.join(run.runDir, "journal.json")}'`]) {
+      expect(command).toContain(required);
+    }
+    expect(await readFile(path.join(run.runDir, "next-command.txt"), "utf8")).toBe(`${command}\n`);
+    const checkpoint = JSON.parse(await readFile(path.join(run.runDir, "checkpoint.json"), "utf8"));
+    expect(checkpoint.steps).toMatchObject([{ id: "run", status: "failed" }]);
+    expect(checkpoint.nextCommands).toEqual([command]);
+    expect(checkpoint.unattendedClaims).toBe(false);
   });
 });

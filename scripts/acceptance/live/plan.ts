@@ -97,7 +97,8 @@ export function buildPlan(input: Settings): Plan {
   const allFixtures: Fixture[] = [
     { family: "s3", dependsOn: [], setup: [
       call("s3-create", "s3", "CreateBucket", bucketArn, { Bucket: bucket, ...(region === "us-east-1" ? {} : { CreateBucketConfiguration: { LocationConstraint: region } }) }),
-      call("s3-tag", "s3", "PutBucketTagging", bucketArn, { Bucket: bucket, Tagging: { TagSet: Tags } }),
+      // Two attempts: the second is the cleanup-only repair of an untagged create (execute.ts). Digest pinned in tests.
+      call("s3-tag", "s3", "PutBucketTagging", bucketArn, { Bucket: bucket, Tagging: { TagSet: Tags } }, 2),
       call("s3-private", "s3", "PutPublicAccessBlock", bucketArn, { Bucket: bucket, PublicAccessBlockConfiguration: { BlockPublicAcls: true, IgnorePublicAcls: true, BlockPublicPolicy: true, RestrictPublicBuckets: true } }),
       call("s3-encrypt", "s3", "PutBucketEncryption", bucketArn, { Bucket: bucket, ServerSideEncryptionConfiguration: { Rules: [{ ApplyServerSideEncryptionByDefault: { SSEAlgorithm: "AES256" } }] } }),
       call("s3-put", "s3", "PutObject", `${bucketArn}/probe`, { Bucket: bucket, Key: "probe", Body: runId, ServerSideEncryption: "AES256" }),
@@ -124,7 +125,8 @@ export function buildPlan(input: Settings): Plan {
     leak: [call("rds-leak", "rds", "DescribeDBInstances", dbArn, { DBInstanceIdentifier: db }, 300), call("rds-secret-leak", "secretsmanager", "DescribeSecret", arn("secretsmanager", "secret:rds!db-*"), { SecretId: ref("rds-secret.SecretArn") }, 180)] },
     { family: "dns", dependsOn: [], setup: [
       call("dns-create", "route53", "CreateHostedZone", "*", { Name: zoneName, CallerReference: runId, HostedZoneConfig: { Comment: `Zenith disposable ${runId}` } }),
-      call("dns-tag", "route53", "ChangeTagsForResource", zoneArn, { ResourceType: "hostedzone", ResourceId: ref("dns-create.HostedZone.Id"), AddTags: Tags }),
+      // Two attempts: the second is the cleanup-only repair of an untagged create (execute.ts).
+      call("dns-tag", "route53", "ChangeTagsForResource", zoneArn, { ResourceType: "hostedzone", ResourceId: ref("dns-create.HostedZone.Id"), AddTags: Tags }, 2),
       call("dns-put", "route53", "ChangeResourceRecordSets", zoneArn, { HostedZoneId: ref("dns-create.HostedZone.Id"), ChangeBatch: { Changes: [{ Action: "CREATE", ResourceRecordSet: { Name: `probe.${zoneName}`, Type: "TXT", TTL: 60, ResourceRecords: [{ Value: `"${runId}"` }] } }] } }),
     ], observe: [call("dns-read", "route53", "ListResourceRecordSets", zoneArn, { HostedZoneId: ref("dns-create.HostedZone.Id"), MaxItems: "10" })],
     ownership: ownership("dns", "route53", "ListTagsForResource", zoneArn, { ResourceType: "hostedzone", ResourceId: ref("dns-create.HostedZone.Id") }),

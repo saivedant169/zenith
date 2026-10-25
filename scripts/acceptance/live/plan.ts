@@ -143,6 +143,9 @@ export function buildPlan(input: Settings): Plan {
       call("db-security", "ec2", "DescribeSecurityGroups", "*", { GroupIds: [settings.dbSecurityGroup] }),
     ] : []),
     call("prior-leaks", "tag", "GetResources", "*", { TagFilters: [{ Key: "zenith:purpose", Values: ["live-acceptance"] }], ResourcesPerPage: 100 }, 100),
+    // A deleted ECS cluster stays INACTIVE (no tasks, no cost) and still appears in the tag inventory.
+    // Only owned run clusters are described, at most 100 per call; any other tagged resource still blocks.
+    call("prior-leaks-ecs", "ecs", "DescribeClusters", arn("ecs", "cluster/zenith-zlive-*-ecs"), { clusters: [] }, 10),
     ...(families.includes("dns") ? [call("dns-discover", "route53", "ListHostedZonesByName", "*", { DNSName: zoneName, MaxItems: "2" }, 4)] : []),
     ...fixtures.filter(f => f.family !== "dns").map(f => ({ ...f.leak[0], id: `${f.family}-preexist`, maximumCalls: 1 })),
   ];

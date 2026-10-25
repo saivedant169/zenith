@@ -128,7 +128,20 @@ export async function execute(plan: Plan, guard: Guard, transport: Transport, jo
         // resource and maximum calls, not the provider-issued opaque page token.
         guard.consume(inventory); await save();
         const out = await transport.send(inventory, { ...inventory.input, ...(page ? { PaginationToken: page } : {}) }, options.signal);
-        if (!inventoryEmpty(out.ResourceTagMappingList)) throw new Error("Prior live-acceptance leaks require owner recovery before a new run");
+        if (!inventoryEmpty(out.ResourceTagMappingList)) {
+          const arns = rows(out.ResourceTagMappingList).map(m => m.ResourceARN);
+          const ownedCluster = new RegExp(`^arn:aws:ecs:${plan.settings.region}:${plan.settings.accountId}:cluster/zenith-zlive-[a-z0-9-]+-ecs$`);
+          // Only owned run clusters may be excused, and only when ECS reports every one INACTIVE (or missing).
+          if (!arns.every(a => typeof a === "string" && ownedCluster.test(a))) throw new Error("Prior live-acceptance leaks require owner recovery before a new run");
+          const describe = plan.preflight.find(c => c.id === "prior-leaks-ecs")!;
+          for (let i = 0; i < arns.length; i += 100) {
+            const chunk = arns.slice(i, i + 100) as string[];
+            guard.consume(describe); await save();
+            const status = await transport.send(describe, { clusters: chunk }, options.signal);
+            const seen = [...rows(status.clusters).map(c => c.clusterArn), ...rows(status.failures).map(f => f.arn)];
+            if (!absent(describe, status) || seen.length !== chunk.length || !chunk.every(a => seen.includes(a))) throw new Error("Prior live-acceptance leaks require owner recovery before a new run");
+          }
+        }
         page = typeof out.PaginationToken === "string" && out.PaginationToken ? out.PaginationToken : undefined;
       } while (page);
       for (const c of plan.preflight.filter(c => c.id.endsWith("-preexist"))) if (await available(c)) throw new Error("Planned resource already exists; refusing adoption/mutation");

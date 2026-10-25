@@ -281,6 +281,46 @@ describe("execution, cleanup and evidence (modeled contracts only)", () => {
     expect(model.calls.some(c => c.id === "iam-create")).toBe(true);
     expect(journal.closed).toBe(true);
   });
+  describe("prior-leak scan and INACTIVE owned ECS clusters", () => {
+    const owned = `arn:aws:ecs:${settings.region}:${settings.accountId}:cluster/zenith-zlive-202610241436-1a61-ecs`;
+    async function scan(mappings: string[], status: (clusters: string[]) => Record<string, unknown>) {
+      const p = plan(), guard = makeGuard(p), model = modeled(p), journal = newJournal(p, guard, "a".repeat(40), now());
+      const described: unknown[] = [];
+      const transport: Transport = { send: (c, input, signal) => {
+        if (c.id === "prior-leaks") return Promise.resolve({ ResourceTagMappingList: mappings.map(ResourceARN => ({ ResourceARN })) });
+        if (c.id === "prior-leaks-ecs") { described.push((input as { clusters: string[] }).clusters); return Promise.resolve(status((input as { clusters: string[] }).clusters)); }
+        return model.transport.send(c, input, signal);
+      } };
+      await execute(p, guard, transport, journal, { now, sleep: async () => undefined, save: async () => undefined });
+      return { journal, model, described, failed: journal.checks.some(c => c.id === "execution" && c.status === "failed") };
+    }
+    it("lets a run start when the only leftover is an owned cluster ECS reports INACTIVE", async () => {
+      const r = await scan([owned], clusters => ({ clusters: clusters.map(clusterArn => ({ clusterArn, status: "INACTIVE" })), failures: [] }));
+      expect(r.described).toEqual([[owned]]);
+      expect(r.failed).toBe(false);
+      expect(r.model.calls.some(c => c.id === "s3-create")).toBe(true);
+    });
+    it("still blocks an owned cluster that is ACTIVE", async () => {
+      const r = await scan([owned], clusters => ({ clusters: clusters.map(clusterArn => ({ clusterArn, status: "ACTIVE" })), failures: [] }));
+      expect(r.failed).toBe(true);
+      expect(r.model.calls.some(c => c.id.endsWith("-create"))).toBe(false);
+    });
+    it("still blocks any other tagged resource without describing it", async () => {
+      const r = await scan([owned, `arn:aws:s3:::zenith-zlive-202610241436-1a61-${settings.accountId}`], () => ({ clusters: [], failures: [] }));
+      expect(r.failed).toBe(true);
+      expect(r.described).toEqual([]);
+    });
+    it("still blocks a cluster outside the owned name pattern, account or region", async () => {
+      for (const arn of [`arn:aws:ecs:${settings.region}:${settings.accountId}:cluster/customer-prod`, `arn:aws:ecs:us-east-1:${settings.accountId}:cluster/zenith-zlive-202610241436-1a61-ecs`, `arn:aws:ecs:${settings.region}:210987654321:cluster/zenith-zlive-202610241436-1a61-ecs`]) {
+        const r = await scan([arn], clusters => ({ clusters: clusters.map(clusterArn => ({ clusterArn, status: "INACTIVE" })), failures: [] }));
+        expect(r.failed, arn).toBe(true);
+      }
+    });
+    it("still blocks when the status response does not cover every listed cluster", async () => {
+      const r = await scan([owned], () => ({ clusters: [], failures: [] }));
+      expect(r.failed).toBe(true);
+    });
+  });
   it("retries a real SDK IAM DeleteConflictException during teardown until the role is gone", async () => {
     const p = plan(), guard = makeGuard(p), model = modeled(p), journal = newJournal(p, guard, "a".repeat(40), now());
     const attempts: string[] = [];
@@ -452,15 +492,18 @@ describe("scenario-specific plans and scoped verdict (offline)", () => {
   };
 
   it("keeps the default fixtures digest identical to the pre-scenario planner", () => {
-    expect(plan().sha256).toBe("6210d2bc95f43662df549ecc0ad2b152291a95064f6ef33727ebd3f8de3805a2");
+    // Changed deliberately when the prior-leak scan gained its bounded owned-ECS status read (prior-leaks-ecs).
+    expect(plan().sha256).toBe("d363bfdbc5ffca34c9daa680ada7b7e6b139b9b067d6129ab7be99eb817301f3");
     expect(buildPlan({ ...settings, scenario: "fixtures" }).sha256).toBe(plan().sha256);
   });
   it("retention-s3 plans only the S3 family and the preflight calls that apply to it", () => {
     const p = retention(), calls = allCalls(p);
     expect(p.sha256).not.toBe(plan().sha256);
     expect(p.fixtures.map(f => f.family)).toEqual(["s3"]);
-    expect(p.preflight.map(c => c.id)).toEqual(["identity", "marker", "run-claim", "run-claim-read", "prior-leaks", "s3-preexist"]);
-    expect(calls.some(c => ["rds", "ecs", "route53", "iam", "lambda", "secretsmanager", "ec2"].includes(c.service))).toBe(false);
+    expect(p.preflight.map(c => c.id)).toEqual(["identity", "marker", "run-claim", "run-claim-read", "prior-leaks", "prior-leaks-ecs", "s3-preexist"]);
+    // The only ECS call is the read-only status check of prior owned clusters in the leak scan.
+    expect(calls.filter(c => c.service === "ecs").map(c => `${c.id}:${c.command}`)).toEqual(["prior-leaks-ecs:DescribeClusters"]);
+    expect(calls.some(c => ["rds", "route53", "iam", "lambda", "secretsmanager", "ec2"].includes(c.service))).toBe(false);
     expect(calls.some(c => /Create(Role|Function|Cluster|DBInstance|HostedZone)|Delete(Role|Function|Cluster|DBInstance|HostedZone)/.test(c.command))).toBe(false);
     expect(scopedRequirementIds(p.settings, p.requirements.map(r => r.id))).toEqual(["PROD-OPS-07"]);
     expect(p.estimate.usd).toBeLessThan(plan().estimate.usd);

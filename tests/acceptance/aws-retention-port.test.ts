@@ -37,6 +37,7 @@ interface Options {
   breakPrune?: (db: Sql, workspace: string) => Promise<void>;
   /** after the second pass with the apply switch unset (the first one is the archive pass) */
   breakClosedPass?: (db: Sql, workspace: string) => Promise<void>;
+  skipPass?: boolean;
 }
 
 /** Runs the product's own functions in-process where the port would spawn `npx tsx`. Records every command it is given. */
@@ -47,10 +48,12 @@ function inProcess(db: Sql, s3: MemoryTarget, workspace: string, commands: Produ
     const key = archiveKey(command.env);
     if (command.script === "scripts/data-retention.ts") {
       const apply = command.env.ZENITH_RETENTION_APPLY === "1";
-      await retentionPass(db, { env: command.env, target: s3, key, now: new Date() });
+      // Mirrors scripts/data-retention.ts: a pass that ran prints its counts; a deferred one prints {"status":"skipped"}.
+      if (opts.skipPass) return { code: 0, timedOut: false, stdout: JSON.stringify({ status: "skipped" }) };
+      const value = await retentionPass(db, { env: command.env, target: s3, key, now: new Date() });
       if (!apply && ++unsetPasses === 2 && opts.breakClosedPass) await opts.breakClosedPass(db, workspace);
       if (apply && opts.breakPrune) await opts.breakPrune(db, workspace);
-      return { code: 0, timedOut: false, stdout: JSON.stringify({ status: "ok" }) };
+      return { code: 0, timedOut: false, stdout: JSON.stringify(value) };
     }
     if (command.args[0] === "verify") {
       if (opts.wrongKeyAccepted) return { code: 0, timedOut: false, stdout: JSON.stringify({ ok: true, rows: 3, problems: [] }) };
@@ -118,6 +121,12 @@ describe("PROD-OPS-07 ProductScenarioPort refusals (no product work)", () => {
 });
 
 describe("PROD-OPS-07 ProductScenarioPort against a real migrated platform store (PGlite)", () => {
+  it("refuses when the retention CLI reports a deferred (skipped) pass instead of running it, and always asks to run now", async () => {
+    const { result, commands } = await run(RUN(91), { skipPass: true });
+    expect(result.complete).toBe(false);
+    expect(result.reason).toMatch(/the archive pass did not run \(status skipped\)/);
+    expect(commands.filter(c => c.script === "scripts/data-retention.ts").every(c => c.args.includes("--force"))).toBe(true);
+  });
   it("passes the stack CA file to every child so it trusts the platform database TLS, and nothing else from the harness", async () => {
     const { result, commands } = await run(RUN(90), {}, { ...env, NODE_EXTRA_CA_CERTS: "/stack/tls/ca.crt", ZENITH_UNRELATED_SECRET: "must-not-pass" });
     expect(result.complete).toBe(true);

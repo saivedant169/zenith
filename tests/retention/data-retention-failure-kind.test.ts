@@ -10,4 +10,9 @@ describe("data-retention failure line", () => {
     expect(errors[0]).toMatch(/^Data retention failed \([A-Za-z]{1,40}(:[A-Za-z0-9_]{1,40})?(<[A-Za-z]{1,40}(:[A-Za-z0-9_]{1,40})?){0,2}\)\. /);
     expect(errors[0]).not.toMatch(/secret|127\.0\.0\.1|postgres:/);
   });
+  it("accepts only --force as an argument", async () => {
+    const errors: string[] = [];
+    expect(await dataRetentionMain(["--now"], () => undefined, (line) => errors.push(line), {})).toBe(2);
+    expect(errors[0]).toMatch(/\[--force\]/);
+  });
 });

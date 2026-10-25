@@ -16,6 +16,15 @@ import type { PlatformDb } from "@/lib/controlplane/types";
 import { countsOf, runCriticalJob } from "@/lib/platform/critical-jobs";
 import { retentionPass } from "@/lib/retention/job";
 
+
+/** The error's type and code only (for example `HostedError:policy_unavailable` or `DatabaseError:42P01`). Both are fixed identifiers, never data. */
+function failureKind(error: unknown, depth = 0): string {
+  const r = (error && typeof error === "object" ? error : {}) as { name?: unknown; code?: unknown; cause?: unknown };
+  const name = typeof r.name === "string" && /^[A-Za-z]{1,40}$/.test(r.name) ? r.name : "Error";
+  const code = typeof r.code === "string" && /^[A-Za-z0-9_]{1,40}$/.test(r.code) ? `:${r.code}` : "";
+  const cause = depth < 2 && r.cause && typeof r.cause === "object" ? `<${failureKind(r.cause, depth + 1)}` : "";
+  return `${name}${code}${cause}`;
+}
 export async function dataRetentionMain(
   args: readonly string[],
   output: (line: string) => void = (line) => process.stdout.write(`${line}\n`),
@@ -36,9 +45,9 @@ export async function dataRetentionMain(
     if (run.status === "ok") output(JSON.stringify(run.value));
     else output(JSON.stringify({ status: run.status }));
     return 0;
-  } catch {
-    // Connection and query errors can carry URLs or row data; none is echoed.
-    error("Data retention failed. Check the platform store configuration and that the schema is migrated.");
+  } catch (failure) {
+    // Connection and query errors can carry URLs or row data; only the error type and code are echoed.
+    error(`Data retention failed (${failureKind(failure)}). Check the platform store configuration and that the schema is migrated.`);
     return 1;
   } finally {
     if (db) await db.close().catch(() => undefined);

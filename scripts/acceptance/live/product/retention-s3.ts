@@ -23,7 +23,8 @@ import type { Call, Plan, ProductScenarioPort } from "../contracts";
 
 type Requirement = Plan["requirements"][number];
 export interface ProductCommand { script: string; args: readonly string[]; env: Record<string, string>; timeoutMs: number }
-export interface ProductRun { code: number | null; timedOut: boolean; stdout: string }
+/** `failure`: the child's own type-and-code line (e.g. "HostedError:policy_unavailable"), when it printed one. */
+export interface ProductRun { code: number | null; timedOut: boolean; stdout: string; failure?: string }
 export interface RetentionS3Seams {
   sql?: Sql;
   run?: (command: ProductCommand, cwd: string) => Promise<ProductRun>;
@@ -51,8 +52,10 @@ async function hostRun(command: ProductCommand, cwd: string): Promise<ProductRun
     const { stdout } = await execFileAsync("npx", ["tsx", command.script, ...command.args], { cwd, env: command.env as NodeJS.ProcessEnv, timeout: command.timeoutMs, maxBuffer: 1 << 20, killSignal: "SIGKILL", windowsHide: true, encoding: "utf8" });
     return { code: 0, timedOut: false, stdout: String(stdout) };
   } catch (error) {
-    const e = error as { code?: unknown; killed?: unknown; stdout?: unknown };
-    return { code: typeof e.code === "number" ? e.code : null, timedOut: e.killed === true, stdout: typeof e.stdout === "string" ? e.stdout : "" };
+    const e = error as { code?: unknown; killed?: unknown; stdout?: unknown; stderr?: unknown };
+    // Only the fixed-format failure line our scripts print is kept; nothing else from stderr leaves.
+    const kind = typeof e.stderr === "string" ? /^(?:Data retention failed|Retention archive command failed) \(([A-Za-z]{1,40}(?::[A-Za-z0-9_]{1,40})?(?:<[A-Za-z]{1,40}(?::[A-Za-z0-9_]{1,40})?){0,2})\)/m.exec(e.stderr)?.[1] : undefined;
+    return { code: typeof e.code === "number" ? e.code : null, timedOut: e.killed === true, stdout: typeof e.stdout === "string" ? e.stdout : "", ...(kind ? { failure: kind } : {}) };
   }
 }
 
@@ -183,7 +186,7 @@ export function retentionS3Port(env: EnvLike = process.env, seams: RetentionS3Se
 
         step = "archive pass";
         const archived = await pass(false);
-        if (archived.code !== 0 || archived.timedOut) refuse("the archive pass did not complete (no completion claim)");
+        if (archived.code !== 0 || archived.timedOut) refuse(`the archive pass did not complete (${archived.timedOut ? "timed out" : archived.failure ?? "no failure kind reported"}; no completion claim)`);
         const archives = await sql.query<ArchiveRow>("select id, data_class, object_key, row_count, first_row_id, last_row_id, pruned_rows from platform.retention_archives where workspace_id = $1 order by data_class", [workspace]);
         const runnerArchive = archives.find(a => a.data_class === "runner_job_logs"), machineArchive = archives.find(a => a.data_class === "machine_request_logs");
         if (archives.length !== 2 || !runnerArchive || !machineArchive) refuse("the archive pass did not record one archive per log class");
@@ -228,14 +231,14 @@ export function retentionS3Port(env: EnvLike = process.env, seams: RetentionS3Se
         const expectedAll = { runner: [...seeded.runnerOld, seeded.runnerHeld, ...seeded.runnerRecent], machine: [...seeded.machineOld, ...seeded.machineRecent] };
         if (!sameIds(beforeClosed.runner, expectedAll.runner) || !sameIds(beforeClosed.machine, expectedAll.machine)) refuse("the seeded rows changed before the prune gate check");
         const closed = await pass(false);
-        if (closed.code !== 0 || closed.timedOut) refuse("the pass with the apply switch unset did not complete");
+        if (closed.code !== 0 || closed.timedOut) refuse(`the pass with the apply switch unset did not complete (${closed.timedOut ? "timed out" : closed.failure ?? "no failure kind reported"})`);
         const afterClosed = await presentLogs(sql, workspace);
         if (!sameIds(afterClosed.runner, expectedAll.runner) || !sameIds(afterClosed.machine, expectedAll.machine)) refuse("rows were removed with the apply switch unset");
 
         step = "prune gate open";
         const auditBefore = await auditCounts(sql, workspace);
         const opened1 = await pass(true);
-        if (opened1.code !== 0 || opened1.timedOut) refuse("the pass with the apply switch set did not complete");
+        if (opened1.code !== 0 || opened1.timedOut) refuse(`the pass with the apply switch set did not complete (${opened1.timedOut ? "timed out" : opened1.failure ?? "no failure kind reported"})`);
         const afterOpen = await presentLogs(sql, workspace);
         if (!sameIds(afterOpen.runner, [seeded.runnerHeld, ...seeded.runnerRecent]) || !sameIds(afterOpen.machine, seeded.machineRecent)) {
           refuse("the prune did not remove exactly the archived unheld out-of-window rows");

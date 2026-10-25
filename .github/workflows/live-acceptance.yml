@@ -60,8 +60,8 @@ name: Live acceptance (sandbox AWS)
 # the bounded AWS fixture run above and starts nothing on the runner. `rel-04`
 # is the PROD-REL-04 crash-and-resume drill (S3 only, no stack): after OIDC it
 # runs scripts/acceptance/live/drill/rel-04.ts instead of the plain harness and
-# recovery steps, then the offline verifier, and the final gate requires the
-# verifier to pass. `retention-s3` first starts the lean Zenith stack on this hosted
+# recovery steps, then the offline verifier, then an always-run recovery of any open
+# rel-04 journal, and the final gate requires the drill, the verifier and that recovery to succeed. `retention-s3` first starts the lean Zenith stack on this hosted
 # runner, with the same profile and disk freeing as operated-gate-linux.yml, and
 # only then requests the OIDC session, so the stack never consumes the one-hour
 # AWS session. The stack's platform database URL and the ZENITH_LIVE_PRODUCT*
@@ -347,6 +347,30 @@ jobs:
         continue-on-error: true
         run: npx tsx scripts/acceptance/live/drill/verify-rel-04.ts --run-id "$ZENITH_LIVE_AWS_RUN_ID" --out "$ZENITH_LIVE_AWS_OUT" --permissions "$ZENITH_LIVE_AWS_PERMISSIONS"
 
+      - name: Recover any open rel-04 journal (drill directories D1 and D2)
+        # Runs whatever the drill did: a leak must never depend on the drill succeeding.
+        # Each rel-04 journal that is not closed gets the same journal-only cleanup as the
+        # fixtures and retention-s3 recovery step. This step never changes the drill verdict;
+        # the final gate reads its outcome and refuses unless it succeeded.
+        id: recovery_rel04
+        if: always() && hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario == 'rel-04'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=0
+          for journal in \
+            "${RUNNER_TEMP}/zenith-aws-production/${ZENITH_LIVE_AWS_RUN_ID}/journal.json" \
+            "${RUNNER_TEMP}/zenith-aws-production-replay/${ZENITH_LIVE_AWS_RUN_ID}/journal.json"; do
+            [ -f "$journal" ] || continue
+            if node -e 'const fs=require("node:fs"); process.exit(JSON.parse(fs.readFileSync(process.argv[1],"utf8")).closed ? 0 : 1)' "$journal"; then
+              echo "Owned journal already closed; no recovery cloud calls: $journal"
+              continue
+            fi
+            npx tsx scripts/acceptance/aws-live.ts --cleanup "$journal" || status=1
+          done
+          exit "$status"
+
       - name: Publish PROD-REL-04 drill journals, evidence and receipt
         if: hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario == 'rel-04'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -382,12 +406,15 @@ jobs:
           RECOVERY_OUTCOME: ${{ steps.recovery.outcome }}
           DRILL_OUTCOME: ${{ steps.drill.outcome }}
           VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+          REL04_RECOVERY_OUTCOME: ${{ steps.recovery_rel04.outcome }}
         run: |
           set -euo pipefail
           if [ "$ZENITH_LIVE_AWS_SCENARIO" = rel-04 ]; then
-            # The drill's own verdict and the offline verifier over its disk evidence must both pass.
+            # The drill's own verdict, the offline verifier over its disk evidence and the
+            # rel-04 recovery of any open journal must all succeed.
             test "$DRILL_OUTCOME" = success
             test "$VERIFY_OUTCOME" = success
+            test "$REL04_RECOVERY_OUTCOME" = success
           else
             test "$ACCEPTANCE_OUTCOME" = success
             test "$RECOVERY_OUTCOME" = success

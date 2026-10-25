@@ -23,7 +23,7 @@ Expected offline: provider contracts pass; actual AWS test is skipped, never acc
 
 ## Live drill (scenario rel-04)
 
-**How to run.** Dispatch `live-acceptance.yml` with `scenario=rel-04` and a new run id, as in [LIVE-ACCEPTANCE.md](../LIVE-ACCEPTANCE.md). The job runs `scripts/acceptance/live/drill/rel-04.ts` after OIDC, then `scripts/acceptance/live/drill/verify-rel-04.ts`, then publishes `aws-live-rel04-<run>` (journals, evidence, checkpoints, the receipt and the drill log, all JSON). The plain harness and its recovery step do not run for this scenario. Scenario `rel-04` plans one S3 fixture, scoped to PROD-REL-04, and has no product port, so the packet verdict stays `incomplete` by design.
+**How to run.** Dispatch `live-acceptance.yml` with `scenario=rel-04` and a new run id, as in [LIVE-ACCEPTANCE.md](../LIVE-ACCEPTANCE.md). The job runs `scripts/acceptance/live/drill/rel-04.ts` after OIDC, then `scripts/acceptance/live/drill/verify-rel-04.ts`, then an always-run recovery of any rel-04 journal that is still open in either run directory (D1 and its replay D2), then publishes `aws-live-rel04-<run>` (journals, evidence, checkpoints, the receipt and the drill log, all JSON). The plain harness does not run for this scenario. The recovery never changes the drill verdict; its failure fails the final gate. Scenario `rel-04` plans one S3 fixture, scoped to PROD-REL-04, and has no product port, so the packet verdict stays `incomplete` by design.
 
 **What it proves, live, against the sandbox account.**
 

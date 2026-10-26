@@ -593,8 +593,20 @@ async function main(): Promise<number> {
         /* --- approve, and the terminal comes back to life --- */
 
         const approveControl = page.getByRole("button", { name: PAGE.approve }).first();
+        // The copy renders only after the approve POST answers, so wait for that
+        // answer rather than the clock. The first POST after a cold dev start is
+        // slow (22.7s on CI run 40241247225 against 8.9s on a passing run); the
+        // warm one is ~100ms. 120s bounds a worse cold start without hanging the job.
+        const approveAnswered = page
+          .waitForResponse(
+            (response) =>
+              response.request().method() === "POST" && new URL(response.url()).pathname === APPROVAL_ROUTE,
+            { timeout: 120_000 }
+          )
+          .then(() => true, () => false);
         approvalClickedAt = performance.now();
         await approveControl.click();
+        await approveAnswered;
         const approvalWaitStartedAt = performance.now();
         const done = await page
           .waitForFunction(

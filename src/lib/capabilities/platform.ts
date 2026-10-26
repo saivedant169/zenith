@@ -39,6 +39,7 @@ import { cancelOperation, getOperationDetail, listOperationEvents, listOperation
 import { getWorkspacePolicy, setWorkspacePolicy } from "./policy-settings";
 import { systemClock, type BrokerDeps, type BrokerStore, type GrantSigner, type RoleResolver, type ScopeResolver } from "./ports";
 import { productScopeResolver } from "./product-adapters";
+import { platformScopeResolver } from "@/lib/platform/scopes";
 import { currentProductRoleResolver } from "./current-product-roles";
 import type { BrowserSessionProof, ProposeContext } from "./types";
 
@@ -136,17 +137,27 @@ function unchangedObject(original: OriginalObject): boolean {
     && (!original.prototype || same(original.prototype, original.inherited));
 }
 const originalDefaultStores = new WeakMap<object, { db: Sql; original: OriginalObject }>();
-const originalDefaultBrokers = new WeakMap<object, { state: PlatformState; ports: PlatformState["ports"]; db: Sql; originals: OriginalObject[] }>();
+const originalDefaultBrokers = new WeakMap<object, { state: PlatformState; ports: PlatformState["ports"]; db: Sql; store: object; originals: OriginalObject[] }>();
+/** Scope resolvers this module built itself for the production composition, by the handle they read. */
+const originalDefaultScopes = new WeakMap<object, { db: Sql; original: OriginalObject }>();
 /** Boolean-only provenance of the actual default composition. No caller can register a broker here. */
 export function isDefaultPlatformBrokerFor(value: unknown, owner: Sql): boolean {
   try {
     if (!value || typeof value !== "object") return false;
     const entry = originalDefaultBrokers.get(value), global = Object.getOwnPropertyDescriptor(globalThis, "__zenithPlatformBroker");
     if (!entry || !global || !("value" in global) || global.value !== entry.state || !entry.originals.every(unchangedObject)) return false;
-    for (const key of ["override", "registeredStore"] as const) { const descriptor = Object.getOwnPropertyDescriptor(entry.state, key); if (descriptor && (!("value" in descriptor) || descriptor.value !== undefined)) return false; }
+    const override = Object.getOwnPropertyDescriptor(entry.state, "override");
+    if (override && (!("value" in override) || override.value !== undefined)) return false;
+    // Only the store this broker was built on may be registered: the module-built production store (registerDefaultPlatformComposition).
+    const registered = Object.getOwnPropertyDescriptor(entry.state, "registeredStore");
+    if (registered && (!("value" in registered) || (registered.value !== undefined && registered.value !== entry.store))) return false;
     const ports = Object.getOwnPropertyDescriptor(entry.state, "ports");
     if (!ports || !("value" in ports) || ports.value !== entry.ports) return false;
-    for (const key of ["scopes", "roles"] as const) { const descriptor = Object.getOwnPropertyDescriptor(entry.ports, key); if (descriptor && (!("value" in descriptor) || descriptor.value !== undefined)) return false; }
+    const roles = Object.getOwnPropertyDescriptor(entry.ports, "roles");
+    if (roles && (!("value" in roles) || roles.value !== undefined)) return false;
+    // A scope resolver is accepted only when this module built it for the same handle as the broker's store.
+    const scopes = Object.getOwnPropertyDescriptor(entry.ports, "scopes");
+    if (scopes && (!("value" in scopes) || (scopes.value !== undefined && !isOriginalDefaultScopes(scopes.value, entry.db)))) return false;
     if (!isOpenedPlatformDbHandle(owner, "postgres") || !isOpenedPlatformDbHandle(entry.db, "postgres")) return false;
     const config = platformDbConfigFromEnv(); if (config.kind !== "postgres" || !config.url) return false;
     const url = new URL(config.url), options = [...url.searchParams];
@@ -155,6 +166,28 @@ export function isDefaultPlatformBrokerFor(value: unknown, owner: Sql): boolean 
     const host = url.hostname, port = Number(url.port), database = decodeURIComponent(url.pathname.slice(1)), username = decodeURIComponent(url.username);
     return isOpenedPlatformPostgresTarget(owner, host, port, database, username) && isOpenedPlatformPostgresTarget(entry.db, host, port, database, username);
   } catch { return false; }
+}
+
+function isOriginalDefaultScopes(value: unknown, db: Sql): boolean {
+  if (!value || typeof value !== "object") return false;
+  const entry = originalDefaultScopes.get(value);
+  return !!entry && entry.db === db && unchangedObject(entry.original);
+}
+
+/**
+ * The production composition (src/lib/platform/app.ts): this module itself builds the platform store and the platform
+ * scope resolver for an opened PostgreSQL handle, so the broker they form keeps default provenance and saved-plan
+ * dispatch can bind it. A store or resolver built anywhere else, an override, or a roles port still has none.
+ */
+export function registerDefaultPlatformComposition(db: Sql): void {
+  const store = new PlatformBrokerStore(db), scopes = platformScopeResolver(db);
+  const storeOriginal = originalObject(store), scopesOriginal = originalObject(scopes as object);
+  if (storeOriginal && scopesOriginal && isOpenedPlatformDbHandle(db, "postgres")) {
+    originalDefaultStores.set(store, { db, original: storeOriginal });
+    originalDefaultScopes.set(scopes as object, { db, original: scopesOriginal });
+  }
+  registerPlatformBrokerStore(store);
+  registerPlatformBrokerPorts({ scopes });
 }
 
 /** The orchestrator's plug-in point: hand the platform control store adapter to the broker. */
@@ -236,11 +269,12 @@ export async function platformBroker(): Promise<Broker> {
     policy: () => loadPolicyEngine(),
   });
   const original = originalDefaultStores.get(store);
-  if (original && !s.override && !s.registeredStore && !s.ports.scopes && !s.ports.roles) {
+  if (original && !s.override && (!s.registeredStore || s.registeredStore === store) && !s.ports.roles
+    && (!s.ports.scopes || isOriginalDefaultScopes(s.ports.scopes, original.db))) {
     const values = [broker, broker.deps, broker.deps.scopes, broker.deps.roles, broker.deps.clock];
     const originals = values.map(originalObject);
     if (originals.every((value): value is OriginalObject => !!value)) originalDefaultBrokers.set(broker,
-      { state: s, ports: s.ports, db: original.db, originals: [original.original, ...originals] });
+      { state: s, ports: s.ports, db: original.db, store, originals: [original.original, ...originals] });
   }
   s.cached = { key: store, broker };
   return broker;

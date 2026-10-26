@@ -1241,3 +1241,37 @@ describe("cleanup writer expand schema 60 [pglite]", () => {
     });
   }, 60_000);
 });
+
+// Runs on every lane: PGlite always, and the PostgreSQL lane when ZENITH_TEST_PLATFORM_PG_URL is set.
+describe("cleanup direct attempt history schema 60", () => {
+  const WS = "ws_direct60";
+  const seedOperation = (db: PlatformDbHandle, id: string) =>
+    db.query(`insert into platform.operations(id,workspace_id,capability,principal,status,proposal,proposal_digest,input_digest,correlation_id,expires_at)
+      values($1,$2,'infrastructure.destroy','{}'::jsonb,'succeeded','{}'::jsonb,$3,$3,'corr',clock_timestamp()+interval '1 day')`, [id, WS, digest(id)]);
+  const attempt = (db: PlatformDbHandle, operationId: string, state: "claimed" | "dispatched", evidence: string, fence = 1) =>
+    db.query(`insert into platform.cleanup_direct_attempts(workspace_id,project_id,environment_id,operation_id,attempt_id,evidence_digest,lease_scope,holder,fence_token,state)
+      values($1,'project_d','env_d',$2,'attempt_direct',$3,'env:env_d','holder_d',$4,$5)`, [WS, operationId, evidence, fence, state]);
+  const rowsFor = (db: PlatformDbHandle, operationId: string) =>
+    db.query<{ state: string }>("select state from platform.cleanup_direct_attempts where workspace_id=$1 and operation_id=$2 order by state", [WS, operationId]);
+
+  it("a dispatch is history after its own matching claim: refused without it, on any mismatch, and immutable once written", async () => {
+    for (const lane of lanes) {
+      await lane.withFresh(async (open) => {
+        const db = await open(true);
+        await seedOperation(db, "op_direct_a");
+        const evidence = digest("evidence-a");
+        await expect(attempt(db, "op_direct_a", "dispatched", evidence), `${lane.name}: dispatch without claim`).rejects.toThrow(/matching claimed attempt/);
+        await attempt(db, "op_direct_a", "claimed", evidence);
+        await expect(attempt(db, "op_direct_a", "dispatched", digest("other-evidence")), `${lane.name}: other evidence`).rejects.toThrow(/matching claimed attempt/);
+        await expect(attempt(db, "op_direct_a", "dispatched", evidence, 2), `${lane.name}: other fence`).rejects.toThrow(/matching claimed attempt/);
+        expect(await rowsFor(db, "op_direct_a")).toEqual([{ state: "claimed" }]);
+        await attempt(db, "op_direct_a", "dispatched", evidence);
+        expect(await rowsFor(db, "op_direct_a")).toEqual([{ state: "claimed" }, { state: "dispatched" }]);
+        await expect(attempt(db, "op_direct_a", "claimed", evidence), `${lane.name}: second claim`).rejects.toThrow();
+        await expect(db.query("update platform.cleanup_direct_attempts set holder='changed' where operation_id='op_direct_a'")).rejects.toThrow(/cannot be changed or cleared/);
+        await expect(db.query("delete from platform.cleanup_direct_attempts where operation_id='op_direct_a'")).rejects.toThrow(/cannot be changed or cleared/);
+        expect(await rowsFor(db, "op_direct_a")).toEqual([{ state: "claimed" }, { state: "dispatched" }]);
+      });
+    }
+  }, 120_000);
+});

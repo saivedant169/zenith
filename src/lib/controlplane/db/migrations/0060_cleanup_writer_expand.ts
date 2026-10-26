@@ -54,10 +54,26 @@ create table if not exists platform.cleanup_direct_attempts (
   fence_token bigint not null,
   state text not null check (state in ('claimed','dispatched')),
   created_at timestamptz not null default clock_timestamp(),
-  primary key(workspace_id,operation_id,attempt_id),
+  primary key(workspace_id,operation_id,attempt_id,state),
   foreign key(workspace_id,operation_id) references platform.operations(workspace_id,id)
 );
 create index if not exists cleanup_direct_attempts_scope on platform.cleanup_direct_attempts(workspace_id,project_id,environment_id);
+-- State history, not a state machine: 'claimed' then 'dispatched' are two append-only rows.
+-- A 'dispatched' row may exist only beside its claimed row with the same scope, evidence, lease and fence.
+create or replace function platform.cleanup_direct_attempt_guard() returns trigger language plpgsql set search_path=pg_catalog,platform as $$
+begin
+  if new.state='dispatched' and not exists(select 1 from platform.cleanup_direct_attempts c
+    where c.workspace_id=new.workspace_id and c.operation_id=new.operation_id and c.attempt_id=new.attempt_id and c.state='claimed'
+      and c.project_id=new.project_id and c.environment_id=new.environment_id and c.evidence_digest=new.evidence_digest
+      and c.lease_scope=new.lease_scope and c.holder=new.holder and c.fence_token=new.fence_token) then
+    raise exception 'Direct cleanup dispatch requires its matching claimed attempt' using errcode='23514';
+  end if;
+  return new;
+end
+$$;
+drop trigger if exists cleanup_direct_attempt_guard on platform.cleanup_direct_attempts;
+create trigger cleanup_direct_attempt_guard before insert on platform.cleanup_direct_attempts
+for each row execute function platform.cleanup_direct_attempt_guard();
 drop trigger if exists immutable_cleanup_hold_release on platform.cleanup_writer_hold_releases;
 create trigger immutable_cleanup_hold_release before update or delete on platform.cleanup_writer_hold_releases
 for each row execute function platform.immutable_cleanup_writer_history();
@@ -81,6 +97,7 @@ begin
   if exists(select 1 from pg_roles where rolname='service_role') then
     revoke all on table platform.cleanup_writer_hold_releases,platform.cleanup_writer_settlements,platform.cleanup_direct_attempts from service_role;
     grant select,insert on table platform.cleanup_writer_hold_releases,platform.cleanup_writer_settlements,platform.cleanup_direct_attempts to service_role;
+    revoke all on function platform.cleanup_direct_attempt_guard() from public;
     -- The identity sequence must stay writable for hold inserts by service_role; no other sequence right is added.
     if to_regclass('platform.cleanup_writer_holds_hold_seq_seq') is not null then
       grant usage on sequence platform.cleanup_writer_holds_hold_seq_seq to service_role;

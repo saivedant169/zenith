@@ -124,7 +124,8 @@ export function readRdsSpec(node: ResourceNode): RdsSpecView {
     version: versionRaw,
     size,
     highAvailability: specBool(node, "highAvailability", false),
-    backup: specEnum(node, "backup", BACKUPS),
+    // Unspecified means daily: automated backups stay on with 7-day retention. Explicit `none` is the opt-out.
+    backup: specEnum(node, "backup", BACKUPS, "daily"),
     deletionPolicy: specEnum(node, "deletionPolicy", DELETION_POLICIES),
     instanceClass,
   };

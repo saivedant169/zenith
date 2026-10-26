@@ -660,9 +660,10 @@ describe("mandatory unchanged APPLY authority continuation [report models]", () 
     expect(manifest.command).toContain(required[0].file); expect(manifest.excludeFiles).not.toContain(required[0].file);
     expect(manifest.prerequisites.some(value => value.startsWith("ZENITH_TEST_PLAN_PRODUCT_AUTHORITY_REQUIRED=1;"))).toBe(true);
     const source = fs.readFileSync(path.join(root, required[0].file), "utf8");
-    // Historical fixture binding: 3fb495f33a29736991f966c2c7c521552e864fea17d99ac39b94e63ca972e9ff.
+    // Historical fixture bindings: 3fb495f33a29736991f966c2c7c521552e864fea17d99ac39b94e63ca972e9ff, a30a056f3e5a8a1d402e9828011978aa599bf0c081355108209e15d4f727f561
+    // (before the unclassified-apply cause assertion).
     // The reviewed native fixture now binds real SQL semantics and audit writes.
-    expect(createHash("sha256").update(source).digest("hex")).toBe("a30a056f3e5a8a1d402e9828011978aa599bf0c081355108209e15d4f727f561");
+    expect(createHash("sha256").update(source).digest("hex")).toBe("53d14a30c729d1f5f7e791f1bbcd620625033da8c3c538f4ca2972c3a967dc88");
     expect(source).toContain("semantics:createPlatformSemanticsStore(h.db!)");
     expect(source).toContain("semanticsDigest:review.semantics.digest");
     const preApproval = source.indexOf("select semantics_digest from platform.approved_semantics");

@@ -225,6 +225,8 @@ describe("applyInfrastructure", () => {
       expect((err as Error).message).toMatch(/partial apply; reconcile will observe the environment/);
       expect(w.ops.uncertain).toHaveLength(1);
       expect(w.ops.ops.get(OP)!.status).toBe("uncertain");
+      // An unclassified error keeps its class and scrubbed cause on the operation, not just a generic sentence.
+      if (behaviour === "unclassified") expect(w.ops.uncertain[0]!.reason).toMatch(/^The apply ended with an unclassified error \([A-Za-z]+: .+\)\.$/);
     }
   });
 

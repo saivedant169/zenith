@@ -237,7 +237,7 @@ describe("existing plan/apply activity integration", () => {
     expect(ACTIVITY_OPTIONS.applyInfrastructure.retry?.maximumAttempts).toBe(1);
     expect(f.applies()).toBe(1);
     expect(f.w.ops.ops.get(OP)!.status).toBe("uncertain");
-    expect(f.w.ops.uncertain).toEqual([{ operationId: OP, reason: "The apply ended with an unclassified error." }]);
+    expect(f.w.ops.uncertain).toEqual([{ operationId: OP, reason: expect.stringMatching(/^The apply ended with an unclassified error \(Error: ECS replica repair may have applied/) }]);
     expect(f.w.ops.transitions.some((transition) => transition.to === "succeeded")).toBe(false);
     expect(f.w.events.events.some((event) => event.type === "operation.succeeded")).toBe(false);
   }

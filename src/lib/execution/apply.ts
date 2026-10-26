@@ -240,7 +240,9 @@ async function classifyApplyFailure(rt: Runtime, ec: ExecContext, err: unknown, 
     await markUncertain(rt, ec, `OpenTofu ${command} did not finish (${err.code}).`);
     return new Error(`OpenTofu ${command} did not finish (${err.code}); ${PARTIAL}.`);
   }
-  await markUncertain(rt, ec, "The apply ended with an unclassified error.");
+  // The operation keeps the scrubbed cause, so a person (and the live harness) can see why the outcome is unknown.
+  const kind = err instanceof Error && /^[A-Za-z]{1,40}$/.test(err.name) ? err.name : "Error";
+  await markUncertain(rt, ec, `The apply ended with an unclassified error (${kind}: ${errorText(err, 200)}).`);
   return new Error(`The apply ended with an unclassified error (${errorText(err, 200)}); ${PARTIAL}.`);
 }
 

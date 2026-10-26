@@ -21,7 +21,7 @@ export interface Deploy01Product {
   createEnvironment(tenant: Deploy01Tenant, input: { connectionId: string; region: string; name: string }): Promise<{ environmentId: string }>;
   setManifest(tenant: Deploy01Tenant, manifest: Record<string, unknown>): Promise<void>;
   /** deploy.apply (or deploy.rollback) through every approval, until the operation is terminal. */
-  deploy(tenant: Deploy01Tenant, environmentId: string, kind: "apply" | "rollback"): Promise<{ operationId: string; status: string }>;
+  deploy(tenant: Deploy01Tenant, environmentId: string, kind: "apply" | "rollback"): Promise<{ operationId: string; status: string; detail?: string }>;
   close?(): Promise<void>;
 }
 export interface Deploy01DriverSeams {
@@ -35,6 +35,12 @@ export interface Deploy01DriverSeams {
 }
 
 const TERMINAL = ["succeeded", "failed", "uncertain", "denied", "expired", "cancelled"];
+/** The product's error sentence with ARNs, key=value pairs, URLs, paths and long tokens elided (as scripts/release/drivers/operated.ts). */
+export function sanitizedError(raw: unknown): string | undefined {
+  if (typeof raw !== "string" || !raw.trim()) return undefined;
+  return raw.replace(/\barn:\S+/g, "…arn").replace(/\b\w+=\S+/g, "…=…").replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/(?:\/[^\s/]+){2,}/g, "…path")
+    .replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").replace(/[\u0000-\u001f]/g, " ").slice(0, 240);
+}
 const codeOf = (data: unknown): string | undefined => {
   const value = data as { code?: unknown; error?: { code?: unknown } } | undefined;
   const code = value?.error?.code ?? value?.code;
@@ -67,10 +73,10 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
   };
   const operation = async (session: TenantSession, id: string) => {
     const response = await send(session, session.owner, `/api/platform/v1/operations/${id}`, undefined, "GET");
-    const op = (response.data as { operation?: { status?: unknown; approvalRound?: unknown } } | undefined)?.operation;
-    return { status: typeof op?.status === "string" ? op.status : "unknown", round: typeof op?.approvalRound === "number" ? op.approvalRound : 0 };
+    const op = (response.data as { operation?: { status?: unknown; approvalRound?: unknown; error?: unknown } } | undefined)?.operation;
+    return { status: typeof op?.status === "string" ? op.status : "unknown", round: typeof op?.approvalRound === "number" ? op.approvalRound : 0, error: op?.error };
   };
-  const waitFor = async (session: TenantSession, id: string, done: (op: { status: string; round: number }) => boolean, timeoutMs: number, what: string) => {
+  const waitFor = async (session: TenantSession, id: string, done: (op: { status: string; round: number; error?: unknown }) => boolean, timeoutMs: number, what: string) => {
     const deadline = Date.now() + timeoutMs;
     for (;;) {
       const op = await operation(session, id);
@@ -146,7 +152,8 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
         const reviewed = await waitFor(session, operationId as string, op => TERMINAL.includes(op.status) || (op.status === "awaiting_approval" && op.round > 0), 15 * 60_000, "the plan review");
         if (!TERMINAL.includes(reviewed.status)) await approve(session, operationId as string);
         const terminal = await waitFor(session, operationId as string, op => TERMINAL.includes(op.status), deployTimeoutMs, "the deployment");
-        return { operationId: operationId as string, status: terminal.status };
+        const detail = terminal.status === "succeeded" ? undefined : sanitizedError(terminal.error);
+        return { operationId: operationId as string, status: terminal.status, ...(detail ? { detail } : {}) };
       });
     },
     async close() {

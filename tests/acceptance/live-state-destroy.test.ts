@@ -8,10 +8,11 @@ const AWS = 'provider["registry.opentofu.org/hashicorp/aws"]';
 
 function fake(stateJson: string, left = "") {
   const calls: { args: string[]; env: Record<string, string | undefined> }[] = [];
+  let pulls = 0;
   const exec: Exec = async (_file, args, options) => {
     calls.push({ args, env: options.env });
-    if (args[0] === "state" && args[1] === "pull") return { code: 0, stdout: stateJson };
-    if (args[0] === "state" && args[1] === "list") return { code: 0, stdout: left };
+    // First pull: the recorded state. Second pull: what is left after the destroy (empty output = no state at all).
+    if (args[0] === "state" && args[1] === "pull") return { code: 0, stdout: pulls++ === 0 ? stateJson : left };
     return { code: 0, stdout: "" };
   };
   return { exec, calls };
@@ -21,7 +22,7 @@ describe("live state-destroy cleanup", () => {
   it("destroys the recorded state with the session credentials only in the child environment, then proves it empty", async () => {
     const { exec, calls } = fake(state([AWS, AWS]));
     await expect(destroyFromState({ tofu: "tofu", region: "ap-south-1", backend, stateKey: "zenith/ws/env/terraform.tfstate", credentials, exec })).resolves.toEqual({ destroyed: 2 });
-    expect(calls.map(c => c.args[0] + " " + (c.args[1] ?? ""))).toEqual(["init -input=false", "state pull", "apply -auto-approve", "state list"]);
+    expect(calls.map(c => c.args[0] + " " + (c.args[1] ?? ""))).toEqual(["init -input=false", "state pull", "apply -auto-approve", "state pull"]);
     expect(calls[2]!.env.AWS_SESSION_TOKEN).toBe("token-value");
     expect(Object.keys(calls[0]!.env).filter(k => k.startsWith("AWS_")).sort()).toEqual(["AWS_ACCESS_KEY_ID", "AWS_EC2_METADATA_DISABLED", "AWS_REGION", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]);
   });
@@ -31,9 +32,11 @@ describe("live state-destroy cleanup", () => {
     expect(calls.some(c => c.args[0] === "apply")).toBe(false);
   });
   it("fails closed when resources remain or a command fails, without echoing output", async () => {
-    const left = fake(state([AWS]), "aws_s3_bucket.b0\n");
+    const left = fake(state([AWS]), state([AWS]));
     await expect(destroyFromState({ tofu: "tofu", region: "ap-south-1", backend, stateKey: "zenith/ws/env/terraform.tfstate", credentials, exec: left.exec })).rejects.toThrow("1 resource(s) remain");
     const failing: Exec = async (_file, args) => ({ code: args[0] === "apply" ? 1 : 0, stdout: args[1] === "pull" ? state([AWS]) : "secret-value" });
+    // An absent state (empty pull output) before and after is an empty, successful cleanup.
+    await expect(destroyFromState({ tofu: "tofu", region: "ap-south-1", backend, stateKey: "zenith/ws/env/terraform.tfstate", credentials, exec: async () => ({ code: 0, stdout: "" }) })).resolves.toEqual({ destroyed: 0 });
     await expect(destroyFromState({ tofu: "tofu", region: "ap-south-1", backend, stateKey: "zenith/ws/env/terraform.tfstate", credentials, exec: failing })).rejects.toThrow(/^OpenTofu destroy failed during cleanup/);
   });
   it("configures region-named aliases and refuses any other alias or provider form", () => {

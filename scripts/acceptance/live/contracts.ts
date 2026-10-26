@@ -2,7 +2,7 @@
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 export type Family = "s3" | "iam" | "lambda" | "ecs" | "rds" | "dns";
 /** Scenario-specific plans (owner decision D3). "fixtures" is the full plan and the default. */
-export const SCENARIOS = ["fixtures", "retention-s3", "rel-04"] as const;
+export const SCENARIOS = ["fixtures", "retention-s3", "rel-04", "mix-03"] as const;
 export type Scenario = (typeof SCENARIOS)[number];
 export interface Call {
   id: string;
@@ -41,6 +41,8 @@ export interface Plan {
   tags: Record<string, string>;
   fixtures: Fixture[];
   preflight: Call[];
+  /** Product-scope calls (mix-03 only): guarded like fixture calls, absent in every other scenario so their digests stay identical. */
+  productCalls?: Call[];
   estimate: { usd: number; cleanupReserveUsd: number; basis: string; provisional: true };
   requirements: { id: string; acceptance: string[]; fixtures: Family[]; join: string }[];
   sha256: string;
@@ -89,6 +91,7 @@ export interface ProductScenarioPort {
    * No implementation is injected by default; absence is a pending requirement.
    * Must settle all accepted operations before returning. Never return fabricated receipts. */
   verify(requirement: Plan["requirements"][number], context: {
-    plan: Plan; commit: string; call: (call: Call) => Promise<Record<string, unknown>>;
-  }): Promise<{ complete: boolean; reason: string }>;
+    /** `input` (optional) is the resolved request for a planned call whose template holds `$runtime` markers; the planned call itself is still the digest the guard checks. */
+    plan: Plan; commit: string; call: (call: Call, input?: Record<string, Json>) => Promise<Record<string, unknown>>;
+  }): Promise<{ complete: boolean; reason: string; /** Cleanup leaks: each one is a failed check, never a pass. */ leaks?: string[] }>;
 }

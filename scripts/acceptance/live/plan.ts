@@ -9,8 +9,46 @@ const scenarios: Record<Scenario, { families: Family[]; scope?: string[] }> = {
   fixtures: { families: FAMILIES },
   "retention-s3": { families: ["s3"], scope: ["PROD-OPS-07"] },
   "rel-04": { families: ["s3"], scope: ["PROD-REL-04"] },
+  // No harness fixtures: the producer bucket, consumer function and their roles are created by Zenith itself (productCalls).
+  "mix-03": { families: [], scope: ["PROD-MIX-03"] },
 };
-export function parseScenario(raw: string): Scenario {
+/** Sandbox IAM names installed by deploy/aws/zenith-connection.cfn.yaml with NameSuffix "-live" (verify before a live run). */
+export const MIX03_ROLE_NAMES = { observe: "ZenithObserveRole-live", deploy: "ZenithDeployRole-live", principal: "ZenithLiveAcceptance" } as const;
+/**
+ * PROD-MIX-03 product-scope calls. Values that exist only at run time (environment id, ExternalId, discovered names) are
+ * `{ "$runtime": "<name>" }` markers: the port fills them from its own readbacks and checks each against an exact pattern,
+ * and the guard still admits only these planned templates. Resources are patterns because product-created names are not
+ * known at plan time; the permission approves each exact action/resource pair (see the PR body for the list).
+ */
+export function mix03ProductCalls(account: string, region: string): Call[] {
+  const arn = (service: string, suffix: string) => `arn:aws:${service}:${region}:${account}:${suffix}`;
+  const roleArn = (name: string) => `arn:aws:iam::${account}:role/${name}`;
+  const runtime = (name: string): Json => ({ $runtime: name });
+  const role = { observe: roleArn(MIX03_ROLE_NAMES.observe), deploy: roleArn(MIX03_ROLE_NAMES.deploy) };
+  const ownRoles = roleArn("zenith-*");
+  const fn = arn("lambda", "function:zenith-*"), logs = arn("logs", "log-group:/aws/lambda/zenith-*"), bucket = "arn:aws:s3:::zenith-*";
+  const c = (id: string, service: string, command: string, action: string, resource: string, input: Record<string, Json>, maximumCalls: number): Call => ({ id, service, command, action, resource, input, maximumCalls });
+  return [
+    c("mix03-iam-read-observe", "iam", "GetRole", "iam:GetRole", role.observe, { RoleName: MIX03_ROLE_NAMES.observe }, 3),
+    c("mix03-iam-read-deploy", "iam", "GetRole", "iam:GetRole", role.deploy, { RoleName: MIX03_ROLE_NAMES.deploy }, 3),
+    // Each trust write is the template document with the ExternalId filled in; the same call restores the original value.
+    c("mix03-iam-trust-observe", "iam", "UpdateAssumeRolePolicy", "iam:UpdateAssumeRolePolicy", role.observe, { RoleName: MIX03_ROLE_NAMES.observe, PolicyDocument: runtime("trustDocument") }, 3),
+    c("mix03-iam-trust-deploy", "iam", "UpdateAssumeRolePolicy", "iam:UpdateAssumeRolePolicy", role.deploy, { RoleName: MIX03_ROLE_NAMES.deploy, PolicyDocument: runtime("trustDocument") }, 3),
+    c("mix03-tag-read", "tag", "GetResources", "tag:GetResources", "*", { TagFilters: [{ Key: "zenith:environment", Values: [runtime("environmentId")] }], ResourcesPerPage: 100 }, 24),
+    c("mix03-lambda-read", "lambda", "GetFunctionConfiguration", "lambda:GetFunctionConfiguration", fn, { FunctionName: runtime("functionName") }, 10),
+    c("mix03-bucket-head", "s3", "HeadBucket", "s3:ListBucket", bucket, { Bucket: runtime("bucketName") }, 6),
+    c("mix03-bucket-tags", "s3", "GetBucketTagging", "s3:GetBucketTagging", bucket, { Bucket: runtime("bucketName") }, 6),
+    c("mix03-lambda-delete", "lambda", "DeleteFunction", "lambda:DeleteFunction", fn, { FunctionName: runtime("functionName") }, 4),
+    c("mix03-logs-delete", "logs", "DeleteLogGroup", "logs:DeleteLogGroup", logs, { logGroupName: runtime("logGroupName") }, 4),
+    c("mix03-role-read", "iam", "GetRole", "iam:GetRole", ownRoles, { RoleName: runtime("roleName") }, 6),
+    c("mix03-role-attached-list", "iam", "ListAttachedRolePolicies", "iam:ListAttachedRolePolicies", ownRoles, { RoleName: runtime("roleName") }, 4),
+    c("mix03-role-detach", "iam", "DetachRolePolicy", "iam:DetachRolePolicy", ownRoles, { RoleName: runtime("roleName"), PolicyArn: runtime("policyArn") }, 8),
+    c("mix03-role-inline-list", "iam", "ListRolePolicies", "iam:ListRolePolicies", ownRoles, { RoleName: runtime("roleName") }, 4),
+    c("mix03-role-inline-delete", "iam", "DeleteRolePolicy", "iam:DeleteRolePolicy", ownRoles, { RoleName: runtime("roleName"), PolicyName: runtime("policyName") }, 8),
+    c("mix03-role-delete", "iam", "DeleteRole", "iam:DeleteRole", ownRoles, { RoleName: runtime("roleName") }, 4),
+    c("mix03-bucket-delete", "s3", "DeleteBucket", "s3:DeleteBucket", bucket, { Bucket: runtime("bucketName") }, 4),
+  ];
+}export function parseScenario(raw: string): Scenario {
   if (!(SCENARIOS as readonly string[]).includes(raw)) throw new Error("Unknown AWS live scenario");
   return raw as Scenario;
 }
@@ -24,7 +62,7 @@ export function digest(value: unknown): string {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
 export function allCalls(plan: Plan): Call[] {
-  return [...plan.preflight, ...plan.fixtures.flatMap(f => [...f.setup, ...f.observe, f.ownership, ...f.teardown, ...f.leak, ...(f.product ?? [])])];
+  return [...plan.preflight, ...(plan.productCalls ?? []), ...plan.fixtures.flatMap(f => [...f.setup, ...f.observe, f.ownership, ...f.teardown, ...f.leak, ...(f.product ?? [])])];
 }
 export function teardownOrder(fixtures: Fixture[]): Fixture[] {
   const ordered: Fixture[] = [], visiting = new Set<Family>(), done = new Set<Family>();
@@ -156,10 +194,12 @@ export function buildPlan(input: Settings): Plan {
   // under 1 MiB for under an hour is far below a cent. The 0.25 base and 0.01/minute are generous
   // ceilings for a few dozen planned requests plus retries; the 0.25 reserve is kept for cleanup.
   // Duration bounds stay 5..20 because the product archive/restore path runs inside that window.
-  const estimate: Plan["estimate"] = scenario === "retention-s3" ? { usd: 0.25 + settings.durationMinutes * 0.01, cleanupReserveUsd: 0.25, provisional: true, basis: "Conservative provisional USD ceiling for one owned S3 bucket, a few sealed objects under retention/, a bounded list/delete drain and a few dozen planned S3 requests; includes 0.25USD cleanup reserve. No RDS, ECS, DNS, IAM or Lambda cost. Owner must validate regional S3 rates." }
+  const estimate: Plan["estimate"] = scenario === "mix-03" ? { usd: 0.5 + settings.durationMinutes * 0.02, cleanupReserveUsd: 0.25, provisional: true, basis: "Conservative provisional USD ceiling for PROD-MIX-03: one owned S3 bucket with no objects, one 128MiB Lambda function with no invocation, one CloudWatch log group, IAM roles (no charge) and a few dozen planned control-plane calls; includes 0.25USD cleanup reserve. A rename of the producer bucket doubles the bucket count for its window. Owner must validate regional rates." } : scenario === "retention-s3" ? { usd: 0.25 + settings.durationMinutes * 0.01, cleanupReserveUsd: 0.25, provisional: true, basis: "Conservative provisional USD ceiling for one owned S3 bucket, a few sealed objects under retention/, a bounded list/delete drain and a few dozen planned S3 requests; includes 0.25USD cleanup reserve. No RDS, ECS, DNS, IAM or Lambda cost. Owner must validate regional S3 rates." }
     : scenario === "rel-04" ? { usd: 0.25 + settings.durationMinutes * 0.01, cleanupReserveUsd: 0.25, provisional: true, basis: "Conservative provisional USD ceiling for the PROD-REL-04 drill: one owned S3 bucket with one probe object, a SIGKILL and journal-only resume, a refused replay claim and two read-only readbacks; same S3 envelope as retention-s3, includes 0.25USD cleanup reserve. No RDS, ECS, DNS, IAM or Lambda cost. Owner must validate regional S3 rates." } : { usd: 6 + settings.durationMinutes * 0.03, cleanupReserveUsd: 2, provisional: true, basis: "Conservative provisional USD ceiling: one private 20GiB db.t4g.micro <=45min including cleanup, one 128MiB Lambda invocation, one empty ECS cluster, <=1KiB S3, one disposable hosted zone, managed DB secret; includes 2USD cleanup reserve. Owner must validate regional rates; delayed deletion can exceed estimate." };
   const body: Omit<Plan, "sha256"> = {
     schema: 1, settings, tags, fixtures, preflight, estimate,
+    // Only the mix-03 body carries productCalls, so every other scenario's digest is unchanged.
+    ...(scenario === "mix-03" ? { productCalls: mix03ProductCalls(account, region) } : {}),
     requirements: ledger.requirements.filter(r => r.requiredEvidence.includes("live_sandbox")).map(r => ({ id: r.id, acceptance: r.acceptance, fixtures: requirements[r.id] ?? [], join: "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement." })),
   };
   return { ...body, sha256: digest(body) };

@@ -42,15 +42,15 @@ export function nonceZip(): Uint8Array {
 
 export async function sdkTransport(region: string, env: EnvLike): Promise<Transport> {
   const credentials = await sessionCredentials(env);
-  const [s3, iam, lambda, ecs, rds, route53, sts, ssm, ec2, tag, secrets] = await Promise.all([
-    import("@aws-sdk/client-s3"), import("@aws-sdk/client-iam"), import("@aws-sdk/client-lambda"), import("@aws-sdk/client-ecs"), import("@aws-sdk/client-rds"), import("@aws-sdk/client-route-53"), import("@aws-sdk/client-sts"), import("@aws-sdk/client-ssm"), import("@aws-sdk/client-ec2"), import("@aws-sdk/client-resource-groups-tagging-api"), import("@aws-sdk/client-secrets-manager"),
+  const [s3, iam, lambda, ecs, rds, route53, sts, ssm, ec2, tag, secrets, logs] = await Promise.all([
+    import("@aws-sdk/client-s3"), import("@aws-sdk/client-iam"), import("@aws-sdk/client-lambda"), import("@aws-sdk/client-ecs"), import("@aws-sdk/client-rds"), import("@aws-sdk/client-route-53"), import("@aws-sdk/client-sts"), import("@aws-sdk/client-ssm"), import("@aws-sdk/client-ec2"), import("@aws-sdk/client-resource-groups-tagging-api"), import("@aws-sdk/client-secrets-manager"), import("@aws-sdk/client-cloudwatch-logs"),
   ]);
   type Client = { send(command: unknown, options: { abortSignal: AbortSignal }): Promise<Record<string, unknown>> };
   type Constructor = new (input: unknown) => unknown;
   const modules: Record<string, { module: Record<string, unknown>; client: Client }> = {};
   const options = { region, credentials, maxAttempts: 1, useFipsEndpoint: false, useDualstackEndpoint: false, ignoreConfiguredEndpointUrls: true };
   for (const [service, module, ClientCtor] of [
-    ["s3", s3, s3.S3Client], ["iam", iam, iam.IAMClient], ["lambda", lambda, lambda.LambdaClient], ["ecs", ecs, ecs.ECSClient], ["rds", rds, rds.RDSClient], ["route53", route53, route53.Route53Client], ["sts", sts, sts.STSClient], ["ssm", ssm, ssm.SSMClient], ["ec2", ec2, ec2.EC2Client], ["tag", tag, tag.ResourceGroupsTaggingAPIClient], ["secretsmanager", secrets, secrets.SecretsManagerClient],
+    ["s3", s3, s3.S3Client], ["iam", iam, iam.IAMClient], ["lambda", lambda, lambda.LambdaClient], ["ecs", ecs, ecs.ECSClient], ["rds", rds, rds.RDSClient], ["route53", route53, route53.Route53Client], ["sts", sts, sts.STSClient], ["ssm", ssm, ssm.SSMClient], ["ec2", ec2, ec2.EC2Client], ["tag", tag, tag.ResourceGroupsTaggingAPIClient], ["secretsmanager", secrets, secrets.SecretsManagerClient], ["logs", logs, logs.CloudWatchLogsClient],
   ] as const) modules[service] = { module, client: new ClientCtor(options) as unknown as Client };
   const transport: Transport = {
     async send(call, input, signal) {

@@ -52,10 +52,12 @@ export async function execute(plan: Plan, guard: Guard, transport: Transport, jo
   const responses: Record<string, Record<string, unknown>> = { ...journal.responses };
   let cleanup = false;
   let cleanupStarted = 0;
+  let productLeak = false;
   const add = (check: Check) => journal.checks.push(check);
   const started = io.now().getTime();
   const save = async () => { journal.counts = { ...guard.counts }; await io.save(journal); };
-  const call = async (c: Call, repair = false) => {
+  // `override` is the resolved request of a planned template (mix-03 runtime values); the guard still checks the planned call.
+  const call = async (c: Call, repair = false, override?: Record<string, Json>) => {
     if (cleanupStarted && io.now().getTime() - cleanupStarted >= 25 * 60_000) throw new Error("Cleanup observation deadline reached; owner recovery required");
     if (!cleanup && (options.signal?.aborted || io.now().getTime() - started >= plan.settings.durationMinutes * 60_000)) throw new Error("Live run cancelled or duration envelope exhausted");
     guard.consume(c, cleanup, repair);
@@ -63,7 +65,7 @@ export async function execute(plan: Plan, guard: Guard, transport: Transport, jo
     if (c.id === "s3-create") journal.responses[c.id] = { Bucket: String(c.input.Bucket) };
     if (c.id === "dns-put") journal.responses[c.id] = { Attempted: true };
     await save();
-    const input = resolveInput(c.input, responses) as Record<string, Json>;
+    const input = resolveInput(override ?? c.input, responses) as Record<string, Json>;
     const out = await transport.send(c, input, cleanup ? undefined : options.signal);
     responses[c.id] = out;
     if (c.service === "rds" && c.command === "DescribeDBInstances") {
@@ -194,8 +196,12 @@ export async function execute(plan: Plan, guard: Guard, transport: Transport, jo
       }
       const scope = new Set(scopedRequirementIds(plan.settings, plan.requirements.map(r => r.id)));
       for (const requirement of plan.requirements.filter(r => scope.has(r.id))) {
-        const result = options.product ? await options.product.verify(requirement, { plan, commit: journal.commit, call }) : { complete: false, reason: requirement.join };
+        const result: { complete: boolean; reason: string; leaks?: string[] } = options.product
+          ? await options.product.verify(requirement, { plan, commit: journal.commit, call: (c, input) => call(c, false, input) })
+          : { complete: false, reason: requirement.join };
         add({ id: requirement.id, status: result.complete ? "passed" : "pending", scope: "product_requirement", reason: result.reason });
+        // A cleanup leak is a failed check and keeps the journal open for owner recovery.
+        for (const leak of result.leaks ?? []) { productLeak = true; add({ id: `${requirement.id}-leak`, status: "failed", scope: "cleanup", reason: leak }); }
       }
     }
   } catch {
@@ -273,7 +279,7 @@ export async function execute(plan: Plan, guard: Guard, transport: Transport, jo
         return !blocked.has(fixture.family);
       }, false); // Independent fixtures continue; the existing dependency blocklist refuses their parents.
     } else if (journal.attempted.length) { cleanupFailed = true; add({ id: "authority", status: "failed", scope: "cleanup", reason: "Authentic sandbox authority unavailable; cleanup refused" }); }
-    journal.closed = authorized && !cleanupFailed;
+    journal.closed = authorized && !cleanupFailed && !productLeak;
     await save();
   }
   return journal;

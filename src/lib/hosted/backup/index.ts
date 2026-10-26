@@ -15,6 +15,7 @@ export {
   REVOCATION_LEDGER_KEY,
   S3Target,
   backupKeyFor,
+  backupS3Region,
   requireBackupTarget,
   selectedBackupTarget,
   type BackupTargetSelection,

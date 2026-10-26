@@ -95,7 +95,7 @@ a deployment profile.
 | `ZENITH_SECRET_KEY` | 32 bytes (unknown) | Existing secret store. Losing it makes stored values unreadable; there is no re-wrap command. |
 | `ZENITH_BACKUP_KEY` | 32 bytes, base64 or hex (unknown) | AES-256-GCM key for backups. **Must differ from `ZENITH_SECRET_KEY`** (`R3-11`) so a host compromise that reads one does not decrypt the other. Store it somewhere the host cannot read. |
 | `ZENITH_BACKUP_TARGET` | `filesystem` or `s3` | `none` means no backups and no revocation ledger; a hosted deployment with `none` cannot satisfy G22 or G23. |
-| `ZENITH_BACKUP_DIR` *or* `ZENITH_BACKUP_S3_BUCKET` (+ `ZENITH_BACKUP_S3_ENDPOINT`) | unknown | Target location. A directory on the same volume is not off-host. |
+| `ZENITH_BACKUP_DIR` *or* `ZENITH_BACKUP_S3_BUCKET` (+ `ZENITH_BACKUP_S3_REGION`, or `ZENITH_BACKUP_S3_ENDPOINT`) | unknown | Target location. A directory on the same volume is not off-host. The S3 region is required for AWS (it falls back to `AWS_REGION`, then `AWS_DEFAULT_REGION`; refused when none is set and no endpoint is named). |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | unknown | **Build arguments, not runtime variables.** Next inlines them at build time; passing them at run time leaves the browser in demo mode. Changing them is a rebuild. |
 | `NEXT_PUBLIC_SITE_URL` | same as `ZENITH_CONTROL_ORIGIN` | Build argument. |
 | `SUPABASE_SERVICE_ROLE_KEY` | unknown | Server-only. |

@@ -140,7 +140,7 @@ machine — see the "Unverified live" row.
 
 | | `filesystem` | `s3` |
 | --- | --- | --- |
-| Variables | `ZENITH_BACKUP_TARGET=filesystem`, `ZENITH_BACKUP_DIR`, `ZENITH_BACKUP_KEY` | `ZENITH_BACKUP_TARGET=s3`, `ZENITH_BACKUP_S3_BUCKET`, `ZENITH_BACKUP_S3_ENDPOINT`, `ZENITH_BACKUP_KEY`, plus AWS-style credentials |
+| Variables | `ZENITH_BACKUP_TARGET=filesystem`, `ZENITH_BACKUP_DIR`, `ZENITH_BACKUP_KEY` | `ZENITH_BACKUP_TARGET=s3`, `ZENITH_BACKUP_S3_BUCKET`, `ZENITH_BACKUP_S3_REGION` (the bucket's region; falls back to `AWS_REGION`, then `AWS_DEFAULT_REGION`), `ZENITH_BACKUP_S3_ENDPOINT` (LocalStack or another S3-compatible endpoint; the region is optional with it), `ZENITH_BACKUP_KEY`, plus AWS-style credentials |
 | What it gives | A WAL-safe encrypted copy on a path you choose. Off-host **only if the path is off-host** — a directory on the same volume is not a backup. | Real off-host object storage. Against LocalStack it is real S3 semantics on this machine; against a cloud endpoint it is a real off-host copy. |
 | Verified in this repo | Being built by W8. | LocalStack S3 is already **real** for the existing product (`s3:CreateBucket` verified with `HeadBucket`, listed back by drift detection). That establishes the adapter, not off-host durability. |
 | Unverified live | A restore from it. | A real cloud bucket, its region, its retention policy, its access controls, and a restore from it. |

@@ -60,6 +60,8 @@ const Schema = z.object({
   ZENITH_BACKUP_TARGET: z.enum(["none", "filesystem", "s3"]).prefault("none"),
   ZENITH_BACKUP_DIR: z.string().min(1).optional(),
   ZENITH_BACKUP_S3_BUCKET: z.string().min(1).optional(),
+  /** Region the backup bucket lives in. Falls back to AWS_REGION, then AWS_DEFAULT_REGION (see backupS3Region). */
+  ZENITH_BACKUP_S3_REGION: z.string().min(1).optional(),
   ZENITH_BACKUP_S3_ENDPOINT: z.string().url().optional(),
   ZENITH_CF_ACCOUNT_ID: z.string().regex(/^[0-9a-f]{32}$/).optional(),
   ZENITH_CF_NAMESPACE: z.string().regex(/^[a-z0-9-]{1,63}$/).optional(),

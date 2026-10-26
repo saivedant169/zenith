@@ -1022,12 +1022,12 @@ async function runTenantExportOperated(input: TenantExportInput, work: (context:
 }
 
 /** Production approvals need an independent second person (two-person production), as the J2 journey sets it. */
-async function requireTwoPersonProduction(page: Page, workspaceId: string): Promise<void> {
+export async function requireTwoPersonProduction(page: Page, workspaceId: string): Promise<void> {
   const policy = ok(await browserRequest(page, "/api/platform/v1/workspace/policy", { overrides: { twoPersonProduction: true } }, "PUT", workspaceId));
   ensure(policy.workspaceId === workspaceId && policy.effective?.twoPersonProduction === true, "two-person-production-policy");
 }
 
-async function authenticateBeforeWorkspace(page: Page, stack: Stack, user: { id: string; email: string; password: string }): Promise<void> {
+export async function authenticateBeforeWorkspace(page: Page, stack: Pick<Stack, "apiUrl" | "supabaseUrl">, user: { id: string; email: string; password: string }): Promise<void> {
   await page.goto(stack.apiUrl + '/login?next=/overview');
   await page.getByLabel('Email', { exact: true }).fill(user.email);
   await page.getByLabel('Password', { exact: true }).fill(user.password);
@@ -1103,8 +1103,8 @@ export async function connectKind(ctx: OperatedContext, tenant: Tenant): Promise
   });
 }
 
-export const detailOf = async (tenant: Tenant, operationId: string): Promise<OperationStatusView> => ok(await browserRequest(tenant.owner, "/api/platform/v1/operations/" + operationId, undefined, "GET", tenant.workspaceId));
-export async function approveOperation(ctx: OperatedContext, tenant: Tenant, operationId: string): Promise<void> {
+export const detailOf = async (tenant: Pick<Tenant, "owner" | "workspaceId">, operationId: string): Promise<OperationStatusView> => ok(await browserRequest(tenant.owner, "/api/platform/v1/operations/" + operationId, undefined, "GET", tenant.workspaceId));
+export async function approveOperation(ctx: { stack: { apiUrl: string } }, tenant: Pick<Tenant, "owner" | "approver" | "approverId" | "workspaceId">, operationId: string): Promise<void> {
   const detail = await detailOf(tenant, operationId);
   ensure(detail.operation.status === "awaiting_approval" && detail.decision?.approval?.separationOfDuties === true, "human-approval-required");
   await tenant.approver.goto(ctx.stack.apiUrl + "/platform/operations/" + operationId);

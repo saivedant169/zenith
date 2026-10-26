@@ -28,4 +28,5 @@ export async function enrollOperator(page, stack) {
   });
   if (!proof) throw new Error('journey:mfa-server-proof');
   await page.getByRole('link', { name: 'Return to review', exact: true }).click();
+  return secret;
 }

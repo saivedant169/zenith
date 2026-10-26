@@ -7,7 +7,8 @@
  * ExternalId through planned IAM calls, restoring it afterwards, and (b) reads the result back from AWS and checks it.
  * Product receipts and AWS readbacks decide; child output is never evidence.
  *
- * The default driver is not wired in this build. The port then refuses before its first AWS call, so nothing is changed.
+ * The driver is `browserMix03Product` (mix-03-driver.ts), which aws-live.ts wires when ZENITH_LIVE_PRODUCT=1. Callers that pass no
+ * driver get `unwiredProduct`, which refuses before its first AWS call, so nothing is changed.
  * Cleanup is planned and runs in `finally`: it deletes only tagged resources that match exact name patterns, then re-lists
  * by tag. Anything left is returned as a leak, which the harness records as a failed check.
  *
@@ -39,6 +40,8 @@ export interface Mix03Product {
   changeProducer(tenant: Mix03Tenant, planId: string): Promise<{ consumerState: "unchanged" | "review_required" | "preauthorized" }>;
   issueOutputPreauthorization(tenant: Mix03Tenant, planId: string): Promise<void>;
   useOutputOnce(tenant: Mix03Tenant, planId: string): Promise<{ ok: boolean }>;
+  /** Releases the browser. Called once the run is over, after teardown. */
+  close?(): Promise<void>;
 }
 
 export interface Mix03Seams {
@@ -49,8 +52,8 @@ export interface Mix03Seams {
 }
 
 /** A fail-closed stop. Its message is ours and fixed; anything else is withheld. */
-class Refusal extends Error {}
-function refuse(message: string): never { throw new Refusal(message); }
+export class Refusal extends Error {}
+export function refuse(message: string): never { throw new Refusal(message); }
 
 const NOT_WIRED = "the browser product driver is not wired to a running Zenith stack in this build; nothing was changed";
 const refuseUnwired = async (): Promise<never> => refuse(NOT_WIRED);
@@ -302,6 +305,7 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
       }
       // Trust is restored and product resources deleted even after a refusal. Leaks make the requirement fail closed.
       const leaks = await teardown(run, plan, invoke, planned, principal).catch(() => ["cleanup did not complete; resources may remain"]);
+      try { await product.close?.(); } catch { /* the browser is released best-effort; the outcome above stands */ }
       if (leaks.length) return { complete: false, reason: `${outcome.reason}; cleanup leaks: ${leaks.length} (see the cleanup checks)`, leaks };
       return { ...outcome, leaks };
     },

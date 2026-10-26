@@ -26,6 +26,7 @@ import { runProductionCli } from "./live/cli";
 import { SCENARIOS } from "./live/contracts";
 import { retentionS3Port } from "./live/product/retention-s3";
 import { mix03Port } from "./live/product/mix-03";
+import { browserMix03Product } from "./live/product/mix-03-driver";
 
 export const LIVE_USAGE = `Usage: npx tsx scripts/acceptance/aws-live.ts --scenario A[,B,...] [options]
   --dry-run                 Print actions/prerequisites; no cloud calls
@@ -86,7 +87,7 @@ export async function runLiveCli(argv: readonly string[], env: EnvLike = process
     const selected = named.length ? named.join(",") : (env.ZENITH_LIVE_AWS_SCENARIO ?? "fixtures");
     const product = env.ZENITH_LIVE_PRODUCT !== "1" ? undefined
       : selected === "retention-s3" ? retentionS3Port(env)
-      : selected === "mix-03" ? mix03Port(env)
+      : selected === "mix-03" ? mix03Port(env, { product: browserMix03Product(env) })
       : undefined;
     return runProductionCli(argv, env, io, { product });
   }

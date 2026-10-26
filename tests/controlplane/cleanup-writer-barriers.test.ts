@@ -23,6 +23,7 @@ import { platformBroker,resetPlatformBrokerForTests,isDefaultPlatformBrokerFor }
 import { generateSigningJwk,serializePrivateJwk } from "@/lib/credentials";
 import { CredentialGrantSigner } from "@/lib/capabilities/credential-signer";
 import { planArtifactCipherFromEnv,createPlanArtifactRuntime,createIsolatedPlanArtifactRuntimeForTests,readNativeCleanupOwnerGrantOrigin } from "@/lib/platform/plan-artifacts";
+import type { Sealed } from "@/lib/secrets";
 import * as artifacts from "@/lib/controlplane/db/repos/plan-artifacts";
 import * as cleanup from "@/lib/controlplane/db/repos/cleanup-writer-barriers";
 import * as connections from "@/lib/controlplane/db/repos/connections";
@@ -984,4 +985,123 @@ describe.skipIf(!PG_URL)("native cleanup writer barrier [postgres; modeled hoste
     expect(traps).toBe(0);expect(await readFile(path.join(s.scope.root,"terraform.tfstate")).catch(()=>null)).toBeNull();expect(await settled(s)).toHaveLength(0);
   },300000);
 
+  // WP2 settlement rules. The fixture writes settlement rows directly because the sealing writer is WP3.
+  // Every horizon is read on the database clock, and the insert trigger is what refuses an early row.
+  const settlementKey = randomBytes(32).toString("hex");
+  const settlementCipher = () => planArtifactCipherFromEnv({ ZENITH_PLAN_ARTIFACT_KEY: settlementKey });
+  type SettlementScope = { ws: string; id: string; project: string; environment: string };
+  async function settlementScope(terminal = false): Promise<SettlementScope> {
+    const seeded = await seedApprovedOperation(db);
+    const ws = seeded.workspaceId, id = seeded.operation.id;
+    if (terminal) await peer.query("update platform.operations set status='failed' where workspace_id=$1 and id=$2", [ws, id]);
+    const [row] = await observer.query<{ project_id: string; environment_id: string }>("select project_id,environment_id from platform.operations where workspace_id=$1 and id=$2", [ws, id]);
+    return { ws, id, project: row.project_id, environment: row.environment_id };
+  }
+  async function settlementRow(s: SettlementScope, family: string, source: string, identity: string, sealed?: Sealed, scopeProject = s.project) {
+    return peer.query(`insert into platform.cleanup_writer_settlements(workspace_id,project_id,environment_id,operation_id,family,delivery_source,delivery_identity,horizon_at,sealed)
+      values($1,$2,$3,$4,$5,$6,$7,clock_timestamp(),$8::text::jsonb)`,
+      [s.ws, scopeProject, s.environment, s.id, family, source, identity,
+        json(sealed ?? cleanup.sealDeliverySettlement(settlementCipher(), { workspaceId: s.ws, family, source, identity, operationId: s.id }))]);
+  }
+  async function settlementGrant(s: SettlementScope, offset: string, revoked = false): Promise<string> {
+    const jti = randomUUID();
+    await peer.query(`insert into platform.capability_grants(jti,workspace_id,operation_id,capability,audience,issued_at,expires_at,revoked_at)
+      values($1,$2,$3,'infrastructure.apply','worker',clock_timestamp()-interval '1 day',clock_timestamp()+$4::interval,case when $5::boolean then clock_timestamp() else null end)`,
+      [jti, s.ws, s.id, offset, revoked]);
+    return jti;
+  }
+  async function settlementIntent(s: SettlementScope, offset: string): Promise<string> {
+    const attempt = randomUUID();
+    const binding = { format: "zenith.workflow-start.v1", arguments: { workspaceId: s.ws, operationId: s.id }, endpointDigest: sha(s.id), namespace: "fixture", workflowId: `fixture:${s.id}` };
+    await peer.query(`insert into platform.workflow_start_intents(workspace_id,operation_id,binding,binding_digest,phase,attempt_id,attempted_at)
+      values($1,$2,$3::text::jsonb,$4,'attempted',$5,clock_timestamp()+$6::interval)`, [s.ws, s.id, json(binding), digest(binding), attempt, offset]);
+    return `${s.id}:${attempt}`;
+  }
+  it("a grant settles only past its expiry, its longest session and the skew margin on the database clock",async()=>{
+    const s=await settlementScope();
+    // 60 minutes past expiry leaves the horizon five minutes ahead (3600 s session plus 300 s skew); 66 minutes is past it.
+    const inside=await settlementGrant(s,"-60 minutes"), past=await settlementGrant(s,"-66 minutes");
+    await expect(settlementRow(s,"grant","capability_grants",inside)).rejects.toThrow(/refused before its horizon/);
+    await settlementRow(s,"grant","capability_grants",past);
+    expect(await observer.query("select count(*)::integer as n from platform.cleanup_writer_settlements where workspace_id=$1 and delivery_identity=$2",[s.ws,past])).toEqual([{n:1}]);
+  });
+  it("revocation never settles a grant on its own, but an expired and revoked grant settles by its horizon",async()=>{
+    const s=await settlementScope();
+    const revokedLive=await settlementGrant(s,"1 hour",true), revokedPast=await settlementGrant(s,"-2 hours",true);
+    await expect(settlementRow(s,"grant","capability_grants",revokedLive)).rejects.toThrow(/refused before its horizon/);
+    await settlementRow(s,"grant","capability_grants",revokedPast);
+  });
+  it("a workflow start settles only after its operation is terminal and its start recovery horizon has passed",async()=>{
+    // One start intent per operation: each case has its own operation.
+    const open = await settlementScope(), early = await settlementScope(true), old = await settlementScope(true);
+    const running = await settlementIntent(open, "-2 hours"), tooSoon = await settlementIntent(early, "-5 minutes"), settled = await settlementIntent(old, "-2 hours");
+    await expect(settlementRow(open, "workflow", "workflow_start_intents", running)).rejects.toThrow(/refused before its horizon/);
+    await expect(settlementRow(early, "workflow", "workflow_start_intents", tooSoon)).rejects.toThrow(/refused before its horizon/);
+    await settlementRow(old, "workflow", "workflow_start_intents", settled);
+  });
+  it("a runner job settles only from a terminal status and never while its lease is still open",async()=>{
+    const s=await settlementScope();
+    const target=`diagnostic_${randomUUID()}`;
+    await peer.query("insert into platform.runners(id,workspace_id,name,public_key) values($1,$2,'diagnostic','fixture-public-key')",[target,s.ws]);
+    const open=`job_${randomUUID()}`, done=`job_${randomUUID()}`;
+    await peer.query(`insert into platform.runner_jobs(id,runner_id,workspace_id,operation_id,kind,capability,envelope,status,expires_at,started_at)
+      values($1,$2,$3,$4,'diagnostic','infrastructure.apply','synthetic-no-authority','running',clock_timestamp()-interval '1 hour',clock_timestamp()-interval '2 hours')`,[open,target,s.ws,s.id]);
+    await peer.query(`insert into platform.runner_jobs(id,runner_id,workspace_id,operation_id,kind,capability,envelope,status,expires_at,started_at,settled_at)
+      values($1,$2,$3,$4,'diagnostic','infrastructure.apply','synthetic-no-authority','succeeded',clock_timestamp()-interval '1 hour',clock_timestamp()-interval '2 hours',clock_timestamp()-interval '2 hours')`,[done,target,s.ws,s.id]);
+    await expect(settlementRow(s,"runner","runner_jobs",open)).rejects.toThrow(/refused before its horizon/);
+    await settlementRow(s,"runner","runner_jobs",done);
+  });
+  it("a build launch settles only after its provider finished and never while it is still dispatched",async()=>{
+    const s=await settlementScope();
+    // One launch per (operation, service): the dispatched and terminal launches use two services of the same operation.
+    const pending="container_service/pending", finished="container_service/finished";
+    const launch=(service:string,attempt:string,phase:"dispatched"|"terminal")=>peer.query(`insert into platform.build_launches(workspace_id,operation_id,service_address,environment_id,attempt_id,binding,binding_digest,proposal_digest,input_digest,plan_digest,fence_token,phase,build_id,request_ids,accepted_at,terminal_status,provider_finished_at,terminal_request_id,observed_at)
+      values($1,$2,$3,$4,$5,$6::text::jsonb,$7,$7,$7,$7,1,$8,$9,case when $8='terminal' then '["req-1"]'::jsonb else null end,case when $8='terminal' then clock_timestamp()-interval '2 hours' else null end,
+        case when $8='terminal' then 'SUCCEEDED' else null end,case when $8='terminal' then clock_timestamp()-interval '2 hours' else null end,case when $8='terminal' then 'req-1' else null end,case when $8='terminal' then clock_timestamp()-interval '2 hours' else null end)`,
+      [s.ws,s.id,service,s.environment,attempt,json({workspaceId:s.ws,operationId:s.id,environmentId:s.environment,serviceAddress:service}),digest(service),phase,phase==="terminal"?randomUUID():null]);
+    const dispatched=randomUUID(), done=randomUUID();
+    await launch(pending,dispatched,"dispatched");
+    await launch(finished,done,"terminal");
+    await expect(settlementRow(s,"build","build_launches",`${s.id}:${pending}:${dispatched}`)).rejects.toThrow(/refused before its horizon/);
+    await settlementRow(s,"build","build_launches",`${s.id}:${finished}:${done}`);
+  });
+  it("a plan use, a mismatched family or source, an unknown delivery and a foreign scope never settle anything",async()=>{
+    const s=await settlementScope(), other=await settlementScope();
+    const jti=await settlementGrant(s,"-2 hours");
+    await expect(settlementRow(s,"plan","plan_artifact_uses",`${s.id}:${randomUUID()}`)).rejects.toThrow(/does not settle this delivery source/);
+    await expect(settlementRow(s,"grant","runner_jobs",jti)).rejects.toThrow(/does not settle this delivery source/);
+    await expect(settlementRow(s,"grant","capability_grants",randomUUID())).rejects.toThrow(/refused before its horizon or for an unmatched delivery/);
+    await expect(settlementRow(other,"grant","capability_grants",jti)).rejects.toThrow(/refused before its horizon or for an unmatched delivery/);
+    await expect(settlementRow(s,"grant","capability_grants",jti,undefined,"proj_foreign")).rejects.toThrow(/scope does not match its operation/);
+  });
+  it("a settlement row is append-only history that cannot be updated or deleted",async()=>{
+    const s=await settlementScope();
+    const jti=await settlementGrant(s,"-2 hours");
+    await settlementRow(s,"grant","capability_grants",jti);
+    await expect(peer.query("update platform.cleanup_writer_settlements set horizon_at=clock_timestamp() where workspace_id=$1 and delivery_identity=$2",[s.ws,jti])).rejects.toThrow(/cannot be changed or cleared/);
+    await expect(peer.query("delete from platform.cleanup_writer_settlements where workspace_id=$1 and delivery_identity=$2",[s.ws,jti])).rejects.toThrow(/cannot be changed or cleared/);
+  });
+  it("only an authenticated settlement removes its delivery from the counted inventory; forged, replayed and unkeyed rows remove nothing",async()=>{
+    const s=await settlementScope();
+    const settled=await settlementGrant(s,"-2 hours"), forged=await settlementGrant(s,"-2 hours"), replayed=await settlementGrant(s,"-2 hours");
+    // Sealed under another key: the row exists and is past its horizon, but it does not authenticate.
+    const foreignKey=planArtifactCipherFromEnv({ ZENITH_PLAN_ARTIFACT_KEY: randomBytes(32).toString("hex") });
+    await settlementRow(s,"grant","capability_grants",forged,cleanup.sealDeliverySettlement(foreignKey,{workspaceId:s.ws,family:"grant",source:"capability_grants",identity:forged,operationId:s.id}));
+    // A payload authenticated for one grant, copied onto another row, fails the per-delivery AAD ref.
+    await settlementRow(s,"grant","capability_grants",replayed,cleanup.sealDeliverySettlement(settlementCipher(),{workspaceId:s.ws,family:"grant",source:"capability_grants",identity:settled,operationId:s.id}));
+    vi.stubEnv("ZENITH_PLAN_ARTIFACT_KEY",settlementKey);
+    expect(await cleanup.inventory(db,s.ws,s.project,s.environment)).toMatchObject({grants:3,handoffs:3});
+    await settlementRow(s,"grant","capability_grants",settled);
+    expect(await cleanup.inventory(db,s.ws,s.project,s.environment)).toMatchObject({grants:2,handoffs:2});
+    vi.stubEnv("ZENITH_PLAN_ARTIFACT_KEY","");
+    expect(await cleanup.inventory(db,s.ws,s.project,s.environment)).toMatchObject({grants:3,handoffs:3});
+  });
+  it("a verified workflow settlement removes its start from the counted inventory only past the recovery horizon",async()=>{
+    const s=await settlementScope(true);
+    const attempted=await settlementIntent(s,"-2 hours");
+    vi.stubEnv("ZENITH_PLAN_ARTIFACT_KEY",settlementKey);
+    expect(await cleanup.inventory(db,s.ws,s.project,s.environment)).toMatchObject({handoffs:2});
+    await settlementRow(s,"workflow","workflow_start_intents",attempted);
+    expect(await cleanup.inventory(db,s.ws,s.project,s.environment)).toMatchObject({handoffs:0});
+  });
 });

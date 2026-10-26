@@ -843,4 +843,22 @@ describe("control-store repositories: workspace scoping is present in every func
     expect(hash(pinned.get("releaseDrainedScopeHold")!)).toBe("7aed855d22d6757440426853e0761ce198151c7aaddf3c80ead5cf81715abd76");
     for (const body of pinned.values()) expect(/\$\{/.test(body), "release SQL must not interpolate").toBe(false);
   });
+
+  it("pins the possible-delivery inventory and its verified-settlement loader (schema 62) by exact function text", () => {
+    const text = readFileSync(path.join(REPOS, "cleanup-writer-barriers.ts"), "utf8");
+    const sf = ts.createSourceFile("cleanup-writer-barriers.ts", text, ts.ScriptTarget.Latest, true);
+    const pinned = new Map<string, string>();
+    const visit = (node: ts.Node): void => {
+      if (ts.isFunctionDeclaration(node) && node.name && ["inventoryWithSettlements", "verifiedDeliverySettlements"].includes(node.name.text)) pinned.set(node.name.text, node.getText(sf));
+      ts.forEachChild(node, visit);
+    };
+    visit(sf);
+    const hash = (value: string) => createHash("sha256").update(value).digest("hex");
+    expect([...pinned.keys()].sort()).toEqual(["inventoryWithSettlements", "verifiedDeliverySettlements"]);
+    expect(hash(pinned.get("inventoryWithSettlements")!)).toBe("1860121eec664912d020b21b5bf0c742ea71ce3ba79905efffafb6eb6fce1d44");
+    expect(hash(pinned.get("verifiedDeliverySettlements")!)).toBe("34293625e6284e94b7d8f4919fd9e304126fe5f2fdfab869cdafdf3a4e9ceb85");
+    // Six counted families each exclude a delivery only through the settlement predicate; no other settlement reader exists.
+    expect(pinned.get("inventoryWithSettlements")!.match(/platform\.cleanup_delivery_settled\(/g)).toHaveLength(6);
+    for (const body of pinned.values()) expect(/\$\{/.test(body), "inventory SQL must not interpolate").toBe(false);
+  });
 });

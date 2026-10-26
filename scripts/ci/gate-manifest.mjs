@@ -5676,6 +5676,60 @@ export const CLEANUP_WRITER_BARRIER_POSTGRES_REQUIREMENTS = [
     "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
     "test": "consumed approver demotion during final native reservation inventory refuses before signing and preserves the hold",
     "backend": "postgres"
+  },
+  {
+    "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
+    "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
+    "test": "a grant settles only past its expiry, its longest session and the skew margin on the database clock",
+    "backend": "postgres"
+  },
+  {
+    "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
+    "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
+    "test": "revocation never settles a grant on its own, but an expired and revoked grant settles by its horizon",
+    "backend": "postgres"
+  },
+  {
+    "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
+    "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
+    "test": "a workflow start settles only after its operation is terminal and its start recovery horizon has passed",
+    "backend": "postgres"
+  },
+  {
+    "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
+    "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
+    "test": "a runner job settles only from a terminal status and never while its lease is still open",
+    "backend": "postgres"
+  },
+  {
+    "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
+    "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
+    "test": "a build launch settles only after its provider finished and never while it is still dispatched",
+    "backend": "postgres"
+  },
+  {
+    "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
+    "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
+    "test": "a plan use, a mismatched family or source, an unknown delivery and a foreign scope never settle anything",
+    "backend": "postgres"
+  },
+  {
+    "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
+    "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
+    "test": "a settlement row is append-only history that cannot be updated or deleted",
+    "backend": "postgres"
+  },
+  {
+    "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
+    "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
+    "test": "only an authenticated settlement removes its delivery from the counted inventory; forged, replayed and unkeyed rows remove nothing",
+    "backend": "postgres"
+  },
+  {
+    "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
+    "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
+    "test": "a verified workflow settlement removes its start from the counted inventory only past the recovery horizon",
+    "backend": "postgres"
   }
 ];
 

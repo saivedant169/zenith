@@ -1214,8 +1214,12 @@ describe("cleanup writer expand schema 60 [pglite]", () => {
       // A release cannot name a generation that is not that hold's generation.
       await expect(db.query(`insert into platform.cleanup_writer_hold_releases(workspace_id,project_id,environment_id,hold_seq,operation_id,attempt_id,generation,released_by,inventory_snapshot)
         values($1,$2,$3,$4::bigint,'op_expand_c','attempt_c',$5,'janitor','{}'::jsonb)`, [SCOPE.workspaceId, SCOPE.projectId, SCOPE.environmentId, hold.hold_seq, generation(99)])).rejects.toThrow();
+      // Schema 62 refuses a settlement before its database-clock horizon, so this row settles a runner job already settled.
+      await db.query(`insert into platform.runners(id,workspace_id,name,public_key) values('runner_expand_c',$1,'diagnostic','fixture-public-key')`, [SCOPE.workspaceId]);
+      await db.query(`insert into platform.runner_jobs(id,runner_id,workspace_id,operation_id,kind,capability,envelope,status,expires_at,started_at,settled_at)
+        values('job_expand_c','runner_expand_c',$1,'op_expand_c','diagnostic','infrastructure.apply','synthetic-no-authority','succeeded',clock_timestamp()-interval '3 hours',clock_timestamp()-interval '2 hours',clock_timestamp()-interval '2 hours')`, [SCOPE.workspaceId]);
       await db.query(`insert into platform.cleanup_writer_settlements(workspace_id,project_id,environment_id,operation_id,family,delivery_source,delivery_identity,horizon_at,sealed)
-        values($1,$2,$3,'op_expand_c','workflow','workflow_start_intents','op_expand_c:attempt_c',clock_timestamp(),'{"reserved":true}'::jsonb)`, [SCOPE.workspaceId, SCOPE.projectId, SCOPE.environmentId]);
+        values($1,null,null,'op_expand_c','runner','runner_jobs','job_expand_c',clock_timestamp(),'{"reserved":true}'::jsonb)`, [SCOPE.workspaceId]);
       await db.query(`insert into platform.cleanup_direct_attempts(workspace_id,project_id,environment_id,operation_id,attempt_id,evidence_digest,lease_scope,holder,fence_token,state)
         values($1,$2,$3,'op_expand_c','attempt_d',$4,'env:env_a','holder_a',1,'claimed')`, [SCOPE.workspaceId, SCOPE.projectId, SCOPE.environmentId, digest("evidence")]);
       await expect(db.query(`insert into platform.cleanup_writer_settlements(workspace_id,family,project_id,environment_id,operation_id,delivery_source,delivery_identity,horizon_at,sealed)

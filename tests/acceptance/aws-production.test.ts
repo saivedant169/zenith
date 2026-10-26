@@ -19,6 +19,7 @@ import { Guard, grantsFor, readPermission } from "../../scripts/acceptance/live/
 import { execute, newJournal, missing, absent, owned, checkReadback, executionProvenance } from "../../scripts/acceptance/live/execute";
 import { evidencePacket } from "../../scripts/acceptance/live/evidence";
 import { resumeCommand, runProductionCli } from "../../scripts/acceptance/live/cli";
+import { redactAcceptance } from "../../scripts/acceptance/redact";
 import { requireProductionScope } from "../../scripts/acceptance/live/scope";
 import { approvedManifest } from "../release/_support";
 import { nonceZip, resolveInput, sessionCredentials } from "../../scripts/acceptance/live/sdk";
@@ -415,6 +416,43 @@ describe("CLI admission and explicit credentials (offline)", () => {
     expect(await runProductionCli(argv, { ZENITH_LIVE_AWS: "1", ZENITH_LIVE_AWS_BUDGET_USD: "10", ...rootFile }, { out: () => undefined, err: s => errors.push(s) }, deps)).toBe(2);
     expect(constructed).toBe(0); expect(model.calls).toHaveLength(0);
     expect(errors.join("\n")).toContain("Use one absolute owner budget FILE");
+  });
+  it("recovers from a journal written to disk through redaction after a crash right after s3-create", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "aws-production-roundtrip-")); directories.push(dir);
+    const p = buildPlan({ ...settings, scenario: "retention-s3" }), perm = permission(p);
+    perm.approvedAt = new Date(Date.now() - 60_000).toISOString();
+    perm.expiresAt = new Date(Date.now() + 60_000).toISOString();
+    const guard = new Guard(p, perm, 10), model = modeled(p), journal = newJournal(p, guard, perm.sourceCommit);
+    let snapshot: Journal | undefined;
+    // The process "dies" at s3-tag: that request never returns, so only what was saved before it survives.
+    const hanging: Transport = { send: (c, input, signal) => c.id === "s3-tag" ? new Promise(() => undefined) : model.transport.send(c, input, signal) };
+    void execute(p, guard, hanging, journal, { now: () => new Date(), sleep: async () => undefined, save: async state => { snapshot = structuredClone(state); } });
+    await new Promise(resolve => setTimeout(resolve, 50));
+    expect(snapshot?.responses["s3-create"]).toBeDefined();
+    expect(model.present.has("s3")).toBe(true);
+    const journalFile = path.join(dir, "journal.json"), permissionFile = path.join(dir, "permissions.json");
+    // Written exactly as the CLI writes it: through acceptance redaction, which replaces repeated objects with "[Circular]".
+    await writeFile(journalFile, JSON.stringify(redactAcceptance(snapshot), null, 2));
+    await writeFile(permissionFile, JSON.stringify({ awsLive: perm }));
+    const creates = model.calls.filter(c => c.id.endsWith("-create")).length;
+    const errors: string[] = [];
+    await runProductionCli(["--permissions", permissionFile, "--cleanup", journalFile], { ZENITH_LIVE_AWS: "1", ZENITH_LIVE_AWS_BUDGET_USD: "0.40", ...(await rootScopeFile()) }, { out: () => undefined, err: e => errors.push(e) }, { source: () => perm.sourceCommit, transport: async () => model.transport });
+    expect(errors).toEqual([]);
+    const after = JSON.parse(await readFile(journalFile, "utf8")) as Journal;
+    expect(after.closed).toBe(true);
+    expect(model.present.has("s3")).toBe(false);
+    expect(model.calls.filter(c => c.id.endsWith("-create")).length).toBe(creates);
+  });
+  it("refuses a journal whose recorded plan digest does not match its settings", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "aws-production-tamper-")); directories.push(dir);
+    const p = plan(), perm = permission(p), journal = newJournal(p, new Guard(p, perm, 10, now), perm.sourceCommit);
+    const tampered = { ...journal, plan: { ...journal.plan, settings: { ...journal.plan.settings, runId: "zlive-202610080000-ffff" } } };
+    const journalFile = path.join(dir, "journal.json"), permissionFile = path.join(dir, "permissions.json");
+    await writeFile(journalFile, JSON.stringify(tampered)); await writeFile(permissionFile, JSON.stringify({ awsLive: perm }));
+    const errors: string[] = []; let constructed = 0;
+    const code = await runProductionCli(["--permissions", permissionFile, "--cleanup", journalFile], { ZENITH_LIVE_AWS: "1", ZENITH_LIVE_AWS_BUDGET_USD: "10" }, { out: () => undefined, err: e => errors.push(e) }, { source: () => perm.sourceCommit, transport: async () => { constructed++; throw new Error("must not run"); } });
+    expect(code).toBe(2); expect(constructed).toBe(0);
+    expect(errors).toEqual(["Journal plan digest does not match its recorded settings; cleanup refused"]);
   });
   it("refuses recovery from a different executing source before constructing credentials", async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "aws-production-test-")); directories.push(dir);

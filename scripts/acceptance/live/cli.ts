@@ -65,6 +65,17 @@ export async function runProductionCli(argv: readonly string[], env: EnvLike = p
     const cleanupFile = args.values.get("cleanup");
     let existing: Journal | undefined;
     if (cleanupFile) existing = await readJson(cleanupFile) as Journal;
+    // The journal is written through redaction, which replaces repeated objects with "[Circular]", so its stored plan
+    // cannot be trusted as-is. Recovery rebuilds the canonical plan from the recorded settings and requires the exact
+    // recorded digest; anything else is refused.
+    if (existing) {
+      const recorded = (existing as { plan?: { settings?: unknown; sha256?: unknown } }).plan;
+      if (!recorded || typeof recorded.sha256 !== "string" || !recorded.settings || typeof recorded.settings !== "object") throw new Error("Journal plan is unreadable; cleanup refused");
+      let rebuilt: Plan;
+      try { rebuilt = buildPlan(recorded.settings as Plan["settings"]); } catch { throw new Error("Journal plan settings are invalid; cleanup refused"); }
+      if (rebuilt.sha256 !== recorded.sha256) throw new Error("Journal plan digest does not match its recorded settings; cleanup refused");
+      existing.plan = rebuilt;
+    }
     const plan: Plan = existing?.plan ?? buildPlan({
       accountId: value("account", "ZENITH_LIVE_AWS_ACCOUNT_ID", "000000000000"),
       region: value("region", "ZENITH_LIVE_REGION", "ap-south-1"),

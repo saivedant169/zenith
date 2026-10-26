@@ -382,9 +382,26 @@ export function selectedBackupTarget(): BackupTargetSelection {
           fix: "Set ZENITH_BACKUP_S3_BUCKET (and ZENITH_BACKUP_S3_ENDPOINT for LocalStack or another S3-compatible endpoint).",
         },
       };
+    const endpoint = cfg.ZENITH_BACKUP_S3_ENDPOINT;
+    const region = backupS3Region({
+      ZENITH_BACKUP_S3_REGION: cfg.ZENITH_BACKUP_S3_REGION,
+      AWS_REGION: process.env.AWS_REGION,
+      AWS_DEFAULT_REGION: process.env.AWS_DEFAULT_REGION,
+    });
+    // Without a region the SDK would talk to us-east-1, which fails for a bucket elsewhere (e.g. ap-south-1).
+    if (!region && !endpoint)
+      return {
+        id: "s3",
+        target: null,
+        availability: {
+          available: false,
+          reason: "ZENITH_BACKUP_TARGET=s3 needs ZENITH_BACKUP_S3_REGION (or AWS_REGION).",
+          fix: "Set ZENITH_BACKUP_S3_REGION to the bucket's region, for example ap-south-1. A custom endpoint (ZENITH_BACKUP_S3_ENDPOINT) needs no region.",
+        },
+      };
     return {
       id: "s3",
-      target: new S3Target({ bucket, endpoint: cfg.ZENITH_BACKUP_S3_ENDPOINT }),
+      target: new S3Target({ bucket, endpoint, region }),
       availability: { available: true, reason: `Backups are written to the S3 bucket ${bucket}.` },
     };
   }
@@ -398,6 +415,14 @@ export function selectedBackupTarget(): BackupTargetSelection {
       fix: "Set ZENITH_BACKUP_TARGET=filesystem with ZENITH_BACKUP_DIR, or ZENITH_BACKUP_TARGET=s3 with ZENITH_BACKUP_S3_BUCKET. A hosted install with `none` cannot satisfy off-host recovery (G22) or revocation reconciliation (G23).",
     },
   };
+}
+
+/**
+ * The backup bucket's region, from configuration: ZENITH_BACKUP_S3_REGION, then AWS_REGION, then AWS_DEFAULT_REGION
+ * (the same order as archiveTargetFromEnv in src/lib/retention/archive.ts). Undefined when none is set.
+ */
+export function backupS3Region(env: Readonly<Record<string, string | undefined>>): string | undefined {
+  return [env.ZENITH_BACKUP_S3_REGION, env.AWS_REGION, env.AWS_DEFAULT_REGION].map((v) => v?.trim()).find(Boolean);
 }
 
 /** The configured target, or a refusal naming the variable that would provide one. */

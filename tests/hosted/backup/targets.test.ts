@@ -17,7 +17,7 @@ import { isolatedDataDir, removeDir } from "../_fixtures";
 
 const dataDir = isolatedDataDir("zenith-backup-targets-");
 
-const { FilesystemTarget, S3Target, requireBackupTarget, selectedBackupTarget } = await import(
+const { FilesystemTarget, S3Target, backupS3Region, requireBackupTarget, selectedBackupTarget } = await import(
   "@/lib/hosted/backup"
 );
 
@@ -266,5 +266,63 @@ describe("selectedBackupTarget", () => {
       if (previous.bucket === undefined) delete process.env.ZENITH_BACKUP_S3_BUCKET;
       else process.env.ZENITH_BACKUP_S3_BUCKET = previous.bucket;
     }
+  });
+});
+
+/* ------------------------------ S3 region ----------------------------------- */
+// Mirrors the archive region tests in tests/retention/retention.test.ts: a bucket outside us-east-1 must
+// be addressed with its own region, and S3 without any region is refused unless a custom endpoint is named.
+
+describe("backup S3 region", () => {
+  const KEYS = ["ZENITH_BACKUP_TARGET", "ZENITH_BACKUP_S3_BUCKET", "ZENITH_BACKUP_S3_REGION", "ZENITH_BACKUP_S3_ENDPOINT", "AWS_REGION", "AWS_DEFAULT_REGION"] as const;
+
+  function withEnv<T>(vars: Partial<Record<(typeof KEYS)[number], string>>, run: () => T): T {
+    const previous = Object.fromEntries(KEYS.map((k) => [k, process.env[k]]));
+    for (const k of KEYS) delete process.env[k];
+    Object.assign(process.env, { ZENITH_BACKUP_TARGET: "s3", ZENITH_BACKUP_S3_BUCKET: "b", ...vars });
+    try {
+      return run();
+    } finally {
+      for (const k of KEYS) {
+        if (previous[k] === undefined) delete process.env[k];
+        else process.env[k] = previous[k];
+      }
+    }
+  }
+
+  it("resolves the region from ZENITH_BACKUP_S3_REGION, then AWS_REGION, then AWS_DEFAULT_REGION", () => {
+    expect(backupS3Region({ ZENITH_BACKUP_S3_REGION: "ap-south-1" })).toBe("ap-south-1");
+    expect(backupS3Region({ ZENITH_BACKUP_S3_REGION: "ap-south-1", AWS_REGION: "eu-west-1" })).toBe("ap-south-1");
+    expect(backupS3Region({ AWS_REGION: "eu-west-1", AWS_DEFAULT_REGION: "us-west-2" })).toBe("eu-west-1");
+    expect(backupS3Region({ AWS_DEFAULT_REGION: "us-west-2" })).toBe("us-west-2");
+    expect(backupS3Region({ ZENITH_BACKUP_S3_REGION: "  ", AWS_REGION: " " })).toBeUndefined();
+    expect(backupS3Region({})).toBeUndefined();
+  });
+
+  it("hands the resolved region to the S3 target", () => {
+    const fromBackupVar = withEnv({ ZENITH_BACKUP_S3_REGION: "ap-south-1", AWS_REGION: "eu-west-1" }, () => selectedBackupTarget());
+    expect(fromBackupVar.availability.available).toBe(true);
+    expect(fromBackupVar.target).toBeInstanceOf(S3Target);
+    expect((fromBackupVar.target as InstanceType<typeof S3Target>).region).toBe("ap-south-1");
+
+    const fromAws = withEnv({ AWS_DEFAULT_REGION: "us-west-2" }, () => selectedBackupTarget());
+    expect((fromAws.target as InstanceType<typeof S3Target>).region).toBe("us-west-2");
+  });
+
+  it("refuses S3 with no region and no custom endpoint, naming the variable that would provide one", () => {
+    const selection = withEnv({}, () => selectedBackupTarget());
+    expect(selection.target).toBeNull();
+    expect(selection.availability).toMatchObject({
+      available: false,
+      reason: "ZENITH_BACKUP_TARGET=s3 needs ZENITH_BACKUP_S3_REGION (or AWS_REGION).",
+    });
+    expect(selection.availability.fix).toMatch(/ZENITH_BACKUP_S3_REGION/);
+    expect(withEnv({ AWS_REGION: "  " }, () => selectedBackupTarget()).target).toBeNull();
+  });
+
+  it("keeps a custom endpoint working without a region, addressed as us-east-1", () => {
+    const selection = withEnv({ ZENITH_BACKUP_S3_ENDPOINT: "http://localhost:4566" }, () => selectedBackupTarget());
+    expect(selection.availability.available).toBe(true);
+    expect(selection.target).toMatchObject({ endpoint: "http://localhost:4566", region: "us-east-1" });
   });
 });

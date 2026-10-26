@@ -31,7 +31,7 @@
  * measured rather than assumed.
  */
 import { randomUUID } from "node:crypto";
-import { S3Target } from "@/lib/hosted/backup";
+import { S3Target, backupS3Region } from "@/lib/hosted/backup";
 import { hostedConfig } from "@/lib/hosted/config";
 import { env } from "@/lib/env";
 
@@ -77,9 +77,17 @@ async function main(): Promise<void> {
     process.stderr.write(`Using LocalStack's throwaway credentials for ${endpoint}.\n`);
   }
 
+  // The same region the backup target uses. Without one the SDK would talk to us-east-1, which fails for a bucket elsewhere.
+  const region = backupS3Region({ ZENITH_BACKUP_S3_REGION: cfg.ZENITH_BACKUP_S3_REGION, AWS_REGION: process.env.AWS_REGION, AWS_DEFAULT_REGION: process.env.AWS_DEFAULT_REGION });
+  if (!region && !endpoint)
+    unreachable(
+      "no region was named for the bucket.",
+      "Set ZENITH_BACKUP_S3_REGION to the bucket's region, for example ap-south-1, or AWS_REGION."
+    );
+
   const s3 = await import("@aws-sdk/client-s3");
   const client = new s3.S3Client({
-    region: process.env.AWS_REGION ?? "us-east-1",
+    region: region ?? "us-east-1",
     endpoint,
     forcePathStyle: true,
     maxAttempts: 1,
@@ -113,7 +121,7 @@ async function main(): Promise<void> {
   }
 
   const run = randomUUID();
-  const target = new S3Target({ bucket, endpoint, client: client as unknown as { send(c: unknown): Promise<unknown> } });
+  const target = new S3Target({ bucket, endpoint, region, client: client as unknown as { send(c: unknown): Promise<unknown> } });
   const objectKey = `live-check/${run}/bundle.zbk`;
   const ledgerKey = `live-check/${run}/revocations.jsonl`;
   const payload = Buffer.from(`zenith-live-check ${run} ${"x".repeat(4096)}`, "utf8");

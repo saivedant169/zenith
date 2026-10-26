@@ -29,8 +29,11 @@ export class QuotaCache {
   private readonly entries = new Map<string, QuotaEntry>();
   constructor(private readonly load: (workspaceId: string) => Promise<TenantQuota | null>, private readonly ttlMs = 15_000, private readonly maxEntries = 5_000, private readonly now: () => number = Date.now, private readonly timeoutMs = 1_000) {}
 
-  /** The workspace's overrides, or null for "platform defaults". Never throws. */
-  async get(workspaceId: string): Promise<TenantQuota | null> {
+  /**
+   * The workspace's overrides, or null for "platform defaults". Never throws by default: a failed load keeps
+   * the last known value. With `failClosed`, a failed load throws and caches nothing (dispatch admission uses this).
+   */
+  async get(workspaceId: string, opts: { failClosed?: boolean } = {}): Promise<TenantQuota | null> {
     const hit = this.entries.get(workspaceId);
     if (hit && this.now() - hit.at < this.ttlMs) return hit.quota;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -41,7 +44,8 @@ export class QuotaCache {
       ]);
       this.put(workspaceId, quota);
       return quota;
-    } catch {
+    } catch (error) {
+      if (opts.failClosed) throw error;
       // Keep serving with the last known value; retry after one TTL, not per request.
       this.put(workspaceId, hit?.quota ?? null);
       return hit?.quota ?? null;

@@ -158,9 +158,17 @@ export interface DispatchAdmissionInput {
   operationId?: string;
 }
 
+/** The refusal for an unreadable quota: the client gets a fixed message, the cause only goes to the operator log. */
+function admissionUnavailable(input: DispatchAdmissionInput, cause: unknown): BackpressureError {
+  log.warn("dispatch refused: quota check unavailable", { scope: "ops", workspaceId: input.workspaceId, cause: cause instanceof Error ? cause.name : "unknown" });
+  return new BackpressureError("admission_unavailable", "dispatch", "This workspace's dispatch quota could not be checked, so the operation was not started. Retry shortly.", 5, input.workspaceId);
+}
+
 /**
- * Admit (or refuse) the START of new work. Throws only BackpressureError; any
- * other failure of the admission machinery is logged and the dispatch is allowed.
+ * Admit (or refuse) the START of new work. Throws only BackpressureError. Fails closed: when the
+ * platform store is configured and the tenant quota or active-operation count cannot be read, the
+ * dispatch is refused with `admission_unavailable` and nothing is claimed. Unconfigured installs keep
+ * the platform defaults and no active-operation count, as before.
  */
 export async function assertDispatchAdmitted(input: DispatchAdmissionInput): Promise<void> {
   const rt = opsRuntime();
@@ -171,26 +179,26 @@ export async function assertDispatchAdmitted(input: DispatchAdmissionInput): Pro
   });
   try {
     assertDispatchAllowed(await currentMaintenance(rt), input.workspaceId);
+    const configured = platformConfigured();
     let quota: TenantQuota | null = null;
-    try { quota = await rt.quotas.get(input.workspaceId); } catch { /* defaults */ }
+    try { quota = await rt.quotas.get(input.workspaceId, { failClosed: configured }); } catch (error) { throw admissionUnavailable(input, error); }
     const weight = quota?.weight ?? 1;
     const taken = rt.dispatchLimiter.take(input.workspaceId, 1, {
       ratePerSec: rt.limits.dispatch.ratePerSec * weight,
       burst: Math.min(10_000, rt.limits.dispatch.burst * weight),
     });
     if (!taken.ok) throw new BackpressureError("rate_limited", "dispatch", "This workspace is starting operations faster than its limit. Retry shortly.", taken.retryAfterMs / 1000, input.workspaceId);
-    if (platformConfigured()) {
+    if (configured) {
+      let active: number;
       try {
-        const store = await rt.store();
-        const active = await activeOperationCount(store, input.workspaceId, input.operationId);
-        const limit = quota?.maxActiveOperations ?? Math.min(100_000, rt.limits.dispatch.maxActiveOperations * weight);
-        m.activeOperations.set({ tenant }, active);
-        if (active >= limit) {
-          throw new BackpressureError("concurrency_exceeded", "dispatch", `This workspace already has ${active} operations running or queued (limit ${limit}). The operation was not claimed; retry when some finish.`, 30, input.workspaceId);
-        }
+        active = await activeOperationCount(await rt.store(), input.workspaceId, input.operationId);
       } catch (error) {
-        if (isBackpressureError(error)) throw error;
-        log.warn("dispatch quota check unavailable; allowing", { scope: "ops", workspaceId: input.workspaceId });
+        throw admissionUnavailable(input, error);
+      }
+      const limit = quota?.maxActiveOperations ?? Math.min(100_000, rt.limits.dispatch.maxActiveOperations * weight);
+      m.activeOperations.set({ tenant }, active);
+      if (active >= limit) {
+        throw new BackpressureError("concurrency_exceeded", "dispatch", `This workspace already has ${active} operations running or queued (limit ${limit}). The operation was not claimed; retry when some finish.`, 30, input.workspaceId);
       }
     }
     // PROD-MAN-06: billing can refuse NEW work (suspension, plan quota) but never export or destroy; `billing: disabled` returns before any I/O.

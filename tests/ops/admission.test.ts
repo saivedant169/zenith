@@ -20,12 +20,17 @@ interface FakeState {
   quotas: Record<string, Record<string, unknown>>;
   active: Record<string, number>;
   failQueries?: boolean;
+  /** make only the tenant quota read, or only the active-operation count, fail */
+  failQuotas?: boolean;
+  failActive?: boolean;
 }
 
 function fakeStore(state: FakeState): () => Promise<Sql> {
   const sql: Sql = {
     async query<T>(text: string, params: readonly unknown[] = []): Promise<T[]> {
       if (state.failQueries) throw new Error("control store unreachable");
+      if (state.failQuotas && text.includes("from platform.tenant_quotas")) throw new Error("quota relation unreadable");
+      if (state.failActive && text.includes("from platform.operations")) throw new Error("operations relation unreadable");
       if (text.includes("from platform.ops_maintenance where")) {
         return (state.maintenance ? [{ ...state.maintenance, updated_by: "op", updated_at: "now" }] : []) as T[];
       }
@@ -269,7 +274,41 @@ describe("assertDispatchAdmitted", () => {
     await expect(assertDispatchAdmitted({ workspaceId: "ws_b", kind: "deploy" })).resolves.toBeUndefined();
   });
 
-  it("allows the dispatch, rather than failing it, when the quota check itself cannot read the store", async () => {
+  it("refuses, rather than admits, when the quota lookup throws (fail closed), and the error reveals nothing of the cause", async () => {
+    install({}, { quotas: {}, active: {}, failQuotas: true });
+    const error = await assertDispatchAdmitted({ workspaceId: "ws_a", kind: "deploy", operationId: "op_1" }).then(() => undefined, (e: unknown) => e);
+    expect(error).toMatchObject({ code: "admission_unavailable", status: 503, layer: "dispatch", tenant: "ws_a" });
+    expect((error as Error).message).not.toMatch(/relation|platform|unreadable|store/i);
+    expect(metricsRegistry().renderPrometheus()).toContain('zenith_dispatch_total{tenant="ws_a",kind="deploy",outcome="admission_unavailable"} 1');
+  });
+
+  it("refuses, rather than admits, when the control store cannot be read at all", async () => {
+    install({}, { quotas: {}, active: {}, failQueries: true });
+    await expect(assertDispatchAdmitted({ workspaceId: "ws_a", kind: "deploy", operationId: "op_1" })).rejects.toMatchObject({ code: "admission_unavailable", status: 503 });
+  });
+
+  it("refuses when the active-operation count cannot be read, and admits once it can", async () => {
+    const state: FakeState = { quotas: {}, active: { ws_a: 0 }, failActive: true };
+    install({}, state);
+    await expect(assertDispatchAdmitted({ workspaceId: "ws_a", kind: "deploy", operationId: "op_1" })).rejects.toMatchObject({ code: "admission_unavailable", layer: "dispatch" });
+    state.failActive = false;
+    await expect(assertDispatchAdmitted({ workspaceId: "ws_a", kind: "deploy", operationId: "op_1" })).resolves.toBeUndefined();
+  });
+
+  it("admits a workspace whose quota is read and is under its active-operation limit", async () => {
+    install({}, { quotas: { ws_ok: quotaRow("ws_ok", { max_active_operations: 5 }) }, active: { ws_ok: 4 } });
+    await expect(assertDispatchAdmitted({ workspaceId: "ws_ok", kind: "deploy", operationId: "op_1" })).resolves.toBeUndefined();
+  });
+
+  it("refuses an over-quota workspace whose quota is read", async () => {
+    install({}, { quotas: { ws_ok: quotaRow("ws_ok", { max_active_operations: 5 }) }, active: { ws_ok: 5 } });
+    await expect(assertDispatchAdmitted({ workspaceId: "ws_ok", kind: "deploy", operationId: "op_1" })).rejects.toMatchObject({ code: "concurrency_exceeded", status: 429 });
+  });
+
+  it("keeps an unconfigured install unchanged: no platform store means defaults and no active count, so it is admitted", async () => {
+    vi.stubEnv("ZENITH_PLATFORM_DB", "");
+    vi.stubEnv("ZENITH_PLATFORM_DB_URL", "");
+    vi.stubEnv("SUPABASE_DB_URL", "");
     install({}, { quotas: {}, active: {}, failQueries: true });
     await expect(assertDispatchAdmitted({ workspaceId: "ws_a", kind: "deploy", operationId: "op_1" })).resolves.toBeUndefined();
   });

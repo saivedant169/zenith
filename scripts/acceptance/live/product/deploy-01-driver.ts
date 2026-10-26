@@ -16,7 +16,7 @@ import { approveOperation } from "../../../release/drivers/operated";
 export interface Deploy01Tenant { workspaceId: string; projectId: string }
 export interface Deploy01Product {
   createTenant(): Promise<Deploy01Tenant>;
-  createAwsConnection(tenant: Deploy01Tenant, input: { accountId: string; region: string; observeRoleArn: string; deployRoleArn: string; stateBucket: string }): Promise<{ connectionId: string; externalId: string }>;
+  createAwsConnection(tenant: Deploy01Tenant, input: { accountId: string; region: string; observeRoleArn: string; deployRoleArn: string; stateBucket: string; bootstrapNameSuffix: string }): Promise<{ connectionId: string; externalId: string }>;
   verifyAws(tenant: Deploy01Tenant, connectionId: string): Promise<{ ok: boolean }>;
   createEnvironment(tenant: Deploy01Tenant, input: { connectionId: string; region: string; name: string }): Promise<{ environmentId: string }>;
   setManifest(tenant: Deploy01Tenant, manifest: Record<string, unknown>): Promise<void>;
@@ -115,7 +115,7 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
         const session = sessionOf(tenant);
         const result = await runAction(session, session.owner, "connection.createAws", {
           label: "DEPLOY-01 live", region: input.region, accountId: input.accountId, observeRoleArn: input.observeRoleArn,
-          deployRoleArn: input.deployRoleArn, stateBucket: input.stateBucket, mode: "aws_assume_role",
+          deployRoleArn: input.deployRoleArn, stateBucket: input.stateBucket, bootstrapNameSuffix: input.bootstrapNameSuffix, mode: "aws_assume_role",
         });
         if (!result.ok || typeof result.data.connectionId !== "string" || typeof result.data.externalId !== "string") refuse("connection.createAws was refused by the product");
         return { connectionId: result.data.connectionId as string, externalId: result.data.externalId as string };

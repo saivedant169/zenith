@@ -162,8 +162,9 @@ it("adds the exact bootstrap version read statement and preserves the reviewed r
   }]);
   properties.PolicyDocument = { ...document, Statement: document.Statement.filter((statement: unknown) => !additions.includes(statement)) };
   // Reviewed 9b568108 resource inventory with the exact read-only statement removed.
-  // Incoming bootstrap changes include suffix-scoped image pointers and bounded flow-log/IAM policies.
-  expect(createHash("sha256").update(JSON.stringify(resources)).digest("hex")).toBe("bc65e8fe812737daf5d9630a4eb920a9b368fb33ec1e76a99eb7e12dc10a5082");
+  // Incoming bootstrap changes include suffix-scoped image pointers and bounded flow-log/IAM policies, and EC2 child
+  // creation authorized against tagged parents plus tagged security-group rules (DEPLOY-01 live denials, 2026-10-26).
+  expect(createHash("sha256").update(JSON.stringify(resources)).digest("hex")).toBe("6ee3998d3a91269f84b7f39b2cc26fd9ffac685261dd3386d8264836f7e3e785");
 });
 
 describe.each(["aws", "aws-cn", "aws-us-gov"])("exact bootstrap boundary reads in %s", (partition) => {

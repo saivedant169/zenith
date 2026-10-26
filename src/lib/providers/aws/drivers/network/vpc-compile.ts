@@ -4,7 +4,8 @@
  * Emitted for one `network` node (spec: `cidr`, `zones`, `egress.natGateways`):
  *
  *   aws_vpc                         DNS support + hostnames on
- *   aws_default_security_group      the VPC's default group with NO rules
+ *   (the VPC's default security group is left as AWS creates it: it is untagged, so the deploy role
+ *    cannot manage it without being able to claim any group; no Zenith resource attaches to it)
  *   aws_internet_gateway            + public route table → 0.0.0.0/0 via the gateway
  *   private route tables            `per_az`: one per zone, each routed to that zone's
  *                                   NAT; `single`: one shared table routed to the single
@@ -113,9 +114,6 @@ export function compileVpc(node: ResourceNode, ctx: CompileContext): TofuFragmen
   b.expose(REF.arn, `aws_vpc.${L}.arn`);
   b.expose("cidr_block", `aws_vpc.${L}.cidr_block`);
   const vpcId = `\${aws_vpc.${L}.id}`;
-
-  // The default group otherwise allows all traffic between members; empty it.
-  b.resource("aws_default_security_group", `${L}_default_sg`, { vpc_id: vpcId, tags: tag("default-sg") });
 
   // --- internet gateway and the public route table ---
   b.resource("aws_internet_gateway", `${L}_igw`, { vpc_id: vpcId, tags: tag("igw") });

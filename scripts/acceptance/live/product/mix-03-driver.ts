@@ -216,7 +216,7 @@ export function browserMix03Product(env: EnvLike = process.env, seams: Mix03Driv
       return step("connection", async () => {
         const session = sessionOf(tenant);
         const result = await runAction(session, "connection.createAws", {
-          label: "PROD-MIX-03 live", region: input.region, accountId: input.accountId, stateBucket: input.stateBucket,
+          label: "PROD-MIX-03 live", region: input.region, accountId: input.accountId, stateBucket: input.stateBucket, bootstrapNameSuffix: input.bootstrapNameSuffix,
           observeRoleArn: input.observeRoleArn, deployRoleArn: input.deployRoleArn, mode: "aws_assume_role",
         });
         const data = (result.data ?? {}) as { connectionId?: unknown; externalId?: unknown };

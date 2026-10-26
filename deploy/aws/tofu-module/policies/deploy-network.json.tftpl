@@ -15,7 +15,9 @@
         "ec2:CreateNatGateway",
         "ec2:CreateVpcEndpoint",
         "ec2:CreateLaunchTemplate",
-        "ec2:AllocateAddress"
+        "ec2:AllocateAddress",
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:AuthorizeSecurityGroupEgress"
       ],
       "Resource": "arn:${partition}:ec2:*:${account_id}:*/*",
       "Condition": {
@@ -48,7 +50,9 @@
             "CreateLaunchTemplate",
             "CreateVolume",
             "AllocateAddress",
-            "RunInstances"
+            "RunInstances",
+            "AuthorizeSecurityGroupIngress",
+            "AuthorizeSecurityGroupEgress"
           ]
         }
       }
@@ -57,6 +61,12 @@
       "Sid": "Ec2ModifyTaggedResources",
       "Effect": "Allow",
       "Action": [
+        "ec2:CreateSubnet",
+        "ec2:CreateSecurityGroup",
+        "ec2:CreateRouteTable",
+        "ec2:CreateNetworkAcl",
+        "ec2:CreateNatGateway",
+        "ec2:CreateVpcEndpoint",
         "ec2:DeleteVpc",
         "ec2:ModifyVpcAttribute",
         "ec2:DeleteSubnet",

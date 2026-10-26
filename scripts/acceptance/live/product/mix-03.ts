@@ -29,7 +29,7 @@ export interface Mix03Child { role: "producer" | "consumer"; status: string; chi
 export interface Mix03Artifact { bucket: string; key: string; versionId: string; sha256: string; sourceDigest: string }
 export interface Mix03Product {
   createTenant(): Promise<Mix03Tenant>;
-  createAwsConnection(tenant: Mix03Tenant, input: { accountId: string; region: string; stateBucket: string; observeRoleArn: string; deployRoleArn: string }): Promise<{ connectionId: string; externalId: string }>;
+  createAwsConnection(tenant: Mix03Tenant, input: { accountId: string; region: string; stateBucket: string; bootstrapNameSuffix: string; observeRoleArn: string; deployRoleArn: string }): Promise<{ connectionId: string; externalId: string }>;
   verifyAws(tenant: Mix03Tenant, connectionId: string): Promise<{ ok: boolean; reason: string }>;
   /**
    * Sets the producer and consumer manifests, creates the sandbox parent and the two AWS children, proposes the parent plan and
@@ -253,7 +253,9 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
       const planned = (id: string): Call => plan.productCalls?.find(c => c.id === id) ?? refuse(`the plan has no call ${id}`);
       const account = plan.settings.accountId, region = plan.settings.region;
       // The connection stack's state bucket: zenith-state-<account>-<region><NameSuffix>, NameSuffix "-live" (deploy/aws/zenith-connection.cfn.yaml).
-      const stateBucket = `zenith-state-${account}-${region}-live`;
+      // The sandbox connection stack is installed with NameSuffix "-live": its roles, boundaries and state bucket all carry it.
+      const bootstrapNameSuffix = "-live";
+      const stateBucket = `zenith-state-${account}-${region}${bootstrapNameSuffix}`;
       const principal = `arn:aws:iam::${account}:role/${MIX03_ROLE_NAMES.principal}`;
       const roleArns = { observe: `arn:aws:iam::${account}:role/${MIX03_ROLE_NAMES.observe}`, deploy: `arn:aws:iam::${account}:role/${MIX03_ROLE_NAMES.deploy}` };
       let step = "preconditions";
@@ -264,7 +266,7 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
         step = "tenant";
         const tenant = await product.createTenant();
         step = "connection";
-        const connection = await product.createAwsConnection(tenant, { accountId: account, region, stateBucket, observeRoleArn: roleArns.observe, deployRoleArn: roleArns.deploy });
+        const connection = await product.createAwsConnection(tenant, { accountId: account, region, stateBucket, bootstrapNameSuffix, observeRoleArn: roleArns.observe, deployRoleArn: roleArns.deploy });
         if (!EXTERNAL_ID_NEW.test(connection.externalId)) refuse("the generated ExternalId has an unexpected shape");
         step = "sandbox trust";
         for (const role of ["observe", "deploy"] as const) {

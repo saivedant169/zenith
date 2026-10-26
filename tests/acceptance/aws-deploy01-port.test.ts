@@ -24,9 +24,11 @@ function harness(opts: { deployStatus?: string; leftAfterDestroy?: number; image
   const trust = { observe: trustDocument(PRINCIPAL, OLD_EXT), deploy: trustDocument(PRINCIPAL, OLD_EXT) };
   const images: string[] = [];
   let destroyed = false;
+  const connections: Record<string, unknown>[] = [];
+  const CLUSTER = `arn:aws:ecs:${REGION}:${ACCOUNT}:cluster/zenith-x-web`;
   const product: Deploy01Product = {
     createTenant: async () => ({ workspaceId: "ws1", projectId: "p1" }),
-    createAwsConnection: async () => ({ connectionId: "c1", externalId: NEW_EXT }),
+    createAwsConnection: async (_t, input) => { connections.push(input); return { connectionId: "c1", externalId: NEW_EXT }; },
     verifyAws: async () => ({ ok: true }),
     createEnvironment: async () => ({ environmentId: "env1" }),
     setManifest: async (_t, m) => { images.push(((m.services as { source: { image: string } }[])[0]!).source.image); },
@@ -48,7 +50,7 @@ function harness(opts: { deployStatus?: string; leftAfterDestroy?: number; image
       case "deploy01-iam-trust-observe": trust.observe = String(i.PolicyDocument); return {};
       case "deploy01-iam-trust-deploy": trust.deploy = String(i.PolicyDocument); return {};
       case "deploy01-sts-assume": expect(i.ExternalId).toBe(NEW_EXT); return { Credentials: { AccessKeyId: "A", SecretAccessKey: "S", SessionToken: "T" } };
-      case "deploy01-tag-read": return { ResourceTagMappingList: destroyed ? new Array(opts.leftAfterDestroy ?? 0).fill({ ResourceARN: "arn:x" }) : [] };
+      case "deploy01-tag-read": return { ResourceTagMappingList: destroyed ? [{ ResourceARN: CLUSTER }, ...new Array(opts.leftAfterDestroy ?? 0).fill({ ResourceARN: "arn:x" })] : [] };
       default: throw new Error(`unexpected ${c.id}`);
     }
   };
@@ -57,10 +59,10 @@ function harness(opts: { deployStatus?: string; leftAfterDestroy?: number; image
       { type: "aws_ecs_task_definition", instances: [{ attributes: { container_definitions: JSON.stringify([{ image: (opts.image ?? (() => images[images.length - 1]!))(images.length) }]) } }] },
       { type: "aws_lb", instances: [{ attributes: { dns_name: DNS } }] },
     ] }),
-    destroy: async (input: { stateKey: string }) => { expect(input.stateKey).toBe("zenith/ws1/env1/terraform.tfstate"); destroyed = true; return { destroyed: 20 }; },
+    destroy: async (input: { stateKey: string }) => { expect(input.stateKey).toBe("zenith/ws1/env1/terraform.tfstate"); destroyed = true; return { destroyed: 20, ecsClusters: [CLUSTER] }; },
   };
   const port = deploy01Port(env, { product, sleep: async () => undefined, propagation: { attempts: 2, intervalMs: 0 }, probe: async (dns, host) => (dns === DNS && host.startsWith("web-") ? 200 : 503), state });
-  return { trust, images, sent, run: () => port.verify(requirement, { plan, commit: COMMIT, call }) };
+  return { trust, images, sent, connections, run: () => port.verify(requirement, { plan, commit: COMMIT, call }) };
 }
 
 describe("DEPLOY-01 driver error detail", () => {
@@ -88,6 +90,8 @@ describe("DEPLOY-01 port", () => {
     expect(h.images).toEqual([DEPLOY01_IMAGES.v1, DEPLOY01_IMAGES.v2, DEPLOY01_IMAGES.v1]);
     expect(h.trust).toEqual({ observe: trustDocument(PRINCIPAL, OLD_EXT), deploy: trustDocument(PRINCIPAL, OLD_EXT) });
     expect(h.sent.filter(id => id === "deploy01-tag-read")).toHaveLength(1);
+    // The sandbox stack's roles and boundaries carry NameSuffix "-live"; without it the product names the wrong boundary.
+    expect(h.connections).toEqual([expect.objectContaining({ bootstrapNameSuffix: "-live", stateBucket: `zenith-state-${ACCOUNT}-${REGION}-live` })]);
   });
   it("refuses when a deploy does not succeed, and still cleans up", async () => {
     const h = harness({ deployStatus: "failed" });
@@ -101,7 +105,7 @@ describe("DEPLOY-01 port", () => {
     expect(result.complete).toBe(false);
     expect(result.reason).toMatch(/does not run public\.ecr\.aws\/nginx\/nginx:1\.27/);
   });
-  it("reports leaks when tagged resources remain after the destroy", async () => {
+  it("reports leaks when tagged resources remain after the destroy, excusing only ECS clusters the destroy removed", async () => {
     const result = await harness({ leftAfterDestroy: 2 }).run();
     expect(result.complete).toBe(false);
     expect(result.leaks).toEqual(["2 tagged resource(s) still present after cleanup"]);

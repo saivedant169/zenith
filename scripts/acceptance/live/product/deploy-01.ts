@@ -36,7 +36,7 @@ export interface Deploy01Seams {
   propagation?: { attempts: number; intervalMs: number };
   /** HTTP probe of the load balancer with the route's Host header; resolves the status code. */
   probe?: (dnsName: string, host: string) => Promise<number>;
-  state?: { read: (input: StateDestroyInput) => Promise<unknown>; destroy: (input: StateDestroyInput) => Promise<{ destroyed: number }> };
+  state?: { read: (input: StateDestroyInput) => Promise<unknown>; destroy: (input: StateDestroyInput) => Promise<{ destroyed: number; ecsClusters?: string[] }> };
 }
 
 const field = (value: unknown, key: string): unknown => value && typeof value === "object" ? (value as Record<string, unknown>)[key] : undefined;
@@ -61,7 +61,9 @@ export function deploy01Port(env: EnvLike = process.env, seams: Deploy01Seams = 
       const account = plan.settings.accountId, region = plan.settings.region, runId = plan.settings.runId;
       const principal = `arn:aws:iam::${account}:role/${MIX03_ROLE_NAMES.principal}`;
       const roleArns = { observe: `arn:aws:iam::${account}:role/${MIX03_ROLE_NAMES.observe}`, deploy: `arn:aws:iam::${account}:role/${MIX03_ROLE_NAMES.deploy}` };
-      const stateBucket = `zenith-state-${account}-${region}-live`;
+      // The sandbox connection stack is installed with NameSuffix "-live": its roles, boundaries and state bucket all carry it.
+      const bootstrapNameSuffix = "-live";
+      const stateBucket = `zenith-state-${account}-${region}${bootstrapNameSuffix}`;
       const host = `web-${runId.slice(-8).toLowerCase()}.example.com`;
       const tofu = env.ZENITH_TOFU_BIN?.trim() || "tofu";
       const trust: { role: "observe" | "deploy"; original: string; write: Call }[] = [];
@@ -97,7 +99,7 @@ export function deploy01Port(env: EnvLike = process.env, seams: Deploy01Seams = 
         const tenant = await product.createTenant();
         workspaceId = tenant.workspaceId;
         step = "connection";
-        const connection = await product.createAwsConnection(tenant, { accountId: account, region, observeRoleArn: roleArns.observe, deployRoleArn: roleArns.deploy, stateBucket });
+        const connection = await product.createAwsConnection(tenant, { accountId: account, region, observeRoleArn: roleArns.observe, deployRoleArn: roleArns.deploy, stateBucket, bootstrapNameSuffix });
         if (!EXTERNAL_ID_NEW.test(connection.externalId)) refuse("the generated ExternalId has an unexpected shape");
         step = "sandbox trust";
         for (const role of ["observe", "deploy"] as const) {
@@ -132,11 +134,14 @@ export function deploy01Port(env: EnvLike = process.env, seams: Deploy01Seams = 
       }
       const leaks: string[] = [];
       if (environmentId && externalId) {
-        try { await state.destroy(await stateInput()); }
+        let destroyedClusters: string[] = [];
+        try { destroyedClusters = (await state.destroy(await stateInput())).ecsClusters ?? []; }
         catch (error) { leaks.push(error instanceof Error && /^(OpenTofu|\d+ resource|The recorded state)/.test(error.message) ? error.message : "state cleanup failed; resources may remain"); }
         try {
           const left = await invoke(planned("deploy01-tag-read"), { environmentId });
-          const list = field(left, "ResourceTagMappingList");
+          // A deleted ECS cluster stays INACTIVE (no tasks, no cost) and still appears in the tag inventory; only clusters the
+          // successful destroy removed from the recorded state are excused.
+          const list = (field(left, "ResourceTagMappingList") as unknown[] | undefined)?.filter(r => !destroyedClusters.includes(String(field(r, "ResourceARN"))));
           if (Array.isArray(list) && list.length) leaks.push(`${list.length} tagged resource(s) still present after cleanup`);
         } catch { leaks.push("cleanup re-list failed; resources may remain"); }
       }

@@ -136,6 +136,10 @@ describe("aws:rds_instance compile: policy mappings", () => {
     expect(deletionProtectionFor(policy)).toBe(protectedDb);
   });
 
+  it("keeps automated backups on (7 days) when the spec names no backup policy", () => {
+    expect(instance(compile(build(postgresSpec({ backup: undefined })))).backup_retention_period).toBe(7);
+  });
+
   it.each([
     ["none", "allow", 0],
     ["none", "approval", 1],

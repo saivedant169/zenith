@@ -238,6 +238,18 @@ async function grantStillLive(rt: RunnerRuntime, job: AgentJob): Promise<boolean
   return !(rt.grantRevoked && (await rt.grantRevoked(job.workspaceId, jti)));
 }
 
+/**
+ * The agent's pre-step check (`GET …/jobs/{jti}/grant`): a multi-step job asks before each step whether its grant is
+ * still live. Same rule as the result recall; a refused grant ends the job on the agent without the next step running.
+ */
+export async function checkGrantLive(rt: RunnerRuntime, agent: AgentRecord, jobId: string): Promise<{ live: true }> {
+  if (!isValidId(jobId)) throw new AgentApiError(404, "job_not_found", "No such job for this agent.");
+  const job = await queueOf(rt.store, agent.kind).get(agent.workspaceId, jobId);
+  if (!job || job.agentId !== agent.id) throw new AgentApiError(404, "job_not_found", "No such job for this agent.");
+  if (!(await grantStillLive(rt, job))) throw new AgentApiError(403, "grant_not_active", "The capability grant for this job is no longer active; the next step is not run.");
+  return { live: true };
+}
+
 export async function pollAgent(rt: RunnerRuntime, agent: AgentRecord, body: unknown, signal?: AbortSignal): Promise<{ jobs: string[]; pollIntervalSec: number }> {
   const b = parse(PollBody, body);
   const queue = queueOf(rt.store, agent.kind);

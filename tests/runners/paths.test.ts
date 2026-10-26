@@ -10,7 +10,7 @@ describe("isAgentSignedPath", () => {
   const P = "/api/platform/v1";
   it("accepts every agent-signed endpoint, for runners and machines", () => {
     for (const c of ["runners", "machines"]) {
-      for (const suffix of ["register", "run_abc-123/poll", "run_abc-123/heartbeat", "run_1/jobs/job_2/result", "run_1/jobs/job_2/logs", "mac_1.x:y/poll"]) expect(isAgentSignedPath(`${P}/${c}/${suffix}`), `${c}/${suffix}`).toBe(true);
+      for (const suffix of ["register", "run_abc-123/poll", "run_abc-123/heartbeat", "run_1/jobs/job_2/result", "run_1/jobs/job_2/logs", "run_1/jobs/job_2/grant", "mac_1.x:y/poll"]) expect(isAgentSignedPath(`${P}/${c}/${suffix}`), `${c}/${suffix}`).toBe(true);
     }
   });
 

@@ -60,6 +60,8 @@ type Server struct {
 	bad          []string
 	revoked      bool
 	revokeOnPoll bool
+	recalled     bool // grant liveness checks answer 403 grant_not_active
+	grantChecks  int
 	upgrade      bool
 	nextKeys     []protocol.KeyEntry
 	pollFailures int
@@ -113,6 +115,12 @@ func (s *Server) Enqueue(tokens ...string) {
 
 // Revoke makes heartbeats answer revoked:true.
 func (s *Server) Revoke() { s.mu.Lock(); s.revoked = true; s.mu.Unlock() }
+
+// RecallGrant makes grant liveness checks answer 403 grant_not_active from now on.
+func (s *Server) RecallGrant() { s.mu.Lock(); s.recalled = true; s.mu.Unlock() }
+
+// GrantChecks returns how many grant liveness checks the agent made.
+func (s *Server) GrantChecks() int { s.mu.Lock(); defer s.mu.Unlock(); return s.grantChecks }
 
 // RevokeViaPoll makes the next poll answer 401 agent_revoked.
 func (s *Server) RevokeViaPoll() { s.mu.Lock(); s.revokeOnPoll = true; s.mu.Unlock() }
@@ -239,6 +247,8 @@ func (s *Server) handle(w http.ResponseWriter, r *http.Request) {
 		s.handleResult(w, strings.TrimSuffix(strings.TrimPrefix(rest, "jobs/"), "/result"), body)
 	case strings.HasPrefix(rest, "jobs/") && strings.HasSuffix(rest, "/logs"):
 		s.handleLogs(w, strings.TrimSuffix(strings.TrimPrefix(rest, "jobs/"), "/logs"), body)
+	case strings.HasPrefix(rest, "jobs/") && strings.HasSuffix(rest, "/grant") && r.Method == http.MethodGet:
+		s.handleGrant(w, strings.TrimSuffix(strings.TrimPrefix(rest, "jobs/"), "/grant"))
 	default:
 		writeJSON(w, 404, map[string]any{"error": "not_found"})
 	}
@@ -352,6 +362,18 @@ func (s *Server) handleResult(w http.ResponseWriter, jti string, body []byte) {
 	s.settled[jti] = true
 	s.results = append(s.results, ResultRecord{JTI: jti, Body: rec})
 	writeJSON(w, 200, map[string]any{"ok": true})
+}
+
+func (s *Server) handleGrant(w http.ResponseWriter, jti string) {
+	s.mu.Lock()
+	s.grantChecks++
+	recalled := s.recalled
+	s.mu.Unlock()
+	if recalled {
+		writeJSON(w, 403, map[string]any{"error": map[string]any{"code": "grant_not_active", "message": "The capability grant for this job is no longer active."}})
+		return
+	}
+	writeJSON(w, 200, map[string]any{"live": true, "jobId": jti})
 }
 
 func (s *Server) handleLogs(w http.ResponseWriter, jti string, body []byte) {

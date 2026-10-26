@@ -18,7 +18,7 @@ const COLLECTION = "(?:runners|machines)";
 const AGENT_SIGNED_PATHS: readonly RegExp[] = [
   new RegExp(`^/api/platform/v1/${COLLECTION}/register$`),
   new RegExp(`^/api/platform/v1/${COLLECTION}/${SEGMENT}/(?:poll|heartbeat)$`),
-  new RegExp(`^/api/platform/v1/${COLLECTION}/${SEGMENT}/jobs/${SEGMENT}/(?:result|logs)$`),
+  new RegExp(`^/api/platform/v1/${COLLECTION}/${SEGMENT}/jobs/${SEGMENT}/(?:result|logs|grant)$`),
 ];
 
 export function isAgentSignedPath(pathname: string): boolean {

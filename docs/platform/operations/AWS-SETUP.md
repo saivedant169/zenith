@@ -270,12 +270,23 @@ applyable IaC if you want to carry on without Zenith.
 
 Private beta limitation: Zenith does not back up or restore managed databases (`aws:rds_instance`). The database lives in your account, so its recovery is yours to configure and rehearse:
 
-- **Automated backups.** For the default `daily` and `hourly` policies Zenith sets 7-day automated backup retention. Keep it, or raise it in the RDS console or your own IaC. `backup: none` with `deletionPolicy: allow` sets retention to 0, which leaves no automated restore point. Do not use that for data you need to recover.
+- **Automated backups.** Zenith keeps AWS automated backups on with 7-day retention by default (no `backup` set, or `daily` or `hourly`). Keep it, or raise it in the RDS console or your own IaC. `backup: none` with `deletionPolicy: allow` sets retention to 0, which leaves no automated restore point; with `deny` or `approval` it keeps 1 day. Do not use `none` for data you need to recover.
+- **Restore.** Zenith offers no restore in the beta. Restore with AWS point-in-time restore in the RDS console or CLI.
 - **Final snapshot on delete.** Zenith always asks for a final snapshot named `<identifier>-final`. Deleting, recreating and deleting the same database again collides with that name, and AWS refuses to overwrite it. Copy or rename the earlier snapshot first.
 - **Deletion protection.** On, unless `deletionPolicy: allow`.
 - **Copies, restores and point-in-time recovery drills.** Cross-region or cross-account snapshot copies and restore tests are yours. Zenith's own platform backup (hosted backup to S3) is a separate system and is not described here.
 
 Source: `src/lib/providers/aws/drivers/data/rds-compile.ts` (retention, final snapshot and deletion protection).
+
+## Drift on AWS
+
+Private beta limitation: drift is not alerted on AWS, and the legacy AWS adapter detects nothing.
+
+- **Not detected:** the legacy Preview adapter (`src/lib/providers/aws/provider.ts`) refuses `observe` and `discover`; it reads no AWS account.
+- **Detected, when the reconcile sweep runs:** for driver-backed resources, `missing` (not found on AWS) and `changed` (an attribute the driver compares differs, for example an RDS instance's engine, class, Multi-AZ, encryption, public access, deletion protection or backup retention). A driver that cannot observe reports `unknown`.
+- **Not detected:** attributes the driver does not compare, and anything Zenith does not manage.
+- **Manual check:** run the environment's next plan (the plan step of the next deploy). It refreshes the recorded state from AWS and lists the change that would correct each Terraform-managed difference, or recreate a resource deleted outside Zenith. Plan is read-only; review it before applying.
+- **No alerts and no automatic fix.** Findings show on the environment's platform page when someone opens it. Nothing is sent, and Zenith does not change AWS to fix drift.
 
 ## What is not built
 

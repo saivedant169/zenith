@@ -90,7 +90,7 @@ export function CostCard({
           <p className="mt-3 border-l-2 border-signal pl-3 text-[13px] text-ink-mute">
             {delta === 0
               ? "The working copy has the same estimated monthly cost."
-              : `The working copy would make it ${fmtUsd(total)} — ${delta > 0 ? "+" : "−"}${fmtUsd(Math.abs(delta))}/month once deployed.`}
+              : `The working copy would make it an estimated ${fmtUsd(total)} —${delta > 0 ? "+" : "−"}${fmtUsd(Math.abs(delta))}/month once deployed.`}
           </p>
         </>
       )}

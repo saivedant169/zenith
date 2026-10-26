@@ -175,6 +175,7 @@ export function mkCompileContext(byAddress: Map<string, ResourceNode>, over: Par
     tags: { ...CTX_TAGS },
     ref: (address, attribute) => `\${local.${refLocalName(address, attribute)}}`,
     node: (address) => byAddress.get(address),
+    allowExperimentalAws: true,
     ...over,
   };
 }

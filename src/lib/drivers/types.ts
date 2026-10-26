@@ -107,6 +107,8 @@ export interface TofuFragment {
 export interface CompileContext {
   /** Present for production AWS compilation; absent only for standalone rendering. */
   awsBootstrap?: AwsBootstrapContext;
+  /** Operator opt-in for experimental AWS builds (`ZENITH_AWS_ALLOW_EXPERIMENTAL=1`), set by the execution layer. Absent refuses them. */
+  allowExperimentalAws?: boolean;
   environmentId: string;
   /** Azure cloud of the deploy connection (PROD-LIFE-04); absent means the public cloud. */
   azureCloud?: "public" | "usgov" | "china";

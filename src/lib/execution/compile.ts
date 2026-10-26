@@ -167,6 +167,7 @@ export function compileGraph(input: { graph: ResourceGraph; environmentId: strin
       tags: nodeTags(input.tags, node),
       ...(node.provider === "azure" && input.connection?.config.provider === "azure" && input.connection.config.cloud ? { azureCloud: input.connection.config.cloud } : {}),
       ...(node.provider === "aws" && awsBootstrap ? { awsBootstrap: awsBootstrapContextForConnection(input.connection!.config, node.region || input.region) } : {}),
+      ...(process.env.ZENITH_AWS_ALLOW_EXPERIMENTAL === "1" ? { allowExperimentalAws: true } : {}),
       node: (a) => nodes.get(a),
       nodes: () => [...nodes.values()],
       input: (name) => {

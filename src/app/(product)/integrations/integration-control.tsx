@@ -759,7 +759,7 @@ export default function IntegrationControl() {
                         <dd className="min-w-0 break-all font-mono text-ink">{op.subject}</dd>
                       </div>
                       <div className="flex gap-2">
-                        <dt className="text-ink-faint">Monthly change</dt>
+                        <dt className="text-ink-faint">Estimated monthly change</dt>
                         <dd className="tnum text-ink">{fmtUsd(op.plan.costDeltaUsd ?? 0)}</dd>
                       </div>
                       <div className="flex gap-2">

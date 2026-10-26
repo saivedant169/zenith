@@ -266,6 +266,17 @@ bucket. Find everything Zenith made with
 The exported OpenTofu in the product (`docs/LIMITATIONS.md`, AWS Preview) is real,
 applyable IaC if you want to carry on without Zenith.
 
+## Managed database backups
+
+Private beta limitation: Zenith does not back up or restore managed databases (`aws:rds_instance`). The database lives in your account, so its recovery is yours to configure and rehearse:
+
+- **Automated backups.** For the default `daily` and `hourly` policies Zenith sets 7-day automated backup retention. Keep it, or raise it in the RDS console or your own IaC. `backup: none` with `deletionPolicy: allow` sets retention to 0, which leaves no automated restore point. Do not use that for data you need to recover.
+- **Final snapshot on delete.** Zenith always asks for a final snapshot named `<identifier>-final`. Deleting, recreating and deleting the same database again collides with that name, and AWS refuses to overwrite it. Copy or rename the earlier snapshot first.
+- **Deletion protection.** On, unless `deletionPolicy: allow`.
+- **Copies, restores and point-in-time recovery drills.** Cross-region or cross-account snapshot copies and restore tests are yours. Zenith's own platform backup (hosted backup to S3) is a separate system and is not described here.
+
+Source: `src/lib/providers/aws/drivers/data/rds-compile.ts` (retention, final snapshot and deletion protection).
+
 ## What is not built
 
 - **A standalone connections REST endpoint.** Browser AWS setup exists; bearer

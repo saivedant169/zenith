@@ -39,6 +39,18 @@ afterEach(() => {
 
 const cells = (e: Entry): Cell[] => [...Object.values(e.lifecycle ?? {}), ...Object.values(e.dayTwo ?? {})] as Cell[];
 
+describe("experimental AWS drivers are labelled in the offered catalog", () => {
+  it.each(["aws:lambda_function", "aws:ec2_instance"])("%s is preview and says it is experimental", (nativeType) => {
+    const entries = getOfferedCatalog().entries.filter((e) => e.nativeType === nativeType);
+    expect(entries.length).toBeGreaterThan(0);
+    for (const entry of entries) {
+      expect(entry.experimental).toBe(true);
+      expect(entry.level).toBe("preview");
+      expect(entry.reason).toContain("The driver is experimental.");
+    }
+  });
+});
+
 describe("the committed offered capability catalog", () => {
   it("is exactly what `scripts/docs/offered-catalog.ts --check` accepts (run as the real CLI)", () => {
     const tsx = path.join(ROOT, "node_modules", "tsx", "dist", "cli.mjs");

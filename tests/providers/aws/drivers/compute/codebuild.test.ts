@@ -227,6 +227,12 @@ describe("compile: static-site output (experimental)", () => {
     const n = { ...fx.pipeline, spec: mutate(fx.pipeline.spec as Body) };
     expect(() => driver.compile!(n, ctx())).toThrow(message);
   });
+
+  it("refuses a static-site build unless the execution layer opted in (ZENITH_AWS_ALLOW_EXPERIMENTAL=1); registry builds are unaffected", () => {
+    const closed = mkCompileContext(fx.byAddress, { namePrefix: BOUNDARY_PREFIX, allowExperimentalAws: false });
+    expect(() => driver.compile!(fx.siteBuild, closed)).toThrow(/Static-site builds are experimental; set ZENITH_AWS_ALLOW_EXPERIMENTAL=1/);
+    expect(() => driver.compile!(fx.pipeline, closed)).not.toThrow();
+  });
 });
 
 /* --------------------------------- read side -------------------------------- */

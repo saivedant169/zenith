@@ -455,7 +455,8 @@ func (a *Agent) safeRun(job Job, sink LogSink) (res ResultBody) {
 			res = ResultBody{Status: StatusFailed, StartedAt: started.Format(time.RFC3339Nano), FinishedAt: a.now().UTC().Format(time.RFC3339Nano), Error: "internal_error: the agent hit an unexpected error while running the job"}
 		}
 	}()
-	return job.Run(a.jobsCtx, sink)
+	gate := func(ctx context.Context) error { return a.checkGrant(ctx, job.ID()) }
+	return job.Run(WithStepGate(a.jobsCtx, gate), sink)
 }
 
 func (a *Agent) reportRejection(rej *Rejection) {

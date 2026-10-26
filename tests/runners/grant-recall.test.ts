@@ -7,6 +7,7 @@ import type { GrantStatus } from "@/lib/controlplane/db/repos/grants";
 import { POST as pollRunner } from "@/app/api/platform/v1/runners/[id]/poll/route";
 import { POST as resultRunner } from "@/app/api/platform/v1/runners/[id]/jobs/[jti]/result/route";
 import { POST as registerRunner } from "@/app/api/platform/v1/runners/register/route";
+import { GET as grantRunner } from "@/app/api/platform/v1/runners/[id]/jobs/[jti]/grant/route";
 import { FakeAgent, createPlane, enqueueProbeJob, registerFakeAgent, teardownPlane, type Plane } from "./_support";
 
 afterEach(teardownPlane);
@@ -66,5 +67,38 @@ describe("recall: a grant revoked after receipt stops the agent's next step", ()
     teardownPlane();
     const none = await received({});
     expect((await submit(none.runner, none.id)).status).toBe(200);
+  });
+});
+
+describe("the agent's pre-step check: a multi-step job asks before each step", () => {
+  const check = (runner: FakeAgent, id: string) => runner.get(grantRunner, `/jobs/${id}/grant`, {}, { jti: id });
+
+  it("a live grant answers live", async () => {
+    const { runner, id } = await received({ grantStatus: async () => "active" });
+    expect(await check(runner, id)).toMatchObject({ status: 200, body: { live: true } });
+  });
+
+  it("a revoked, expired or unknown grant answers 403 grant_not_active; consumed stays live", async () => {
+    for (const status of ["revoked", "expired", "unknown"] as const) {
+      const { runner, id } = await received({ grantStatus: async () => status });
+      expect(await check(runner, id), status).toMatchObject({ status: 403, body: { error: { code: "grant_not_active" } } });
+      teardownPlane();
+    }
+    const consumed = await received({ grantStatus: async () => "consumed" });
+    expect((await check(consumed.runner, consumed.id)).status).toBe(200);
+  });
+
+  it("a grant recalled between two checks is refused at the second", async () => {
+    let status: GrantStatus = "active";
+    const { runner, id } = await received({ grantStatus: async () => status });
+    expect((await check(runner, id)).status).toBe(200);
+    status = "revoked";
+    expect(await check(runner, id)).toMatchObject({ status: 403, body: { error: { code: "grant_not_active" } } });
+  });
+
+  it("answers only for the agent's own job", async () => {
+    const { plane, id } = await received({ grantStatus: async () => "active" });
+    const other = await registerFakeAgent(plane, registerRunner);
+    expect((await check(other, id)).status).toBe(404);
   });
 });

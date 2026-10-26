@@ -23,7 +23,7 @@ import {
   MAX_SMALL_BODY_BYTES,
   type AgentKind,
 } from "@/lib/runners/types";
-import { appendAgentLogs, heartbeatAgent, pollAgent, registerAgent, settleResult } from "@/lib/runners/service";
+import { appendAgentLogs, checkGrantLive, heartbeatAgent, pollAgent, registerAgent, settleResult } from "@/lib/runners/service";
 
 const NO_STORE = { "cache-control": "no-store" };
 
@@ -84,3 +84,5 @@ export const heartbeatHandler = (kind: AgentKind): Handler => signedRoute(kind, 
 export const resultHandler = (kind: AgentKind): Handler => signedRoute(kind, MAX_RESULT_BODY_BYTES, ({ rt, agent, body, params }) => settleResult(rt, agent, params.jti, parseJsonBody(body)));
 
 export const logsHandler = (kind: AgentKind): Handler => signedRoute(kind, MAX_LOG_BODY_BYTES, ({ rt, agent, body, params }) => appendAgentLogs(rt, agent, params.jti, parseJsonBody(body)));
+
+export const grantHandler = (kind: AgentKind): Handler => signedRoute(kind, MAX_SMALL_BODY_BYTES, ({ rt, agent, params }) => checkGrantLive(rt, agent, params.jti));

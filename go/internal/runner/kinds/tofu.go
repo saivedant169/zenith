@@ -326,6 +326,9 @@ func (t *Tofu) execute(ctx context.Context, j *tofuJob, logs agent.LogSink) Outc
 		return o
 	}
 
+	if o, stop := refusedStep(ctx); stop {
+		return o
+	}
 	if err := t.checkVersion(ctx); err != nil {
 		if o, done := ctxOutcome(ctx); done {
 			return o
@@ -376,6 +379,9 @@ func (t *Tofu) execute(ctx context.Context, j *tofuJob, logs agent.LogSink) Outc
 		}
 	}
 
+	if o, stop := refusedStep(ctx); stop {
+		return o
+	}
 	logs.Line("info", "tofu init")
 	if code, _, err := t.exec(ctx, dir, env, []string{"init", "-input=false", "-no-color", "-lockfile=readonly"}, out, logs, false); err != nil || code != 0 {
 		if o, done := ctxOutcome(ctx); done {
@@ -390,6 +396,9 @@ func (t *Tofu) execute(ctx context.Context, j *tofuJob, logs agent.LogSink) Outc
 		if j.pl.Destroy {
 			args = append(args, "-destroy")
 		}
+		if o, stop := refusedStep(ctx); stop {
+			return o
+		}
 		logs.Line("info", "tofu plan")
 		code, _, err := t.exec(ctx, dir, env, args, out, logs, false)
 		if err != nil || code != 0 {
@@ -397,6 +406,9 @@ func (t *Tofu) execute(ctx context.Context, j *tofuJob, logs agent.LogSink) Outc
 				return o
 			}
 			return fail(code, out, "tofu plan failed (exit %d)", code)
+		}
+		if o, stop := refusedStep(ctx); stop {
+			return o
 		}
 		planJSON, code, err := t.showJSON(ctx, dir, env, planFile, out, logs)
 		if err != nil {
@@ -417,6 +429,9 @@ func (t *Tofu) execute(ctx context.Context, j *tofuJob, logs agent.LogSink) Outc
 		return Outcome{Status: agent.StatusSucceeded, ExitCode: intPtr(0), Result: res}
 
 	case "show":
+		if o, stop := refusedStep(ctx); stop {
+			return o
+		}
 		logs.Line("info", "tofu show")
 		planJSON, code, err := t.showJSON(ctx, dir, env, planFile, out, logs)
 		if err != nil {
@@ -430,6 +445,9 @@ func (t *Tofu) execute(ctx context.Context, j *tofuJob, logs agent.LogSink) Outc
 		return Outcome{Status: agent.StatusSucceeded, ExitCode: intPtr(0), Result: res}
 
 	default: // apply
+		if o, stop := refusedStep(ctx); stop {
+			return o
+		}
 		logs.Line("info", "tofu apply")
 		// The plan is single-use: whatever happens next, it must not be applied again.
 		defer t.plans.Consume(j.pl.ConfigDigest, j.pl.PlanFileSha256)
@@ -444,6 +462,20 @@ func (t *Tofu) execute(ctx context.Context, j *tofuJob, logs agent.LogSink) Outc
 		}
 		return Outcome{Status: agent.StatusSucceeded, ExitCode: intPtr(0), Result: t.resultBody(j, 0, out, nil, started)}
 	}
+}
+
+// refusedStep ends the job before a step whose grant is no longer live (recalled
+// between steps, or not confirmable). Nothing of the step has run when it returns true.
+func refusedStep(ctx context.Context) (Outcome, bool) {
+	err := agent.CheckStep(ctx)
+	if err == nil {
+		return Outcome{}, false
+	}
+	code := "grant_unverified"
+	if errors.Is(err, agent.ErrGrantNotLive) {
+		code = "grant_not_active"
+	}
+	return reject(code, "the remaining steps were not run: %v", err), true
 }
 
 func reject(code, format string, args ...any) Outcome {

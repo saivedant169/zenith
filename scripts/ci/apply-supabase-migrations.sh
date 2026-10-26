@@ -321,11 +321,14 @@ PLATFORM_TABLES=(
   billing_webhook_events
   build_launches
   capability_grants
+  cleanup_direct_attempts
   cleanup_owner_grants
   cleanup_writer_deliveries
   cleanup_writer_epoch
+  cleanup_writer_hold_releases
   cleanup_writer_holds
   cleanup_writer_scopes
+  cleanup_writer_settlements
   coding_agent_runs
   connection_rotations
   cost_estimates

@@ -1,6 +1,6 @@
 # Teardown after deploy: delivery settlement and a direct-path cleanup origin
 
-Status: proposal, 24 October 2026. Needs independent security review and an owner decision before any code changes.
+Status: proposal, 24 October 2026. Needs independent security review and an owner decision before any code changes. Decided on 26 October 2026: see "Decisions (2026-10-26)" at the end.
 Affects PROD-LIFE-07, PROD-LIFE-11 and PROD-MIX-04 (see `docs/LIMITATIONS.md`, "Teardown after deploy").
 
 ## Problem
@@ -148,3 +148,48 @@ Two decisions:
    residual risk and the wait after a deploy, and approve building the direct-path origin and the migration?
 
 Until then, teardown after deploy remains unsupported and the affected requirements stay open.
+
+## Decisions (2026-10-26)
+
+The owner delegated these decisions on 26 October 2026. The recommended options were taken. They bind the work packages below. Recording them changes no code.
+
+### Decision 1: a refused teardown does not freeze the environment
+
+A refused teardown freezing an environment is not intended (finding 1). The fix uses superseding hold generations:
+
+- Each attempt inserts its own generation row. The freeze is the newest hold with no release row.
+- A release is an append-only `cleanup_writer_hold_releases` row. It is written only under the scope lock, and only when the environment's possible-delivery inventory is zero. The next retain for that environment writes it, or a janitor sweep does.
+- The teardown review shows "frozen until drained" before the approver approves.
+
+Until WP5 lands, a refused attempt still freezes the environment. `docs/LIMITATIONS.md` says so.
+
+### Decision 2: revised option B, with its residual risk and the post-deploy wait
+
+Revised option B is accepted, with two stated costs. First, the residual risk: a provider-side asynchronous operation accepted before its credentials expired can complete after teardown verified absence. Mitigation: a delayed absence re-verification and cost reconciliation. Second, the first teardown after a deploy waits about 1 to 2 hours at the default grant and session lifetimes.
+
+Settlement per family. Every horizon uses `clock_timestamp()` on the database. An insert trigger refuses any settlement before its horizon.
+
+| Family | Settled when |
+|---|---|
+| Workflow start intent | The owning operation is terminal and an authenticated Temporal describe (mTLS client) reports the execution closed. NotFound stays unsettled until the start deadline plus the retry horizon has passed: an `attempted` intent may have no run id, and a delayed start RPC can still start the run after a describe. |
+| Zenith-brokered capability grant (non-read) | Now is past `expires_at` plus `LONG_SESSION_SEC` (3600 s) plus a fixed skew margin. Revocation alone never settles a grant. |
+| Static or customer-held credential | No time rule. Settled only by a signed terminal result from the writer, or by proven rotation or revocation of the credential. Default deny. Classified server-side. This covers a Kubernetes `credentialRef`, any static customer credential and customer-held runner identities. |
+| Runner or machine job | A signed terminal result only. The envelope expiry bounds the envelope, not the customer-side identity. |
+| Build launch | Terminal, `provider_finished_at` set, and its build grant settled by the grant rule. Join key `(workspace_id, operation_id, service_address, attempt_id)`. |
+| Plan use | Builtin: the existing authenticated standalone settlement receipt, unchanged. Non-builtin: terminal, past the latest grant horizon of the same operation, and the static-credential rule. |
+
+### Direct-path origin
+
+The direct-path hold is built from `provider-teardown` `tofu_plan` evidence, the environment lease and the consumed approvals of the current round. It has its own table (`cleanup_direct_attempts`, schema 60), its own entry point, its own dispatch predicate and a new trigger version. A migration is required (finding 2). Its SQL is pinned by the source audit (finding 10).
+
+### Work packages
+
+In this order: WP1 expand migration, WP5 hold lifecycle, WP2 inventory rules and audit pins, WP3 settlement writers, WP4 direct-path origin, WP6 wiring and UI, WP7 journeys and live. WP1 to WP5 are safety-critical. Each gets an independent adversarial review before merge.
+
+WP1 is in this change: schema 60, expand-only. It adds the hold generation order (`cleanup_writer_holds.hold_seq`, identity by default, primary key unchanged), and three empty append-only tables: `cleanup_writer_hold_releases`, `cleanup_writer_settlements` and `cleanup_direct_attempts`. No trigger, grant or behaviour of an existing object changes.
+
+Settlement families. The design table above lists five delivery rows. `runner` covers runner jobs and machine requests, so `cleanup_writer_settlements` records six `delivery_source` values under five `family` values. The writer's referential check against the possible-delivery ledger belongs to WP3.
+
+### Private beta interim
+
+Until this lands, teardown after deploy stays a documented limitation. The customer uses provider tooling, and Zenith verifies absence. `docs/LIMITATIONS.md` (Teardown after deploy) states it.

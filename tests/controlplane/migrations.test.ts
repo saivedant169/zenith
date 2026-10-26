@@ -53,6 +53,8 @@ const EXPECTED_TABLES = [
   "plugin_registrations", "policy_decisions", "portability_exports", "portability_restores", "provider_connections", "reconcile_state", "release_events", "release_migration_approvals", "release_runs", "resource_adoptions",
   "resource_observations", "resource_runtime", "resources", "runner_job_logs", "runner_jobs", "runner_registration_tokens", "runners", "scheduled_job_runs", "ownership_transfers", "schema_migrations", "standalone_plan_backends",
   "standalone_plan_settlements", "workflow_start_intents", "workspace_policy",
+  // Schema 60 (settled teardown expand): hold generations, settlements and direct attempts.
+  "cleanup_direct_attempts", "cleanup_writer_hold_releases", "cleanup_writer_settlements",
   // Platform schemas 30 to 36 (wave 3).
   "operation_authority", "durable_intents", "approved_semantics", "standing_grants", "standing_grant_uses", "plan_custody_grants", "plan_custody_reads", "state_backend_probes", "state_backend_restores", "external_effects", "external_effect_events", "external_effect_resolutions", "k8s_guest_bindings", "mcp_streams", "mcp_stream_events", "coding_agent_runs",
   // Wave 5, after immutable verifier migrations 42/43.
@@ -1117,6 +1119,31 @@ describe.skipIf(!PG_URL)("migrator [postgres] concurrency and fail-closed open",
     });
   }, 60_000);
 
+  it("schema 60 gives service_role insert-only settlement groundwork and row security, and clients nothing", async () => {
+    await withScratchDatabase(async (url) => {
+      const db = await openPlatformDb({ kind: "postgres", url, max: 1 });
+      try {
+        await migratePlatformDb(db);
+        const roles = await db.query<{ n: number }>("select count(*)::int as n from pg_roles where rolname in ('anon','authenticated','service_role')");
+        if (roles[0]?.n !== 3) throw new Error("Canonical fixed roles are required before schema 60 role rights can be checked.");
+        const rights = await db.query<{ tbl: string; insert: boolean; clear: boolean; client: boolean; rls: boolean }>(`select t.tbl as tbl,
+            has_table_privilege('service_role','platform.'||t.tbl,'INSERT') as insert,
+            has_table_privilege('service_role','platform.'||t.tbl,'UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') as clear,
+            (has_table_privilege('anon','platform.'||t.tbl,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+              or has_table_privilege('authenticated','platform.'||t.tbl,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')) as client,
+            (select relrowsecurity from pg_class where oid=('platform.'||t.tbl)::regclass) as rls
+          from (values ('cleanup_writer_hold_releases'),('cleanup_writer_settlements'),('cleanup_direct_attempts')) as t(tbl) order by t.tbl`);
+        expect(rights).toEqual([
+          { tbl: "cleanup_direct_attempts", insert: true, clear: false, client: false, rls: true },
+          { tbl: "cleanup_writer_hold_releases", insert: true, clear: false, client: false, rls: true },
+          { tbl: "cleanup_writer_settlements", insert: true, clear: false, client: false, rls: true },
+        ]);
+      } finally {
+        await db.close();
+      }
+    });
+  }, 60_000);
+
   it("BOOTSTRAP_SQL is idempotent", async () => {
     await withScratchDatabase(async (url) => {
       const db = await openPlatformDb({ kind: "postgres", url, max: 1 });
@@ -1129,4 +1156,122 @@ describe.skipIf(!PG_URL)("migrator [postgres] concurrency and fail-closed open",
       }
     });
   }, 60_000);
+});
+
+// PGlite always runs, so this needs no PostgreSQL gate. The native role-rights check for these tables
+// lives in tests/controlplane/cleanup-writer-barriers.test.ts (its existing RLS and client-denial case).
+describe("cleanup writer expand schema 60 [pglite]", () => {
+  const lane = lanes[0];
+  const SCOPE ={ workspaceId: "ws_expand60", projectId: "project_a", environmentId: "env_a" };
+  const generation = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+  const seedOperation = (db: PlatformDbHandle, id: string) =>
+    db.query(`insert into platform.operations(id,workspace_id,capability,principal,status,proposal,proposal_digest,input_digest,correlation_id,expires_at)
+      values($1,$2,'infrastructure.destroy','{}'::jsonb,'succeeded','{}'::jsonb,$3,$3,'corr',clock_timestamp()+interval '1 day')`, [id, SCOPE.workspaceId, digest(id)]);
+  // Schema 59 rows have no hold_seq, so inserts name only the columns that exist before migration 60.
+  const insertHold = (db: PlatformDbHandle, environmentId: string, operationId: string, attempt: string, gen: number) =>
+    db.query(`insert into platform.cleanup_writer_holds(workspace_id,project_id,environment_id,operation_id,attempt_id,generation,manifest_digest,authority_digest,holder,fence_token)
+      values($1,$2,$3,$4,$5,$6,$7,$8,'holder_a',1)`, [SCOPE.workspaceId, SCOPE.projectId, environmentId, operationId, attempt, generation(gen), digest(`m:${attempt}`), digest(`a:${attempt}`)]);
+  const holdSeq = async (db: PlatformDbHandle, environmentId: string) => (await db.query<{ hold_seq: string }>("select hold_seq::text as hold_seq from platform.cleanup_writer_holds where environment_id=$1", [environmentId]))[0];
+  const primaryKey = async (db: PlatformDbHandle, table: string) => (await db.query<{ column_name: string }>(`select k.column_name from information_schema.table_constraints c
+      join information_schema.key_column_usage k on k.constraint_schema=c.constraint_schema and k.constraint_name=c.constraint_name
+      where c.table_schema='platform' and c.table_name=$1 and c.constraint_type='PRIMARY KEY' order by k.ordinal_position`, [table])).map((r) => r.column_name);
+
+  it("gives existing holds a generation order without changing their key, columns or history", async () => {
+    await lane.withFresh(async (open) => {
+      const db = await open(false);
+      await migratePlatformDb(db, PLATFORM_MIGRATIONS.filter((m) => m.version <= 59));
+      await seedOperation(db, "op_expand_a");
+      await seedOperation(db, "op_expand_b");
+      await insertHold(db, "env_a", "op_expand_a", "attempt_a", 1);
+      await insertHold(db, "env_b", "op_expand_b", "attempt_b", 2);
+      const columns = "workspace_id,project_id,environment_id,operation_id,attempt_id,generation,manifest_digest,authority_digest,holder,fence_token,created_at";
+      const before = await db.query(`select ${columns} from platform.cleanup_writer_holds order by environment_id`);
+      expect(await primaryKey(db, "cleanup_writer_holds")).toEqual(["workspace_id", "project_id", "environment_id"]);
+
+      await migratePlatformDb(db);
+      expect(await primaryKey(db, "cleanup_writer_holds")).toEqual(["workspace_id", "project_id", "environment_id"]);
+      expect(await db.query(`select ${columns} from platform.cleanup_writer_holds order by environment_id`)).toEqual(before);
+      const seqs = await db.query<{ environment_id: string; hold_seq: string }>("select environment_id, hold_seq::text as hold_seq from platform.cleanup_writer_holds order by environment_id");
+      expect(seqs).toHaveLength(2);
+      expect(seqs.every((r) => /^\d+$/.test(r.hold_seq))).toBe(true);
+      expect(new Set(seqs.map((r) => r.hold_seq)).size).toBe(2);
+      // An N-1 insert that omits hold_seq still succeeds and receives the next generation.
+      await insertHold(db, "env_c", "op_expand_a", "attempt_c", 3);
+      expect(BigInt((await holdSeq(db, "env_c")).hold_seq)).toBeGreaterThan(BigInt(seqs[1].hold_seq));
+    });
+  }, 60_000);
+
+  it("the new tables are append-only, row-secured and bound to real holds and operations", async () => {
+    await lane.withFresh(async (open) => {
+      const db = await open(true);
+      await seedOperation(db, "op_expand_c");
+      await insertHold(db, "env_a", "op_expand_c", "attempt_c", 4);
+      const hold = await holdSeq(db, "env_a");
+      await db.query(`insert into platform.cleanup_writer_hold_releases(workspace_id,project_id,environment_id,hold_seq,operation_id,attempt_id,generation,released_by,inventory_snapshot)
+        values($1,$2,$3,$4::bigint,'op_expand_c','attempt_c',$5,'janitor','{"workflow":0}'::jsonb)`, [SCOPE.workspaceId, SCOPE.projectId, SCOPE.environmentId, hold.hold_seq, generation(4)]);
+      // A release cannot name a generation that is not that hold's generation.
+      await expect(db.query(`insert into platform.cleanup_writer_hold_releases(workspace_id,project_id,environment_id,hold_seq,operation_id,attempt_id,generation,released_by,inventory_snapshot)
+        values($1,$2,$3,$4::bigint,'op_expand_c','attempt_c',$5,'janitor','{}'::jsonb)`, [SCOPE.workspaceId, SCOPE.projectId, SCOPE.environmentId, hold.hold_seq, generation(99)])).rejects.toThrow();
+      await db.query(`insert into platform.cleanup_writer_settlements(workspace_id,project_id,environment_id,operation_id,family,delivery_source,delivery_identity,horizon_at,sealed)
+        values($1,$2,$3,'op_expand_c','workflow','workflow_start_intents','op_expand_c:attempt_c',clock_timestamp(),'{"reserved":true}'::jsonb)`, [SCOPE.workspaceId, SCOPE.projectId, SCOPE.environmentId]);
+      await db.query(`insert into platform.cleanup_direct_attempts(workspace_id,project_id,environment_id,operation_id,attempt_id,evidence_digest,lease_scope,holder,fence_token,state)
+        values($1,$2,$3,'op_expand_c','attempt_d',$4,'env:env_a','holder_a',1,'claimed')`, [SCOPE.workspaceId, SCOPE.projectId, SCOPE.environmentId, digest("evidence")]);
+      await expect(db.query(`insert into platform.cleanup_writer_settlements(workspace_id,family,project_id,environment_id,operation_id,delivery_source,delivery_identity,horizon_at,sealed)
+        values($1,'unknown',$2,$3,'op_expand_c','runner_jobs','x',clock_timestamp(),'{}'::jsonb)`, [SCOPE.workspaceId, SCOPE.projectId, SCOPE.environmentId])).rejects.toThrow();
+      await expect(db.query(`insert into platform.cleanup_direct_attempts(workspace_id,project_id,environment_id,operation_id,attempt_id,evidence_digest,lease_scope,holder,fence_token,state)
+        values($1,$2,$3,'op_expand_c','attempt_e',$4,'env:env_a','holder_a',1,'applied')`, [SCOPE.workspaceId, SCOPE.projectId, SCOPE.environmentId, digest("evidence")])).rejects.toThrow();
+      await expect(db.query(`insert into platform.cleanup_writer_settlements(workspace_id,project_id,environment_id,operation_id,family,delivery_source,delivery_identity,horizon_at,sealed)
+        values($1,$2,$3,'op_missing','workflow','workflow_start_intents','op_missing:a',clock_timestamp(),'{}'::jsonb)`, [SCOPE.workspaceId, SCOPE.projectId, SCOPE.environmentId])).rejects.toThrow();
+
+      for (const [table, set] of [
+        ["cleanup_writer_hold_releases", "released_by='changed'"],
+        ["cleanup_writer_settlements", "horizon_at=clock_timestamp()"],
+        ["cleanup_direct_attempts", "state='dispatched'"],
+      ] as const) {
+        await expect(db.query(`update platform.${table} set ${set}`), `${table} update`).rejects.toThrow(/cannot be changed or cleared/);
+        await expect(db.query(`delete from platform.${table}`), `${table} delete`).rejects.toThrow(/cannot be changed or cleared/);
+        expect((await db.query<{ n: string }>(`select count(*)::text as n from platform.${table}`))[0].n).toBe("1");
+      }
+      expect(await db.query<{ name: string; rls: boolean }>(`select c.relname as name, c.relrowsecurity as rls from pg_class c join pg_namespace n on n.oid=c.relnamespace
+        where n.nspname='platform' and c.relname in ('cleanup_writer_hold_releases','cleanup_writer_settlements','cleanup_direct_attempts') order by c.relname`)).toEqual([
+        { name: "cleanup_direct_attempts", rls: true },
+        { name: "cleanup_writer_hold_releases", rls: true },
+        { name: "cleanup_writer_settlements", rls: true },
+      ]);
+    });
+  }, 60_000);
+});
+
+// Runs on every lane: PGlite always, and the PostgreSQL lane when ZENITH_TEST_PLATFORM_PG_URL is set.
+describe("cleanup direct attempt history schema 60", () => {
+  const WS = "ws_direct60";
+  const seedOperation = (db: PlatformDbHandle, id: string) =>
+    db.query(`insert into platform.operations(id,workspace_id,capability,principal,status,proposal,proposal_digest,input_digest,correlation_id,expires_at)
+      values($1,$2,'infrastructure.destroy','{}'::jsonb,'succeeded','{}'::jsonb,$3,$3,'corr',clock_timestamp()+interval '1 day')`, [id, WS, digest(id)]);
+  const attempt = (db: PlatformDbHandle, operationId: string, state: "claimed" | "dispatched", evidence: string, fence = 1) =>
+    db.query(`insert into platform.cleanup_direct_attempts(workspace_id,project_id,environment_id,operation_id,attempt_id,evidence_digest,lease_scope,holder,fence_token,state)
+      values($1,'project_d','env_d',$2,'attempt_direct',$3,'env:env_d','holder_d',$4,$5)`, [WS, operationId, evidence, fence, state]);
+  const rowsFor = (db: PlatformDbHandle, operationId: string) =>
+    db.query<{ state: string }>("select state from platform.cleanup_direct_attempts where workspace_id=$1 and operation_id=$2 order by state", [WS, operationId]);
+
+  it("a dispatch is history after its own matching claim: refused without it, on any mismatch, and immutable once written", async () => {
+    for (const lane of lanes) {
+      await lane.withFresh(async (open) => {
+        const db = await open(true);
+        await seedOperation(db, "op_direct_a");
+        const evidence = digest("evidence-a");
+        await expect(attempt(db, "op_direct_a", "dispatched", evidence), `${lane.name}: dispatch without claim`).rejects.toThrow(/matching claimed attempt/);
+        await attempt(db, "op_direct_a", "claimed", evidence);
+        await expect(attempt(db, "op_direct_a", "dispatched", digest("other-evidence")), `${lane.name}: other evidence`).rejects.toThrow(/matching claimed attempt/);
+        await expect(attempt(db, "op_direct_a", "dispatched", evidence, 2), `${lane.name}: other fence`).rejects.toThrow(/matching claimed attempt/);
+        expect(await rowsFor(db, "op_direct_a")).toEqual([{ state: "claimed" }]);
+        await attempt(db, "op_direct_a", "dispatched", evidence);
+        expect(await rowsFor(db, "op_direct_a")).toEqual([{ state: "claimed" }, { state: "dispatched" }]);
+        await expect(attempt(db, "op_direct_a", "claimed", evidence), `${lane.name}: second claim`).rejects.toThrow();
+        await expect(db.query("update platform.cleanup_direct_attempts set holder='changed' where operation_id='op_direct_a'")).rejects.toThrow(/cannot be changed or cleared/);
+        await expect(db.query("delete from platform.cleanup_direct_attempts where operation_id='op_direct_a'")).rejects.toThrow(/cannot be changed or cleared/);
+        expect(await rowsFor(db, "op_direct_a")).toEqual([{ state: "claimed" }, { state: "dispatched" }]);
+      });
+    }
+  }, 120_000);
 });

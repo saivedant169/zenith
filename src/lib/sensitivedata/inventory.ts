@@ -246,6 +246,11 @@ export const TABLES: Readonly<Record<string, TableSink>> = {
   "platform.cleanup_writer_holds": { owner: "execution/cleanup", classification: "operational", retention: ledger(OPS07), purpose: "cleanup writer holds", columns: { manifest_digest: digestOnly() } },
   "platform.cleanup_writer_deliveries": { owner: "execution/cleanup", classification: "operational", retention: ledger(OPS07), purpose: "cleanup writer deliveries", columns: {} },
   "platform.cleanup_owner_grants": { owner: "execution/cleanup", classification: "operational", retention: ledger(OPS07), purpose: "cleanup owner grant ids (jti)", columns: {} },
+  "platform.cleanup_writer_hold_releases": { owner: "execution/cleanup", classification: "operational", retention: ledger(OPS07), purpose: "append-only release of a superseded cleanup hold generation (schema 60, not yet written)",
+    columns: { inventory_snapshot: plain("per-family possible-delivery counts at release; numbers only, no identifiers") } },
+  "platform.cleanup_writer_settlements": { owner: "execution/cleanup", classification: "operational", retention: ledger(OPS07), purpose: "append-only settlement of one earlier possible delivery (schema 60, not yet written)",
+    columns: { sealed: unreviewed("reserved for the authenticated settlement envelope; no writer in schema 60") } },
+  "platform.cleanup_direct_attempts": { owner: "execution/cleanup", classification: "operational", retention: ledger(OPS07), purpose: "direct-path cleanup attempt bound to reviewed provider-teardown evidence (schema 60, not yet written)", columns: {} },
 
   /* ---------------------------- platform: product lifecycle ---------------------------- */
   "platform.github_source_bindings": { owner: "sources/github", classification: "operational", retention: ledger(OPS07), purpose: "repository bindings (no tokens)", columns: {} },

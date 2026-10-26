@@ -88,6 +88,11 @@ begin
       grant select,insert on table platform.cleanup_writer_scopes,platform.cleanup_writer_holds,platform.cleanup_writer_deliveries,platform.cleanup_owner_grants to service_role;
       grant update on table platform.cleanup_writer_scopes to service_role;
     end if;
+    -- Expand-only settlement groundwork (schema 60): append-only, no update or delete rights.
+    if to_regclass('platform.cleanup_writer_hold_releases') is not null then
+      revoke all on table platform.cleanup_writer_hold_releases,platform.cleanup_writer_settlements,platform.cleanup_direct_attempts from service_role;
+      grant select,insert on table platform.cleanup_writer_hold_releases,platform.cleanup_writer_settlements,platform.cleanup_direct_attempts to service_role;
+    end if;
     -- Ownership transfers are append-only: select/insert plus one-way revocation columns.
     if to_regclass('platform.ownership_transfers') is not null then
       revoke all on table platform.ownership_transfers from service_role;

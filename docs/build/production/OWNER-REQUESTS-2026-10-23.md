@@ -63,7 +63,13 @@ legacy deployment projection; and the MFA enrolment and step-up dialogs. You dri
 focus lands after each action, from its caption panel, and fix any defect it finds. This is the one accessibility check
 automation cannot do.
 
-## Decision needed: teardown after deploy (added 2026-10-24)
+## Decision: teardown after deploy (added 2026-10-24; answered 2026-10-26)
+
+**Answered 2026-10-26 (owner delegated the decision; recommended option B, revised, taken).** Decision 1: a refused teardown freezing an environment is not intended. The fix is superseding hold generations, released only when the inventory drains. Decision 2: revised option B is accepted with its residual risk (a provider-side asynchronous operation can finish after teardown verified absence; mitigated by delayed re-verification and cost reconciliation) and the post-deploy wait of about 1 to 2 hours. Recorded in the design document's "Decisions (2026-10-26)" section. Work packages follow in this order: WP1 expand schema, WP5 hold lifecycle, WP2 inventory rules, WP3 settlement writers, WP4 direct-path origin, WP6 wiring and UI, WP7 journeys and live. WP1 to WP5 each get an independent adversarial review before merge.
+
+The original request is kept below for the record.
+
+
 
 An environment that has been deployed cannot be torn down through the product today. Destroy is refused before
 anything is deleted, and on the OpenTofu path a refused teardown appears to leave the environment permanently
@@ -76,7 +82,7 @@ findings), then decide:
    rotation for static or customer-held identities, and a 1 to 2 hour wait after a deploy? Do you accept its residual
    risk that a slow cloud operation started earlier can finish after teardown verified absence?
 
-No barrier code changes until you decide. PROD-LIFE-07, PROD-LIFE-11 and PROD-MIX-04 stay open meanwhile.
+Before 2026-10-26 no barrier code changed. Under these decisions, schema 60 (WP1) is the first code change; behaviour changes come in later work packages. PROD-LIFE-07, PROD-LIFE-11 and PROD-MIX-04 stay open until WP1 to WP7 are verified.
 
 ## Still open after setup
 

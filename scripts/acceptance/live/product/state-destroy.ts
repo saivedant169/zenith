@@ -76,7 +76,7 @@ async function withState<T>(input: StateDestroyInput, work: (tofu: { run: (args:
     write([{ region: input.region }]);
     await run(["init", "-input=false"], "init");
     let state: unknown;
-    try { state = JSON.parse(await run(["state", "pull"], "state read")); } catch (error) {
+    try { state = JSON.parse((await run(["state", "pull"], "state read")) || "{}"); } catch (error) {
       if (error instanceof SyntaxError) throw new Error("The recorded state is not readable.");
       throw error;
     }
@@ -97,7 +97,13 @@ export function destroyFromState(input: StateDestroyInput): Promise<{ destroyed:
     const count = Array.isArray((state as { resources?: unknown })?.resources) ? ((state as { resources: unknown[] }).resources).length : 0;
     write(providerBlocks(state, input.region));
     if (count > 0) await run(["apply", "-auto-approve", "-input=false", "-lock-timeout=120s"], "destroy", 45 * 60_000);
-    const left = (await run(["state", "list"], "state re-read")).split("\n").filter(line => line.trim()).length;
+    // `state list` fails on an empty or absent state ("No state file was found!"); re-read the document instead.
+    let after: unknown;
+    try { after = JSON.parse((await run(["state", "pull"], "state re-read")) || "{}"); } catch (error) {
+      if (error instanceof SyntaxError) throw new Error("The recorded state is not readable after cleanup.");
+      throw error;
+    }
+    const left = Array.isArray((after as { resources?: unknown })?.resources) ? ((after as { resources: unknown[] }).resources).length : 0;
     if (left !== 0) throw new Error(`${left} resource(s) remain in the recorded state after cleanup.`);
     return { destroyed: count };
   });

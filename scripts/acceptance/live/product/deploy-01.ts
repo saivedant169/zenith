@@ -120,7 +120,7 @@ export function deploy01Port(env: EnvLike = process.env, seams: Deploy01Seams = 
           step = label;
           if (kind === "apply") await product.setManifest(tenant, deploy01Manifest(image, host));
           const result = await product.deploy(tenant, environmentId, kind);
-          if (result.status !== "succeeded") refuse(`the ${label} ended ${/^[a-z_]{1,20}$/.test(result.status) ? result.status : "unknown"}, not succeeded`);
+          if (result.status !== "succeeded") refuse(`the ${label} ended ${/^[a-z_]{1,20}$/.test(result.status) ? result.status : "unknown"}, not succeeded${result.detail ? ` (product: ${result.detail})` : ""}`);
           step = `${label} readback`;
           await readback(image);
         }

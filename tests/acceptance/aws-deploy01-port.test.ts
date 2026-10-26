@@ -8,7 +8,7 @@ import { grantsFor, Guard } from "../../scripts/acceptance/live/guard";
 import type { Call, Json, Plan } from "../../scripts/acceptance/live/contracts";
 import { trustDocument } from "../../scripts/acceptance/live/product/mix-03";
 import { DEPLOY01_IMAGES, deploy01Port } from "../../scripts/acceptance/live/product/deploy-01";
-import type { Deploy01Product } from "../../scripts/acceptance/live/product/deploy-01-driver";
+import { sanitizedError, type Deploy01Product } from "../../scripts/acceptance/live/product/deploy-01-driver";
 
 const ACCOUNT = "123456789012", REGION = "ap-south-1", RUN = "zlive-202610260000-ab01";
 const PRINCIPAL = `arn:aws:iam::${ACCOUNT}:role/ZenithLiveAcceptance`;
@@ -29,7 +29,7 @@ function harness(opts: { deployStatus?: string; leftAfterDestroy?: number; image
     verifyAws: async () => ({ ok: true }),
     createEnvironment: async () => ({ environmentId: "env1" }),
     setManifest: async (_t, m) => { images.push(((m.services as { source: { image: string } }[])[0]!).source.image); },
-    deploy: async (_t, _e, kind) => { if (kind === "rollback") images.push(images[images.length - 2]!); return { operationId: "op", status: opts.deployStatus ?? "succeeded" }; },
+    deploy: async (_t, _e, kind) => { if (kind === "rollback") images.push(images[images.length - 2]!); return { operationId: "op", status: opts.deployStatus ?? "succeeded", ...(opts.deployStatus ? { detail: "the plan failed" } : {}) }; },
   };
   const plan: Plan = buildPlan(settings);
   const permission = {
@@ -62,6 +62,14 @@ function harness(opts: { deployStatus?: string; leftAfterDestroy?: number; image
   return { trust, images, sent, run: () => port.verify(requirement, { plan, commit: COMMIT, call }) };
 }
 
+describe("DEPLOY-01 driver error detail", () => {
+  it("elides ARNs, key=value pairs, URLs, paths and long tokens and bounds the length", () => {
+    expect(sanitizedError("AccessDenied for arn:aws:iam::123456789012:role/x when key=secret at https://x.example/a in /tmp/a/b token AKIAABCDEFGHIJKLMNOPQRSTUV")).toBe("AccessDenied for …arn when …=… at …url in …path token …");
+    expect(sanitizedError("x".repeat(500))!.length).toBeLessThanOrEqual(240);
+    expect(sanitizedError(undefined)).toBeUndefined();
+  });
+});
+
 describe("DEPLOY-01 port", () => {
   it("deploys, updates and rolls back with readback, then destroys the recorded state and restores trust", async () => {
     const h = harness();
@@ -75,7 +83,7 @@ describe("DEPLOY-01 port", () => {
     const h = harness({ deployStatus: "failed" });
     const result = await h.run();
     expect(result.complete).toBe(false);
-    expect(result.reason).toMatch(/at first deploy: the first deploy ended failed/);
+    expect(result.reason).toMatch(/at first deploy: the first deploy ended failed, not succeeded \(product: the plan failed\)/);
     expect(h.trust.deploy).toBe(trustDocument(PRINCIPAL, OLD_EXT));
   });
   it("refuses when the recorded image does not match the deployed revision", async () => {

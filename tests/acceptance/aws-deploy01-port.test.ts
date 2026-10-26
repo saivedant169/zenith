@@ -103,7 +103,7 @@ describe("DEPLOY-01 port", () => {
   it("refuses when the recorded image does not match the deployed revision", async () => {
     const result = await harness({ image: () => "public.ecr.aws/nginx/nginx:9.9" }).run();
     expect(result.complete).toBe(false);
-    expect(result.reason).toMatch(/does not run public\.ecr\.aws\/nginx\/nginx:1\.27/);
+    expect(result.reason).toMatch(/does not run public\.ecr\.aws\/nginx\/nginx@sha256:df80ece7/);
   });
   it("reports leaks when tagged resources remain after the destroy, excusing only ECS clusters the destroy removed", async () => {
     const result = await harness({ leftAfterDestroy: 2 }).run();

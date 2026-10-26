@@ -17,7 +17,11 @@ import { fill, parsePolicy, refuse, Refusal, templateExternalId, trustDocument }
 import { destroyFromState, readState, stateAttribute, type SessionCredentials, type StateDestroyInput } from "./state-destroy";
 
 type Invoke = (call: Call, values?: Record<string, string>, extra?: Record<string, Json>) => Promise<Record<string, unknown>>;
-export const DEPLOY01_IMAGES = { v1: "public.ecr.aws/nginx/nginx:1.27", v2: "public.ecr.aws/nginx/nginx:1.26" } as const;
+// The product deploys only digest-pinned images (release-safety.ts). Multi-arch index digests of ECR Public nginx 1.27 and 1.26.
+export const DEPLOY01_IMAGES = {
+  v1: "public.ecr.aws/nginx/nginx@sha256:df80ece7fa07f8ed4f3b70e883fe322732954d0287e562f1fdc790018f7d2c66",
+  v2: "public.ecr.aws/nginx/nginx@sha256:4aad0a9f6622a58402a3d37d7a92d67903ffae86498f6bac79155ec3760f8500",
+} as const;
 const EXTERNAL_ID_NEW = /^zenith-[0-9a-f]{32}$/;
 const ALB_DNS = /^[a-z0-9-]{1,64}\.[a-z0-9-]+\.elb\.amazonaws\.com$/;
 

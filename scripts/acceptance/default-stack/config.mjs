@@ -189,6 +189,14 @@ export function stackComposition(config, directory, profile, gatewayImage, peer)
   document.services.api.ports = [`127.0.0.1:${ports.api}:3400`];
   document.services.api.tmpfs = ['/tmp:rw,noexec,nosuid,size=64m,uid=1001,gid=1001,mode=1770', '/app/.next/cache:rw,noexec,nosuid,size=64m,uid=1001,gid=1001,mode=1770'];
   document.services['execution-worker'].tmpfs = ['/tmp:rw,nosuid,size=256m,uid=10001,gid=10001,mode=1770'];
+  // Live AWS scenarios plan and apply with the real AWS provider (several hundred MB): give the worker the production
+  // compose sizing (deploy/self-hosted/compose.yml) and keep the provider cache on its disk volume, not in tmpfs.
+  if (awsShared) {
+    const worker = document.services['execution-worker'];
+    worker.mem_limit = '3g';
+    worker.tmpfs = ['/tmp:rw,nosuid,size=1g,uid=10001,gid=10001,mode=1770'];
+    worker.environment = { ...worker.environment, NODE_OPTIONS: '--max-old-space-size=1536', ZENITH_TOFU_PLUGIN_CACHE: '/var/lib/zenith/tofu-plugin-cache' };
+  }
   if (sizing.apis === 2) document.services['api-peer'] = { ...structuredClone(document.services.api),
     ports: [`127.0.0.1:${ports.peerApi}:3400`], volumes: ['api-peer-data:/data', `${path.join(directory, '../tls/ca.crt')}:/run/zenith-ca.crt:ro`, ...temporalClient] };
   if (sizing.workers === 2) {

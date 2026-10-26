@@ -41,14 +41,20 @@ See the findings table in [verify/PROD-OPS-08.md](../build/production/verify/PRO
 
 Fixed and tested in `residual-hardening.test.ts` (findings F9-F13 in the verify doc): hosted launch state bound to a browser nonce cookie; platform REST bearer limited to a linked `za_` credential on the configured host with the authority-kind rule; runner dispatch honours grant revocation; hosted source tar requires a proper terminator and refuses trailing data; GitHub App private key custody checks (POSIX uid/mode/link checks; Windows reuses the native owner-only ACL verification); a grant revoked after enqueue is withdrawn at poll.
 
+## Residual risks addressed 2026-10-26
+
+Changed in code and covered by regression tests (`tests/ops/admission.test.ts`, `tests/runners/grant-recall.test.ts`). Not independently verified: no verification run is recorded for these changes in this document.
+
+- Dispatch admission fails closed. When the platform store is configured and the tenant quota or the active-operation count cannot be read, `assertDispatchAdmitted` refuses with `admission_unavailable` (503, a fixed message, the cause only in the operator log) and claims nothing. Success path and unconfigured installs are unchanged.
+- Recall of a grant revoked after receipt. The control plane refuses an agent's next control-plane step, the result submission, when the job's grant is revoked, expired or unknown in the authoritative grant store (`grant_not_active`, 403). `consumed` (the grant's own one-time use) is allowed. The agent's local work already started is not stopped: recall is enforced at the control plane, not on the agent host, and the Go agent is unchanged.
+
 ## Residual risk and non-goals
 
 Recorded as observed but not fixed:
 
-- `CredentialBroker.withSession` trusts decoded in-process claims; the Go agent's workspace check is vacuous when its own workspace id is empty; a grant revoked after the agent has received the job is not recalled.
+- `CredentialBroker.withSession` trusts decoded in-process claims; the Go agent's workspace check is vacuous when its own workspace id is empty. A grant revoked after the agent received its job is refused at the agent's next result (see above), but not stopped on the agent host.
 - `CRON_SECRET` has no minimum strength; `/api/internal/*` is public at the edge and relies on every route calling the gate.
 - Hosted source tar reader: quadratic directory handling, lossy UTF-8 decoding, GNU magic accepted as ustar, lenient base64 in `decodeTarball`.
-- `assertDispatchAdmitted` admits when the quota lookup fails (documented fail-open for availability).
 - The Navigator translation prompt interpolates manifest names unescaped; the coding agent proposes as the creating human principal with the agent identity only in the free-text reason.
 - The semantics digest is verified in the broker, not in the approval store; dispatch re-checks it against the write-once approved row.
 - Runner request signing does not include the agent kind in the signed string (bound by registry lookup only).

@@ -19,6 +19,7 @@ import { platformDb } from "@/lib/controlplane/db";
 import { getControlSigner, getControlVerificationKeys } from "@/lib/credentials/signing";
 import type { JwtSigner, PublicJwk } from "@/lib/credentials/signing/types";
 import { repos } from "@/lib/controlplane/db";
+import type { GrantStatus } from "@/lib/controlplane/db/repos/grants";
 import type { ConnectionLookup } from "@/lib/runners/custody";
 import { createPlatformRunnerStore } from "@/lib/runners/db/pg-store";
 import type { RunnerEventSink, RunnerStore } from "@/lib/runners/ports";
@@ -42,6 +43,11 @@ export interface RunnerRuntime {
    * test that supplies its own store supplies its own answer, and without one no revocation source exists.
    */
   grantRevoked?(workspaceId: string, jti: string): Promise<boolean>;
+  /**
+   * Lifecycle of a grant on the store's clock. The recall check before an agent's result is accepted refuses every
+   * status but `active` and `consumed`; without it the revocation hook above is the only source.
+   */
+  grantStatus?(workspaceId: string, jti: string): Promise<GrantStatus>;
   /** epoch milliseconds (tests fake it; it must be the clock the store uses when they do) */
   now(): number;
   /** wait `ms`, rejecting with an AbortError when `signal` aborts */
@@ -115,6 +121,7 @@ export async function getRunnerRuntime(): Promise<RunnerRuntime> {
     connections: o.connections ?? (async (workspaceId, connectionId) => repos.connections.get(await platformDb(), workspaceId, connectionId)),
     events: o.events ?? noopEvents,
     grantRevoked: o.grantRevoked ?? (o.store ? undefined : async (workspaceId, jti) => repos.grants.isRevoked(await platformDb(), workspaceId, jti)),
+    grantStatus: o.grantStatus ?? (o.store ? undefined : async (workspaceId, jti) => repos.grants.status(await platformDb(), workspaceId, jti)),
     now: o.now ?? Date.now,
     sleep: o.sleep ?? realSleep,
     pollStepMs: o.pollStepMs ?? POLL_STEP_MS,

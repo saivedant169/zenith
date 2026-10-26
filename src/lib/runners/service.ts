@@ -223,6 +223,21 @@ async function grantRevokedFor(rt: RunnerRuntime, job: AgentJob): Promise<boolea
   return typeof jti === "string" && (await rt.grantRevoked(job.workspaceId, jti));
 }
 
+/**
+ * Recall check before the control plane accepts an agent's result: the grant a delivered job carries must still be live in
+ * the authoritative store. Revoked, expired and unknown grants are refused (fail closed); `consumed` is the grant's
+ * one-time use and stays allowed. One indexed read. Without a status source it falls back to the revocation hook, and
+ * with neither there is no source to consult. Recall stops the agent's next control-plane step; it cannot undo work the
+ * agent already did on its host.
+ */
+async function grantStillLive(rt: RunnerRuntime, job: AgentJob): Promise<boolean> {
+  const grant = unverifiedClaims(job.envelope)?.grant;
+  const jti = typeof grant === "string" ? unverifiedClaims(grant)?.jti : undefined;
+  if (typeof jti !== "string") return true; // no grant on the envelope: nothing to recall (the poll path treats it the same way)
+  if (rt.grantStatus) return ["active", "consumed"].includes(await rt.grantStatus(job.workspaceId, jti));
+  return !(rt.grantRevoked && (await rt.grantRevoked(job.workspaceId, jti)));
+}
+
 export async function pollAgent(rt: RunnerRuntime, agent: AgentRecord, body: unknown, signal?: AbortSignal): Promise<{ jobs: string[]; pollIntervalSec: number }> {
   const b = parse(PollBody, body);
   const queue = queueOf(rt.store, agent.kind);
@@ -329,6 +344,8 @@ export async function settleResult(rt: RunnerRuntime, agent: AgentRecord, jobId:
   const queue = queueOf(rt.store, agent.kind);
   const job = await queue.get(agent.workspaceId, jobId);
   if (!job || job.agentId !== agent.id) throw new AgentApiError(404, "job_not_found", "No such job for this agent.");
+  // Recall: a grant revoked or expired after delivery stops the agent's next control-plane step, its result.
+  if (!(await grantStillLive(rt, job))) throw new AgentApiError(403, "grant_not_active", "The capability grant for this job is no longer active, so its result is refused.");
   // The assignment trigger prevents substitution after this read. The store
   // independently derives these same hashes under its original-job lock and
   // holds the authenticated current-key predicate until receipt commit.

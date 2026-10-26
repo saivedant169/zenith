@@ -21,7 +21,9 @@ export type BackpressureCode =
   | "billing_suspended"
   | "plan_quota_exceeded"
   // The workspace's plan does not include the feature (deploy, organizational policies). Not retryable; carries `feature`.
-  | "plan_feature_unavailable";
+  | "plan_feature_unavailable"
+  // Dispatch could not read its quota or active-operation count, so it refuses rather than admit unchecked (fail closed).
+  | "admission_unavailable";
 
 export type BackpressureLayer = "edge" | "api" | "dispatch" | "runner_queue" | "worker" | "maintenance" | "billing";
 
@@ -37,6 +39,7 @@ export const BACKPRESSURE_STATUS: Readonly<Record<BackpressureCode, 402 | 429 | 
   billing_suspended: 402,
   plan_quota_exceeded: 429,
   plan_feature_unavailable: 402,
+  admission_unavailable: 503,
 };
 
 export const MIN_RETRY_AFTER_SEC = 1;

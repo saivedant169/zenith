@@ -174,6 +174,7 @@ export type AgentApiErrorCode =
   | "payload_too_large"
   | "upgrade_required"
   | "not_found"
+  | "grant_not_active"
   | "runner_plane_unconfigured";
 
 /**

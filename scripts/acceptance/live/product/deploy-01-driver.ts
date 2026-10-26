@@ -83,7 +83,9 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
     try { return await work(); }
     catch (error) {
       if (error instanceof Refusal) throw error;
-      const code = error instanceof Error && /^journey:[a-z0-9-]{1,60}$/.test(error.message) ? error.message.slice("journey:".length) : "unexpected";
+      // Only the product's journey codes, or the error's class name (never its message), pass through.
+      const name = error instanceof Error && /^[A-Za-z]{1,40}$/.test(error.name) ? error.name : "Error";
+      const code = error instanceof Error && /^journey:[a-z0-9-]{1,60}$/.test(error.message) ? error.message.slice("journey:".length) : `unexpected ${name}`;
       return refuse(`${name} refused by the product path (${code})`);
     }
   };

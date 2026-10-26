@@ -322,6 +322,19 @@ jobs:
             echo "ZENITH_LIVE_PRODUCT_DIR=$GITHUB_WORKSPACE"
           } >> "$GITHUB_ENV"
 
+      # Browser scenarios only: the drivers sign the owner and the approver in through headless Chromium with no
+      # certificate bypass, as the operated gate does, so the stack's disposable CA is trusted in Chromium's NSS database.
+      - name: Install Chromium and trust the stack CA for the browser drivers
+        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && contains(fromJSON('["mix-03","deploy-01"]'), inputs.scenario)
+        run: |
+          set -euo pipefail
+          npx playwright install --with-deps chromium
+          command -v certutil >/dev/null || sudo apt-get install -y --no-install-recommends libnss3-tools
+          nssdb="$HOME/.pki/nssdb"
+          mkdir -p "$nssdb"
+          [ -f "$nssdb/cert9.db" ] || certutil -N -d "sql:$nssdb" --empty-password
+          certutil -A -d "sql:$nssdb" -t "C,," -n zenith-live-disposable-ca -i "$RUNNER_TEMP/zenith/stack/tls/ca.crt"
+
       - name: Assume the sandbox role through GitHub OIDC
         if: hashFiles('scripts/acceptance/aws-live.ts') != ''
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0

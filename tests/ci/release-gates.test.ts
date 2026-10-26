@@ -1361,6 +1361,7 @@ describe("the live acceptance workflow", () => {
   const guardFor = (step: Step): string => {
     if (STACK_STEPS.includes(step.name ?? "")) return SCENARIO_GUARD;
     if (step.name === "Install pinned OpenTofu") return `${GUARD} && inputs.scenario == 'deploy-01'`;
+    if (step.name === "Install Chromium and trust the stack CA for the browser drivers") return `${GUARD} && contains(fromJSON('["mix-03","deploy-01"]'), inputs.scenario)`;
     if (step.name === TEARDOWN) return `always() && ${SCENARIO_GUARD}`;
     if (step.id === "verify" || step.id === "recovery_rel04") return `always() && ${REL04}`;
     if (step.id === "drill" || step.name === "Publish PROD-REL-04 drill journals, evidence and receipt") return REL04;

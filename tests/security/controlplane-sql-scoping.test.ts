@@ -838,7 +838,7 @@ describe("control-store repositories: workspace scoping is present in every func
     visit(sf);
     const hash = (value: string) => createHash("sha256").update(value).digest("hex");
     expect([...pinned.keys()].sort()).toEqual(["releaseDrainedHolds", "releaseDrainedScopeHold"]);
-    expect(hash(pinned.get("releaseDrainedHolds")!)).toBe("700e4124c3619b35ac3bed426a9034b49899e2b46ce14666bf646e1345a4af3c");
+    expect(hash(pinned.get("releaseDrainedHolds")!)).toBe("0142d0a3f8358162064fbf45b3650723c73c96488bcb1b0f5faec523392cac4a");
     expect(hash(pinned.get("releaseDrainedScopeHold")!)).toBe("7aed855d22d6757440426853e0761ce198151c7aaddf3c80ead5cf81715abd76");
     for (const body of pinned.values()) expect(/\$\{/.test(body), "release SQL must not interpolate").toBe(false);
   });

@@ -672,12 +672,13 @@ export async function expire(sql: Sql, limit=100): Promise<number> {
 
 /** Janitor sweep beside expire: release each scope's newest hold once it drains. Writes only under the workspace coordinator. */
 export async function releaseDrainedHolds(sql: Sql, limit=100): Promise<number> {
-  const candidates = await sql.query<{workspace_id:string;project_id:string;environment_id:string}>(`select distinct h.workspace_id,h.project_id,h.environment_id
+  const candidates = await sql.query<{workspace_id:string;project_id:string;environment_id:string}>(`select h.workspace_id,h.project_id,h.environment_id
     from platform.cleanup_writer_holds h
     where not exists(select 1 from platform.cleanup_writer_holds n where n.workspace_id=h.workspace_id and n.project_id=h.project_id
       and n.environment_id=h.environment_id and n.hold_seq>h.hold_seq)
     and not exists(select 1 from platform.cleanup_writer_hold_releases r where r.workspace_id=h.workspace_id and r.hold_seq=h.hold_seq)
-    order by h.workspace_id,h.project_id,h.environment_id limit $1::bigint`, [Math.max(1,Math.min(1000,limit))]);
+    -- Random order: undrainable scopes (no settlement yet) must not starve drained ones beyond the limit. One newest row per scope, so no distinct.
+    order by random() limit $1::bigint`, [Math.max(1,Math.min(1000,limit))]);
   let count=0;
   // The candidate list is only a hint: the newest hold and its inventory are re-read under the coordinator.
   for (const c of candidates) count += await sql.tx(async tx => {

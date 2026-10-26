@@ -154,6 +154,20 @@ Install the stack before `tofu apply`: the budget action names both connection r
 3. Detach the deny policy from all three roles: `aws iam detach-role-policy --role-name <role> --policy-arn <arn>` for `ZenithLiveAcceptance`, `ZenithDeployRole-live` and `ZenithObserveRole-live`. The bootstrap operator policy does not allow this, by design.
 4. Do not start another run until the budget action status is checked. Whether it fires again while spend stays above 100% in the same month is not verified.
 
+**Run cleanup scope (owner decision 2026-10-26, delegated).** `ZenithLiveAcceptance` may delete only what a PROD-MIX-03 run created, in `deploy/live-sandbox/aws/main.tf` `locals.statements` (statements `MixCleanup*`):
+
+- Lambda `zenith-*` functions: `GetFunctionConfiguration` and `DeleteFunction`, only when `zenith:managed=true`.
+- Log groups `/aws/lambda/zenith-*`: `DeleteLogGroup`. Name-only: Lambda does not copy function tags to its log groups, so a tag condition cannot match.
+- IAM roles `zenith-*`: `GetRole`, `ListAttachedRolePolicies`, `ListRolePolicies`, `DeleteRolePolicy`, `DeleteRole`, only when `zenith:managed=true`. `DetachRolePolicy` is also limited to `policy/zenith-*` through `iam:PolicyARN`.
+- S3 buckets `zenith-*`: `ListBucket`, `GetBucketTagging`, `DeleteBucket`. Name-only, because a bucket tag condition for `DeleteBucket` is not confirmed (it may need per-bucket ABAC). The MIX-03 teardown checks `zenith:managed` and `zenith:environment` on each bucket before deleting it.
+- `tag:GetResources` is reused from `UnscopableInventory`; no new statement.
+
+Explicit denies override these allows: `s3:DeleteBucket` and `s3:DeleteObject` on `zenith-state-*`, and `iam` delete or detach on the connection roles (`ZenithObserveRole-live`, `ZenithDeployRole-live`, `ZenithSecretWriterRole-live`, `zenith-codebuild-live`) and the connection managed policies (`Zenith*-live`). `zenith-codebuild-live` is lower-case, so the `zenith-*` role pattern would match it; the deny is what protects it. IAM ARN matching is case-sensitive, so the capitalised bootstrap and connection roles are outside `zenith-*`.
+
+Sizes: the inline role policy is 9948 of 10240 characters (was 8078). The runner boundary `ZenithLiveRunnerBoundary` is 1508 characters (managed-policy limit 6144). The boundary now lists only actions from `Allow` statements.
+
+**Residual:** log-group and bucket deletes are name-scoped. Any `zenith-*` log group or bucket that the role can name can be deleted, even one that is not from a MIX-03 run. The MIX-03 code limits what it actually deletes. Nothing here is applied; the owner applies `main.tf` with `tofu apply`.
+
 **Retention.** The stack's state bucket (`zenith-state-361646636162-ap-south-1-live`) has `DeletionPolicy: Retain`. Deleting `zenith-connection-live` leaves it in place; empty and delete it yourself when you no longer need it.
 
 ## Budget, cleanup and evidence limits

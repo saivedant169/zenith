@@ -90,6 +90,14 @@ locals {
     StringEquals = { "aws:RequestTag/zenith:purpose" = "live-acceptance", "aws:RequestTag/zenith:managed" = "true" }
     StringLike   = { "aws:RequestTag/zenith:live-run" = "zlive-*" }
   }
+  managed_tag      = { StringEquals = { "aws:ResourceTag/zenith:managed" = "true" } }
+  zenith_role_glob = "${local.iam}:role/zenith-*"
+  # Connection stack names (deploy/aws/zenith-connection.cfn.yaml) with the connection suffix. zenith-codebuild is lower-case,
+  # so it matches zenith-* and is denied explicitly. The other roles are capitalised and do not match.
+  connection_protected_roles = concat(local.connection_role_arns, ["${local.iam}:role/ZenithSecretWriterRole${var.connection_name_suffix}", "${local.iam}:role/zenith-codebuild${var.connection_name_suffix}"])
+  # One pattern, not 15 ARNs: the inline policy is capped at 10240 characters. Matches the 15 connection managed policies
+  # (Zenith*-live); the bootstrap policies do not end in the suffix.
+  connection_protected_policies = ["${local.iam}:policy/Zenith*${var.connection_name_suffix}"]
 }
 resource "aws_iam_openid_connect_provider" "github" {
   count          = var.github_oidc_provider_arn == "" ? 1 : 0
@@ -165,7 +173,22 @@ locals {
     # Option A (owner decision 2026-10-26): each live run rewrites the ExternalId in the trust policy of these two connection roles, then assumes them.
     # AWS cannot constrain trust-document content, so the automatic deny-all spend stop (aws_budgets_budget_action.spend_stop) is the compensating control.
     { Sid = "ConnectionAssume", Effect = "Allow", Action = ["sts:AssumeRole", "sts:TagSession"], Resource = local.connection_role_arns },
-    { Sid = "ConnectionTrustRewrite", Effect = "Allow", Action = ["iam:GetRole", "iam:UpdateAssumeRolePolicy"], Resource = local.connection_role_arns }
+    { Sid = "ConnectionTrustRewrite", Effect = "Allow", Action = ["iam:GetRole", "iam:UpdateAssumeRolePolicy"], Resource = local.connection_role_arns },
+    # MIX-03 cleanup (owner decision 2026-10-26): deletes only what a PROD-MIX-03 run created. Names match zenith-* and the
+    # product tag zenith:managed=true (written by the connection deploy role) is required. tag:GetResources is already
+    # granted by UnscopableInventory. Lambda does not copy function tags onto /aws/lambda/<name>, so log groups are name-scoped only.
+    { Sid = "MixCleanupLambda", Effect = "Allow", Action = ["lambda:GetFunctionConfiguration", "lambda:DeleteFunction"], Resource = "${local.base}:lambda:${var.region}:${var.account_id}:function:zenith-*", Condition = local.managed_tag },
+    { Sid = "MixCleanupLogGroup", Effect = "Allow", Action = ["logs:DeleteLogGroup"], Resource = "${local.base}:logs:${var.region}:${var.account_id}:log-group:/aws/lambda/zenith-*" },
+    # IAM ARN matching is case-sensitive: the bootstrap and connection roles are capitalised (Zenith*) and do not match zenith-*.
+    { Sid = "MixCleanupRole", Effect = "Allow", Action = ["iam:GetRole", "iam:ListAttachedRolePolicies", "iam:ListRolePolicies", "iam:DeleteRolePolicy", "iam:DeleteRole"], Resource = local.zenith_role_glob, Condition = local.managed_tag },
+    { Sid = "MixCleanupRolePolicyDetach", Effect = "Allow", Action = ["iam:DetachRolePolicy"], Resource = local.zenith_role_glob, Condition = merge(local.managed_tag, { ArnLike = { "iam:PolicyARN" = "${local.iam}:policy/zenith-*" } }) },
+    # Name-only: S3 bucket-level tag conditions (aws:ResourceTag, s3:ResourceTag) are not confirmed for DeleteBucket and
+    # depend on per-bucket ABAC. The MIX-03 teardown checks zenith:managed and zenith:environment on each bucket first.
+    { Sid = "MixCleanupBucket", Effect = "Allow", Action = ["s3:ListBucket", "s3:GetBucketTagging", "s3:DeleteBucket"], Resource = "${local.base}:s3:::zenith-*" },
+    # Explicit denies override every allow above (defense in depth).
+    { Sid = "DenyStateBucketDelete", Effect = "Deny", Action = ["s3:DeleteBucket", "s3:DeleteObject"], Resource = ["${local.base}:s3:::zenith-state-*", "${local.base}:s3:::zenith-state-*/*"] },
+    { Sid = "DenyConnectionRoleDelete", Effect = "Deny", Action = ["iam:DeleteRole", "iam:DeleteRolePolicy", "iam:DetachRolePolicy", "iam:DeleteRolePermissionsBoundary"], Resource = local.connection_protected_roles },
+    { Sid = "DenyConnectionPolicyDelete", Effect = "Deny", Action = ["iam:DeletePolicy", "iam:DeletePolicyVersion"], Resource = local.connection_protected_policies }
   ]
   runner_policy = jsonencode({ Version = "2012-10-17", Statement = local.statements })
 }
@@ -173,7 +196,8 @@ resource "aws_iam_policy" "runner_boundary" {
   name = "ZenithLiveRunnerBoundary"
   # Action ceiling only; the role's identity policy below further narrows every
   # operation to its supported resources/conditions. No policy edit/attach grant.
-  policy = jsonencode({ Version = "2012-10-17", Statement = [{ Effect = "Allow", Action = distinct(flatten([for statement in local.statements : statement.Action])), Resource = "*" }] })
+  # Deny statements are excluded so the ceiling lists only granted actions.
+  policy = jsonencode({ Version = "2012-10-17", Statement = [{ Effect = "Allow", Action = distinct(flatten([for statement in local.statements : statement.Action if statement.Effect == "Allow"])), Resource = "*" }] })
 }
 resource "aws_iam_role_policy" "runner" {
   name   = "LiveAcceptance"

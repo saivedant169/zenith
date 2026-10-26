@@ -1349,6 +1349,9 @@ Resources:
               - ec2:CreateVpcEndpoint
               - ec2:CreateLaunchTemplate
               - ec2:AllocateAddress
+              # Tagged security-group rules are created by Authorize* with request tags.
+              - ec2:AuthorizeSecurityGroupIngress
+              - ec2:AuthorizeSecurityGroupEgress
             Resource: !Sub "arn:${AWS::Partition}:ec2:*:${AWS::AccountId}:*/*"
             Condition:
               StringEquals: { "aws:RequestTag/zenith:managed": "true" }
@@ -1374,9 +1377,19 @@ Resources:
                   - CreateVolume
                   - AllocateAddress
                   - RunInstances
+                  - AuthorizeSecurityGroupIngress
+                  - AuthorizeSecurityGroupEgress
           - Sid: Ec2ModifyTaggedResources
             Effect: Allow
             Action:
+              # Creating a child also authorizes against its existing parents (VPC, subnet, group, route table,
+              # address), which carry their tags on the resource, not in the request.
+              - ec2:CreateSubnet
+              - ec2:CreateSecurityGroup
+              - ec2:CreateRouteTable
+              - ec2:CreateNetworkAcl
+              - ec2:CreateNatGateway
+              - ec2:CreateVpcEndpoint
               - ec2:DeleteVpc
               - ec2:ModifyVpcAttribute
               - ec2:DeleteSubnet

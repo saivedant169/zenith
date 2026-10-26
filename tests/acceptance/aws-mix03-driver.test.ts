@@ -18,7 +18,7 @@ const ENV = { ZENITH_DEFAULT_STACK_DIRECTORY: "/unused-in-tests", ZENITH_DEFAULT
 const EXTERNAL_ID = `zenith-${"a".repeat(32)}`;
 const STATE_BUCKET = "zenith-state-123456789012-ap-south-1-live";
 const ARTIFACT = { bucket: STATE_BUCKET, key: "mix03/consumer.zip", versionId: "3HL4kqtJlcpXroDTDmJ", sha256: "c".repeat(64), sourceDigest: "d".repeat(64) };
-const CONNECTION = { accountId: "123456789012", region: "ap-south-1", stateBucket: STATE_BUCKET, observeRoleArn: "arn:aws:iam::123456789012:role/Observe", deployRoleArn: "arn:aws:iam::123456789012:role/Deploy" };
+const CONNECTION = { accountId: "123456789012", region: "ap-south-1", stateBucket: STATE_BUCKET, bootstrapNameSuffix: "-live", observeRoleArn: "arn:aws:iam::123456789012:role/Observe", deployRoleArn: "arn:aws:iam::123456789012:role/Deploy" };
 
 interface Sent { page: Page; endpoint: string; method: string; body: unknown; workspaceId?: string }
 type Reply = { status: number; data: unknown };
@@ -110,7 +110,7 @@ describe("connection", () => {
       page: OWNER, endpoint: "/api/actions/connection.createAws", method: "POST", workspaceId: "ws-1",
       body: expect.objectContaining({
         mode: "execute", scope: {},
-        input: { label: "PROD-MIX-03 live", region: "ap-south-1", accountId: "123456789012", stateBucket: STATE_BUCKET, observeRoleArn: "arn:aws:iam::123456789012:role/Observe", deployRoleArn: "arn:aws:iam::123456789012:role/Deploy", mode: "aws_assume_role" },
+        input: { label: "PROD-MIX-03 live", region: "ap-south-1", accountId: "123456789012", stateBucket: STATE_BUCKET, bootstrapNameSuffix: "-live", observeRoleArn: "arn:aws:iam::123456789012:role/Observe", deployRoleArn: "arn:aws:iam::123456789012:role/Deploy", mode: "aws_assume_role" },
       }),
     }]);
   });

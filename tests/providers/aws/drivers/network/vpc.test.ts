@@ -78,12 +78,11 @@ describe("aws:vpc compile", () => {
     expect(Object.keys(vpcDriver.compile!(node, compileCtx(graph)).resource!.aws_nat_gateway)).toEqual(["network_main_nat_a"]);
   });
 
-  it("puts the public route table on the internet gateway and locks down the default security group", () => {
+  it("puts the public route table on the internet gateway and leaves the untagged default security group unmanaged", () => {
     const f = compile("per_az");
     expect(f.resource!.aws_route.network_main_public_igw).toMatchObject({ gateway_id: "${aws_internet_gateway.network_main_igw.id}", destination_cidr_block: "0.0.0.0/0" });
-    const dsg = f.resource!.aws_default_security_group.network_main_default_sg;
-    expect(dsg).not.toHaveProperty("ingress");
-    expect(dsg).not.toHaveProperty("egress");
+    // The deploy role may only modify tagged groups; AWS creates the default group untagged.
+    expect(f.resource!.aws_default_security_group).toBeUndefined();
   });
 
   it("creates a gateway S3 endpoint on the private route tables only", () => {

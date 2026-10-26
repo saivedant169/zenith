@@ -32,7 +32,6 @@ export const COMPILER_RESOURCE_ACTIONS: Readonly<Record<string, readonly string[
   aws_db_instance: ["rds:CreateDBInstance", "rds:ModifyDBInstance", "rds:DeleteDBInstance", "rds:CreateDBSnapshot", "rds:AddTagsToResource", "rds:RemoveTagsFromResource", SLR, "kms:CreateGrant"],
   aws_db_parameter_group: ["rds:CreateDBParameterGroup", "rds:ModifyDBParameterGroup", "rds:DeleteDBParameterGroup", "rds:AddTagsToResource"],
   aws_db_subnet_group: ["rds:CreateDBSubnetGroup", "rds:ModifyDBSubnetGroup", "rds:DeleteDBSubnetGroup", "rds:AddTagsToResource"],
-  aws_default_security_group: ["ec2:RevokeSecurityGroupIngress", "ec2:RevokeSecurityGroupEgress", "ec2:AuthorizeSecurityGroupIngress", "ec2:AuthorizeSecurityGroupEgress", "ec2:CreateTags"],
   aws_ebs_volume: ["ec2:CreateVolume", "ec2:DeleteVolume", "ec2:ModifyVolume", "ec2:CreateTags", "kms:CreateGrant"],
   aws_ecr_lifecycle_policy: ["ecr:PutLifecyclePolicy", "ecr:DeleteLifecyclePolicy"],
   aws_ecr_repository: ["ecr:CreateRepository", "ecr:DeleteRepository", "ecr:PutImageScanningConfiguration", "ecr:PutImageTagMutability", "ecr:TagResource", "ecr:UntagResource"],

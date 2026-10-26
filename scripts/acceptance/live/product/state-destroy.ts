@@ -91,8 +91,11 @@ export function readState(input: StateDestroyInput): Promise<unknown> {
   return withState(input, async ({ state }) => state);
 }
 
-/** Destroys everything in the recorded state, then proves the state is empty. Throws a fixed message on any failure. */
-export function destroyFromState(input: StateDestroyInput): Promise<{ destroyed: number }> {
+/**
+ * Destroys everything in the recorded state, then proves the state is empty. Throws a fixed message on any failure.
+ * Returns the ARNs of the ECS clusters it destroyed: those linger INACTIVE in the tag inventory.
+ */
+export function destroyFromState(input: StateDestroyInput): Promise<{ destroyed: number; ecsClusters: string[] }> {
   return withState(input, async ({ run, write, state }) => {
     const count = Array.isArray((state as { resources?: unknown })?.resources) ? ((state as { resources: unknown[] }).resources).length : 0;
     write(providerBlocks(state, input.region));
@@ -105,7 +108,10 @@ export function destroyFromState(input: StateDestroyInput): Promise<{ destroyed:
     }
     const left = Array.isArray((after as { resources?: unknown })?.resources) ? ((after as { resources: unknown[] }).resources).length : 0;
     if (left !== 0) throw new Error(`${left} resource(s) remain in the recorded state after cleanup.`);
-    return { destroyed: count };
+    const resources = (state as { resources?: { type?: unknown; instances?: { attributes?: { arn?: unknown } }[] }[] })?.resources;
+    const ecsClusters = (Array.isArray(resources) ? resources : []).filter(r => r.type === "aws_ecs_cluster")
+      .flatMap(r => (Array.isArray(r.instances) ? r.instances : []).map(i => i.attributes?.arn)).filter((a): a is string => typeof a === "string");
+    return { destroyed: count, ecsClusters };
   });
 }
 

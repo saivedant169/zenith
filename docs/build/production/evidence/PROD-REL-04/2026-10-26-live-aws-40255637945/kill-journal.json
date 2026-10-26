@@ -1,0 +1,616 @@
+{
+  "schema": 1,
+  "provenance": "live_sandbox",
+  "plan": {
+    "schema": 1,
+    "settings": {
+      "accountId": "361646636162",
+      "region": "ap-south-1",
+      "runId": "zlive-202610260143-3816",
+      "durationMinutes": 15,
+      "dbSubnetGroup": "zenith-live-sandbox",
+      "dbSecurityGroup": "sg-05b221ec729c55d3e",
+      "workloadBoundaryArn": "arn:aws:iam::361646636162:policy/ZenithLiveWorkloadBoundary",
+      "scenario": "rel-04"
+    },
+    "tags": {
+      "zenith:live-run": "zlive-202610260143-3816",
+      "zenith:managed": "true",
+      "zenith:purpose": "live-acceptance"
+    },
+    "fixtures": [
+      {
+        "family": "s3",
+        "dependsOn": [],
+        "setup": [
+          {
+            "id": "s3-create",
+            "service": "s3",
+            "command": "CreateBucket",
+            "action": "s3:CreateBucket",
+            "resource": "arn:aws:s3:::zenith-zlive-202610260143-3816-361646636162",
+            "input": {
+              "Bucket": "zenith-zlive-202610260143-3816-361646636162",
+              "CreateBucketConfiguration": {
+                "LocationConstraint": "ap-south-1"
+              }
+            },
+            "maximumCalls": 1
+          },
+          {
+            "id": "s3-tag",
+            "service": "s3",
+            "command": "PutBucketTagging",
+            "action": "s3:PutBucketTagging",
+            "resource": "arn:aws:s3:::zenith-zlive-202610260143-3816-361646636162",
+            "input": {
+              "Bucket": "zenith-zlive-202610260143-3816-361646636162",
+              "Tagging": {
+                "TagSet": [
+                  {
+                    "Key": "zenith:live-run",
+                    "Value": "zlive-202610260143-3816"
+                  },
+                  {
+                    "Key": "zenith:managed",
+                    "Value": "true"
+                  },
+                  {
+                    "Key": "zenith:purpose",
+                    "Value": "live-acceptance"
+                  }
+                ]
+              }
+            },
+            "maximumCalls": 2
+          },
+          {
+            "id": "s3-private",
+            "service": "s3",
+            "command": "PutPublicAccessBlock",
+            "action": "s3:PutBucketPublicAccessBlock",
+            "resource": "arn:aws:s3:::zenith-zlive-202610260143-3816-361646636162",
+            "input": {
+              "Bucket": "zenith-zlive-202610260143-3816-361646636162",
+              "PublicAccessBlockConfiguration": {
+                "BlockPublicAcls": true,
+                "IgnorePublicAcls": true,
+                "BlockPublicPolicy": true,
+                "RestrictPublicBuckets": true
+              }
+            },
+            "maximumCalls": 1
+          },
+          {
+            "id": "s3-encrypt",
+            "service": "s3",
+            "command": "PutBucketEncryption",
+            "action": "s3:PutEncryptionConfiguration",
+            "resource": "arn:aws:s3:::zenith-zlive-202610260143-3816-361646636162",
+            "input": {
+              "Bucket": "zenith-zlive-202610260143-3816-361646636162",
+              "ServerSideEncryptionConfiguration": {
+                "Rules": [
+                  {
+                    "ApplyServerSideEncryptionByDefault": {
+                      "SSEAlgorithm": "AES256"
+                    }
+                  }
+                ]
+              }
+            },
+            "maximumCalls": 1
+          },
+          {
+            "id": "s3-put",
+            "service": "s3",
+            "command": "PutObject",
+            "action": "s3:PutObject",
+            "resource": "arn:aws:s3:::zenith-zlive-202610260143-3816-361646636162/probe",
+            "input": {
+              "Bucket": "zenith-zlive-202610260143-3816-361646636162",
+              "Key": "probe",
+              "Body": "zlive-202610260143-3816",
+              "ServerSideEncryption": "AES256"
+            },
+            "maximumCalls": 1
+          }
+        ],
+        "observe": [
+          {
+            "id": "s3-read",
+            "service": "s3",
+            "command": "GetObject",
+            "action": "s3:GetObject",
+            "resource": "arn:aws:s3:::zenith-zlive-202610260143-3816-361646636162/probe",
+            "input": {
+              "Bucket": "zenith-zlive-202610260143-3816-361646636162",
+              "Key": "probe"
+            },
+            "maximumCalls": 1
+          },
+          {
+            "id": "s3-read-private",
+            "service": "s3",
+            "command": "GetPublicAccessBlock",
+            "action": "s3:GetBucketPublicAccessBlock",
+            "resource": "arn:aws:s3:::zenith-zlive-202610260143-3816-361646636162",
+            "input": {
+              "Bucket": "zenith-zlive-202610260143-3816-361646636162"
+            },
+            "maximumCalls": 1
+          }
+        ],
+        "ownership": {
+          "id": "s3-ownership",
+          "service": "s3",
+          "command": "GetBucketTagging",
+          "action": "s3:GetBucketTagging",
+          "resource": "arn:aws:s3:::zenith-zlive-202610260143-3816-361646636162",
+          "input": {
+            "Bucket": "zenith-zlive-202610260143-3816-361646636162"
+          },
+          "maximumCalls": 4
+        },
+        "teardown": [
+          {
+            "id": "s3-delete-object",
+            "service": "s3",
+            "command": "DeleteObject",
+            "action": "s3:DeleteObject",
+            "resource": "arn:aws:s3:::zenith-zlive-202610260143-3816-361646636162/probe",
+            "input": {
+              "Bucket": "zenith-zlive-202610260143-3816-361646636162",
+              "Key": "probe"
+            },
+            "maximumCalls": 1
+          },
+          {
+            "id": "s3-delete",
+            "service": "s3",
+            "command": "DeleteBucket",
+            "action": "s3:DeleteBucket",
+            "resource": "arn:aws:s3:::zenith-zlive-202610260143-3816-361646636162",
+            "input": {
+              "Bucket": "zenith-zlive-202610260143-3816-361646636162"
+            },
+            "maximumCalls": 4
+          }
+        ],
+        "leak": [
+          {
+            "id": "s3-leak",
+            "service": "s3",
+            "command": "HeadBucket",
+            "action": "s3:ListBucket",
+            "resource": "arn:aws:s3:::zenith-zlive-202610260143-3816-361646636162",
+            "input": {
+              "Bucket": "zenith-zlive-202610260143-3816-361646636162"
+            },
+            "maximumCalls": 4
+          }
+        ]
+      }
+    ],
+    "preflight": [
+      {
+        "id": "identity",
+        "service": "sts",
+        "command": "GetCallerIdentity",
+        "action": "sts:GetCallerIdentity",
+        "resource": "*",
+        "input": {},
+        "maximumCalls": 4
+      },
+      {
+        "id": "marker",
+        "service": "ssm",
+        "command": "GetParameter",
+        "action": "ssm:GetParameter",
+        "resource": "arn:aws:ssm:ap-south-1:361646636162:parameter/zenith/live-sandbox",
+        "input": {
+          "Name": "/zenith/live-sandbox",
+          "WithDecryption": false
+        },
+        "maximumCalls": 4
+      },
+      {
+        "id": "run-claim",
+        "service": "ssm",
+        "command": "PutParameter",
+        "action": "ssm:PutParameter",
+        "resource": "arn:aws:ssm:ap-south-1:361646636162:parameter/zenith/live-runs/zlive-202610260143-3816",
+        "input": {
+          "Name": "/zenith/live-runs/zlive-202610260143-3816",
+          "Type": "String",
+          "Tier": "Standard",
+          "Overwrite": false,
+          "Value": "zlive-202610260143-3816",
+          "Tags": [
+            "[Circular]",
+            "[Circular]",
+            {
+              "Key": "zenith:purpose",
+              "Value": "live-acceptance-receipt"
+            }
+          ]
+        },
+        "maximumCalls": 1
+      },
+      {
+        "id": "run-claim-read",
+        "service": "ssm",
+        "command": "GetParameter",
+        "action": "ssm:GetParameter",
+        "resource": "arn:aws:ssm:ap-south-1:361646636162:parameter/zenith/live-runs/zlive-202610260143-3816",
+        "input": {
+          "Name": "/zenith/live-runs/zlive-202610260143-3816",
+          "WithDecryption": false
+        },
+        "maximumCalls": 4
+      },
+      {
+        "id": "prior-leaks",
+        "service": "tag",
+        "command": "GetResources",
+        "action": "tag:GetResources",
+        "resource": "*",
+        "input": {
+          "TagFilters": [
+            {
+              "Key": "zenith:purpose",
+              "Values": [
+                "live-acceptance"
+              ]
+            }
+          ],
+          "ResourcesPerPage": 100
+        },
+        "maximumCalls": 100
+      },
+      {
+        "id": "prior-leaks-ecs",
+        "service": "ecs",
+        "command": "DescribeClusters",
+        "action": "ecs:DescribeClusters",
+        "resource": "arn:aws:ecs:ap-south-1:361646636162:cluster/zenith-zlive-*-ecs",
+        "input": {
+          "clusters": []
+        },
+        "maximumCalls": 10
+      },
+      {
+        "id": "s3-preexist",
+        "service": "s3",
+        "command": "HeadBucket",
+        "action": "s3:ListBucket",
+        "resource": "arn:aws:s3:::zenith-zlive-202610260143-3816-361646636162",
+        "input": "[Circular]",
+        "maximumCalls": 1
+      }
+    ],
+    "estimate": {
+      "usd": 0.4,
+      "cleanupReserveUsd": 0.25,
+      "provisional": true,
+      "basis": "Conservative provisional USD ceiling for the PROD-REL-04 drill: one owned S3 bucket with one probe object, a SIGKILL and journal-only resume, a refused replay claim and two read-only readbacks; same S3 envelope as retention-s3, includes 0.25USD cleanup reserve. No RDS, ECS, DNS, IAM or Lambda cost. Owner must validate regional S3 rates."
+    },
+    "requirements": [
+      {
+        "id": "PROD-MIX-01",
+        "acceptance": [
+          "Partition graph by provider/account/region/backend; bind separate authorized connections before replacing existing cross-provider refusal."
+        ],
+        "fixtures": [
+          "lambda",
+          "rds",
+          "iam"
+        ],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-MIX-02",
+        "acceptance": [
+          "Dependency-ordered child workflows have immutable subplans, parent approval/evidence and durable receipts; stable resource addresses survive resume."
+        ],
+        "fixtures": [
+          "lambda",
+          "rds"
+        ],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-MIX-03",
+        "acceptance": [
+          "Typed outputs/secret references preserve provenance and scope; newly materialized effects require review unless precisely preauthorized."
+        ],
+        "fixtures": [
+          "lambda",
+          "s3",
+          "iam"
+        ],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-MIX-04",
+        "acceptance": [
+          "Cycles, partial success, timeout, expiry, cancellation, outage, drift/migration/teardown order fail safely; no fictional transaction or destructive automatic compensation."
+        ],
+        "fixtures": [
+          "lambda",
+          "rds",
+          "dns"
+        ],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-MIX-05",
+        "acceptance": [
+          "Prove cross-provider network/DNS/TLS/identity/secret bindings, overlap handling and private connectivity or explicitly approved protected endpoints; databases never silently public."
+        ],
+        "fixtures": [
+          "rds",
+          "dns",
+          "iam"
+        ],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-MIX-06",
+        "acceptance": [
+          "GCP compute, Azure PostgreSQL and AWS functions or justified equivalent serve actual application traffic with independently checked readback."
+        ],
+        "fixtures": [
+          "lambda",
+          "rds"
+        ],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-MIX-07",
+        "acceptance": [
+          "Transfer/latency/residency costs included; one-provider failure recovery demonstrated; full acceptance harness exists even when live accounts unavailable."
+        ],
+        "fixtures": [
+          "lambda",
+          "rds"
+        ],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-MAN-01",
+        "acceptance": [
+          "Default Zenith session opener/substrate/source build/release composition operates without manually injected test ports."
+        ],
+        "fixtures": [
+          "ecs",
+          "iam"
+        ],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-MAN-02",
+        "acceptance": [
+          "Supported registry/gateway/DNS/TLS/secret delivery/storage/managed database integrations operate; established managed DB services reused."
+        ],
+        "fixtures": [
+          "ecs",
+          "dns",
+          "s3",
+          "rds"
+        ],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-MAN-03",
+        "acceptance": [
+          "Tenant object storage, domain ownership proof/renewal, DB export/restore, autoscaling and promised services function."
+        ],
+        "fixtures": [
+          "s3",
+          "dns",
+          "rds"
+        ],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-MAN-04",
+        "acceptance": [
+          "Two tenants prove route/storage/CNI/metadata/FQDN-egress/pod security/quota/operator separation; sandboxed or stronger runtime evaluated against threat model."
+        ],
+        "fixtures": [
+          "ecs",
+          "iam",
+          "s3"
+        ],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-MAN-05",
+        "acceptance": [
+          "Noisy-neighbor/resource-exhaustion tests prove bounded tenant impact; namespaces alone do not establish isolation."
+        ],
+        "fixtures": [
+          "ecs"
+        ],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-MAN-06",
+        "acceptance": [
+          "Metering/quotas/plan assignment/invoice/payment-webhook reconciliation and safe suspension/export operate; BYOC/selfhosted do not require Zenith billing."
+        ],
+        "fixtures": [],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-MAN-07",
+        "acceptance": [
+          "Pricing/terms/payment accounts and destructive retention await accountable decisions; nonpayment never silently destroys data."
+        ],
+        "fixtures": [],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-OPS-01",
+        "acceptance": [
+          "Measurable availability/latency/capacity/RPO/RTO objectives defined and tested, with provisional targets clearly separated from accountable approval."
+        ],
+        "fixtures": [
+          "lambda",
+          "rds"
+        ],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-OPS-02",
+        "acceptance": [
+          "Backpressure/fair tenant scheduling/bounded queues/maintenance controls and correlated OpenTelemetry dashboards/alerts; workloads keep serving during control-plane outage."
+        ],
+        "fixtures": [
+          "ecs",
+          "lambda"
+        ],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-OPS-03",
+        "acceptance": [
+          "API/worker/runner upgrades with in-flight histories and schema/protocol compatibility/rollback pass."
+        ],
+        "fixtures": [
+          "ecs",
+          "lambda"
+        ],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-OPS-04",
+        "acceptance": [
+          "Restore product/platform/agent/hosted/source stores, Temporal/artifacts/customer state and keys; consumed approvals/mutations cannot resurrect, controlled epoch reconciliation/reopen required."
+        ],
+        "fixtures": [
+          "s3",
+          "rds"
+        ],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-OPS-05",
+        "acceptance": [
+          "Production signing and vault/result/Temporal encryption rotation retain decrypt-only histories with separated purposes and safe operator codec diagnostics."
+        ],
+        "fixtures": [
+          "iam"
+        ],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-OPS-06",
+        "acceptance": [
+          "Protect unavoidable raw plans/state, minimize persistence and test leaks; no claim redaction catches every unknown secret."
+        ],
+        "fixtures": [
+          "s3",
+          "rds"
+        ],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-OPS-07",
+        "acceptance": [
+          "Archive/holds/bounded pruning preserve active/audit/receipts/replay prevention; implementation and dry-run allowed, deletion awaits approved policy."
+        ],
+        "fixtures": [
+          "s3"
+        ],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-OPS-08",
+        "acceptance": [
+          "Tenant/role/stale-approval/SSRF/rebinding/prompt injection/archive/build/exfiltration/forgery/escalation/integration compromise tested independently."
+        ],
+        "fixtures": [
+          "iam",
+          "ecs"
+        ],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-OPS-09",
+        "acceptance": [
+          "Pinned verified dependencies/SBOM/provenance/signed releases/updater verification/vulnerability triage/tamper-evident audit export ship; no unperformed certification claim."
+        ],
+        "fixtures": [
+          "s3",
+          "iam"
+        ],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-REL-01",
+        "acceptance": [
+          "Clean install/private source/plan approval/DNS-TLS/stateful traffic/update-rollback/machine schedules/drift-repair/revocation/crash-partition-writers/key rotation/upgrade/restore/mixed traffic/two tenants/export/teardown independently verified."
+        ],
+        "fixtures": [
+          "s3",
+          "iam",
+          "lambda",
+          "ecs",
+          "rds",
+          "dns"
+        ],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-REL-02",
+        "acceptance": [
+          "Every requirement maps implementation/tests/environment/commit/evidence and deployment/upgrade/recovery instructions; skipped/unperformed items remain visible."
+        ],
+        "fixtures": [],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-REL-03",
+        "acceptance": [
+          "Implementation complete, sandbox verified, pilot ready and production approved are separate; production requires relevant live/operational evidence and accountable signoff."
+        ],
+        "fixtures": [],
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      },
+      {
+        "id": "PROD-REL-04",
+        "acceptance": [
+          "Approved budgets/disposable resources only; no unrelated services/purchases/terms/production/secret bypass/protected branches/history rewrites; consolidate decisions and checkpoint exact next commands without unattended-work claims."
+        ],
+        "fixtures": "[Circular]",
+        "join": "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement."
+      }
+    ],
+    "sha256": "ab223fa3e02a8a81cd2e2a7f2c95249d963257ca2343f1a7971af375e23ed633"
+  },
+  "permissionSha256": "7acbcf9d270bd4ec3fe42931d1363798a07dde217ece2ca4fc57816e40b19baf",
+  "commit": "d387c6aa921fd4f5f51575415bf88c3f870d74a0",
+  "startedAt": "2026-10-26T01:44:38.405Z",
+  "attempted": [
+    "s3"
+  ],
+  "responses": {
+    "s3-create": {
+      "Bucket": "zenith-zlive-202610260143-3816-361646636162"
+    }
+  },
+  "checks": [],
+  "counts": {
+    "identity": 1,
+    "marker": 1,
+    "prior-leaks": 1,
+    "prior-leaks-ecs": 1,
+    "s3-preexist": 1,
+    "run-claim": 1,
+    "run-claim-read": 1,
+    "s3-create": 1
+  },
+  "closed": false
+}

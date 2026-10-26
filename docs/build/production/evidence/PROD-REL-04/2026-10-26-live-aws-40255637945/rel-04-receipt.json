@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "scenario": "rel-04",
+  "runId": "zlive-202610260143-3816",
+  "commit": "d387c6aa921fd4f5f51575415bf88c3f870d74a0",
+  "planSha256": "ab223fa3e02a8a81cd2e2a7f2c95249d963257ca2343f1a7971af375e23ed633",
+  "permissionSha256": "7acbcf9d270bd4ec3fe42931d1363798a07dde217ece2ca4fc57816e40b19baf",
+  "steps": {
+    "A": {
+      "passed": true,
+      "reason": "all assertions hold"
+    },
+    "B": {
+      "passed": true,
+      "reason": "all assertions hold"
+    },
+    "C": {
+      "passed": true,
+      "reason": "all assertions hold"
+    },
+    "D": {
+      "passed": true,
+      "reason": "all assertions hold",
+      "headBucket": "NotFound",
+      "ssmValueMatchesRunId": true
+    }
+  },
+  "verdict": "passed",
+  "notes": [
+    "fresh budget file in C deliberately bypasses the local book",
+    "A SIGKILLs the harness process group after the s3 create intent; the kill may land before or after the provider accepted CreateBucket, and resume handles both sides (kill timing races the s3-tag step)",
+    "D reads use the planned HeadBucket and SSM GetParameter call shapes through the native SDK transport, read-only, outside the journal counters",
+    "No product port is joined: PROD-REL-04 product checks stay pending, so this drill never makes the packet verdict passed"
+  ]
+}

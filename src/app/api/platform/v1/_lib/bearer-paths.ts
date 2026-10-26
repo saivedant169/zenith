@@ -114,6 +114,7 @@ export const PLATFORM_PATHS: readonly {
   { path: new RegExp(`^${ROOT}/(?:runners|machines)/register$`), methods: { POST: "agent-signed" } },
   { path: new RegExp(`^${ROOT}/(?:runners|machines)/${AGENT_ID}/(?:poll|heartbeat)$`), methods: { POST: "agent-signed" } },
   { path: new RegExp(`^${ROOT}/(?:runners|machines)/${AGENT_ID}/jobs/${AGENT_ID}/(?:result|logs)$`), methods: { POST: "agent-signed" } },
+  { path: new RegExp(`^${ROOT}/(?:runners|machines)/${AGENT_ID}/jobs/${AGENT_ID}/grant$`), methods: { GET: "agent-signed" } },
 ];
 
 export function platformAccess(pathname: string, method: string): PlatformAccess | undefined {

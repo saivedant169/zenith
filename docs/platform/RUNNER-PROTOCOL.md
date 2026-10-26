@@ -127,6 +127,11 @@ Logs (optional, streamed): `POST …/jobs/{jti}/logs` with
 `{"seq": n, "lines": [{"ts":"…","stream":"stdout|stderr|info","line":"…"}]}`,
 ≤ 64 KiB per call, redacted by the runner for credential patterns.
 
+Grant check (runner, before each step of a multi-step job): `GET …/jobs/{jti}/grant`
+(signed, no body). `200 {"live": true, …}` when the grant is active or consumed;
+`403 grant_not_active` when it is revoked, expired or unknown. The runner ends the job
+without running the step on any answer other than `200` (fail closed).
+
 The control plane accepts exactly one result per job (first writer wins,
 conditional update); a duplicate returns `409 already_settled`.
 

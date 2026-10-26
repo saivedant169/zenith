@@ -7,6 +7,7 @@ import (
 	"io"
 	"log/slog"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -23,6 +24,30 @@ type stubProcessor struct {
 	started    chan string
 	release    chan struct{}
 	verified   atomic.Int32
+	// afterStep runs after each completed step of a "steps" job (set before the agent starts).
+	afterStep func(jti string, step int)
+	mu        sync.Mutex
+	steps     map[string][]int
+}
+
+// recordStep notes that a "steps" job ran a step, then runs the test hook.
+func (p *stubProcessor) recordStep(jti string, step int) {
+	p.mu.Lock()
+	if p.steps == nil {
+		p.steps = map[string][]int{}
+	}
+	p.steps[jti] = append(p.steps[jti], step)
+	p.mu.Unlock()
+	if p.afterStep != nil {
+		p.afterStep(jti, step)
+	}
+}
+
+// stepsRun returns the steps a "steps" job actually ran, in order.
+func (p *stubProcessor) stepsRun(jti string) []int {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return append([]int(nil), p.steps[jti]...)
 }
 
 func newStub() *stubProcessor {
@@ -77,6 +102,13 @@ func (j *stubJob) Run(ctx context.Context, logs agent.LogSink) agent.ResultBody 
 	now := time.Now().UTC().Format(time.RFC3339Nano)
 	ok := agent.ResultBody{Status: agent.StatusSucceeded, StartedAt: now, FinishedAt: now, Result: map[string]any{"id": j.id}}
 	switch {
+	case j.behavior == "steps":
+		for step := 1; step <= 2; step++ {
+			if err := agent.CheckStep(ctx); err != nil {
+				return agent.ResultBody{Status: agent.StatusRejected, StartedAt: now, FinishedAt: now, Error: err.Error(), Result: map[string]any{"reason": "grant_not_active"}}
+			}
+			j.p.recordStep(j.id, step)
+		}
 	case j.behavior == "panic":
 		panic("boom with secret " + inertAccessKey())
 	case j.behavior == "bigresult":
@@ -219,6 +251,53 @@ func TestAgentRunsJobsAndPostsSignedResults(t *testing.T) {
 		t.Fatalf("%v", hb)
 	}
 	r.noBadRequests() // every request signed, every nonce unique, skew within bounds
+}
+
+// A grant recalled between step 1 and step 2 stops the job before step 2 runs; the job ends rejected.
+func TestRecalledGrantBetweenStepsStopsTheJob(t *testing.T) {
+	r := newRig(t, nil)
+	r.stub.afterStep = func(_ string, step int) {
+		if step == 1 {
+			r.fake.RecallGrant()
+		}
+	}
+	r.start(time.Second)
+	r.fake.Enqueue("job_recall|steps")
+	res, ok := r.fake.WaitResult("job_recall", 5*time.Second)
+	if !ok {
+		t.Fatal("no result for the recalled job")
+	}
+	if res.Body["status"] != "rejected" || res.Body["result"].(map[string]any)["reason"] != "grant_not_active" {
+		t.Fatalf("a recalled grant must end the job refused: %v", res.Body)
+	}
+	if got := r.stub.stepsRun("job_recall"); len(got) != 1 || got[0] != 1 {
+		t.Fatalf("only step 1 may run once the grant is recalled, ran %v", got)
+	}
+	if n := r.fake.GrantChecks(); n != 2 {
+		t.Fatalf("the grant must be re-checked before each step: %d checks for two steps", n)
+	}
+	r.noBadRequests()
+}
+
+// A live grant lets every step run, with a liveness check before each one.
+func TestLiveGrantRunsEveryStepWithACheckBeforeEach(t *testing.T) {
+	r := newRig(t, nil)
+	r.start(time.Second)
+	r.fake.Enqueue("job_live|steps")
+	res, ok := r.fake.WaitResult("job_live", 5*time.Second)
+	if !ok {
+		t.Fatal("no result for the live job")
+	}
+	if res.Body["status"] != "succeeded" {
+		t.Fatalf("a live grant must let the job succeed: %v", res.Body)
+	}
+	if got := r.stub.stepsRun("job_live"); len(got) != 2 || got[0] != 1 || got[1] != 2 {
+		t.Fatalf("every step must run, ran %v", got)
+	}
+	if n := r.fake.GrantChecks(); n != 2 {
+		t.Fatalf("expected a grant check before each of the two steps, got %d", n)
+	}
+	r.noBadRequests()
 }
 
 func TestUnparseableTokensReportNothingAndDoNotStopTheAgent(t *testing.T) {

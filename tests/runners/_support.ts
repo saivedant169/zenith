@@ -225,6 +225,10 @@ export class FakeAgent {
     const text = body === undefined ? undefined : typeof body === "string" ? body : JSON.stringify(body);
     return call(handler, this.request("POST", this.path(suffix), text, o), { id: this.id, ...params });
   }
+
+  async get(handler: unknown, suffix: string, o: SignOptions = {}, params: Record<string, string> = {}) {
+    return call(handler, this.request("GET", this.path(suffix), undefined, o), { id: this.id, ...params });
+  }
 }
 
 export interface RegisterOptions {

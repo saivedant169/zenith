@@ -7,16 +7,20 @@
  * in the browser. Every product call is a route or action the web app uses. The only non-product call is the test user
  * provisioning that operated.ts also does (the stack's Auth admin API creates two disposable users).
  *
- * Methods without a product route this driver can complete refuse before sending anything: proposeMixed,
- * issueOutputPreauthorization, useOutputOnce and changeProducer. The port then restores trust and cleans up.
+ * proposeMixed drives the real planner: a sandbox parent environment holds the producer and consumer manifest (its simulated
+ * deploy is the only parent revision the planner reads, and it creates no cloud resource), the producer and consumer are AWS
+ * children on the run's connection, and each child gets its own deploy operation. issueOutputPreauthorization reads the plan's
+ * digests and issues one precise use for the consumer. changeProducer and useOutputOnce refuse before sending anything: a
+ * consumer's output classification and the one-use reservation run only inside the consumer's own workflow, which no browser or
+ * REST route starts, and a changed producer needs a second parent revision that this driver does not yet propose.
  * Evidence names the approver as the automated test approver; no credential, token or recovery link is returned.
  *
- * Seams: `request` (same-origin fetch in the page), `approve`, `stepUp` and `session`. Unit tests inject all four.
+ * Seams: `request` (same-origin fetch in the page), `approve`, `stepUp`, `session` and `sleep`. Unit tests inject all of them.
  */
 import path from "node:path";
 import type { Browser, Page } from "@playwright/test";
 import type { EnvLike } from "../../config";
-import { refuse, Refusal, type Mix03Child, type Mix03Product, type Mix03Tenant } from "./mix-03";
+import { refuse, Refusal, type Mix03Artifact, type Mix03Child, type Mix03Product, type Mix03Tenant } from "./mix-03";
 import { readState } from "../../default-stack/runtime.mjs";
 import { browserRequest, ensure, localUrl, nonce, ok, operator, privateFile, until, action } from "../../../../tests/e2e/default/support.mjs";
 import { enrollOperator, totp } from "../../../../tests/e2e/default/mfa.mjs";
@@ -35,6 +39,8 @@ export interface Mix03DriverSeams {
   stepUp?: (page: Page, stack: RunnerStack, secret: string) => Promise<void>;
   /** A signed-in tenant and how to release it. Default: a headless browser run of the real sign-in and enrolment flow. */
   session?: () => Promise<{ tenant: TenantSession; close: () => Promise<void> }>;
+  /** Waits between readbacks of a deployment. Default: a real timer. */
+  sleep?: (ms: number) => Promise<void>;
 }
 
 /** The runner's stack, from the variables the workflow exported. Refuses unless the lean profile is the one running. */
@@ -106,6 +112,39 @@ const codeOf = (data: unknown): string | undefined => {
   return typeof code === "string" ? code : undefined;
 };
 const CHILD_STATUS: Record<string, string> = { pending: "pending", adopted: "pending", started: "running", succeeded: "succeeded", failed: "failed", uncertain: "uncertain", cancelled: "cancelled", blocked: "blocked" };
+const SAFE_CODE = /^[a-z_]{1,40}$/, ID = /^[A-Za-z0-9_.:-]{1,128}$/, HEX64 = /^[a-f0-9]{64}$/;
+/** Deployment readback bound: 60 polls, 5 seconds apart. */
+const DEPLOY_POLLS = { attempts: 60, intervalMs: 5_000 };
+/** One use, fifteen minutes: enough for one consumer materialization and short enough to lapse on its own. */
+const PREAUTH_LIFETIME_MS = 15 * 60_000;
+const PREAUTH_REASON = "PROD-MIX-03 one-use output preauthorization";
+
+/** The reference the run declares: the producer bucket's ARN output feeds the consumer function's bucket_arn input. */
+export const MIX03_REFERENCE = {
+  id: "bucket-arn",
+  producer: { address: "object_store/bucket", output: "arn", type: "resource_id" },
+  consumer: { address: "function/consumer", input: "bucket_arn", type: "resource_id" },
+} as const;
+
+/**
+ * The producer, the consumer and the one graph they form. The parent's revision is the graph (`graph`); each child's revision is
+ * its own part, and the planner's pins bind every node of the graph to exactly one of those two children.
+ */
+export function mix03Manifests(region: string, artifact: Mix03Artifact) {
+  const producer = { version: 2, resources: [{ id: "bucket", name: "bucket", kind: "object_store" }] };
+  const functions = [{
+    id: "consumer", name: "consumer", kind: "function", provider: "aws", region, runtime: "nodejs22.x", handler: "index.handler",
+    source: { type: "s3", bucket: artifact.bucket, key: artifact.key, version: artifact.versionId, sha256: artifact.sha256, sourceDigest: artifact.sourceDigest },
+    env: [{ key: "PRODUCER_BUCKET_ARN", value: "{{zenith.input.bucket_arn}}" }],
+  }];
+  const consumer = { version: 2, functions };
+  return { producer, consumer, graph: { version: 2, resources: producer.resources, functions } };
+}
+
+/** Readback ids and digests are checked before they are sent back to the product; a malformed one refuses with its own name. */
+const idOf =(value: unknown, what: string): string => typeof value === "string" && ID.test(value) ? value : refuse(`${what} was not returned by the product`);
+const hexOf = (value: unknown, what: string): string => typeof value === "string" && HEX64.test(value) ? value : refuse(`${what} is not a digest in the plan readback`);
+const reasonCode = (data: unknown): string => { const code = codeOf(data); return code && SAFE_CODE.test(code) ? code.replace(/_/g, " ") : "no code"; };
 
 /** The product's PROD-MIX-03 driver. Create it once per run; `close()` releases the browser after teardown. */
 export function browserMix03Product(env: EnvLike = process.env, seams: Mix03DriverSeams = {}): Mix03Product & { close(): Promise<void> } {
@@ -113,7 +152,10 @@ export function browserMix03Product(env: EnvLike = process.env, seams: Mix03Driv
   const stepUp = seams.stepUp ?? stepUpWithAuthenticator;
   const approve = seams.approve ?? ((session: TenantSession, operationId: string) => approveOperation({ stack: session.stack }, session, operationId));
   const openSession = seams.session ?? (() => openRealSession(env));
+  const sleep = seams.sleep ?? ((ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms)));
   const sessions = new Map<string, TenantSession>();
+  /** The two child operations per mixed plan, adopted in order by startMixed: { partitionId, operationId }. */
+  const adoptions = new Map<string, { partitionId: string; operationId: string }[]>();
   const closers: (() => Promise<void>)[] = [];
 
   const sessionOf = (tenant: Mix03Tenant): TenantSession => sessions.get(tenant.workspaceId) ?? refuse("no signed-in session exists for this tenant");
@@ -126,11 +168,29 @@ export function browserMix03Product(env: EnvLike = process.env, seams: Mix03Driv
     return call();
   };
   /** A product action: `{ ok, data }` from the action's own result. A refused action is `ok: false`, never a thrown error. */
-  const runAction = async (session: TenantSession, id: string, input: Record<string, unknown>): Promise<{ ok: boolean; data?: unknown }> => {
-    const response = await send(session, session.owner, `/api/actions/${id}`, { mode: "execute", input, scope: {}, idempotencyKey: nonce() });
+  const runAction = async (session: TenantSession, id: string, input: Record<string, unknown>, scope: Record<string, unknown> = {}): Promise<{ ok: boolean; data?: unknown }> => {
+    const response = await send(session, session.owner, `/api/actions/${id}`, { mode: "execute", input, scope, idempotencyKey: nonce() });
     ensure(response.status >= 200 && response.status < 300, "http-refused");
     const body = response.data as { result?: { ok?: unknown; data?: unknown } } | undefined;
     return { ok: body?.result?.ok === true, data: body?.result?.data };
+  };
+  /** A product action that must succeed; the action id is ours and fixed, the product's own sentence is withheld. */
+  const must = async (session: TenantSession, id: string, input: Record<string, unknown>, scope: Record<string, unknown> = {}): Promise<Record<string, unknown>> => {
+    const result = await runAction(session, id, input, scope);
+    if (!result.ok) refuse(`${id} was refused by the product`);
+    return (result.data ?? {}) as Record<string, unknown>;
+  };
+  /** Deploys one environment from its own working copy and waits until the simulated parent deployment succeeds. */
+  const deployAndWait = async (session: TenantSession, projectId: string, environmentId: string): Promise<void> => {
+    await must(session, "deploy.apply", { projectId, environmentId }, { projectId, environmentId });
+    for (let poll = 1; ; poll++) {
+      const latest = ok(await send(session, session.owner, `/api/environments/${environmentId}/deployments?limit=1`, undefined, "GET")) as { deployments?: { status?: unknown }[] };
+      const status = latest.deployments?.[0]?.status;
+      if (status === "succeeded") return;
+      if (status === "failed" || status === "rolled_back" || status === "cancelled") refuse("the parent environment's deployment did not succeed");
+      if (poll >= DEPLOY_POLLS.attempts) refuse("the parent environment's deployment did not finish within the bound");
+      await sleep(DEPLOY_POLLS.intervalMs);
+    }
   };
   /** Maps any failure to a fixed, short reason. Product messages and data are withheld; only the product's own journey codes pass through. */
   const step = async <T>(name: string, work: () => Promise<T>): Promise<T> => {
@@ -156,7 +216,7 @@ export function browserMix03Product(env: EnvLike = process.env, seams: Mix03Driv
       return step("connection", async () => {
         const session = sessionOf(tenant);
         const result = await runAction(session, "connection.createAws", {
-          label: "PROD-MIX-03 live", region: input.region, accountId: input.accountId,
+          label: "PROD-MIX-03 live", region: input.region, accountId: input.accountId, stateBucket: input.stateBucket,
           observeRoleArn: input.observeRoleArn, deployRoleArn: input.deployRoleArn, mode: "aws_assume_role",
         });
         const data = (result.data ?? {}) as { connectionId?: unknown; externalId?: unknown };
@@ -172,11 +232,46 @@ export function browserMix03Product(env: EnvLike = process.env, seams: Mix03Driv
       });
     },
 
-    async proposeMixed() {
-      // planMixed (src/lib/execution/mixed/service.ts) refuses any partition dependency, including a declared reference across two
-      // partitions, unless protected connectivity is declared. This scenario declares none, and its endpoints and pins are not
-      // the caller's to invent. No request is sent.
-      return refuse("planMixed refuses the producer-to-consumer reference without declared protected connectivity, and the scenario declares none");
+    async proposeMixed(tenant, input) {
+      return step("mixed proposal", async () => {
+        const session = sessionOf(tenant);
+        const projectId = session.projectId, scope = { projectId };
+        const { producer, consumer, graph } = mix03Manifests(input.region, input.artifact);
+        // The parent's revision is the whole graph. A sandbox environment deploys it through the simulated provider, so no cloud resource exists.
+        await must(session, "project.updateManifest", { projectId, manifest: graph }, scope);
+        const parent = idOf((await must(session, "env.create", { projectId, name: "parent", class: "sandbox", approvalRequired: false }, scope)).environmentId, "the parent environment");
+        await deployAndWait(session, projectId, parent);
+        const create = async (name: string) => idOf((await must(session, "env.create", {
+          projectId, name, class: "sandbox", connectionId: input.connectionId, region: input.region, approvalRequired: true,
+        }, scope)).environmentId, `the ${name} environment`);
+        const producerEnv = await create("producer"), consumerEnv = await create("consumer");
+
+        const planned = await send(session, session.owner, "/api/platform/v1/mixed/plans", {
+          parentEnvironmentId: parent, childEnvironmentIds: [producerEnv, consumerEnv],
+          pins: [{ address: "object_store/bucket", childEnvironmentId: producerEnv }, { address: "function/consumer", childEnvironmentId: consumerEnv }],
+          references: [MIX03_REFERENCE],
+        });
+        if (planned.status < 200 || planned.status >= 300) refuse(`the product refused the mixed plan (${reasonCode(planned.data)})`);
+        const proposed = planned.data as { plan?: { parentPlanId?: unknown }; operationId?: unknown };
+        const planId = idOf(proposed.plan?.parentPlanId, "the mixed plan id");
+        const parentOperationId = idOf(proposed.operationId, "the parent operation");
+
+        // Each child is deployed from its own part of the graph, so its revision expands to exactly its approved subplan.
+        const deployChild = async (environmentId: string, manifest: unknown): Promise<string> => {
+          await must(session, "project.updateManifest", { projectId, manifest }, scope);
+          return idOf((await must(session, "deploy.apply", { projectId, environmentId }, { projectId, environmentId })).operationId, "the child deploy operation");
+        };
+        const producerOperationId = await deployChild(producerEnv, producer);
+        const consumerOperationId = await deployChild(consumerEnv, consumer);
+
+        const readback = ok(await send(session, session.owner, `/api/platform/v1/mixed/plans/${planId}`, undefined, "GET")) as { children?: { partitionId?: unknown; childEnvironmentId?: unknown }[] };
+        const partitionOf = (environmentId: string): string => idOf(readback.children?.find(child => child.childEnvironmentId === environmentId)?.partitionId, "the child partition");
+        adoptions.set(planId, [
+          { partitionId: partitionOf(producerEnv), operationId: producerOperationId },
+          { partitionId: partitionOf(consumerEnv), operationId: consumerOperationId },
+        ]);
+        return { environmentIds: [producerEnv, consumerEnv], planId, parentOperationId };
+      });
     },
 
     async approve(tenant, operationId) {
@@ -186,10 +281,13 @@ export function browserMix03Product(env: EnvLike = process.env, seams: Mix03Driv
     async startMixed(tenant, planId) {
       return step("mixed start", async () => {
         const session = sessionOf(tenant);
+        for (const adoption of adoptions.get(planId) ?? refuse("no child operations were recorded for this plan")) {
+          const adopted = await send(session, session.owner, `/api/platform/v1/mixed/plans/${planId}/children`, adoption, "POST");
+          if (adopted.status < 200 || adopted.status >= 300) return { started: false as const, reason: `the product refused a child adoption (${reasonCode(adopted.data)})` };
+        }
         const response = await send(session, session.owner, `/api/platform/v1/mixed/plans/${planId}/start`, {}, "POST");
         if (response.status >= 200 && response.status < 300) return { started: true as const };
-        const code = codeOf(response.data);
-        return { started: false as const, reason: `the product refused the start (${code && /^[a-z_]{1,40}$/.test(code) ? code.replace(/_/g, " ") : "no code"})` };
+        return { started: false as const, reason: `the product refused the start (${reasonCode(response.data)})` };
       });
     },
 
@@ -221,19 +319,43 @@ export function browserMix03Product(env: EnvLike = process.env, seams: Mix03Driv
     },
 
     async changeProducer() {
-      // A changed producer is a new desired state of the parent graph. It needs the proposal above, which is refused.
-      return refuse("a changed producer needs a new parent revision, and that needs the proposal that is refused above");
+      // The consumer's classification of a changed output (review_required) is decided inside the consumer's own run, by consumeOutputs.
+      // No browser or REST route starts that run, so this driver cannot read the state back. It refuses before any request.
+      return refuse("a changed producer's consumer state is decided only inside the consumer's own run, which no browser or REST route starts");
     },
 
-    async issueOutputPreauthorization() {
-      // POST /api/platform/v1/mixed-output-preauthorizations needs the reference's contract digest and value type. The plan
-      // readback exposes neither; the run readback exposes only the reference id and whether it is materialized.
-      return refuse("the reference contract digest and value type are not readable from the plan or the run, so no precise preauthorization can be named");
+    async issueOutputPreauthorization(tenant, planId) {
+      return step("output preauthorization", async () => {
+        const session = sessionOf(tenant);
+        const plan = ok(await send(session, session.owner, `/api/platform/v1/mixed/plans/${planId}`, undefined, "GET")) as {
+          parentOperationId?: unknown; desiredDigest?: unknown; references?: unknown; children?: unknown;
+        };
+        const references = Array.isArray(plan.references) ? plan.references as Record<string, unknown>[] : [];
+        if (references.length !== 1) refuse("the plan does not have exactly one reference");
+        const [reference] = references as [Record<string, unknown>];
+        const children = (Array.isArray(plan.children) ? plan.children : []) as { partitionId?: unknown; childEnvironmentId?: unknown }[];
+        const consumer = children.find(child => child.partitionId === reference.consumerPartitionId);
+        if (typeof reference.valueType !== "string") refuse("the reference has no value type in the plan readback");
+        const issued = await send(session, session.owner, "/api/platform/v1/mixed-output-preauthorizations", {
+          parentOperationId: idOf(plan.parentOperationId, "the parent operation"),
+          environmentId: idOf(consumer?.childEnvironmentId, "the consumer environment"),
+          desiredDigest: hexOf(plan.desiredDigest, "the desired digest"),
+          referenceId: idOf(reference.referenceId, "the reference id"),
+          contractDigest: hexOf(reference.contractDigest, "the reference contract digest"),
+          consumerSubplanDigest: hexOf(reference.consumerSubplanDigest, "the consumer subplan digest"),
+          producerSubplanDigest: hexOf(reference.producerSubplanDigest, "the producer subplan digest"),
+          valueType: reference.valueType,
+          maxUses: 1,
+          lifetimeMs: PREAUTH_LIFETIME_MS,
+          reason: PREAUTH_REASON,
+        });
+        if (issued.status < 200 || issued.status >= 300) refuse(`the product refused the output preauthorization (${reasonCode(issued.data)})`);
+      });
     },
 
     async useOutputOnce() {
-      // The use is reserved inside the consumer's own workflow (consumeOutputs). No browser or REST route spends it.
-      return refuse("no browser or REST route spends a preauthorization use; the consumer's workflow reserves it, so the one-use check cannot be driven");
+      // The one use is reserved by consumeOutputs inside the consumer's own workflow, which needs a changed producer first (see changeProducer).
+      return refuse("no browser or REST route spends a preauthorization use: the consumer's workflow reserves it, and it cannot be re-run without a changed producer");
     },
 
     async close() {

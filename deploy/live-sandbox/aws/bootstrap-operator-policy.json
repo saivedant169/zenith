@@ -240,6 +240,67 @@
         "rds:ListTagsForResource"
       ],
       "Resource": "arn:aws:rds:*:*:subgrp:zenith-live-sandbox"
+    },
+    {
+      "Sid": "SpendStopDenyPolicy",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreatePolicy",
+        "iam:GetPolicy",
+        "iam:DeletePolicy",
+        "iam:GetPolicyVersion",
+        "iam:ListPolicyVersions",
+        "iam:TagPolicy",
+        "iam:ListPolicyTags"
+      ],
+      "Resource": "arn:aws:iam::*:policy/ZenithLiveSpendStopDenyAll"
+    },
+    {
+      "Sid": "SpendStopExecutionRole",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:GetRole",
+        "iam:DeleteRole",
+        "iam:PutRolePolicy",
+        "iam:GetRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies",
+        "iam:TagRole",
+        "iam:ListRoleTags",
+        "iam:ListInstanceProfilesForRole"
+      ],
+      "Resource": "arn:aws:iam::*:role/ZenithLiveSpendStopExecution"
+    },
+    {
+      "Sid": "SpendStopPassToBudgets",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::*:role/ZenithLiveSpendStopExecution",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "budgets.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Sid": "SandboxBudgetActions",
+      "Effect": "Allow",
+      "Action": [
+        "budgets:CreateBudgetAction",
+        "budgets:DescribeBudgetAction",
+        "budgets:UpdateBudgetAction",
+        "budgets:DeleteBudgetAction",
+        "budgets:DescribeBudgetActionsForBudget",
+        "budgets:ViewBudget",
+        "budgets:TagResource",
+        "budgets:ListTagsForResource"
+      ],
+      "Resource": [
+        "arn:aws:budgets::*:budget/zenith-live-sandbox",
+        "arn:aws:budgets::*:budget/zenith-live-sandbox/action/*"
+      ]
     }
   ]
 }

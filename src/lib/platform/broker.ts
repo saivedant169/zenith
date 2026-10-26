@@ -35,7 +35,9 @@ import { readNativeCleanupOwnerGrantOrigin, reserveNativeCleanupOwnerGrant, inse
 type BrokerFactory = () => Promise<Broker>;
 type NativeDispatchRequirement=CurrentDispatchRequirement&{readonly nativeCredential?:Readonly<NativeLinkedCredentialTuple>;readonly nativeCredentialRequiredScope?:string;readonly nativeOAuthGrant?:Readonly<NativeOAuthGrantTuple>;readonly nativeOAuthRequiredScope?:string;readonly delegatedDestroyPlan?:Readonly<{operationId:string;evidenceId:string}>};
 const currentDispatchRequirements = new WeakMap<object, { sql: Sql; broker: Broker; defaultOrigin: boolean; value: NativeDispatchRequirement }>();
-const unavailableRequirement = (): never => { throw new StepFailedError("Current dispatch requirement is unavailable or changed."); };
+/** Fixed, non-secret reason codes for a dispatch requirement that could not be captured or is no longer current. */
+const requirementGaps = new WeakMap<object, string>();
+const unavailableRequirement = (gap = "unavailable"): never => { throw Object.assign(new StepFailedError("Current dispatch requirement is unavailable or changed."), { requirementGap: gap }); };
 function immutable<T>(value: T): T {
   if (value && typeof value === "object") { for (const child of Object.values(value)) immutable(child); Object.freeze(value); }
   return value;
@@ -56,6 +58,22 @@ export async function readCurrentDispatchRequirement(snapshot: unknown, sql: Sql
   if (!entry || !valid()) return undefined;
   try { if ((await entry.broker.deps.policy()).version !== entry.value.policy.version || !valid()) return undefined; } catch { return undefined; }
   return entry.value;
+}
+/**
+ * Why a snapshot does not hold a current default dispatch requirement: a fixed, non-secret code for the refusal's cause.
+ * Diagnostic only; isDefaultCurrentDispatchRequirement remains the decision.
+ */
+export async function dispatchRequirementGap(snapshot: unknown, sql: Sql, workspaceId: string, operationId: string): Promise<string> {
+  if (!snapshot || typeof snapshot !== "object") return "no-snapshot";
+  const entry = currentDispatchRequirements.get(snapshot);
+  if (!entry) return requirementGaps.get(snapshot) ?? "not-registered";
+  if (!entry.defaultOrigin) return "not-default-origin";
+  if (entry.sql !== sql) return "database-handle";
+  if (!isDefaultPlatformBrokerFor(entry.broker, sql)) return "broker-identity";
+  if (entry.value.operation.workspace_id !== workspaceId || entry.value.operation.id !== operationId) return "operation";
+  if (entry.value.nativeOAuthGrant && !isCurrentNativeOAuthGrantFor(entry.value.nativeOAuthGrant, sql, workspaceId, entry.value.nativeOAuthGrant.integration_id, entry.value.nativeOAuthGrant.subject)) return "oauth-grant";
+  try { if ((await entry.broker.deps.policy()).version !== entry.value.policy.version) return "policy-version"; } catch { return "policy-read"; }
+  return "current";
 }
 /** The default paired runtime additionally refuses a modeled factory origin. */
 export async function isDefaultCurrentDispatchRequirement(snapshot: unknown, sql: Sql, workspaceId: string, operationId: string): Promise<boolean> {
@@ -103,9 +121,9 @@ export function createExecutionBroker(db: Sql, getBroker: BrokerFactory = platfo
     return evaluate(broker.deps, { ...req, def: capability(cap), risk: cap === op.capability ? req.risk : capability(cap).risk, ...(facts ? { plan: facts, planDigest: op.planDigest } : {}) });
   };
   const captureCurrentRequirement = async (op: OperationRecord, evaluation: Evaluation): Promise<Omit<NativeDispatchRequirement, "approvals"> & { candidates: Record<string, unknown>[] }> => {
-    if (!op.planDigest || !op.environmentId || evaluation.decision.outcome === "deny") return unavailableRequirement();
+    if (!op.planDigest || !op.environmentId || evaluation.decision.outcome === "deny") return unavailableRequirement("no-plan-or-environment");
     const current = await repos.operations.get(db, op.workspaceId, op.id);
-    if (!current || digest(nativeOperation(current)) !== digest(nativeOperation(op))) return unavailableRequirement();
+    if (!current || digest(nativeOperation(current)) !== digest(nativeOperation(op))) return unavailableRequirement("operation-changed");
     const [workspace, environment, evidenceRows, candidates] = await Promise.all([
       repos.settings.getWorkspacePolicy(db, op.workspaceId), repos.settings.getEnvironmentSettings(db, op.workspaceId, op.environmentId),
       db.query<{ id: string; digest: string; summary: Record<string, unknown> }>(`select id,digest,summary from platform.evidence where workspace_id=$1 and operation_id=$2
@@ -117,17 +135,20 @@ export function createExecutionBroker(db: Sql, getBroker: BrokerFactory = platfo
     const facts = parsed && { ...parsed.facts, ...(parsed.cost.deltaUsdMonthly !== undefined ? { costDeltaUsdMonthly: parsed.cost.deltaUsdMonthly } : {}),
       ...(parsed.cost.projectedMonthlyUsd !== undefined ? { projectedMonthlyUsd: parsed.cost.projectedMonthlyUsd } : {}) };
     const input = evaluation.input;
-    if (!evidence || !facts || digest(facts) !== digest(input.plan) || digest(input) !== evaluation.evaluated.inputDigest || candidates.length > 10000
-      || input.request.scope.workspaceId !== op.workspaceId || input.request.scope.projectId !== op.projectId || input.request.scope.environmentId !== op.environmentId
-      || digest(resolveWorkspacePolicy(workspace.params)) !== digest(input.workspacePolicy) || !input.environment
-      || effectiveAutonomy(environment, input.environment.class).level !== input.environment.autonomyLevel) return unavailableRequirement();
+    if (!evidence || !facts) return unavailableRequirement("plan-evidence");
+    if (digest(facts) !== digest(input.plan)) return unavailableRequirement("plan-facts");
+    if (digest(input) !== evaluation.evaluated.inputDigest) return unavailableRequirement("policy-input");
+    if (candidates.length > 10000) return unavailableRequirement("approval-rows");
+    if (input.request.scope.workspaceId !== op.workspaceId || input.request.scope.projectId !== op.projectId || input.request.scope.environmentId !== op.environmentId) return unavailableRequirement("scope");
+    if (digest(resolveWorkspacePolicy(workspace.params)) !== digest(input.workspacePolicy)) return unavailableRequirement("workspace-policy");
+    if (!input.environment || effectiveAutonomy(environment, input.environment.class).level !== input.environment.autonomyLevel) return unavailableRequirement("environment-autonomy");
     const nativeCredential=op.principal.kind==="integration"?readCurrentNativeLinkedCredential(op.principal,op.workspaceId,db):undefined;
     const nativeOAuthGrant=op.principal.kind==="integration"?readCurrentNativeOAuthGrant(op.principal,op.workspaceId,db):undefined;
     const delegated = input.principal.kind === "system" && input.principal.id === "teardown-review" && op.capability === "infrastructure.destroy";
     const proposal = op.proposal as { broker?: { v?: number; teardownReview?: boolean; destroyPlan?: { operationId?: string; evidenceId?: string } } };
     const destroyPlan = proposal.broker?.destroyPlan;
     if (delegated && (proposal.broker?.v !== 1 || proposal.broker.teardownReview !== true || !destroyPlan?.operationId || !destroyPlan.evidenceId
-      || !evaluation.decision.approval || evaluation.decision.approval.minRole !== "admin" || evaluation.decision.approval.count < 1)) return unavailableRequirement();
+      || !evaluation.decision.approval || evaluation.decision.approval.minRole !== "admin" || evaluation.decision.approval.count < 1)) return unavailableRequirement("teardown-delegation");
     const nativeCredentialRequiredScope = delegated ? capability("infrastructure.plan").integrationScope : input.request.integrationScope;
     const integrationTuple = nativeCredential ?? nativeOAuthGrant;
     if(op.principal.kind==="integration"&&(!integrationTuple||!!nativeCredential===!!nativeOAuthGrant||!nativeCredentialRequiredScope
@@ -135,7 +156,7 @@ export function createExecutionBroker(db: Sql, getBroker: BrokerFactory = platfo
       ||digest(evaluation.access.integrationScopes)!==digest(integrationTuple.scopes)||digest(evaluation.access.allowedProjectIds)!==digest(integrationTuple.project_ids)
       ||digest(evaluation.access.allowedEnvironmentIds??null)!==digest(integrationTuple.environment_ids)
       ||!op.projectId||!integrationTuple.project_ids.includes(op.projectId)||integrationTuple.environment_ids&&!integrationTuple.environment_ids.includes(op.environmentId)
-      ||input.principal.kind==="integration"&&digest(input.principal.integrationScopes)!==digest(integrationTuple.scopes)))return unavailableRequirement();
+      ||input.principal.kind==="integration"&&digest(input.principal.integrationScopes)!==digest(integrationTuple.scopes)))return unavailableRequirement("integration-grant");
     const captured=immutable(structuredClone({ requirement: evaluation.decision.approval ? evaluation.decision.approval : null,
       policy: { version: evaluation.evaluated.policyVersion, inputDigest: evaluation.evaluated.inputDigest, input: structuredClone(input) },
       operation: nativeOperation(current), settings: {
@@ -205,7 +226,14 @@ export function createExecutionBroker(db: Sql, getBroker: BrokerFactory = platfo
       // Unavailable private provenance cannot change the public projection into
       // authority: saved-plan dispatch will refuse without a genuine capture.
       let captured: Awaited<ReturnType<typeof captureCurrentRequirement>> | undefined;
-      if (op.planDigest) { try { captured = await captureCurrentRequirement(op, evaluation); } catch { captured = undefined; } }
+      let captureGap: string | undefined;
+      if (op.planDigest) {
+        try { captured = await captureCurrentRequirement(op, evaluation); } catch (error) {
+          captured = undefined;
+          const gap = (error as { requirementGap?: unknown } | null)?.requirementGap;
+          captureGap = typeof gap === "string" ? gap : "capture-error";
+        }
+      }
       const result = await approvals(broker, op, decision.approval);
       if (result.dispatchApproval) {
         const snapshot: DispatchApprovalSnapshot = immutable({ ...result.dispatchApproval, approvalIds: [...result.dispatchApproval.approvalIds] });
@@ -214,8 +242,8 @@ export function createExecutionBroker(db: Sql, getBroker: BrokerFactory = platfo
           if (new Set(snapshot.approvalIds).size === snapshot.approvalIds.length && selected.every(rows => rows.length === 1)) {
             const { candidates: _candidates, ...value } = captured;
             currentDispatchRequirements.set(snapshot, { sql: db, broker, defaultOrigin: getBroker === platformBroker && isDefaultPlatformBrokerFor(broker, db), value: immutable({ ...value, approvals: selected.map(rows => rows[0]) }) });
-          }
-        }
+          } else requirementGaps.set(snapshot, "approval-selection");
+        } else requirementGaps.set(snapshot, captureGap ?? (op.planDigest ? "not-approved" : "no-plan"));
         return { ...result, dispatchApproval: snapshot };
       }
       return result;

@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { vaultCipherFromEnv } from "@/lib/secrets";
 import { createPlanEngineAuthority, type PlanAdmission, type ApprovedPlan, type StandalonePlanBinding, type SealedStandaloneSettlement } from "@/lib/tofu/engine";
-import { createExecutionBroker, isDefaultCurrentDispatchRequirement } from "./broker";
+import { createExecutionBroker, dispatchRequirementGap, isDefaultCurrentDispatchRequirement } from "./broker";
 import type { BrokerPort, PlanArtifactsPort } from "@/lib/execution/ports";
 import type { Sql } from "@/lib/controlplane/types";
 import * as artifacts from "@/lib/controlplane/db/repos/plan-artifacts";
@@ -26,8 +26,8 @@ const cleanupOrigins = new WeakMap<object,CleanupOrigin>();
 const cleanupInvocation = new AsyncLocalStorage<CleanupCell>();
 
 /** The same refusal, with a fixed non-secret gate code as its cause so an operator can tell which dispatch gate refused. */
-function gateRefusal(code: "readmitted" | "not-approved" | "rejected" | "no-dispatch-approval" | "dispatch-requirement"): Error {
-  return Object.assign(new artifacts.PlanArtifactError(), { cause: { name: "PlanDispatchGate", code } });
+function gateRefusal(code: string): Error {
+  return Object.assign(new artifacts.PlanArtifactError(), { cause: { name: "Gate", code } });
 }
 
 export interface NativeCleanupOrigin {
@@ -189,7 +189,8 @@ function pairedRuntime(db: Sql, env: Readonly<Record<string,string|undefined>>, 
               if(!authority.approved || authority.rejected || !authority.dispatchApproval || admissions.get(approved)!==admission)
                 throw gateRefusal(!authority.approved ? "not-approved" : authority.rejected ? "rejected" : !authority.dispatchApproval ? "no-dispatch-approval" : "readmitted");
               const proof=cleanupCell?.proof??authority.dispatchApproval;
-              if (kind === "postgres" && !await isDefaultCurrentDispatchRequirement(proof,db,input.custody.workspaceId,input.custody.operationId)) throw gateRefusal("dispatch-requirement");
+              if (kind === "postgres" && !await isDefaultCurrentDispatchRequirement(proof,db,input.custody.workspaceId,input.custody.operationId))
+                throw gateRefusal(`requirement:${await dispatchRequirementGap(proof,db,input.custody.workspaceId,input.custody.operationId).catch(() => "unknown")}`);
               // Lost commit responses are non-replayable; mark locally before awaiting the CAS.
               dispatched=true;
               let cleanupOrigin:object|undefined;

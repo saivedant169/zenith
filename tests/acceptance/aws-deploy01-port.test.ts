@@ -9,6 +9,7 @@ import type { Call, Json, Plan } from "../../scripts/acceptance/live/contracts";
 import { trustDocument } from "../../scripts/acceptance/live/product/mix-03";
 import { DEPLOY01_IMAGES, deploy01Port } from "../../scripts/acceptance/live/product/deploy-01";
 import { sanitizedError, type Deploy01Product } from "../../scripts/acceptance/live/product/deploy-01-driver";
+import { dispatchRequirementGap } from "@/lib/platform/broker";
 
 const ACCOUNT = "123456789012", REGION = "ap-south-1", RUN = "zlive-202610260000-ab01";
 const PRINCIPAL = `arn:aws:iam::${ACCOUNT}:role/ZenithLiveAcceptance`;
@@ -67,6 +68,15 @@ describe("DEPLOY-01 driver error detail", () => {
     expect(sanitizedError("AccessDenied for arn:aws:iam::123456789012:role/x when key=secret at https://x.example/a in /tmp/a/b token AKIAABCDEFGHIJKLMNOPQRSTUV")).toBe("AccessDenied for …arn when …=… at …url in …path token …");
     expect(sanitizedError("x".repeat(500))!.length).toBeLessThanOrEqual(240);
     expect(sanitizedError(undefined)).toBeUndefined();
+    expect(sanitizedError("The apply ended with an unclassified error (Error: Reviewed plan artifact is unavailable or changed; a new review is required.; cause Gate/requirement:plan-facts).")).toBe("The apply ended with an unclassified error (Error: Reviewed plan artifact is unavailable or changed; a new review is required.). [cause Gate/requirement:plan-facts]");
+  });
+});
+
+describe("dispatch requirement gap (the product cause code DEPLOY-01 reports)", () => {
+  it("names a missing or unregistered snapshot with a fixed code", async () => {
+    const sql = {} as never;
+    expect(await dispatchRequirementGap(undefined, sql, "ws", "op")).toBe("no-snapshot");
+    expect(await dispatchRequirementGap({ approvalIds: [] }, sql, "ws", "op")).toBe("not-registered");
   });
 });
 

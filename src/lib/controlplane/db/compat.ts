@@ -92,6 +92,11 @@ export const CONTRACT_MIGRATION_APPROVALS: readonly ContractMigrationApproval[] 
   sqlSha256: "78d3690342ffc5f35e73f67566ccfc48087095cfec2acf191468e560a99bb16a",
   approvalRef: "user-2026-10-08-w5-assembly-isolation-family-widen",
   rationale: "Assembly explicitly assigns the isolation_apply effect-family widening. Previous effect families remain valid; drain previous writers before the drop/recreate DDL.",
+}, {
+  version: 61,
+  sqlSha256: "2b53e22219cf351ba8d2bbeb3e7de031e113526e91f3bf68629f13c373c9ba25",
+  approvalRef: "user-2026-10-26-teardown-wp5-hold-generations",
+  rationale: "Owner decision 1 of 2026-10-26 (hold generations). The holds key moves to (workspace_id,hold_seq) so one environment can hold several generations; an N-1 writer that inserts a second hold for a scope fails. Drain previous writers before applying.",
 }];
 
 /** Exact reviewed Wave 5 blocks only: role grants/revokes on newly created tables.

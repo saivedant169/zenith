@@ -491,7 +491,7 @@ describe.skipIf(!PG_URL)("environment ownership serialization [postgres, indepen
         expect(await db.query("select prosecdef from pg_proc where oid='platform.serialize_field_ownership()'::regprocedure")).toEqual([{ prosecdef: false }]);
         // Current emitter/service-role behavior is a distinct 54..58 phase;
         // no current aggregate is presented as historical schema-53 SQL.
-        expect(await migrateOwnedRange(PLATFORM_MIGRATIONS[PLATFORM_MIGRATIONS.length - 1].version, [57, 58])).toMatchObject({ applied: PLATFORM_MIGRATIONS.filter(m => m.version > 53).map(m => m.version) });
+        expect(await migrateOwnedRange(PLATFORM_MIGRATIONS[PLATFORM_MIGRATIONS.length - 1].version, [57, 58, 61])).toMatchObject({ applied: PLATFORM_MIGRATIONS.filter(m => m.version > 53).map(m => m.version) });
         const currentLedger = await db.query("select version,name,checksum from platform.schema_migrations order by version");
         await db.exec(renderSupabaseMigration());
         expect(await db.query("select version,name,checksum from platform.schema_migrations order by version")).toEqual(currentLedger);

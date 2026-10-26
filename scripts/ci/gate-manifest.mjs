@@ -5434,6 +5434,42 @@ export const CLEANUP_WRITER_BARRIER_POSTGRES_REQUIREMENTS = [
   {
     "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
     "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
+    "test": "a refused teardown releases its own generation in the same commit, so a later writer is allowed",
+    "backend": "postgres"
+  },
+  {
+    "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
+    "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
+    "test": "an entered attempt's hold freezes the environment until the janitor releases it drained",
+    "backend": "postgres"
+  },
+  {
+    "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
+    "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
+    "test": "the retain path releases a drained superseded generation first, and only then inserts the new one",
+    "backend": "postgres"
+  },
+  {
+    "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
+    "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
+    "test": "a janitor sweep does not release a hold while the counted inventory is nonzero",
+    "backend": "postgres"
+  },
+  {
+    "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
+    "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
+    "test": "a janitor sweep never releases the hold of a live claimed attempt, even at zero inventory",
+    "backend": "postgres"
+  },
+  {
+    "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
+    "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
+    "test": "hold release rows are append-only",
+    "backend": "postgres"
+  },
+  {
+    "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
+    "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
     "test": "a new scoped mutation grant waits on the actual final coordinator then refuses the committed hold",
     "backend": "postgres"
   },
@@ -5554,7 +5590,7 @@ export const CLEANUP_WRITER_BARRIER_POSTGRES_REQUIREMENTS = [
   {
     "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
     "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
-    "test": "discarding an acknowledged hold result never authorizes another consume or destructive grant",
+    "test": "discarding an acknowledged hold result never authorizes a destructive grant; the next attempt supersedes its drained generation",
     "backend": "postgres"
   },
   {

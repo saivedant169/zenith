@@ -668,7 +668,7 @@ current aggregate emitter output, including additive cleanup writer barrier migr
 function, then verifies every row, the count and highest version. A new migration
 requires a regenerated inventory; changing a literal count alone does not pass.
 
-Registered migrations: **60**; highest version: **60**.
+Registered migrations: **61**; highest version: **61**.
 
 <!-- platform-migrations:start -->
 | Version | Name | SQL SHA-256 |
@@ -733,6 +733,7 @@ Registered migrations: **60**; highest version: **60**.
 | 58 | `kubernetes_source_provider` | `afef954e9417c33a3a0dadc254253ab523c9dbc425af27da5120927e8064df9a` |
 | 59 | `field_ownership_grant_revocation` | `f5490db5eed06ab6ada997f33f13430eb249dbcfcc8a1b0c75252b6bb5a87b29` |
 | 60 | `cleanup_writer_expand` | `53b527c13d0900e420cdba1572bd2344514aa89e75ecdbe98ed1dcbb829efceb` |
+| 61 | `cleanup_writer_hold_generations` | `2b53e22219cf351ba8d2bbeb3e7de031e113526e91f3bf68629f13c373c9ba25` |
 <!-- platform-migrations:end -->
 
 For the actual target, `npm run migrate:platform -- --status` calls the canonical

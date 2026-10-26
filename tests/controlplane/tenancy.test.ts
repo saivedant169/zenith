@@ -204,6 +204,7 @@ const EXEMPT: Record<string, string> = {
   "planArtifacts.PlanArtifactError": "pure error class, contains no SQL or tenant data",
   "planArtifacts.captureArtifactAccess": "pure fixed custody and lease projection; reads no SQL or tenant data, grants no authority, and is excluded from bindRepos",
   "planArtifacts.expire": "system logical-expiry maintenance; workspace taken from database candidates, never from tenant input",
+  "planArtifacts.releaseDrainedHolds": "system hold-release sweep (schema 61); workspace, project and environment come from database candidates, never tenant input, and each release is written under the workspace coordinator",
   "leases.acquire": "keyed by a globally unique scope string; a workspace-tagged scope refuses a foreign workspace (tested in leases.test.ts)",
   "leases.renew": "keyed by scope + holder + fence",
   "leases.release": "keyed by scope + holder + fence",

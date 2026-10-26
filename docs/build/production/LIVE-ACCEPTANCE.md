@@ -119,6 +119,43 @@ Without the flag this test is skipped, never live evidence. With the flag and mi
 - **Run time limit: `minutes` input.** The dispatch input `minutes` (string, default `15`, integer 5 to 20, the range `scripts/acceptance/live/plan.ts` enforces) is checked in the pre-OIDC step "Check the sandbox account configuration" and exported as `ZENITH_LIVE_AWS_MINUTES` at job level, so preflight, the harness, the rel-04 drill and recovery all build the same plan. Dispatch with the value the owner approved: `-f minutes=<n>`. The signed envelope binds the plan digest, so a plan for 20 minutes dispatched with the default 15 is refused with "Permission is not bound to this exact plan".
 - **How to undo.** In GitHub, Settings > Environments > `live-sandbox`: add `saivedant169` back as a required reviewer, and turn on "Prevent self-review" if the two-person rule is restored. Then set the envelope `approvedBy` to a human approval again. This gate is an external GitHub setting, so no code change is needed to restore it.
 
+## MIX-03 connection and spend stop (2026-10-26)
+
+Owner decision 2026-10-26. Live runs connect Zenith to sandbox 361646636162 (ap-south-1) through the customer bootstrap `deploy/aws/zenith-connection.cfn.yaml`, installed once as stack `zenith-connection-live`. `deploy/live-sandbox/aws/main.tf` adds the `connection_name_suffix` variable (default `-live`), the connection roles `ZenithObserveRole-live` and `ZenithDeployRole-live`, and an automatic spend stop. Nothing in this change applies Terraform or touches AWS; the owner applies it later.
+
+**One-time install (owner, CloudShell or root, account 361646636162).** The template is about 116 KB, above the inline `--template-body` limit, so stage it through a temporary bucket and delete that bucket after install:
+
+```bash
+aws s3 mb s3://zenith-cfn-stage-361646636162 --region ap-south-1
+aws s3 cp deploy/aws/zenith-connection.cfn.yaml s3://zenith-cfn-stage-361646636162/zenith-connection.cfn.yaml
+aws cloudformation create-stack --region ap-south-1 --stack-name zenith-connection-live \
+  --template-url https://zenith-cfn-stage-361646636162.s3.ap-south-1.amazonaws.com/zenith-connection.cfn.yaml \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameters ParameterKey=NameSuffix,ParameterValue=-live \
+    ParameterKey=ZenithPrincipalArn,ParameterValue=arn:aws:iam::361646636162:role/ZenithLiveAcceptance \
+    ParameterKey=ExternalId,ParameterValue=placeholder-set-per-run \
+    ParameterKey=EnvironmentTagValue,ParameterValue='*'
+aws cloudformation wait stack-create-complete --region ap-south-1 --stack-name zenith-connection-live
+aws s3 rb s3://zenith-cfn-stage-361646636162 --force
+```
+
+Install the stack before `tofu apply`: the budget action names both connection roles, and that path was not checked against a live account. `ExternalId` is a placeholder here; the per-run value replaces it.
+
+**Per-run ExternalId (Option A).** Each live run, the test role `ZenithLiveAcceptance` calls `iam:UpdateAssumeRolePolicy` on `ZenithObserveRole-live` and `ZenithDeployRole-live` to write the ExternalId that Zenith generated for that connection, then calls `sts:AssumeRole` on both (with `sts:TagSession`). `iam:GetRole` reads the trust policy first. These are the only roles it can assume or rewrite.
+
+**Residual risk.** AWS cannot constrain the content of a trust document through IAM conditions here, so the test role could write any principal into either trust policy. The compensating control is the automatic spend stop below. It is not a hard cap: Budgets acts on ACTUAL cost, which lags, and the stop blocks new API calls but does not stop resources already running.
+
+**Spend stop.** `aws_budgets_budget_action.spend_stop` (APPLY_IAM_POLICY, AUTOMATIC, ACTUAL, 100% of the existing $10 `budget_usd`) attaches `ZenithLiveSpendStopDenyAll` (Deny `*` on `*`) to `ZenithLiveAcceptance`, `ZenithDeployRole-live` and `ZenithObserveRole-live`. Budgets assumes `ZenithLiveSpendStopExecution`, which can attach or detach only that policy on those three roles.
+
+**After the stop fires.** The runner and cleanup are blocked too, so leftover resources must be checked by hand:
+
+1. Read the cause in the Budgets console (budget `zenith-live-sandbox`, Actions) and list the policy's attachments: `aws iam list-entities-for-policy --policy-arn arn:aws:iam::361646636162:policy/ZenithLiveSpendStopDenyAll`.
+2. Inventory resources tagged `zenith:managed=true` and `zenith:live-run` and delete leftovers with the owner's admin access.
+3. Detach the deny policy from all three roles: `aws iam detach-role-policy --role-name <role> --policy-arn <arn>` for `ZenithLiveAcceptance`, `ZenithDeployRole-live` and `ZenithObserveRole-live`. The bootstrap operator policy does not allow this, by design.
+4. Do not start another run until the budget action status is checked. Whether it fires again while spend stays above 100% in the same month is not verified.
+
+**Retention.** The stack's state bucket (`zenith-state-361646636162-ap-south-1-live`) has `DeletionPolicy: Retain`. Deleting `zenith-connection-live` leaves it in place; empty and delete it yourself when you no longer need it.
+
 ## Budget, cleanup and evidence limits
 
 The hard admission ceiling reserves the canonical fixed topology, maximum attempts, a 5..20 minute execution window and a 2USD cleanup reserve before **any** AWS call. It refuses an altered self-consistent cost/topology as well as unknown/unplanned calls, changed inputs, missing per-call permission, exhausted attempt counts and expired mutation permission. Before billable creation it atomically claims `/zenith/live-runs/<runId>` using Standard-tier PutParameter with Overwrite=false and independently reads it. This account-side receipt prevents replay from a new directory or another machine. The execution role cannot overwrite/delete the receipt. The bootstrap uses the documented StringEquals condition for ssm:Overwrite; see [AWS Parameter Store condition guidance](https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-policy-conditions.html). Non-billing receipts are intentionally retained for replay prevention, tagged with purpose live-acceptance-receipt, and excluded from workload leak discovery; deletion requires a separate accountable retention decision. Cleanup is limited to already approved teardown/read inventory, can use the original approval after its expiry, and has a 25-minute observation deadline. It cannot create new resources or claim another run in recovery mode. SDK retries are disabled; every attempt is counted and journaled before dispatch.

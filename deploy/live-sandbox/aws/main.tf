@@ -32,6 +32,15 @@ variable "budget_usd" {
   }
 }
 variable "alert_email" { type = string }
+variable "connection_name_suffix" {
+  description = "NameSuffix the Zenith connection stack zenith-connection-live was installed with (deploy/aws/zenith-connection.cfn.yaml)."
+  type        = string
+  default     = "-live"
+  validation {
+    condition     = can(regex("^(-[a-z0-9-]{1,19})?$", var.connection_name_suffix))
+    error_message = "Must match the connection template NameSuffix pattern: empty, or a hyphen then 1-19 of [a-z0-9-]."
+  }
+}
 variable "dec_cloud_approved" {
   type    = bool
   default = false
@@ -63,12 +72,17 @@ variable "github_oidc_provider_arn" {
   }
 }
 locals {
-  name          = "ZenithLiveAcceptance"
-  base          = "arn:aws"
-  iam           = "${local.base}:iam::${var.account_id}"
-  tags          = { "zenith:bootstrap" = "live-sandbox" }
-  workload_role = "${local.iam}:role/zenith-zlive-*-lambda"
-  boundary      = "${local.iam}:policy/ZenithLiveWorkloadBoundary"
+  name                 = "ZenithLiveAcceptance"
+  base                 = "arn:aws"
+  iam                  = "${local.base}:iam::${var.account_id}"
+  tags                 = { "zenith:bootstrap" = "live-sandbox" }
+  workload_role        = "${local.iam}:role/zenith-zlive-*-lambda"
+  boundary             = "${local.iam}:policy/ZenithLiveWorkloadBoundary"
+  observe_role         = "ZenithObserveRole${var.connection_name_suffix}"
+  deploy_role          = "ZenithDeployRole${var.connection_name_suffix}"
+  observe_role_arn     = "${local.iam}:role/${local.observe_role}"
+  deploy_role_arn      = "${local.iam}:role/${local.deploy_role}"
+  connection_role_arns = [local.observe_role_arn, local.deploy_role_arn]
   owned_tags = {
     StringEquals = { "aws:ResourceTag/zenith:purpose" = "live-acceptance", "aws:ResourceTag/zenith:managed" = "true" }
   }
@@ -147,7 +161,11 @@ locals {
     { Sid = "DisposableZoneCreate", Effect = "Allow", Action = ["route53:CreateHostedZone"], Resource = "*" },
     { Sid = "ZoneReadTag", Effect = "Allow", Action = ["route53:GetHostedZone", "route53:ListTagsForResource", "route53:ListResourceRecordSets", "route53:ChangeTagsForResource"], Resource = "${local.base}:route53:::hostedzone/*" },
     { Sid = "DisposableTXT", Effect = "Allow", Action = ["route53:ChangeResourceRecordSets"], Resource = "${local.base}:route53:::hostedzone/*", Condition = { "ForAllValues:StringLike" = { "route53:ChangeResourceRecordSetsNormalizedRecordNames" = "probe.zenith-zlive-*.invalid" }, "ForAllValues:StringEquals" = { "route53:ChangeResourceRecordSetsRecordTypes" = "TXT", "route53:ChangeResourceRecordSetsActions" = ["CREATE", "DELETE"] } } },
-    { Sid = "ZoneDelete", Effect = "Allow", Action = ["route53:DeleteHostedZone"], Resource = "${local.base}:route53:::hostedzone/*" }
+    { Sid = "ZoneDelete", Effect = "Allow", Action = ["route53:DeleteHostedZone"], Resource = "${local.base}:route53:::hostedzone/*" },
+    # Option A (owner decision 2026-10-26): each live run rewrites the ExternalId in the trust policy of these two connection roles, then assumes them.
+    # AWS cannot constrain trust-document content, so the automatic deny-all spend stop (aws_budgets_budget_action.spend_stop) is the compensating control.
+    { Sid = "ConnectionAssume", Effect = "Allow", Action = ["sts:AssumeRole", "sts:TagSession"], Resource = local.connection_role_arns },
+    { Sid = "ConnectionTrustRewrite", Effect = "Allow", Action = ["iam:GetRole", "iam:UpdateAssumeRolePolicy"], Resource = local.connection_role_arns }
   ]
   runner_policy = jsonencode({ Version = "2012-10-17", Statement = local.statements })
 }
@@ -192,6 +210,55 @@ resource "aws_budgets_budget" "sandbox" {
     threshold_type             = "PERCENTAGE"
     notification_type          = "FORECASTED"
     subscriber_email_addresses = [var.alert_email]
+  }
+}
+# Hard spend stop (owner decision 2026-10-26, automatic, no approval step). When
+# ACTUAL spend reaches 100% of budget_usd, Budgets attaches the deny-all policy to
+# the acceptance role and both connection roles. Recovery: detach it (LIVE-ACCEPTANCE.md).
+resource "aws_iam_policy" "spend_stop_deny_all" {
+  name   = "ZenithLiveSpendStopDenyAll"
+  policy = jsonencode({ Version = "2012-10-17", Statement = [{ Effect = "Deny", Action = "*", Resource = "*" }] })
+}
+resource "aws_iam_role" "spend_stop" {
+  name = "ZenithLiveSpendStopExecution"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow", Action = "sts:AssumeRole"
+      Principal = { Service = "budgets.amazonaws.com" }
+      Condition = { StringEquals = { "aws:SourceAccount" = var.account_id } }
+    }]
+  })
+}
+resource "aws_iam_role_policy" "spend_stop" {
+  name = "AttachDenyAllToLiveRolesOnly"
+  role = aws_iam_role.spend_stop.id
+  policy = jsonencode({ Version = "2012-10-17", Statement = [{
+    Effect    = "Allow", Action = ["iam:AttachRolePolicy", "iam:DetachRolePolicy"]
+    Resource  = [aws_iam_role.acceptance.arn, local.deploy_role_arn, local.observe_role_arn]
+    Condition = { ArnEquals = { "iam:PolicyARN" = aws_iam_policy.spend_stop_deny_all.arn } }
+  }] })
+}
+resource "aws_budgets_budget_action" "spend_stop" {
+  account_id         = var.account_id
+  budget_name        = aws_budgets_budget.sandbox.name
+  action_type        = "APPLY_IAM_POLICY"
+  approval_model     = "AUTOMATIC"
+  notification_type  = "ACTUAL"
+  execution_role_arn = aws_iam_role.spend_stop.arn
+  action_threshold {
+    action_threshold_type  = "PERCENTAGE"
+    action_threshold_value = 100
+  }
+  definition {
+    iam_action_definition {
+      policy_arn = aws_iam_policy.spend_stop_deny_all.arn
+      roles      = [aws_iam_role.acceptance.name, local.deploy_role, local.observe_role]
+    }
+  }
+  subscriber {
+    address           = var.alert_email
+    subscription_type = "EMAIL"
   }
 }
 # Lean profile: private RDS, no ingress, NAT, EKS, ALB or paid VPC endpoints.

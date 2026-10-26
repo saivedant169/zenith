@@ -738,11 +738,13 @@ describe("operator claims match current wiring", () => {
 
   it("app composition configures durable broker, scope, runner and reconcile ports", () => {
     const app = source("src/lib/platform/app.ts");
-    for (const call of ["assertPlatformSchemaCurrent(sql)", "registerPlatformBrokerStore(new PlatformBrokerStore(sql))", "registerPlatformBrokerPorts({ scopes: platformScopeResolver(sql) })", "configureRunnerRuntime(runnerPorts(sql))", "wireReconcilePorts(() => composeReconcilePorts(sql, credentials, undefined, managed))", "registerCredentialBroker(credentials, agentPorts.observability)", "registerInvestigator(withDiagnosisRecording(agentPorts.investigator, (investigation) => repos.incidentStability.recordInvestigation(sql, { investigation })))"]) {
+    for (const call of ["assertPlatformSchemaCurrent(sql)", "registerDefaultPlatformComposition(sql)", "configureRunnerRuntime(runnerPorts(sql))", "wireReconcilePorts(() => composeReconcilePorts(sql, credentials, undefined, managed))", "registerCredentialBroker(credentials, agentPorts.observability)", "registerInvestigator(withDiagnosisRecording(agentPorts.investigator, (investigation) => repos.incidentStability.recordInvestigation(sql, { investigation })))"]) {
       expect(app).toContain(call);
     }
     expect(app).toContain('platformDbConfigFromEnv().source === "default"');
     expect(source("src/lib/capabilities/platform.ts")).toContain("loadPolicyEngine(");
+    // The production store and scope resolver are built inside the capabilities module (default broker provenance).
+    for (const call of ["new PlatformBrokerStore(db)", "platformScopeResolver(db)"]) expect(source("src/lib/capabilities/platform.ts")).toContain(call);
     expect(source("src/lib/platform/broker.ts")).toContain("readPlanEvidence(");
     expect(guide("POLICY.md")).toContain("src/lib/platform/broker.ts");
   });

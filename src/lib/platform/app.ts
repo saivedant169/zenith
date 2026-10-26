@@ -5,8 +5,7 @@
  */
 import { platformDb, platformDbConfigFromEnv, repos, assertPlatformSchemaCurrent } from "@/lib/controlplane/db";
 import type { Sql } from "@/lib/controlplane/types";
-import { PlatformBrokerStore } from "@/lib/capabilities/platform-store";
-import { registerPlatformBrokerStore, registerPlatformBrokerPorts } from "@/lib/capabilities/platform";
+import { registerDefaultPlatformComposition } from "@/lib/capabilities/platform";
 import { createOperationsPort } from "@/lib/execution";
 import { configureRunnerRuntime } from "@/lib/runners/runtime";
 import type { RunnerRuntime } from "@/lib/runners/runtime";
@@ -19,7 +18,6 @@ import { platformCredentialBroker } from "./credentials";
 import { composeReconcilePorts } from "./reconcile";
 import { createDefaultManagedSubstrate } from "./zenith-managed";
 import { registerAllDrivers } from "./drivers";
-import { platformScopeResolver } from "./scopes";
 import { composeAgentPorts } from "./agent-ports";
 import { withDiagnosisRecording } from "@/lib/repair/diagnosis";
 import { registerCredentialBroker, registerInvestigator } from "@/lib/agent-access/v3/adapters";
@@ -42,8 +40,8 @@ export function ensurePlatformApp(db?: Sql): Promise<boolean> {
       // PROD-OPS-05: report (never refuse here; the worker refuses) shared or misplaced keys, codes only.
       try { const findings = custodySeparationErrors(); if (findings.length) log.warn("key custody separation findings; run scripts/key-custody.ts diagnose", { scope: "platform", codes: findings.map((f) => f.code) }); } catch { /* diagnostics only */ }
       registerAllDrivers();
-      registerPlatformBrokerStore(new PlatformBrokerStore(sql));
-      registerPlatformBrokerPorts({ scopes: platformScopeResolver(sql) });
+      // Built inside the capabilities module so the production broker keeps default provenance (saved-plan dispatch binds it).
+      registerDefaultPlatformComposition(sql);
       configureRunnerRuntime(runnerPorts(sql));
       const credentials = platformCredentialBroker(sql);
       const managed = createDefaultManagedSubstrate({ db: sql });

@@ -6,6 +6,7 @@
       "Effect": "Allow",
       "Action": [
         "ec2:Describe*",
+        "ec2:GetSecurityGroupsForVpc",
         "ecs:Describe*",
         "ecs:List*",
         "ecr:Describe*",
@@ -132,6 +133,7 @@
         "iam:GetRolePolicy",
         "iam:ListRolePolicies",
         "iam:ListAttachedRolePolicies",
+        "iam:ListInstanceProfilesForRole",
         "iam:ListRoleTags",
         "iam:GetPolicy",
         "iam:GetPolicyVersion",

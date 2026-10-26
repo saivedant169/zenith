@@ -59,7 +59,7 @@ function harness(opts: { deployStatus?: string; leftAfterDestroy?: number; image
       { type: "aws_ecs_task_definition", instances: [{ attributes: { container_definitions: JSON.stringify([{ image: (opts.image ?? (() => images[images.length - 1]!))(images.length) }]) } }] },
       { type: "aws_lb", instances: [{ attributes: { dns_name: DNS } }] },
     ] }),
-    destroy: async (input: { stateKey: string }) => { expect(input.stateKey).toBe("zenith/ws1/env1/terraform.tfstate"); destroyed = true; return { destroyed: 20, ecsClusters: [CLUSTER] }; },
+    destroy: async (input: { stateKey: string }) => { expect(input.stateKey).toBe("zenith/ws1/env1/terraform.tfstate"); destroyed = true; return { destroyed: 20, destroyedArns: [CLUSTER] }; },
   };
   const port = deploy01Port(env, { product, sleep: async () => undefined, propagation: { attempts: 2, intervalMs: 0 }, probe: async (dns, host) => (dns === DNS && host.startsWith("web-") ? 200 : 503), state });
   return { trust, images, sent, connections, run: () => port.verify(requirement, { plan, commit: COMMIT, call }) };

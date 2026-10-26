@@ -21,19 +21,19 @@ function fake(stateJson: string, left = "") {
 describe("live state-destroy cleanup", () => {
   it("destroys the recorded state with the session credentials only in the child environment, then proves it empty", async () => {
     const { exec, calls } = fake(state([AWS, AWS]));
-    await expect(destroyFromState({ tofu: "tofu", region: "ap-south-1", backend, stateKey: "zenith/ws/env/terraform.tfstate", credentials, exec })).resolves.toEqual({ destroyed: 2, ecsClusters: [] });
+    await expect(destroyFromState({ tofu: "tofu", region: "ap-south-1", backend, stateKey: "zenith/ws/env/terraform.tfstate", credentials, exec })).resolves.toEqual({ destroyed: 2, destroyedArns: [] });
     expect(calls.map(c => c.args[0] + " " + (c.args[1] ?? ""))).toEqual(["init -input=false", "state pull", "apply -auto-approve", "state pull"]);
     expect(calls[2]!.env.AWS_SESSION_TOKEN).toBe("token-value");
     expect(Object.keys(calls[0]!.env).filter(k => k.startsWith("AWS_")).sort()).toEqual(["AWS_ACCESS_KEY_ID", "AWS_EC2_METADATA_DISABLED", "AWS_REGION", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"]);
   });
-  it("returns the destroyed ECS cluster ARNs (they linger INACTIVE in the tag inventory)", async () => {
+  it("returns the destroyed ARNs (some linger in the tag inventory after deletion)", async () => {
     const arn = "arn:aws:ecs:ap-south-1:123456789012:cluster/zenith-x-web";
     const { exec } = fake(JSON.stringify({ version: 4, resources: [{ type: "aws_ecs_cluster", name: "c", provider: AWS, instances: [{ attributes: { arn } }] }, { type: "aws_lb", name: "l", provider: AWS, instances: [{ attributes: { arn: "arn:aws:elasticloadbalancing:x" } }] }] }));
-    await expect(destroyFromState({ tofu: "tofu", region: "ap-south-1", backend, stateKey: "zenith/ws/env/terraform.tfstate", credentials, exec })).resolves.toEqual({ destroyed: 2, ecsClusters: [arn] });
+    await expect(destroyFromState({ tofu: "tofu", region: "ap-south-1", backend, stateKey: "zenith/ws/env/terraform.tfstate", credentials, exec })).resolves.toEqual({ destroyed: 2, destroyedArns: [arn, "arn:aws:elasticloadbalancing:x"] });
   });
   it("skips apply for an empty state and still re-reads it", async () => {
     const { exec, calls } = fake(JSON.stringify({ version: 4, resources: [] }));
-    await expect(destroyFromState({ tofu: "tofu", region: "ap-south-1", backend, stateKey: "zenith/ws/env/terraform.tfstate", credentials, exec })).resolves.toEqual({ destroyed: 0, ecsClusters: [] });
+    await expect(destroyFromState({ tofu: "tofu", region: "ap-south-1", backend, stateKey: "zenith/ws/env/terraform.tfstate", credentials, exec })).resolves.toEqual({ destroyed: 0, destroyedArns: [] });
     expect(calls.some(c => c.args[0] === "apply")).toBe(false);
   });
   it("fails closed when resources remain or a command fails, without echoing output", async () => {
@@ -41,7 +41,7 @@ describe("live state-destroy cleanup", () => {
     await expect(destroyFromState({ tofu: "tofu", region: "ap-south-1", backend, stateKey: "zenith/ws/env/terraform.tfstate", credentials, exec: left.exec })).rejects.toThrow("1 resource(s) remain");
     const failing: Exec = async (_file, args) => ({ code: args[0] === "apply" ? 1 : 0, stdout: args[1] === "pull" ? state([AWS]) : "secret-value" });
     // An absent state (empty pull output) before and after is an empty, successful cleanup.
-    await expect(destroyFromState({ tofu: "tofu", region: "ap-south-1", backend, stateKey: "zenith/ws/env/terraform.tfstate", credentials, exec: async () => ({ code: 0, stdout: "" }) })).resolves.toEqual({ destroyed: 0, ecsClusters: [] });
+    await expect(destroyFromState({ tofu: "tofu", region: "ap-south-1", backend, stateKey: "zenith/ws/env/terraform.tfstate", credentials, exec: async () => ({ code: 0, stdout: "" }) })).resolves.toEqual({ destroyed: 0, destroyedArns: [] });
     await expect(destroyFromState({ tofu: "tofu", region: "ap-south-1", backend, stateKey: "zenith/ws/env/terraform.tfstate", credentials, exec: failing })).rejects.toThrow(/^OpenTofu destroy failed during cleanup/);
   });
   it("configures region-named aliases and refuses any other alias or provider form", () => {

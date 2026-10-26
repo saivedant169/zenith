@@ -163,8 +163,10 @@ it("adds the exact bootstrap version read statement and preserves the reviewed r
   properties.PolicyDocument = { ...document, Statement: document.Statement.filter((statement: unknown) => !additions.includes(statement)) };
   // Reviewed 9b568108 resource inventory with the exact read-only statement removed.
   // Incoming bootstrap changes include suffix-scoped image pointers and bounded flow-log/IAM policies, and EC2 child
-  // creation authorized against tagged parents plus tagged security-group rules (DEPLOY-01 live denials, 2026-10-26).
-  expect(createHash("sha256").update(JSON.stringify(resources)).digest("hex")).toBe("6ee3998d3a91269f84b7f39b2cc26fd9ffac685261dd3386d8264836f7e3e785");
+  // creation authorized against tagged parents plus tagged security-group rules, then flow-log tag-on-create, the
+  // ELB-forwarded ec2:GetSecurityGroupsForVpc read, role instance-profile listing and EIP disassociation for destroy
+  // (DEPLOY-01 live denials, 2026-10-26).
+  expect(createHash("sha256").update(JSON.stringify(resources)).digest("hex")).toBe("e4f1dd00149fe6f03b7caa932240a2ed82494516da72904dee302423c5f72bbd");
 });
 
 describe.each(["aws", "aws-cn", "aws-us-gov"])("exact bootstrap boundary reads in %s", (partition) => {
@@ -314,6 +316,7 @@ describe.each(Object.keys(SCENARIOS))("IAM policies (%s)", (scenario) => {
       Ec2RunInstancesFromImages: "AMIs and snapshots are not ours; RunInstances is still denied without tagged instance/volume/ENI",
       SsmImagePointerParameters: "SSM parameters have no tag scoping for new values; access is limited to the plain-String ECS image pointer prefix /zenith<suffix>/image-pointer/*, and the read deny carves out only that prefix",
       CloudFrontOriginAccessControls: "CloudFront origin access controls support neither tags nor name scoping in IAM; they only restrict origin access",
+      Ec2DisassociateAddressByAssociation: "DisassociateAddress by AssociationId (OpenTofu's EIP destroy) resolves to no resource ARN; it only detaches an address (availability, not access)",
     };
     const seen = new Set<string>();
     for (const id of DEPLOY_POLICIES) {

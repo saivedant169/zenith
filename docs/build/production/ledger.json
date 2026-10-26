@@ -8334,6 +8334,16 @@
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
           "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
           "result": "Wave6 local lanes 2026-10-20: 4 passed / 0 failed / 3 not run of the requirement's 7 non-live wave6 cases. Local rehearsals billing (fd5aa0af), dns-tls (283a6868), stateful-traffic and mixed-recovery (9fb9e635) passed after three setup fixes found by these runs (ACME null IPAM, kind multi-platform load, db readiness). Not promoted: local-engine slice only; acceptance judged separately."
+        },
+        {
+          "level": "live_sandbox",
+          "commit": "d387c6aa921fd4f5f51575415bf88c3f870d74a0",
+          "runId": 40255637945,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/40255637945",
+          "command": "GitHub Actions live-acceptance.yml, workflow_dispatch with scenario rel-04 and run_id zlive-202610260143-3816 (scripts/acceptance/live/drill/rel-04.ts, then verify-rel-04.ts offline); plan sha256 ab223fa3e02a8a81cd2e2a7f2c95249d963257ca2343f1a7971af375e23ed633; permission sha256 7acbcf9d270bd4ec3fe42931d1363798a07dde217ece2ca4fc57816e40b19baf",
+          "environment": "Disposable AWS sandbox account 361646636162, region ap-south-1; GitHub environment live-sandbox (owner-delegated automated envelope, approvedBy automation delegated by Saivedant Hava 2026-10-26); hosted runner; estimated cap USD 0.40 (provisional, billing not measured); 15 minute window; one S3 fixture bucket, created and removed by the drill",
+          "logs": "docs/build/production/evidence/PROD-REL-04/2026-10-26-live-aws-40255637945/",
+          "result": "Live AWS sandbox crash, resume and replay drill passed: receipt verdict passed; offline verifier passed. A real SIGKILL after the s3-create intent left an open journal, next-command.txt and checkpoint; B journal-only cleanup closed the journal, deleted the bucket and created nothing; C replay refused at the account-side SSM run claim with zero S3 creates; D HeadBucket NotFound and the run claim unchanged. Covers only the S3 bucket crash, resume and replay path. Product checks, budget exhaustion and forbidden-action refusals remain contract-level or pending; operational_rehearsal not done; not a promotion."
         }
       ],
       "requiredEvidence": [

@@ -1346,8 +1346,9 @@ describe("the Azure sandbox sign-in check", () => {
 describe("the live acceptance workflow", () => {
   const live = (): Job => liveAcceptance.jobs["aws-live"];
   const GUARD = "hashFiles('scripts/acceptance/aws-live.ts') != ''";
-  // retention-s3 only: the Zenith stack steps and their teardown. rel-04 needs no stack.
-  const SCENARIO_GUARD = `${GUARD} && inputs.scenario == 'retention-s3'`;
+  // retention-s3 and mix-03: the Zenith stack steps and their teardown. rel-04 and fixtures need no stack.
+  const STACK_SCENARIOS = `contains(fromJSON('["retention-s3","mix-03"]'), inputs.scenario)`;
+  const SCENARIO_GUARD = `${GUARD} && ${STACK_SCENARIOS}`;
   // The plain harness and its recovery never run for rel-04, whose drill owns resume and cleanup.
   const NOT_REL04 = `${GUARD} && inputs.scenario != 'rel-04'`;
   const REL04 = `${GUARD} && inputs.scenario == 'rel-04'`;
@@ -1486,10 +1487,31 @@ describe("the live acceptance workflow", () => {
 
   it("exposes the scenario input, defaulting to fixtures, to the envelope preflight and the harness", () => {
     const input = (liveAcceptance.on.workflow_dispatch as { inputs: Record<string, unknown> }).inputs.scenario;
-    expect(input).toEqual({ description: expect.any(String), required: false, default: "fixtures", type: "choice", options: ["fixtures", "retention-s3", "rel-04"] });
+    expect(input).toEqual({ description: expect.any(String), required: false, default: "fixtures", type: "choice", options: ["fixtures", "retention-s3", "rel-04", "mix-03"] });
     expect(live().env?.ZENITH_LIVE_AWS_SCENARIO).toBe("${{ inputs.scenario }}");
     const preflight = stepNamed(live(), "Validate the approved permission envelope before OIDC");
     expect(preflight.run).toContain("scripts/acceptance/live/preflight.ts");
+  });
+
+  it("takes the run time limit as a validated input, exported to every step, and refuses anything outside 5..20 before OIDC", () => {
+    const input = (liveAcceptance.on.workflow_dispatch as { inputs: Record<string, unknown> }).inputs.minutes;
+    // A string, so the default stays "15" exactly as the CLI reads it from the environment.
+    expect(input).toEqual({ description: expect.any(String), required: false, default: "15", type: "string" });
+    expect(live().env?.ZENITH_LIVE_AWS_MINUTES).toBe("${{ inputs.minutes }}");
+    const check = stepNamed(live(), "Check the sandbox account configuration");
+    expect(check.run).toMatch(/case "\$ZENITH_LIVE_AWS_MINUTES" in\s+\[5-9\]\|1\[0-9\]\|20\) ;;/);
+    expect(check.run).toContain('echo "::error::minutes must be an integer from 5 to 20."');
+    expect(live().steps.indexOf(check)).toBeLessThan(
+      live().steps.findIndex((step) => step.uses?.startsWith("aws-actions/configure-aws-credentials@"))
+    );
+  });
+
+  it("starts the Zenith stack for retention-s3 and mix-03 only, never for fixtures or rel-04", () => {
+    // The list is exactly these two scenarios; any other scenario name fails here, not at run time.
+    expect(JSON.parse(/fromJSON\('(.*)'\)/.exec(STACK_SCENARIOS)![1])).toEqual(["retention-s3", "mix-03"]);
+    for (const name of ["Free runner disk for the Zenith stack", "Install the pinned Supabase CLI", "Start the Zenith stack and verify readiness before OIDC"])
+      expect(stepNamed(live(), name).if, name).toBe(SCENARIO_GUARD);
+    expect(stepNamed(live(), TEARDOWN).if).toBe(`always() && ${SCENARIO_GUARD}`);
   });
 
   it("starts the Zenith stack for scenario runs before any AWS credential exists, then exports the harness contract", () => {

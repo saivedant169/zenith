@@ -24,6 +24,12 @@ interface CleanupCell {
 interface CleanupOrigin { cell: CleanupCell; stage: "hold"|"grant"|"dispatch"; consumed: boolean }
 const cleanupOrigins = new WeakMap<object,CleanupOrigin>();
 const cleanupInvocation = new AsyncLocalStorage<CleanupCell>();
+
+/** The same refusal, with a fixed non-secret gate code as its cause so an operator can tell which dispatch gate refused. */
+function gateRefusal(code: "readmitted" | "not-approved" | "rejected" | "no-dispatch-approval" | "dispatch-requirement"): Error {
+  return Object.assign(new artifacts.PlanArtifactError(), { cause: { name: "PlanDispatchGate", code } });
+}
+
 export interface NativeCleanupOrigin {
   readonly access: artifacts.ArtifactAccess; readonly attempt: string; readonly proof: Readonly<DispatchApprovalSnapshot>;
   readonly manifestDigest: string; readonly rawAuthenticationDigest: string; readonly hold?: cleanup.CleanupHold; readonly jti?: string;
@@ -177,12 +183,13 @@ function pairedRuntime(db: Sql, env: Readonly<Record<string,string|undefined>>, 
           let cleanupCell:CleanupCell|undefined;
           const admission: PlanAdmission = Object.freeze({manifest,bytes,custody:input.custody,attemptId:attempt,lease:input.lease,associated:manifest.operationId !== input.custody.operationId,
             dispatch: async () => {
-              if (dispatched || admissions.get(approved)!==admission) throw new artifacts.PlanArtifactError();
+              if (dispatched || admissions.get(approved)!==admission) throw gateRefusal("readmitted");
               // Current policy/roles are evaluated by the captured broker, never by caller hooks.
               const authority=await broker.approvalStatus(input.custody.operationId);
-              if(!authority.approved || authority.rejected || !authority.dispatchApproval || admissions.get(approved)!==admission) throw new artifacts.PlanArtifactError();
+              if(!authority.approved || authority.rejected || !authority.dispatchApproval || admissions.get(approved)!==admission)
+                throw gateRefusal(!authority.approved ? "not-approved" : authority.rejected ? "rejected" : !authority.dispatchApproval ? "no-dispatch-approval" : "readmitted");
               const proof=cleanupCell?.proof??authority.dispatchApproval;
-              if (kind === "postgres" && !await isDefaultCurrentDispatchRequirement(proof,db,input.custody.workspaceId,input.custody.operationId)) throw new artifacts.PlanArtifactError();
+              if (kind === "postgres" && !await isDefaultCurrentDispatchRequirement(proof,db,input.custody.workspaceId,input.custody.operationId)) throw gateRefusal("dispatch-requirement");
               // Lost commit responses are non-replayable; mark locally before awaiting the CAS.
               dispatched=true;
               let cleanupOrigin:object|undefined;

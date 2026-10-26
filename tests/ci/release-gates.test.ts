@@ -564,6 +564,12 @@ const DOWNLOADS = [
     sha256: "a6894d45ae7a17ce83189cce8fe04b5a65f68cefceb62455b5a6a89fa53ab38f",
   },
   {
+    job: "aws-live",
+    url: "https://github.com/opentofu/opentofu/releases/download/v1.12.5/tofu_1.12.5_linux_amd64.tar.gz",
+    file: "tofu.tar.gz",
+    sha256: "a6894d45ae7a17ce83189cce8fe04b5a65f68cefceb62455b5a6a89fa53ab38f",
+  },
+  {
     job: "platform-postgres",
     url: "https://github.com/opentofu/opentofu/releases/download/v1.12.5/tofu_1.12.5_linux_amd64.tar.gz",
     file: "tofu.tar.gz",
@@ -1347,13 +1353,14 @@ describe("the live acceptance workflow", () => {
   const live = (): Job => liveAcceptance.jobs["aws-live"];
   const GUARD = "hashFiles('scripts/acceptance/aws-live.ts') != ''";
   // retention-s3 and mix-03: the Zenith stack steps and their teardown. rel-04 and fixtures need no stack.
-  const STACK_SCENARIOS = `contains(fromJSON('["retention-s3","mix-03"]'), inputs.scenario)`;
+  const STACK_SCENARIOS = `contains(fromJSON('["retention-s3","mix-03","deploy-01"]'), inputs.scenario)`;
   const SCENARIO_GUARD = `${GUARD} && ${STACK_SCENARIOS}`;
   // The plain harness and its recovery never run for rel-04, whose drill owns resume and cleanup.
   const NOT_REL04 = `${GUARD} && inputs.scenario != 'rel-04'`;
   const REL04 = `${GUARD} && inputs.scenario == 'rel-04'`;
   const guardFor = (step: Step): string => {
     if (STACK_STEPS.includes(step.name ?? "")) return SCENARIO_GUARD;
+    if (step.name === "Install pinned OpenTofu") return `${GUARD} && inputs.scenario == 'deploy-01'`;
     if (step.name === TEARDOWN) return `always() && ${SCENARIO_GUARD}`;
     if (step.id === "verify" || step.id === "recovery_rel04") return `always() && ${REL04}`;
     if (step.id === "drill" || step.name === "Publish PROD-REL-04 drill journals, evidence and receipt") return REL04;
@@ -1397,7 +1404,9 @@ describe("the live acceptance workflow", () => {
     expect(liveAcceptance.concurrency).toEqual({ group: "live-acceptance", "cancel-in-progress": false });
     expect(typeof live()["timeout-minutes"]).toBe("number");
     // Owner-approved raise from 60 (AWS-PRODUCT-HOOK-DESIGN section 1): the stack starts before the one-hour OIDC session.
-    expect(Number(live()["timeout-minutes"])).toBe(90);
+    // Raised again to 130 for deploy-01 (delegated by the owner, 2026-10-26): up to 60 minutes of deploy, update and rollback
+    // plus 25 minutes of cleanup after the stack start.
+    expect(Number(live()["timeout-minutes"])).toBe(130);
     expect(assumeStep().with?.["role-duration-seconds"]).toBe(3600);
   });
 
@@ -1487,7 +1496,7 @@ describe("the live acceptance workflow", () => {
 
   it("exposes the scenario input, defaulting to fixtures, to the envelope preflight and the harness", () => {
     const input = (liveAcceptance.on.workflow_dispatch as { inputs: Record<string, unknown> }).inputs.scenario;
-    expect(input).toEqual({ description: expect.any(String), required: false, default: "fixtures", type: "choice", options: ["fixtures", "retention-s3", "rel-04", "mix-03"] });
+    expect(input).toEqual({ description: expect.any(String), required: false, default: "fixtures", type: "choice", options: ["fixtures", "retention-s3", "rel-04", "mix-03", "deploy-01"] });
     expect(live().env?.ZENITH_LIVE_AWS_SCENARIO).toBe("${{ inputs.scenario }}");
     const preflight = stepNamed(live(), "Validate the approved permission envelope before OIDC");
     expect(preflight.run).toContain("scripts/acceptance/live/preflight.ts");
@@ -1506,9 +1515,9 @@ describe("the live acceptance workflow", () => {
     );
   });
 
-  it("starts the Zenith stack for retention-s3 and mix-03 only, never for fixtures or rel-04", () => {
-    // The list is exactly these two scenarios; any other scenario name fails here, not at run time.
-    expect(JSON.parse(/fromJSON\('(.*)'\)/.exec(STACK_SCENARIOS)![1])).toEqual(["retention-s3", "mix-03"]);
+  it("starts the Zenith stack for retention-s3, mix-03 and deploy-01 only, never for fixtures or rel-04", () => {
+    // The list is exactly these three scenarios; any other scenario name fails here, not at run time.
+    expect(JSON.parse(/fromJSON\('(.*)'\)/.exec(STACK_SCENARIOS)![1])).toEqual(["retention-s3", "mix-03", "deploy-01"]);
     for (const name of ["Free runner disk for the Zenith stack", "Install the pinned Supabase CLI", "Start the Zenith stack and verify readiness before OIDC"])
       expect(stepNamed(live(), name).if, name).toBe(SCENARIO_GUARD);
     expect(stepNamed(live(), TEARDOWN).if).toBe(`always() && ${SCENARIO_GUARD}`);

@@ -2176,6 +2176,7 @@ Resources:
                   - lambda.amazonaws.com
                   - eks.amazonaws.com
                   - ec2.amazonaws.com
+                  - vpc-flow-logs.amazonaws.com
           - Effect: Allow
             Action: iam:CreateServiceLinkedRole
             Resource:

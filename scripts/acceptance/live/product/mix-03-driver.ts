@@ -58,7 +58,7 @@ export function runnerStack(env: EnvLike): RunnerStack {
 }
 
 /** Real sign-in, workspace, two-person policy, approver invitation and TOTP enrolment for both people, as operated.ts does. */
-async function openRealSession(env: EnvLike): Promise<{ tenant: TenantSession; close: () => Promise<void> }> {
+export async function openRealSession(env: EnvLike): Promise<{ tenant: TenantSession; close: () => Promise<void> }> {
   const stack = runnerStack(env);
   const { chromium } = await import("@playwright/test");
   const browser: Browser = await chromium.launch({ headless: true });
@@ -92,7 +92,7 @@ async function openRealSession(env: EnvLike): Promise<{ tenant: TenantSession; c
 }
 
 /** Fills the authenticator code on the product's challenge page and waits for the server-side proof, as operated.ts does for enrolment. */
-async function stepUpWithAuthenticator(page: Page, stack: RunnerStack, secret: string): Promise<void> {
+export async function stepUpWithAuthenticator(page: Page, stack: RunnerStack, secret: string): Promise<void> {
   await page.goto(stack.apiUrl + "/account/mfa/challenge?next=/overview");
   const code = page.getByLabel("Six-digit authenticator code", { exact: true });
   await code.waitFor();

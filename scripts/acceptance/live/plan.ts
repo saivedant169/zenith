@@ -11,6 +11,8 @@ const scenarios: Record<Scenario, { families: Family[]; scope?: string[] }> = {
   "rel-04": { families: ["s3"], scope: ["PROD-REL-04"] },
   // No harness fixtures: the producer bucket, consumer function and their roles are created by Zenith itself (productCalls).
   "mix-03": { families: [], scope: ["PROD-MIX-03"] },
+  // No harness fixtures: Zenith deploys the service; cleanup destroys the environment's recorded state (state-destroy.ts).
+  "deploy-01": { families: [], scope: ["PROD-REL-01"] },
 };
 /** Sandbox IAM names installed by deploy/aws/zenith-connection.cfn.yaml with NameSuffix "-live" (verify before a live run). */
 export const MIX03_ROLE_NAMES = { observe: "ZenithObserveRole-live", deploy: "ZenithDeployRole-live", principal: "ZenithLiveAcceptance" } as const;
@@ -48,7 +50,26 @@ export function mix03ProductCalls(account: string, region: string): Call[] {
     c("mix03-role-delete", "iam", "DeleteRole", "iam:DeleteRole", ownRoles, { RoleName: runtime("roleName") }, 4),
     c("mix03-bucket-delete", "s3", "DeleteBucket", "s3:DeleteBucket", bucket, { Bucket: runtime("bucketName") }, 4),
   ];
-}export function parseScenario(raw: string): Scenario {
+}/**
+ * DEPLOY-01 product-scope calls: the sandbox trust change (as mix-03), one STS session of the sandbox deploy role for the
+ * state readback and cleanup, and the tag re-list. Everything Zenith deploys is created and destroyed by OpenTofu with the
+ * connection's own deploy role, never by these calls.
+ */
+export function deploy01ProductCalls(account: string, runId: string): Call[] {
+  const roleArn = (name: string) => `arn:aws:iam::${account}:role/${name}`;
+  const runtime = (name: string): Json => ({ $runtime: name });
+  const role = { observe: roleArn(MIX03_ROLE_NAMES.observe), deploy: roleArn(MIX03_ROLE_NAMES.deploy) };
+  const c = (id: string, service: string, command: string, action: string, resource: string, input: Record<string, Json>, maximumCalls: number): Call => ({ id, service, command, action, resource, input, maximumCalls });
+  return [
+    c("deploy01-iam-read-observe", "iam", "GetRole", "iam:GetRole", role.observe, { RoleName: MIX03_ROLE_NAMES.observe }, 3),
+    c("deploy01-iam-read-deploy", "iam", "GetRole", "iam:GetRole", role.deploy, { RoleName: MIX03_ROLE_NAMES.deploy }, 3),
+    c("deploy01-iam-trust-observe", "iam", "UpdateAssumeRolePolicy", "iam:UpdateAssumeRolePolicy", role.observe, { RoleName: MIX03_ROLE_NAMES.observe, PolicyDocument: runtime("trustDocument") }, 3),
+    c("deploy01-iam-trust-deploy", "iam", "UpdateAssumeRolePolicy", "iam:UpdateAssumeRolePolicy", role.deploy, { RoleName: MIX03_ROLE_NAMES.deploy, PolicyDocument: runtime("trustDocument") }, 3),
+    c("deploy01-sts-assume", "sts", "AssumeRole", "sts:AssumeRole", role.deploy, { RoleArn: role.deploy, RoleSessionName: `zenith-${runId}`.slice(0, 64), ExternalId: runtime("externalId"), DurationSeconds: 3600 }, 8),
+    c("deploy01-tag-read", "tag", "GetResources", "tag:GetResources", "*", { TagFilters: [{ Key: "zenith:environment", Values: [runtime("environmentId")] }], ResourcesPerPage: 100 }, 4),
+  ];
+}
+export function parseScenario(raw: string): Scenario {
   if (!(SCENARIOS as readonly string[]).includes(raw)) throw new Error("Unknown AWS live scenario");
   return raw as Scenario;
 }
@@ -99,7 +120,9 @@ export function buildPlan(input: Settings): Plan {
   assertRunId(settings.runId);
   if (!/^\d{12}$/.test(settings.accountId)) throw new Error("Explicit 12-digit sandbox account required");
   if (!/^(us|eu|ap|ca|sa|me|af|il|mx)-(central|north|south|east|west|northeast|northwest|southeast|southwest)-\d$/.test(settings.region)) throw new Error("Commercial AWS region required");
-  if (!Number.isInteger(settings.durationMinutes) || settings.durationMinutes < 5 || settings.durationMinutes > 20) throw new Error("Duration must be 5..20 minutes (25 minutes reserved for cleanup)");
+  // DEPLOY-01 deploys, updates and rolls back a Fargate service behind an ALB on a fresh VPC: allow up to 60 minutes.
+  const maxMinutes = scenario === "deploy-01" ? 60 : 20;
+  if (!Number.isInteger(settings.durationMinutes) || settings.durationMinutes < 5 || settings.durationMinutes > maxMinutes) throw new Error(`Duration must be 5..${maxMinutes} minutes (25 minutes reserved for cleanup)`);
   const { accountId: account, region, runId } = settings;
   const prefix = `zenith-${runId}`;
   if (!/^zenith-live-[a-z0-9-]+$/.test(settings.dbSubnetGroup) || !/^sg-[a-f0-9]{8,17}$/.test(settings.dbSecurityGroup)) throw new Error("Owned bootstrap DB network required");
@@ -194,12 +217,16 @@ export function buildPlan(input: Settings): Plan {
   // under 1 MiB for under an hour is far below a cent. The 0.25 base and 0.01/minute are generous
   // ceilings for a few dozen planned requests plus retries; the 0.25 reserve is kept for cleanup.
   // Duration bounds stay 5..20 because the product archive/restore path runs inside that window.
-  const estimate: Plan["estimate"] = scenario === "mix-03" ? { usd: 0.5 + settings.durationMinutes * 0.02, cleanupReserveUsd: 0.25, provisional: true, basis: "Conservative provisional USD ceiling for PROD-MIX-03: one owned S3 bucket with no objects, one 128MiB Lambda function with no invocation, one CloudWatch log group, IAM roles (no charge) and a few dozen planned control-plane calls; includes 0.25USD cleanup reserve. A rename of the producer bucket doubles the bucket count for its window. Owner must validate regional rates." } : scenario === "retention-s3" ? { usd: 0.25 + settings.durationMinutes * 0.01, cleanupReserveUsd: 0.25, provisional: true, basis: "Conservative provisional USD ceiling for one owned S3 bucket, a few sealed objects under retention/, a bounded list/delete drain and a few dozen planned S3 requests; includes 0.25USD cleanup reserve. No RDS, ECS, DNS, IAM or Lambda cost. Owner must validate regional S3 rates." }
+  // DEPLOY-01: NAT gateway ~US$0.056/h, ALB ~US$0.023/h, one 0.25 vCPU Fargate task ~US$0.013/h, public IPv4 and logs: under
+  // US$0.15/h. The 1.00 base and 0.03/minute are generous ceilings; the 0.50 reserve covers a slow destroy.
+  const estimate: Plan["estimate"] = scenario === "deploy-01" ? { usd: 1 + settings.durationMinutes * 0.03, cleanupReserveUsd: 0.5, provisional: true, basis: "Conservative provisional USD ceiling for DEPLOY-01: one VPC with a single NAT gateway, one ALB and one 0.25 vCPU Fargate task for the run, destroyed from the recorded state." }
+    : scenario === "mix-03" ? { usd: 0.5 + settings.durationMinutes * 0.02, cleanupReserveUsd: 0.25, provisional: true, basis: "Conservative provisional USD ceiling for PROD-MIX-03: one owned S3 bucket with no objects, one 128MiB Lambda function with no invocation, one CloudWatch log group, IAM roles (no charge) and a few dozen planned control-plane calls; includes 0.25USD cleanup reserve. A rename of the producer bucket doubles the bucket count for its window. Owner must validate regional rates." } : scenario === "retention-s3" ? { usd: 0.25 + settings.durationMinutes * 0.01, cleanupReserveUsd: 0.25, provisional: true, basis: "Conservative provisional USD ceiling for one owned S3 bucket, a few sealed objects under retention/, a bounded list/delete drain and a few dozen planned S3 requests; includes 0.25USD cleanup reserve. No RDS, ECS, DNS, IAM or Lambda cost. Owner must validate regional S3 rates." }
     : scenario === "rel-04" ? { usd: 0.25 + settings.durationMinutes * 0.01, cleanupReserveUsd: 0.25, provisional: true, basis: "Conservative provisional USD ceiling for the PROD-REL-04 drill: one owned S3 bucket with one probe object, a SIGKILL and journal-only resume, a refused replay claim and two read-only readbacks; same S3 envelope as retention-s3, includes 0.25USD cleanup reserve. No RDS, ECS, DNS, IAM or Lambda cost. Owner must validate regional S3 rates." } : { usd: 6 + settings.durationMinutes * 0.03, cleanupReserveUsd: 2, provisional: true, basis: "Conservative provisional USD ceiling: one private 20GiB db.t4g.micro <=45min including cleanup, one 128MiB Lambda invocation, one empty ECS cluster, <=1KiB S3, one disposable hosted zone, managed DB secret; includes 2USD cleanup reserve. Owner must validate regional rates; delayed deletion can exceed estimate." };
   const body: Omit<Plan, "sha256"> = {
     schema: 1, settings, tags, fixtures, preflight, estimate,
     // Only the mix-03 body carries productCalls, so every other scenario's digest is unchanged.
     ...(scenario === "mix-03" ? { productCalls: mix03ProductCalls(account, region) } : {}),
+    ...(scenario === "deploy-01" ? { productCalls: deploy01ProductCalls(account, runId) } : {}),
     requirements: ledger.requirements.filter(r => r.requiredEvidence.includes("live_sandbox")).map(r => ({ id: r.id, acceptance: r.acceptance, fixtures: requirements[r.id] ?? [], join: "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement." })),
   };
   return { ...body, sha256: digest(body) };

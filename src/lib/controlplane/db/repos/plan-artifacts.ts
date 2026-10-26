@@ -451,6 +451,22 @@ async function assertHeldCleanup(sql:Sql,tx:Sql,origin:unknown,bound:NativeClean
   const inventory=await cleanup.inventoryForNativeOrigin(sql,tx,origin);
   if(Object.values(inventory).some(n=>n!==0))throw new cleanup.CleanupWriterBarrierError();
 }
+/** Releases the scope's newest hold only when its counted inventory is zero. The caller already holds the workspace coordinator. */
+async function releaseDrainedScopeHold(tx:Sql,workspaceId:string,projectId:string,environmentId:string,releasedBy:string):Promise<number> {
+  const inventory=await cleanup.inventory(tx,workspaceId,projectId,environmentId);
+  if(Object.values(inventory).some(n=>n!==0))return 0;
+  const rows=await tx.query<{hold_seq:string}>(`insert into platform.cleanup_writer_hold_releases(workspace_id,project_id,environment_id,hold_seq,operation_id,attempt_id,generation,released_by,inventory_snapshot)
+    select h.workspace_id,h.project_id,h.environment_id,h.hold_seq,h.operation_id,h.attempt_id,h.generation,$4::text,$5::text::jsonb from platform.cleanup_writer_holds h
+    where h.workspace_id=$1 and h.project_id=$2 and h.environment_id=$3
+      and not exists(select 1 from platform.cleanup_writer_holds n where n.workspace_id=h.workspace_id and n.project_id=h.project_id
+        and n.environment_id=h.environment_id and n.hold_seq>h.hold_seq)
+      and not exists(select 1 from platform.cleanup_writer_hold_releases r where r.workspace_id=h.workspace_id and r.hold_seq=h.hold_seq)
+      -- A live claimed attempt keeps its freeze: a fresh zero-inventory hold must not be released before its grant.
+      and not exists(select 1 from platform.plan_artifact_uses u where u.workspace_id=h.workspace_id and u.operation_id=h.operation_id
+        and u.attempt_id=h.attempt_id and u.phase='claimed')
+    on conflict do nothing returning hold_seq::text as hold_seq`,[workspaceId,projectId,environmentId,releasedBy,JSON.stringify(inventory)]);
+  return rows.length;
+}
 /** Guarded private origin only. Commit the hold even when the counted inventory blocks continuation. */
 export async function retainCleanupWriterHold(sql:Sql,origin:unknown):Promise<Readonly<{hold:cleanup.CleanupHold;inventory:cleanup.CleanupInventory}>> {
   const bound=await readNativeCleanupOrigin(origin,sql,"hold"),c=bound.access.custody;
@@ -458,6 +474,8 @@ export async function retainCleanupWriterHold(sql:Sql,origin:unknown):Promise<Re
     const frame=await captureCleanupFrame(sql,tx,bound);
     await lockCleanupCoordinator(tx,c.workspaceId);
     await assertNativeCleanupOriginCurrent(origin,sql);
+    // A superseded generation is released first, and only when its scope has drained (WP5 decision 1).
+    await releaseDrainedScopeHold(tx,c.workspaceId,c.projectId,c.environmentId,`retain:${bound.attempt}`);
     const generation=randomUUID();
     const input=bound.access,sourceAuthority=frame.source,productAuthority=frame.product;
     // The original full authority predicate and this inert hold INSERT share one fresh statement.
@@ -648,6 +666,23 @@ export async function expire(sql: Sql, limit=100): Promise<number> {
     const changed = await tx.query(`update platform.plan_artifact_uses set phase=case when phase='dispatched' then 'uncertain' else 'expired' end,updated_at=clock_timestamp()
       where workspace_id=$1 and operation_id=$2 and phase in ('ready','claimed','dispatched') returning operation_id`,[c.workspace_id,c.operation_id]);
     return changed.length;
+  });
+  return count;
+}
+
+/** Janitor sweep beside expire: release each scope's newest hold once it drains. Writes only under the workspace coordinator. */
+export async function releaseDrainedHolds(sql: Sql, limit=100): Promise<number> {
+  const candidates = await sql.query<{workspace_id:string;project_id:string;environment_id:string}>(`select distinct h.workspace_id,h.project_id,h.environment_id
+    from platform.cleanup_writer_holds h
+    where not exists(select 1 from platform.cleanup_writer_holds n where n.workspace_id=h.workspace_id and n.project_id=h.project_id
+      and n.environment_id=h.environment_id and n.hold_seq>h.hold_seq)
+    and not exists(select 1 from platform.cleanup_writer_hold_releases r where r.workspace_id=h.workspace_id and r.hold_seq=h.hold_seq)
+    order by h.workspace_id,h.project_id,h.environment_id limit $1::bigint`, [Math.max(1,Math.min(1000,limit))]);
+  let count=0;
+  // The candidate list is only a hint: the newest hold and its inventory are re-read under the coordinator.
+  for (const c of candidates) count += await sql.tx(async tx => {
+    await lockCleanupCoordinator(tx,c.workspace_id);
+    return releaseDrainedScopeHold(tx,c.workspace_id,c.project_id,c.environment_id,"janitor");
   });
   return count;
 }

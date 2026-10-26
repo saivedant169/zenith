@@ -318,7 +318,8 @@ describe.each(lanes)("migrator [$name]", (lane) => {
         values ($1,$2,$3,$4,'approve',$5::text::jsonb,$6,'editor','legacy',clock_timestamp() + interval '1 hour')`,
       [approvalId, workspaceId, op.id, op.proposalDigest, JSON.stringify(approver), approver.id]);
       await db.query("update platform.operations set status = 'approved' where workspace_id = $1 and id = $2", [workspaceId, op.id]);
-      await expectHistoricalContractRefusal(db, [4, 5, 11, 15, 28, 30, 49, 51, 57, 58]);
+      // 61 (hold generations) drops the holds primary key: a contract migration with no LIFE-10 approval registered yet.
+      await expectHistoricalContractRefusal(db, [4, 5, 11, 15, 28, 30, 61, 49, 51, 57, 58]);
       await historicalFixtureRange(db, 4, 30);
       expect((await migrateDrainedWave5(db)).applied).toEqual(PLATFORM_MIGRATIONS.filter(m => m.version > 30).map(m => m.version));
       expect(await db.query("select approval_round from platform.approvals where workspace_id = $1 and id = $2", [workspaceId, approvalId])).toEqual([{ approval_round: 0 }]);
@@ -780,7 +781,7 @@ describe.skipIf(!PG_URL)("migrator [postgres] concurrency and fail-closed open",
             await tx.query("drop table platform.agent_receipt_acl_probe");
           }
           if (mode === "same-owner schema6") {
-            await expectHistoricalContractRefusal(db, [11, 15, 28, 30, 49, 51, 57, 58]);
+            await expectHistoricalContractRefusal(db, [11, 15, 28, 30, 61, 49, 51, 57, 58]);
             await historicalFixtureRange(db, 7, 30);
           }
           await migrateDrainedWave5(db);
@@ -822,7 +823,7 @@ describe.skipIf(!PG_URL)("migrator [postgres] concurrency and fail-closed open",
             for (const privilege of ["SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER"])
               expect((await tx.query<{ inherited: boolean }>("select has_table_privilege('service_role','platform.approved_source_acl_probe',$1) as inherited", [privilege]))[0].inherited).toBe(true);
             await tx.query("drop table platform.approved_source_acl_probe");
-            await expectHistoricalContractRefusal(db, [11, 15, 28, 30, 49, 51, 57, 58]);
+            await expectHistoricalContractRefusal(db, [11, 15, 28, 30, 61, 49, 51, 57, 58]);
             await historicalFixtureRange(db, 7, 12);
             expect((await migratePlatformDb(db, PLATFORM_MIGRATIONS.filter(m => m.version <= 13))).applied).toEqual([13]);
             await historicalFixtureRange(db, 14, 30);
@@ -1188,7 +1189,8 @@ describe("cleanup writer expand schema 60 [pglite]", () => {
       const before = await db.query(`select ${columns} from platform.cleanup_writer_holds order by environment_id`);
       expect(await primaryKey(db, "cleanup_writer_holds")).toEqual(["workspace_id", "project_id", "environment_id"]);
 
-      await migratePlatformDb(db);
+      // Schema 61 replaces this key (see the schema 61 block below); this block checks schema 60 only.
+      await migratePlatformDb(db, PLATFORM_MIGRATIONS.filter((m) => m.version <= 60));
       expect(await primaryKey(db, "cleanup_writer_holds")).toEqual(["workspace_id", "project_id", "environment_id"]);
       expect(await db.query(`select ${columns} from platform.cleanup_writer_holds order by environment_id`)).toEqual(before);
       const seqs = await db.query<{ environment_id: string; hold_seq: string }>("select environment_id, hold_seq::text as hold_seq from platform.cleanup_writer_holds order by environment_id");
@@ -1271,6 +1273,62 @@ describe("cleanup direct attempt history schema 60", () => {
         await expect(db.query("update platform.cleanup_direct_attempts set holder='changed' where operation_id='op_direct_a'")).rejects.toThrow(/cannot be changed or cleared/);
         await expect(db.query("delete from platform.cleanup_direct_attempts where operation_id='op_direct_a'")).rejects.toThrow(/cannot be changed or cleared/);
         expect(await rowsFor(db, "op_direct_a")).toEqual([{ state: "claimed" }, { state: "dispatched" }]);
+      });
+    }
+  }, 120_000);
+});
+
+describe("cleanup writer hold generations schema 61", () => {
+  const WS = "ws_gen61";
+  const gen = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+  // The writer trigger projects the operation's proposal scope, so every scoped operation carries it.
+  const seedOperation = (db: PlatformDbHandle, id: string, environmentId: string) =>
+    db.query(`insert into platform.operations(id,workspace_id,project_id,environment_id,capability,principal,status,proposal,proposal_digest,input_digest,correlation_id,expires_at)
+      values($1,$2,'project_g',$3,'infrastructure.apply','{}'::jsonb,'succeeded',$4::text::jsonb,$5,$5,'corr',clock_timestamp()+interval '1 day')`,
+      [id, WS, environmentId, JSON.stringify({ scope: { workspaceId: WS, projectId: "project_g", environmentId } }), digest(id)]);
+  const insertHold = (db: PlatformDbHandle, environmentId: string, operationId: string, attempt: string, n: number) =>
+    db.query(`insert into platform.cleanup_writer_holds(workspace_id,project_id,environment_id,operation_id,attempt_id,generation,manifest_digest,authority_digest,holder,fence_token)
+      values($1,'project_g',$2,$3,$4,$5,$6,$7,'holder_g',1)`, [WS, environmentId, operationId, attempt, gen(n), digest(`m:${attempt}`), digest(`a:${attempt}`)]);
+  const release = (db: PlatformDbHandle, environmentId: string, n: number) =>
+    db.query(`insert into platform.cleanup_writer_hold_releases(workspace_id,project_id,environment_id,hold_seq,operation_id,attempt_id,generation,released_by,inventory_snapshot)
+      select h.workspace_id,h.project_id,h.environment_id,h.hold_seq,h.operation_id,h.attempt_id,h.generation,'test','{"workflow":0}'::jsonb
+      from platform.cleanup_writer_holds h where h.workspace_id=$1 and h.environment_id=$2 and h.generation=$3`, [WS, environmentId, gen(n)]);
+  const deliver = (db: PlatformDbHandle, operationId: string, jti: string) =>
+    db.query(`insert into platform.capability_grants(jti,workspace_id,operation_id,capability,audience,issued_at,expires_at)
+      values($1,$2,$3,'infrastructure.apply','worker',clock_timestamp(),clock_timestamp()+interval '1 hour')`, [jti, WS, operationId]);
+
+  it("the newest unreleased generation freezes its scope, and older unreleased generations never freeze", async () => {
+    for (const lane of lanes) {
+      await lane.withFresh(async (open) => {
+        const db = await open(true);
+        expect((await db.query<{ key: string }>(`select string_agg(a.attname, ',' order by k.ordinality) as key from pg_constraint c
+          cross join lateral unnest(c.conkey) with ordinality as k(attnum, ordinality) join pg_attribute a on a.attrelid=c.conrelid and a.attnum=k.attnum
+          where c.conrelid='platform.cleanup_writer_holds'::regclass and c.contype='p'`))[0].key).toBe("workspace_id,hold_seq");
+        for (const id of ["op_g_a1", "op_g_a2", "op_g_a3"]) await seedOperation(db, id, "env_a");
+        await seedOperation(db, "op_g_b1", "env_b");
+        await insertHold(db, "env_a", "op_g_a1", "attempt_1", 1);
+        await expect(deliver(db, "op_g_a2", "jti-1"), `${lane.name}: first freeze`).rejects.toThrow(/refuses a new possible delivery/);
+        await deliver(db, "op_g_b1", "jti-b");
+        // A superseding generation is the frozen one: the older unreleased generation no longer matters.
+        await insertHold(db, "env_a", "op_g_a2", "attempt_2", 2);
+        await expect(deliver(db, "op_g_a3", "jti-2"), `${lane.name}: superseding freeze`).rejects.toThrow(/refuses a new possible delivery/);
+        await release(db, "env_a", 2);
+        await deliver(db, "op_g_a3", "jti-3");
+        await expect(deliver(db, "op_g_a3", "jti-4"), `${lane.name}: still released`).resolves.toBeDefined();
+      });
+    }
+  }, 120_000);
+
+  it("a generation releases once, and one held attempt owns at most one generation", async () => {
+    for (const lane of lanes) {
+      await lane.withFresh(async (open) => {
+        const db = await open(true);
+        await seedOperation(db, "op_g_c1", "env_c");
+        await insertHold(db, "env_c", "op_g_c1", "attempt_c", 3);
+        await expect(insertHold(db, "env_c", "op_g_c1", "attempt_c", 4), `${lane.name}: second generation for one attempt`).rejects.toThrow();
+        await release(db, "env_c", 3);
+        await expect(release(db, "env_c", 3), `${lane.name}: second release`).rejects.toThrow();
+        expect((await db.query<{ n: string }>("select count(*)::text as n from platform.cleanup_writer_hold_releases where workspace_id=$1", [WS]))[0].n).toBe("1");
       });
     }
   }, 120_000);

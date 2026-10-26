@@ -209,7 +209,9 @@ function isFixedCleanupWriteContext(fn: Fn, repo: ts.SourceFile, owning: ts.Func
   const first = ["input.custody.workspaceId", "input.custody.operationId", "bound.attempt", "input.lease.holder",
     "input.lease.fenceToken", "JSON.stringify({...bound.proof,standaloneSettlements:bound.settlements})", "JSON.stringify(sourceAuthority)", "JSON.stringify(productAuthority)"];
   const contexts: Record<string, { purpose: string; hash: string; functionHash: string; tail: string[]; returned: string }> = {
-    retainCleanupWriterHold: { purpose: "hold", hash: "83d3c130597d17ff6461f80c21fdc322140b12a46d562d207526af7c8c58b8ed", functionHash: "19f19295d77704777beca348eaffbaebc6618dba51565593a8ec93ad3105e1a5",
+    // WP5 (schema 61): functionHash changed only by the one call that releases a drained superseded generation
+    // before the unchanged hold INSERT. The INSERT text, its parameters and the single authority check are unchanged.
+    retainCleanupWriterHold: { purpose: "hold", hash: "83d3c130597d17ff6461f80c21fdc322140b12a46d562d207526af7c8c58b8ed", functionHash: "9ee355a429c95c5722c8277b1782174f4eaaf15067896eb0c1acf2cfd488e493",
       tail: ["c.projectId", "c.environmentId", "generation", "bound.manifestDigest", "frame.authorityDigest"], returned: "generation" },
     reserveCleanupOwnerGrant: { purpose: "grant", hash: "30d525a135fb41d74740a3c2048965d8b9290150c8f38158164fff55aad7117b", functionHash: "13fc8a46cded322591360ed4b84e1fe78498e1839431db3e330c1c2d5dc138be",
       tail: ["h.generation", "jti", "frame.authorityDigest"], returned: "jti" },
@@ -821,5 +823,23 @@ describe("control-store repositories: workspace scoping is present in every func
       }
     }
     expect(risky, "interpolating anything but a constant column list into SQL text is an injection risk: use $n parameters").toEqual([]);
+  });
+
+  // Schema 61 (WP5 hold lifecycle): the janitor sweep and its scope helper write hold releases. Pinned by exact AST
+  // text, so any edit (including a new predicate) must be re-reviewed and re-pinned. Their SQL takes no interpolation.
+  it("pins the hold release writers (schema 61) by exact function text, with no interpolated SQL", () => {
+    const text = readFileSync(path.join(REPOS, "plan-artifacts.ts"), "utf8");
+    const sf = ts.createSourceFile("plan-artifacts.ts", text, ts.ScriptTarget.Latest, true);
+    const pinned = new Map<string, string>();
+    const visit = (node: ts.Node): void => {
+      if (ts.isFunctionDeclaration(node) && node.name && ["releaseDrainedHolds", "releaseDrainedScopeHold"].includes(node.name.text)) pinned.set(node.name.text, node.getText(sf));
+      ts.forEachChild(node, visit);
+    };
+    visit(sf);
+    const hash = (value: string) => createHash("sha256").update(value).digest("hex");
+    expect([...pinned.keys()].sort()).toEqual(["releaseDrainedHolds", "releaseDrainedScopeHold"]);
+    expect(hash(pinned.get("releaseDrainedHolds")!)).toBe("700e4124c3619b35ac3bed426a9034b49899e2b46ce14666bf646e1345a4af3c");
+    expect(hash(pinned.get("releaseDrainedScopeHold")!)).toBe("7aed855d22d6757440426853e0761ce198151c7aaddf3c80ead5cf81715abd76");
+    for (const body of pinned.values()) expect(/\$\{/.test(body), "release SQL must not interpolate").toBe(false);
   });
 });

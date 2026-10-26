@@ -62,6 +62,7 @@ export function EnvironmentTeardownReview({ workspaceId, environmentId, viewerRo
   };
   return <div className="space-y-3" aria-label="Read-only teardown review">
     <p className="text-[13px] text-ink-mute">Run a read-only destroy plan and record a proposal for separate human approval. No infrastructure is changed by this review.</p>
+    <p className="text-[13px] text-ink-mute">If this teardown is refused, the environment stays frozen until its possible deliveries drain.</p>
     <Button busy={busy} onClick={() => void request()} disabled={viewerRole === "none" || Boolean(review && pending(review.status))}
       disabledReason={viewerRole === "none" ? "Workspace membership is required." : "The recorded review or teardown is still in progress."}>Review teardown</Button>
     {review && <div role="status" className="space-y-2 text-[13px]">

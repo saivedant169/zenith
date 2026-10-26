@@ -201,6 +201,7 @@ export function startPlanArtifactJanitor(
     if (active) return;
     active = (async (): Promise<PlanArtifactJanitorResult> => {
       const expired = await repos.planArtifacts.expire(db);
+      await repos.planArtifacts.releaseDrainedHolds(db);
       if (!preview) return { expired };
       const retention = await repos.planArtifacts.previewRetention(db, preview);
       return { expired, retention };

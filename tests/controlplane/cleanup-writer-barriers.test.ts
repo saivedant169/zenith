@@ -324,7 +324,9 @@ describe.skipIf(!PG_URL)("native cleanup writer barrier [postgres; modeled hoste
   });
   it("a prior same-operation issued grant is retained as a blocker after claimed use returns ready",async()=>{
     const o=await owning();await consume(o,async()=>{await createExecutionBroker(db).issueGrant(o.d.op.id,"worker",o.d.access.lease,{capability:"infrastructure.destroy"});});const before=await holdRows(o);
-    await blocked(o);expect(await holdRows(o)).toEqual(before);expect(await observer.query("select count(*)::integer as n from platform.cleanup_owner_grants where workspace_id=$1",[o.f.op.workspaceId])).toEqual([{n:1}]);
+    // WP5: the refused attempt commits its own generation; the earlier generation is unchanged and still freezes nothing new.
+    await blocked(o);const after=await holdRows(o);expect(after).toHaveLength(before.length+1);expect(after).toEqual(expect.arrayContaining(before));
+    expect(await observer.query("select count(*)::integer as n from platform.cleanup_owner_grants where workspace_id=$1",[o.f.op.workspaceId])).toEqual([{n:1}]);
   });
   it("an earlier unconsumed mutation grant blocks callback entry while the new hold still commits",async()=>{
     const o=await owning(),other=await sibling(o);await recordGrant(o,other.id);await blocked(o);expect(await holdRows(o)).toHaveLength(1);
@@ -341,6 +343,69 @@ describe.skipIf(!PG_URL)("native cleanup writer barrier [postgres; modeled hoste
   });
   it("an unknown product scope creation time cannot be inferred fresh from zero native writers",async()=>{
     const o=await owning();await peer.query("update public.environments set created_at=null where workspace_id=$1 and id=$2",[o.f.op.workspaceId,o.f.op.environmentId]);await blocked(o);expect(await holdRows(o)).toHaveLength(1);
+  });
+  // Schema 61 hold lifecycle. An unknown scope creation time is the one blocker a native fixture can clear to zero:
+  // every delivery stays in the immutable possible-delivery ledger, so a real drain needs settlement (WP3).
+  const clearScope=(o:Owning)=>peer.query("update public.environments set created_at=null where workspace_id=$1 and id=$2",[o.f.op.workspaceId,o.f.op.environmentId]);
+  const restoreScope=(o:Owning)=>peer.query("update public.environments set created_at=clock_timestamp() where workspace_id=$1 and id=$2",[o.f.op.workspaceId,o.f.op.environmentId]);
+  async function holdSeqs(o:Owning){return observer.query<{hold_seq:string;attempt_id:string;released:boolean}>(`select h.hold_seq::text as hold_seq,h.attempt_id,
+    exists(select 1 from platform.cleanup_writer_hold_releases r where r.workspace_id=h.workspace_id and r.hold_seq=h.hold_seq) as released
+    from platform.cleanup_writer_holds h where h.workspace_id=$1 and h.environment_id=$2 order by h.hold_seq`,[o.f.op.workspaceId,o.f.op.environmentId]);}
+  async function releasesOf(o:Owning){return observer.query<{hold_seq:string;released_by:string}>(`select r.hold_seq::text as hold_seq,r.released_by
+    from platform.cleanup_writer_hold_releases r where r.workspace_id=$1 and r.environment_id=$2 order by r.hold_seq`,[o.f.op.workspaceId,o.f.op.environmentId]);}
+  it("a refused teardown freezes its environment: a later writer is refused while the newest hold is unreleased",async()=>{
+    const o=await owning();await clearScope(o);await blocked(o);
+    const other=await sibling(o);
+    await expect(recordGrant(o,other.id)).rejects.toThrow(/refuses a new possible delivery/);
+    expect(await holdSeqs(o)).toEqual([expect.objectContaining({released:false})]);
+  });
+  it("writers are allowed again once a drained hold is released by the janitor",async()=>{
+    const o=await owning();await clearScope(o);await blocked(o);
+    const other=await sibling(o);
+    await expect(recordGrant(o,other.id)).rejects.toThrow(/refuses a new possible delivery/);
+    await restoreScope(o);
+    await artifacts.releaseDrainedHolds(db);
+    expect(await releasesOf(o)).toHaveLength(1);
+    await expect(recordGrant(o,other.id)).resolves.toBeDefined();
+  });
+  it("a janitor sweep releases a drained superseded generation, and the next teardown attempt proceeds on a new generation",async()=>{
+    const o=await owning();await clearScope(o);await blocked(o);
+    await restoreScope(o);
+    // The sweep is global across fixtures; this environment's own release is what is asserted.
+    await artifacts.releaseDrainedHolds(db);
+    const [first]=await holdSeqs(o);expect(first.released).toBe(true);
+    expect(await releasesOf(o)).toEqual([{hold_seq:first.hold_seq,released_by:"janitor"}]);
+    const result=await consume(o);expect(result.entered).toBe(1);expect(result.error).toBe(stop);
+    const seqs=await holdSeqs(o);expect(seqs).toHaveLength(2);expect(BigInt(seqs[1].hold_seq)>BigInt(first.hold_seq)).toBe(true);
+    expect(seqs[1].released).toBe(false);expect(await releasesOf(o)).toHaveLength(1);
+  });
+  it("the retain path releases a drained superseded generation first, and only then inserts the new one",async()=>{
+    const o=await owning();await clearScope(o);await blocked(o);
+    await restoreScope(o);
+    const result=await consume(o);expect(result.entered).toBe(1);expect(result.error).toBe(stop);
+    const [first,second]=await holdSeqs(o);
+    expect(first.released).toBe(true);expect(second.released).toBe(false);
+    expect(await releasesOf(o)).toEqual([{hold_seq:first.hold_seq,released_by:expect.stringMatching(/^retain:/)}]);
+  });
+  it("a janitor sweep does not release a hold while the counted inventory is nonzero",async()=>{
+    const o=await owning(),other=await sibling(o);await recordGrant(o,other.id);
+    await blocked(o);
+    await artifacts.releaseDrainedHolds(db);
+    expect(await releasesOf(o)).toEqual([]);
+    expect(await holdSeqs(o)).toEqual([expect.objectContaining({released:false})]);
+  });
+  it("a janitor sweep never releases the hold of a live claimed attempt, even at zero inventory",async()=>{
+    const o=await owning();
+    const result=await consume(o,async()=>{await artifacts.releaseDrainedHolds(db);});
+    expect(result.entered).toBe(1);
+    expect(await holdSeqs(o)).toHaveLength(1);expect(await releasesOf(o)).toEqual([]);
+  });
+  it("hold release rows are append-only",async()=>{
+    const o=await owning();await clearScope(o);await blocked(o);await restoreScope(o);
+    await artifacts.releaseDrainedHolds(db);
+    await expect(peer.query("update platform.cleanup_writer_hold_releases set released_by='changed' where workspace_id=$1",[o.f.op.workspaceId])).rejects.toThrow(/cannot be changed or cleared/);
+    await expect(peer.query("delete from platform.cleanup_writer_hold_releases where workspace_id=$1",[o.f.op.workspaceId])).rejects.toThrow(/cannot be changed or cleared/);
+    expect(await releasesOf(o)).toHaveLength(1);
   });
   it("a new scoped mutation grant waits on the actual final coordinator then refuses the committed hold",async()=>{
     const o=await owning(),other=await sibling(o);await verifiedHold(o);const entered=barrier(),release=barrier();let pid=0;
@@ -469,10 +534,11 @@ describe.skipIf(!PG_URL)("native cleanup writer barrier [postgres; modeled hoste
     expect(await peer.query("select status from platform.runner_jobs where workspace_id=$1 and id=$2",[o.f.op.workspaceId,r.id])).toEqual([{status:"queued"}]);
     expect(await peer.query("select status from platform.machine_requests where workspace_id=$1 and id=$2",[o.f.op.workspaceId,m.id])).toEqual([{status:"queued"}]);
   });
-  it("discarding an acknowledged hold result never authorizes another consume or destructive grant",async()=>{
+  it("discarding an acknowledged hold result never authorizes a destructive grant; the next attempt supersedes its drained generation",async()=>{
     const o=await owning();await consume(o);const prior=await holdRows(o);
     // A completed native hold is deliberately discarded locally; actual network acknowledgement loss remains a root fault gate.
-    await blocked(o);expect(await holdRows(o)).toEqual(prior);
+    // WP5: the completed attempt issued no grant and is no longer claimed, so its drained generation is superseded by the next attempt.
+    const next=await consume(o);expect(next.entered).toBe(1);expect(await holdRows(o)).toHaveLength(prior.length+1);expect(await holdRows(o)).toEqual(expect.arrayContaining(prior));
     await expect(createExecutionBroker(db).issueGrant(o.d.op.id,"worker",o.d.access.lease,{capability:"infrastructure.destroy"})).rejects.toBeInstanceOf(cleanup.CleanupWriterBarrierError);
   });
 

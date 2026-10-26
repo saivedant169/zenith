@@ -1,10 +1,10 @@
 {
  "schemaVersion": 1,
- "catalogVersion": "v1-bf756bdae05e",
- "contentDigest": "bf756bdae05efe9073c62224f75385edc3e79ec081f8ae372873aa2231bea2d2",
+ "catalogVersion": "v1-8ba924c7b258",
+ "contentDigest": "8ba924c7b2581f5af92fde2f3cee817d05e5f2078c8063bf37d3456f8ddecae8",
  "levelPolicy": {
   "supported": "A registered, non-experimental driver implements the operation and it has emulator or live-account evidence.",
-  "preview": "Implemented and reachable, but only contract-level evidence (mocked SDK or HTTP), or experimental, or an ambiguous shared native type.",
+  "preview": "Implemented and reachable, but only contract-level evidence (mocked SDK or HTTP), or an ambiguous shared native type.",
   "unsupported": "Not implemented, refusal-only, simulated-only, no driver, no native-type mapping, or the driver is not registered by the application. Always carries a reason."
  },
  "providers": [
@@ -1019,180 +1019,21 @@
    "provider": "aws",
    "kind": "compute_instance",
    "domain": "vm",
-   "status": "offered",
-   "level": "preview",
-   "reason": "Evidence is contract-level only (mocked SDK or HTTP tests); no emulator or live-account acceptance run. The driver is experimental.",
+   "status": "not_offered",
+   "level": "unsupported",
+   "reason": "The driver is experimental and is not offered in the private beta.",
    "nativeType": "aws:ec2_instance",
-   "driverId": "aws.ec2_instance@1",
-   "registration": "registered",
-   "experimental": true,
-   "lifecycle": {
-    "provision": {
-     "level": "preview",
-     "reason": "Evidence is contract-level only (mocked SDK or HTTP tests); no emulator or live-account acceptance run. The driver is experimental.",
-     "evidence": "contract"
-    },
-    "observe": {
-     "level": "preview",
-     "reason": "Evidence is contract-level only (mocked SDK or HTTP tests); no emulator or live-account acceptance run. The driver is experimental.",
-     "evidence": "contract"
-    },
-    "runtime": {
-     "level": "preview",
-     "reason": "Evidence is contract-level only (mocked SDK or HTTP tests); no emulator or live-account acceptance run. The driver is experimental.",
-     "evidence": "contract"
-    },
-    "verify": {
-     "level": "preview",
-     "reason": "Evidence is contract-level only (mocked SDK or HTTP tests); no emulator or live-account acceptance run. The driver is experimental.",
-     "evidence": "contract"
-    },
-    "discover": {
-     "level": "preview",
-     "reason": "Evidence is contract-level only (mocked SDK or HTTP tests); no emulator or live-account acceptance run. The driver is experimental.",
-     "evidence": "contract"
-    }
-   },
-   "dayTwo": {
-    "container.logs": {
-     "level": "unsupported",
-     "reason": "The driver does not declare this operation."
-    },
-    "database.delete": {
-     "level": "unsupported",
-     "reason": "The driver does not declare this operation."
-    },
-    "database.restore": {
-     "level": "unsupported",
-     "reason": "The driver does not declare this operation."
-    },
-    "database.snapshot": {
-     "level": "unsupported",
-     "reason": "The driver does not declare this operation."
-    },
-    "deployment.deploy": {
-     "level": "unsupported",
-     "reason": "The driver does not declare this operation."
-    },
-    "deployment.rollback": {
-     "level": "unsupported",
-     "reason": "The driver does not declare this operation."
-    },
-    "events.read": {
-     "level": "unsupported",
-     "reason": "The driver does not declare this operation."
-    },
-    "firewall.inspect": {
-     "level": "unsupported",
-     "reason": "The driver does not declare this operation."
-    },
-    "function.invoke": {
-     "level": "unsupported",
-     "reason": "The driver does not declare this operation."
-    },
-    "secret.write": {
-     "level": "unsupported",
-     "reason": "The driver does not declare this operation."
-    },
-    "service.restart": {
-     "level": "unsupported",
-     "reason": "The driver does not declare this operation."
-    },
-    "service.scale": {
-     "level": "unsupported",
-     "reason": "The driver does not declare this operation."
-    }
-   }
+   "experimental": true
   },
   {
    "provider": "aws",
    "kind": "function",
    "domain": "serverless",
-   "status": "offered",
-   "level": "preview",
-   "reason": "Evidence is contract-level only (mocked SDK or HTTP tests); no emulator or live-account acceptance run. The driver is experimental.",
+   "status": "not_offered",
+   "level": "unsupported",
+   "reason": "The driver is experimental and is not offered in the private beta.",
    "nativeType": "aws:lambda_function",
-   "driverId": "aws.lambda_function@1",
-   "registration": "registered",
-   "experimental": true,
-   "lifecycle": {
-    "provision": {
-     "level": "preview",
-     "reason": "Evidence is contract-level only (mocked SDK or HTTP tests); no emulator or live-account acceptance run. The driver is experimental.",
-     "evidence": "contract"
-    },
-    "observe": {
-     "level": "preview",
-     "reason": "Evidence is contract-level only (mocked SDK or HTTP tests); no emulator or live-account acceptance run. The driver is experimental.",
-     "evidence": "contract"
-    },
-    "runtime": {
-     "level": "preview",
-     "reason": "Evidence is contract-level only (mocked SDK or HTTP tests); no emulator or live-account acceptance run. The driver is experimental.",
-     "evidence": "contract"
-    },
-    "verify": {
-     "level": "preview",
-     "reason": "Evidence is contract-level only (mocked SDK or HTTP tests); no emulator or live-account acceptance run. The driver is experimental.",
-     "evidence": "contract"
-    },
-    "discover": {
-     "level": "preview",
-     "reason": "Evidence is contract-level only (mocked SDK or HTTP tests); no emulator or live-account acceptance run. The driver is experimental.",
-     "evidence": "contract"
-    }
-   },
-   "dayTwo": {
-    "container.logs": {
-     "level": "unsupported",
-     "reason": "The driver does not declare this operation."
-    },
-    "database.delete": {
-     "level": "unsupported",
-     "reason": "The driver does not declare this operation."
-    },
-    "database.restore": {
-     "level": "unsupported",
-     "reason": "The driver does not declare this operation."
-    },
-    "database.snapshot": {
-     "level": "unsupported",
-     "reason": "The driver does not declare this operation."
-    },
-    "deployment.deploy": {
-     "level": "unsupported",
-     "reason": "The driver does not declare this operation."
-    },
-    "deployment.rollback": {
-     "level": "unsupported",
-     "reason": "The driver does not declare this operation."
-    },
-    "events.read": {
-     "level": "unsupported",
-     "reason": "The driver does not declare this operation."
-    },
-    "firewall.inspect": {
-     "level": "unsupported",
-     "reason": "The driver does not declare this operation."
-    },
-    "function.invoke": {
-     "level": "preview",
-     "reason": "Evidence is contract-level only (mocked SDK or HTTP tests); no emulator or live-account acceptance run. The driver is experimental.",
-     "evidence": "contract"
-    },
-    "secret.write": {
-     "level": "unsupported",
-     "reason": "The driver does not declare this operation."
-    },
-    "service.restart": {
-     "level": "unsupported",
-     "reason": "The driver does not declare this operation."
-    },
-    "service.scale": {
-     "level": "unsupported",
-     "reason": "The driver does not declare this operation."
-    }
-   }
+   "experimental": true
   },
   {
    "provider": "aws",
@@ -11407,7 +11248,8 @@
   {
    "provider": "aws",
    "domain": "vm",
-   "level": "preview"
+   "level": "unsupported",
+   "reason": "The driver is experimental and is not offered in the private beta."
   },
   {
    "provider": "aws",

@@ -39,14 +39,13 @@ afterEach(() => {
 
 const cells = (e: Entry): Cell[] => [...Object.values(e.lifecycle ?? {}), ...Object.values(e.dayTwo ?? {})] as Cell[];
 
-describe("experimental AWS drivers are labelled in the offered catalog", () => {
-  it.each(["aws:lambda_function", "aws:ec2_instance"])("%s is preview and says it is experimental", (nativeType) => {
-    const entries = getOfferedCatalog().entries.filter((e) => e.nativeType === nativeType);
-    expect(entries.length).toBeGreaterThan(0);
-    for (const entry of entries) {
-      expect(entry.experimental).toBe(true);
-      expect(entry.level).toBe("preview");
-      expect(entry.reason).toContain("The driver is experimental.");
+describe("experimental AWS drivers are not offered to customers", () => {
+  it("the catalog excludes aws:lambda_function and aws:ec2_instance: not_offered, unsupported, with a reason", () => {
+    for (const nativeType of ["aws:lambda_function", "aws:ec2_instance"]) {
+      const entries = getOfferedCatalog().entries.filter((e) => e.nativeType === nativeType);
+      expect(entries).toHaveLength(1);
+      expect(entries[0]).toMatchObject({ status: "not_offered", level: "unsupported", experimental: true });
+      expect(entries[0]?.reason).toContain("experimental");
     }
   });
 });

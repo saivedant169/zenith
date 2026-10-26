@@ -17,8 +17,9 @@
  *               and it has been exercised against an emulator or a real
  *               account (evidence `emulated` or `real`).
  *   preview     implemented and reachable, but only contract-level evidence
- *               (mocked SDK/HTTP), or experimental, or an ambiguous shared
- *               native type. Usable behind review; never advertised as proven.
+ *               (mocked SDK/HTTP), or an ambiguous shared native type. Usable
+ *               behind review; never advertised as proven. An experimental
+ *               driver is not preview: it is not_offered (see derive.ts).
  *   unsupported not implemented, refusal-only, simulated-only, no driver, no
  *               native-type mapping or not registered. Always carries a reason.
  *
@@ -103,7 +104,7 @@ export const DOMAIN_DESCRIPTIONS: Readonly<Record<Domain, string>> = {
 
 export const LEVEL_POLICY = {
   supported: "A registered, non-experimental driver implements the operation and it has emulator or live-account evidence.",
-  preview: "Implemented and reachable, but only contract-level evidence (mocked SDK or HTTP), or experimental, or an ambiguous shared native type.",
+  preview: "Implemented and reachable, but only contract-level evidence (mocked SDK or HTTP), or an ambiguous shared native type.",
   unsupported: "Not implemented, refusal-only, simulated-only, no driver, no native-type mapping, or the driver is not registered by the application. Always carries a reason.",
 } as const satisfies Record<SupportLevel, string>;
 

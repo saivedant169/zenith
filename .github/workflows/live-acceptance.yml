@@ -61,7 +61,7 @@ name: Live acceptance (sandbox AWS)
 # is the PROD-REL-04 crash-and-resume drill (S3 only, no stack): after OIDC it
 # runs scripts/acceptance/live/drill/rel-04.ts instead of the plain harness and
 # recovery steps, then the offline verifier, then an always-run recovery of any open
-# rel-04 journal, and the final gate requires the drill, the verifier and that recovery to succeed. `retention-s3` first starts the lean Zenith stack on this hosted
+# rel-04 journal, and the final gate requires the drill, the verifier and that recovery to succeed. `retention-s3` and `mix-03` first start the lean Zenith stack on this hosted
 # runner, with the same profile and disk freeing as operated-gate-linux.yml, and
 # only then requests the OIDC session, so the stack never consumes the one-hour
 # AWS session. The stack's platform database URL and the ZENITH_LIVE_PRODUCT*
@@ -97,8 +97,13 @@ on:
         description: 'Explicit USD ceiling including cleanup reserve, approved by DEC-CLOUD'
         required: true
         type: string
+      minutes:
+        description: 'Run time limit in minutes, an integer from 5 to 20 (default 15). Bound into the signed envelope: it must match the plan the owner approved.'
+        required: false
+        default: '15'
+        type: string
       scenario:
-        description: 'fixtures (default: every AWS fixture family), retention-s3 (starts the Zenith stack before OIDC; PROD-OPS-07 only) or rel-04 (PROD-REL-04 crash-and-resume drill; S3 only, no stack). Bound into the signed envelope.'
+        description: 'fixtures (default: every AWS fixture family), retention-s3 (starts the Zenith stack before OIDC; PROD-OPS-07 only), rel-04 (PROD-REL-04 crash-and-resume drill; S3 only, no stack) or mix-03 (starts the Zenith stack before OIDC). Bound into the signed envelope.'
         required: false
         default: fixtures
         type: choice
@@ -106,6 +111,7 @@ on:
           - fixtures
           - retention-s3
           - rel-04
+          - mix-03
 
 # Source read only at the workflow level; the one job that needs more asks for
 # it below.
@@ -143,6 +149,8 @@ jobs:
       ZENITH_LIVE_REGION: ${{ vars.LIVE_SANDBOX_AWS_REGION || 'ap-south-1' }}
       ZENITH_LIVE_AWS_RUN_ID: ${{ inputs.run_id }}
       ZENITH_LIVE_AWS_BUDGET_USD: ${{ inputs.budget_usd }}
+      # Read by the envelope preflight, the harness, the rel-04 drill and recovery. Validated before OIDC.
+      ZENITH_LIVE_AWS_MINUTES: ${{ inputs.minutes }}
       ZENITH_LIVE_AWS_DB_SUBNET_GROUP: ${{ vars.LIVE_SANDBOX_AWS_DB_SUBNET_GROUP }}
       ZENITH_LIVE_AWS_DB_SECURITY_GROUP: ${{ vars.LIVE_SANDBOX_AWS_DB_SECURITY_GROUP }}
       # Read by the envelope preflight (it binds the scenario) and by the harness.
@@ -191,6 +199,14 @@ jobs:
               exit 1
               ;;
           esac
+          # The CLI accepts 5..20 minutes (scripts/acceptance/live/plan.ts); anything else is refused before any plan is built.
+          case "$ZENITH_LIVE_AWS_MINUTES" in
+            [5-9]|1[0-9]|20) ;;
+            *)
+              echo "::error::minutes must be an integer from 5 to 20."
+              exit 1
+              ;;
+          esac
           # The role must live in the account declared as the sandbox. The action
           # below also refuses credentials for any other account; this catches a
           # copy-paste of the wrong ARN before an OIDC token is requested at all.
@@ -234,13 +250,13 @@ jobs:
       # Scenario runs only. The Zenith stack starts on this runner BEFORE the OIDC
       # step, so no AWS credential exists while it is installed and started.
       - name: Free runner disk for the Zenith stack
-        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario == 'retention-s3'
+        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && contains(fromJSON('["retention-s3","mix-03"]'), inputs.scenario)
         run: |
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup
           df -h /
 
       - name: Install the pinned Supabase CLI
-        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario == 'retention-s3'
+        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && contains(fromJSON('["retention-s3","mix-03"]'), inputs.scenario)
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/bin"
@@ -253,7 +269,7 @@ jobs:
 
       - name: Start the Zenith stack and verify readiness before OIDC
         # Same lean profile and host environment as operated-gate-linux.yml.
-        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario == 'retention-s3'
+        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && contains(fromJSON('["retention-s3","mix-03"]'), inputs.scenario)
         env:
           REGISTRY_IMAGE: registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373
           SUPABASE_INTERNAL_IMAGE_REGISTRY: docker.io
@@ -385,7 +401,7 @@ jobs:
       - name: Tear down the Zenith stack
         # Runs after success and failure alike. A failure here is a visible warning
         # and never changes the acceptance outcome the final gate reads.
-        if: always() && hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario == 'retention-s3'
+        if: always() && hashFiles('scripts/acceptance/aws-live.ts') != '' && contains(fromJSON('["retention-s3","mix-03"]'), inputs.scenario)
         run: |
           set -uo pipefail
           stack="$RUNNER_TEMP/zenith/stack"

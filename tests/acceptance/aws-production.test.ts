@@ -503,8 +503,10 @@ describe("CLI admission and explicit credentials (offline)", () => {
 });
 
 it("keeps pre-OIDC permission admission and an unconditional hard failure gate after recovery", async () => {
-  const workflow = load(await readFile(".github/workflows/live-acceptance.yml", "utf8")) as { jobs: Record<string, { steps: { name?: string; id?: string; uses?: string; run?: string; env?: Record<string, string>; "continue-on-error"?: boolean }[] }> };
+  const workflow = load(await readFile(".github/workflows/live-acceptance.yml", "utf8")) as { jobs: Record<string, { env?: Record<string, string>; steps: { name?: string; id?: string; uses?: string; run?: string; env?: Record<string, string>; "continue-on-error"?: boolean }[] }> };
   const steps = workflow.jobs["aws-live"].steps;
+  // The run time limit reaches preflight, harness, drill and recovery through the job env, so they all bind the same plan.
+  expect(workflow.jobs["aws-live"].env?.ZENITH_LIVE_AWS_MINUTES).toBe("${{ inputs.minutes }}");
   const preflight = steps.findIndex(s => s.name === "Validate the approved permission envelope before OIDC");
   const assume = steps.findIndex(s => s.uses?.startsWith("aws-actions/configure-aws-credentials@"));
   const acceptance = steps.findIndex(s => s.id === "acceptance"), recovery = steps.findIndex(s => s.id === "recovery");

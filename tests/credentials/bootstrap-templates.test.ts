@@ -163,7 +163,7 @@ it("adds the exact bootstrap version read statement and preserves the reviewed r
   properties.PolicyDocument = { ...document, Statement: document.Statement.filter((statement: unknown) => !additions.includes(statement)) };
   // Reviewed 9b568108 resource inventory with the exact read-only statement removed.
   // Incoming bootstrap changes include suffix-scoped image pointers and bounded flow-log/IAM policies.
-  expect(createHash("sha256").update(JSON.stringify(resources)).digest("hex")).toBe("fd40c3d57af5efdc11605b91bcef5561018d783bcda8651b6b517fbfd7781dbe");
+  expect(createHash("sha256").update(JSON.stringify(resources)).digest("hex")).toBe("bc65e8fe812737daf5d9630a4eb920a9b368fb33ec1e76a99eb7e12dc10a5082");
 });
 
 describe.each(["aws", "aws-cn", "aws-us-gov"])("exact bootstrap boundary reads in %s", (partition) => {
@@ -375,7 +375,7 @@ describe.each(Object.keys(SCENARIOS))("IAM policies (%s)", (scenario) => {
     expect(asList(attach.Condition?.ArnLike?.["iam:PolicyARN"] as string[]).every((a) => /policy\/zenith-\*$|policy\/(AmazonEKSClusterPolicy|AmazonEKSWorkerNodePolicy|AmazonEKS_CNI_Policy|AmazonEC2ContainerRegistryReadOnly|AmazonSSMManagedInstanceCore)$|policy\/service-role\/(AmazonECSTaskExecutionRolePolicy|AWSLambda(Basic|VPCAccess)ExecutionRole)$/.test(a))).toBe(true);
 
     const pass = byActionAllowed("iam:PassRole")[0];
-    expect(pass.Condition?.StringEquals?.["iam:PassedToService"]).toEqual(["ecs-tasks.amazonaws.com", "codebuild.amazonaws.com", "lambda.amazonaws.com", "eks.amazonaws.com", "ec2.amazonaws.com"]);
+    expect(pass.Condition?.StringEquals?.["iam:PassedToService"]).toEqual(["ecs-tasks.amazonaws.com", "codebuild.amazonaws.com", "lambda.amazonaws.com", "eks.amazonaws.com", "ec2.amazonaws.com", "vpc-flow-logs.amazonaws.com"]);
     expect(asList(pass.Resource)).toEqual([`arn:aws:iam::${ACCOUNT}:role/zenith-*`]);
 
     const self = statements.find((s) => s.Sid === "DenyBootstrapChanges")!;

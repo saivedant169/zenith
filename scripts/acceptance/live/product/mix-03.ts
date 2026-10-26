@@ -81,7 +81,7 @@ const canonical = (value: unknown): string => JSON.stringify(sorted(value));
 const field = (value: unknown, key: string): unknown => value && typeof value === "object" ? (value as Record<string, unknown>)[key] : undefined;
 
 /** IAM returns the trust document URL-encoded; decode only that form. */
-function parsePolicy(raw: unknown): unknown {
+export function parsePolicy(raw: unknown): unknown {
   if (typeof raw !== "string" || raw.length > 8192) refuse("the sandbox role's trust document could not be read");
   try { return JSON.parse(raw.trimStart().startsWith("{") ? raw : decodeURIComponent(raw)) as unknown; }
   catch { return refuse("the sandbox role's trust document could not be read"); }

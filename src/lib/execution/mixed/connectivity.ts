@@ -220,7 +220,12 @@ export function requiredPairs(plan: ConnectivityPlanView): { consumer: string; p
   const add = (consumer: string, producer: string): void => {
     const a = byId.get(consumer);
     const b = byId.get(producer);
-    if (a && b && a.provider === b.provider && a.connectionId === b.connectionId) return;
+    // Excuse only a proven same-boundary pair: both ids are non-empty strings and equal, and both providers are equal non-empty strings.
+    // A missing or empty id never matches, so two unplaced partitions stay required (fail closed).
+    const sameBoundary = a !== undefined && b !== undefined
+      && typeof a.connectionId === "string" && a.connectionId.length > 0 && a.connectionId === b.connectionId
+      && typeof a.provider === "string" && a.provider.length > 0 && a.provider === b.provider;
+    if (sameBoundary) return;
     seen.set(pairKey(consumer, producer), { consumer, producer });
   };
   for (const child of plan.children) for (const dep of child.dependsOn) add(child.partitionId, dep);

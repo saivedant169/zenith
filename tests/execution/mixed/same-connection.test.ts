@@ -107,6 +107,39 @@ describe("requiredPairs keeps every boundary-crossing pair", () => {
   });
 });
 
+describe("unplaced partitions fail closed: a missing or empty id never proves a shared boundary", () => {
+  type View = Parameters<typeof requiredPairs>[0];
+  const pairView = (a: { provider?: unknown; connectionId?: unknown }, b: { provider?: unknown; connectionId?: unknown }): View => ({
+    children: [
+      { partitionId: "p1", dependsOn: ["p2"], authority: a, nodes: [] },
+      { partitionId: "p2", dependsOn: [], authority: b, nodes: [] },
+    ],
+    references: [],
+  } as unknown as View);
+
+  it("keeps a pair required when both connection ids are missing, even on the same provider", () => {
+    expect(requiredPairs(pairView({ provider: "aws" }, { provider: "aws" }))).toEqual([{ consumer: "p1", producer: "p2" }]);
+  });
+
+  it("keeps a pair required when only one connection id is missing", () => {
+    expect(requiredPairs(pairView({ provider: "aws", connectionId: "conn-aws" }, { provider: "aws" }))).toEqual([{ consumer: "p1", producer: "p2" }]);
+    expect(requiredPairs(pairView({ provider: "aws" }, { provider: "aws", connectionId: "conn-aws" }))).toEqual([{ consumer: "p1", producer: "p2" }]);
+  });
+
+  it("keeps a pair required when the connection ids are empty strings, even if equal", () => {
+    expect(requiredPairs(pairView({ provider: "aws", connectionId: "" }, { provider: "aws", connectionId: "" }))).toEqual([{ consumer: "p1", producer: "p2" }]);
+  });
+
+  it("keeps a pair required when the providers are missing or empty, even with the same connection id", () => {
+    expect(requiredPairs(pairView({ connectionId: "conn-x" }, { connectionId: "conn-x" }))).toEqual([{ consumer: "p1", producer: "p2" }]);
+    expect(requiredPairs(pairView({ provider: "", connectionId: "conn-x" }, { provider: "", connectionId: "conn-x" }))).toEqual([{ consumer: "p1", producer: "p2" }]);
+  });
+
+  it("still excuses a pair only when both ids are non-empty and equal and both providers match", () => {
+    expect(requiredPairs(pairView({ provider: "aws", connectionId: "conn-x" }, { provider: "aws", connectionId: "conn-x" }))).toEqual([]);
+  });
+});
+
 describe("a declaration is still judged in full, even inside one boundary", () => {
   const sameNetworks = (plan: MixedParentPlan): PartitionNetwork[] => plan.children.map((c, i) => ({ partitionId: c.partitionId, cidrs: [`10.${40 + i}.0.0/16`], egress: [`52.2.2.${i + 1}`] }));
   const sameFacts = (plan: MixedParentPlan): EdgeFacts[] => [{

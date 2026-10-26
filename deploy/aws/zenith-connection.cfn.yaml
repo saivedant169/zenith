@@ -1198,6 +1198,8 @@ Resources:
             Effect: Allow
             Action:
               - ec2:Describe*
+              # Elastic Load Balancing calls it with the caller's permissions during CreateLoadBalancer.
+              - ec2:GetSecurityGroupsForVpc
               - ecs:Describe*
               - ecs:List*
               - ecr:Describe*
@@ -1284,6 +1286,7 @@ Resources:
               - iam:GetRolePolicy
               - iam:ListRolePolicies
               - iam:ListAttachedRolePolicies
+              - iam:ListInstanceProfilesForRole
               - iam:ListRoleTags
               - iam:GetPolicy
               - iam:GetPolicyVersion
@@ -1379,6 +1382,7 @@ Resources:
                   - RunInstances
                   - AuthorizeSecurityGroupIngress
                   - AuthorizeSecurityGroupEgress
+                  - CreateFlowLogs
           - Sid: Ec2ModifyTaggedResources
             Effect: Allow
             Action:
@@ -1421,7 +1425,6 @@ Resources:
               - ec2:ModifyVpcEndpoint
               - ec2:ReleaseAddress
               - ec2:AssociateAddress
-              - ec2:DisassociateAddress
               - ec2:DeleteLaunchTemplate
               - ec2:CreateLaunchTemplateVersion
               - ec2:ModifyLaunchTemplate
@@ -2054,6 +2057,12 @@ Resources:
       PolicyDocument:
         Version: "2012-10-17"
         Statement:
+          # DisassociateAddress by AssociationId (OpenTofu's EIP destroy) resolves to no resource ARN, so no tag condition
+          # can apply. Worst case: detaching an address elsewhere in the account (availability, not access).
+          - Sid: Ec2DisassociateAddressByAssociation
+            Effect: Allow
+            Action: ec2:DisassociateAddress
+            Resource: "*"
           - Sid: StateObjects
             Effect: Allow
             Action: [s3:GetObject, s3:GetObjectVersion, s3:PutObject, s3:DeleteObject]

@@ -36,7 +36,7 @@ export interface Deploy01Seams {
   propagation?: { attempts: number; intervalMs: number };
   /** HTTP probe of the load balancer with the route's Host header; resolves the status code. */
   probe?: (dnsName: string, host: string) => Promise<number>;
-  state?: { read: (input: StateDestroyInput) => Promise<unknown>; destroy: (input: StateDestroyInput) => Promise<{ destroyed: number; ecsClusters?: string[] }> };
+  state?: { read: (input: StateDestroyInput) => Promise<unknown>; destroy: (input: StateDestroyInput) => Promise<{ destroyed: number; destroyedArns?: string[] }> };
 }
 
 const field = (value: unknown, key: string): unknown => value && typeof value === "object" ? (value as Record<string, unknown>)[key] : undefined;
@@ -134,14 +134,14 @@ export function deploy01Port(env: EnvLike = process.env, seams: Deploy01Seams = 
       }
       const leaks: string[] = [];
       if (environmentId && externalId) {
-        let destroyedClusters: string[] = [];
-        try { destroyedClusters = (await state.destroy(await stateInput())).ecsClusters ?? []; }
+        let destroyedArns: string[] = [];
+        try { destroyedArns = (await state.destroy(await stateInput())).destroyedArns ?? []; }
         catch (error) { leaks.push(error instanceof Error && /^(OpenTofu|\d+ resource|The recorded state)/.test(error.message) ? error.message : "state cleanup failed; resources may remain"); }
         try {
           const left = await invoke(planned("deploy01-tag-read"), { environmentId });
-          // A deleted ECS cluster stays INACTIVE (no tasks, no cost) and still appears in the tag inventory; only clusters the
-          // successful destroy removed from the recorded state are excused.
-          const list = (field(left, "ResourceTagMappingList") as unknown[] | undefined)?.filter(r => !destroyedClusters.includes(String(field(r, "ResourceARN"))));
+          // Deleted ECS clusters and task definitions stay INACTIVE (no cost) and deleted rules can linger in the tag inventory;
+          // only ARNs the successful destroy removed from the recorded state are excused. Anything else is a leak.
+          const list = (field(left, "ResourceTagMappingList") as unknown[] | undefined)?.filter(r => !destroyedArns.includes(String(field(r, "ResourceARN"))));
           if (Array.isArray(list) && list.length) leaks.push(`${list.length} tagged resource(s) still present after cleanup`);
         } catch { leaks.push("cleanup re-list failed; resources may remain"); }
       }

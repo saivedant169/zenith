@@ -249,7 +249,7 @@ const settlementGroup = {
   file: "tests/controlplane/cleanup-writer-barriers.test.ts",
   suite: "native cleanup writer barrier [postgres; modeled hosted association and policy]",
   flag: "ZENITH_TEST_SAVED_PLAN_SETTLEMENT_REQUIRED",
-  sourceSha256: "d3af081370a0efe496960383d6faff0638bc21974f7ec839b32a4ca06b3da7bd",
+  sourceSha256: "4f61ef6e84ac0bc297b8cf6699a37cd3e2356b73b141647e4a4a8098150fb669",
   namesSha256: "5c20cb4c31e9d0b11a9774d0009203adeea0ce8c993a1f92fed077875a774f69",
 } as const;
 function settlementNamed(sourceRoot = root): Requirement[] {
@@ -364,8 +364,8 @@ const cleanupWriterGroup = {
   suite: "native cleanup writer barrier [postgres; modeled hosted association and policy]",
   backend: "postgres",
   flag: "ZENITH_TEST_CLEANUP_WRITER_BARRIER_REQUIRED",
-  sourceSha256: "d3af081370a0efe496960383d6faff0638bc21974f7ec839b32a4ca06b3da7bd",
-  namesSha256: "df0ddb85fa00e1290bd6b95915742451b555e21179e9c40c62fe6c1321de1739",
+  sourceSha256: "4f61ef6e84ac0bc297b8cf6699a37cd3e2356b73b141647e4a4a8098150fb669",
+  namesSha256: "b2601ca2980c00f1531850388754ccd01023fc06c6f632f174158d745b16dfd5",
 } as const;
 const cleanupWriterDiscovered = { file: cleanupWriterGroup.file, suite: cleanupWriterGroup.suite, backend: "postgres" } as const;
 function cleanupWriterNamed(sourceRoot = root): Requirement[] {
@@ -2276,11 +2276,11 @@ describe("mandatory native custody, retention and Kubernetes target cases [repor
 });
 
 describe("mandatory native cleanup writer barrier cases [report models]", () => {
-  it("requires all 46 native cleanup cases and their discovered suite while preserving the exact 1012 predecessor", () => {
+  it("requires all 52 native cleanup cases and their discovered suite while preserving the exact 1012 predecessor", () => {
     const manifest = manifestFor("platform-postgres", root), required = cleanupWriterNamed();
-    expect(CLEANUP_WRITER_BARRIER_POSTGRES_REQUIREMENTS).toHaveLength(46);
-    expect(required).toHaveLength(46); expect(new Set(required.map(item => item.id)).size).toBe(46);
-    expect(priorSettlementPlatformRequirements()).toHaveLength(1059); expect(new Set(priorSettlementPlatformRequirements().map(item => item.id)).size).toBe(1059);
+    expect(CLEANUP_WRITER_BARRIER_POSTGRES_REQUIREMENTS).toHaveLength(52);
+    expect(required).toHaveLength(52); expect(new Set(required.map(item => item.id)).size).toBe(52);
+    expect(priorSettlementPlatformRequirements()).toHaveLength(1058); expect(new Set(priorSettlementPlatformRequirements().map(item => item.id)).size).toBe(1058);
     const previous = priorCleanupPlatformRequirements();
     expect(previous).toHaveLength(1012); expect(new Set(previous.map(item => item.id)).size).toBe(1012);
     expect(createHash("sha256").update(JSON.stringify(previous.map(item => item.id).sort())).digest("hex")).toBe("436ee191fe94eb06c7c611a6477e3766b81ab9e0f1a543bdda6f328be77435de");
@@ -2310,7 +2310,7 @@ describe("mandatory native cleanup writer barrier cases [report models]", () => 
     expectNativePlanFixtureSource(cleanupWriterGroup.file, source);
     const added = new Set(SAVED_PLAN_SETTLEMENT_POSTGRES_REQUIREMENTS.map(item => item.test));
     const names = declaredLiteralTests(cleanupWriterGroup.file, cleanupWriterGroup.suite).filter(name => !added.has(name)), required = cleanupWriterNamed();
-    expect(names).toHaveLength(46); expect(new Set(names).size).toBe(46); expect(required.map(item => item.test)).toEqual(names);
+    expect(names).toHaveLength(52); expect(new Set(names).size).toBe(52); expect(required.map(item => item.test)).toEqual(names);
     expect(createHash("sha256").update(source).digest("hex")).toBe(cleanupWriterGroup.sourceSha256);
     expect(createHash("sha256").update(names.join("\n") + "\n").digest("hex")).toBe(cleanupWriterGroup.namesSha256);
     for (const item of required) expect(item).toMatchObject({ file: cleanupWriterGroup.file, suite: cleanupWriterGroup.suite, backend: "postgres" });
@@ -2359,18 +2359,18 @@ describe("mandatory native cleanup writer barrier cases [report models]", () => 
     expect(cleanupWriterNamed(sourceRoot)).toEqual(before);
     fs.unlinkSync(file); expect(cleanupWriterNamed(sourceRoot)).toEqual(before);
     expect(requirementsFor("platform-postgres", sourceRoot).some(item => item.id === requirementId("platform-postgres", cleanupWriterDiscovered))).toBe(false);
-    expect(reportFailures(before, { success: true, testResults: [] }, sourceRoot)).toHaveLength(46);
+    expect(reportFailures(before, { success: true, testResults: [] }, sourceRoot)).toHaveLength(52);
     for (const report of [null, {}, { success: true }, { ...contractReport(before), success: false }, { success: true, testResults: [{ name: path.resolve(root, cleanupWriterGroup.file) }] }]) {
       expect(reportFailures(before, report, root).length).toBeGreaterThan(0);
     }
     const suiteOnly = contractReport(before); suiteOnly.testResults[0].assertionResults = [{ title: "one passing projected cleanup", fullName: "one passing projected cleanup", ancestorTitles: [], status: "passed" }];
-    expect(reportFailures(before, suiteOnly, root)).toHaveLength(46);
+    expect(reportFailures(before, suiteOnly, root)).toHaveLength(52);
     const duplicate = contractReport(before); duplicate.testResults.push(duplicate.testResults[0]);
     expect(reportFailures(before, duplicate, root)).toEqual(["Duplicate Vitest file evidence"]);
     expect(reportFailures(before, { ...contractReport(before), numTotalTests: 0 }, root)).toEqual(["Inconsistent Vitest report counts"]);
     expect(reportFailures(before, { ...contractReport(before), numFailedTests: 1 }, root)).toEqual(["Inconsistent Vitest report counts"]);
     expect(reportFailures([], contractReport(before), root)).toEqual(["No required scenarios found"]);
-    expect(reportFailures(before, { ...contractReport([]), lane: "platform-postgres", requirements: [] }, root)).toHaveLength(46);
+    expect(reportFailures(before, { ...contractReport([]), lane: "platform-postgres", requirements: [] }, root)).toHaveLength(52);
   });
 });
 
@@ -2545,7 +2545,7 @@ describe("workflow native PostgreSQL prerequisites [source/report models]", () =
 
 // These are validator/source models, never actual command/SQL/settlement evidence.
 describe("current platform discovery successors [report models]", () => {
-  it("retains exactly six declared successors in the strict 1119 manifest and every historical 1113 identity", () => {
+  it("retains exactly six declared successors in the strict 1118 manifest and every historical 1112 identity", () => {
     expect(currentSuccessorPlatformIds).toEqual([
       "platform-postgres:tests/controlplane/incident-stability.test.ts:cf040b5e5c94",
       "platform-postgres:tests/controlplane/machine-runbooks.test.ts:48256d3185de",
@@ -2558,8 +2558,8 @@ describe("current platform discovery successors [report models]", () => {
     const added = currentSuccessorPlatformCohort.map(item => ({ ...item, id: requirementId("platform-postgres", item) }));
     expect(current.filter(item => currentSuccessorPlatformIds.includes(item.id)).sort((a, b) => a.id.localeCompare(b.id))).toEqual(added.sort((a, b) => a.id.localeCompare(b.id)));
     const historical = priorCurrentSuccessorPlatformRequirements();
-    expect(historical).toHaveLength(1113);
-    expect(current).toHaveLength(1119); expect(new Set(current.map(item => item.id)).size).toBe(1119);
+    expect(historical).toHaveLength(1112);
+    expect(current).toHaveLength(1118); expect(new Set(current.map(item => item.id)).size).toBe(1118);
     expect(current.map(item => item.id).sort()).toEqual([...historical, ...added].map(item => item.id).sort());
     expect(withoutIncomingPlatform(manifestFor("platform-postgres", root).requirements).filter(item => !hardeningPlatformIds.includes(item.id))).toEqual(current);
     expect(reportFailures(current, contractReport(current), root)).toEqual([]);
@@ -2616,9 +2616,9 @@ describe("current platform discovery successors [report models]", () => {
       try {
         const after = requirementsFor("platform-postgres", sourceRoot);
         expect(after.some(value => value.id === id)).toBe(false);
-        expect(after).toHaveLength(1161);
-        expect(after.filter(value => !mixedRunStorePlatformIds.has(value.id))).toHaveLength(1156);
-        expect(after.filter(value => !mixedRunStorePlatformIds.has(value.id) && !wave5PlatformIds.has(value.id))).toHaveLength(1153);
+        expect(after).toHaveLength(1167);
+        expect(after.filter(value => !mixedRunStorePlatformIds.has(value.id))).toHaveLength(1162);
+        expect(after.filter(value => !mixedRunStorePlatformIds.has(value.id) && !wave5PlatformIds.has(value.id))).toHaveLength(1159);
         expect(priorCurrentSuccessorPlatformRequirements(sourceRoot)).toEqual(priorCurrentSuccessorPlatformRequirements());
       } finally {
         // Each deletion still begins with the complete tree; restore its exact
@@ -2632,7 +2632,7 @@ describe("current platform discovery successors [report models]", () => {
 });
 
 describe("registered incident and ownership hardening [report models]", () => {
-  it("requires exactly five new native names and every original 1119 identity in the complete 1124 manifest", () => {
+  it("requires exactly five new native names and every original 1118 identity in the complete 1124 manifest", () => {
     expect(hardeningPlatformIds).toEqual([
       "platform-postgres:tests/controlplane/ownership-transfers.test.ts:e7a7dd4a7cfd",
       "platform-postgres:tests/controlplane/ownership-transfers.test.ts:c9862619d543",
@@ -2642,11 +2642,11 @@ describe("registered incident and ownership hardening [report models]", () => {
     ]);
     const current = requirementsFor("platform-postgres", root), previous = priorHardeningPlatformRequirements();
     const added = INCIDENT_OWNERSHIP_HARDENING_POSTGRES_REQUIREMENTS.map(item => ({ ...item, id: requirementId("platform-postgres", item) }));
-    expect(previous).toHaveLength(1119); expect(new Set(previous.map(item => item.id)).size).toBe(1119);
-    expect(current).toHaveLength(1162); expect(new Set(current.map(item => item.id)).size).toBe(1162);
+    expect(previous).toHaveLength(1118); expect(new Set(previous.map(item => item.id)).size).toBe(1118);
+    expect(current).toHaveLength(1168); expect(new Set(current.map(item => item.id)).size).toBe(1168);
     expect(current.filter(item => hardeningPlatformIds.includes(item.id))).toEqual(added);
     expect(withoutIncomingPlatform(current).map(item => item.id).sort()).toEqual([...previous, ...added].map(item => item.id).sort());
-    expect(priorCurrentSuccessorPlatformRequirements()).toHaveLength(1113);
+    expect(priorCurrentSuccessorPlatformRequirements()).toHaveLength(1112);
     expect(manifestFor("platform-postgres", root).requirements).toEqual(current);
     expect(reportFailures(current, contractReport(current), root)).toEqual([]);
   });
@@ -2688,17 +2688,17 @@ describe("registered incident and ownership hardening [report models]", () => {
 
 // These are validator/source models, never actual command/SQL/settlement evidence.
 describe("mandatory saved builtin settlement cases [report models]", () => {
-  it("adds exactly 54 literal cases once and preserves every one of the 1059 predecessor IDs", () => {
+  it("adds exactly 54 literal cases once and preserves every one of the 1058 predecessor IDs", () => {
     const required = settlementNamed();
     expect(SAVED_PLAN_SETTLEMENT_POSTGRES_REQUIREMENTS).toHaveLength(54);
     expect(required).toHaveLength(54); expect(new Set(required.map(item => item.id)).size).toBe(54);
     const historical = priorCurrentSuccessorPlatformRequirements();
-    expect(historical).toHaveLength(1113); expect(new Set(historical.map(item => item.id)).size).toBe(1113);
+    expect(historical).toHaveLength(1112); expect(new Set(historical.map(item => item.id)).size).toBe(1112);
     const previous = priorSettlementPlatformRequirements();
-    expect(previous).toHaveLength(1059);
-    expect(createHash("sha256").update(JSON.stringify(previous.map(item => item.id).sort())).digest("hex")).toBe("49f54d75ca5cd7114b69efedabfed9843fcdc1186e49422f9f7e26cae79cf07f");
+    expect(previous).toHaveLength(1058);
+    expect(createHash("sha256").update(JSON.stringify(previous.map(item => item.id).sort())).digest("hex")).toBe("96d2bd4f33c4cc42b1e0df6ce4bb13537f92db7132dd43d2250b9315191e24cb");
     expect(historical).toEqual([...previous, ...required]);
-    expect(cleanupWriterNamed()).toHaveLength(46); expect(priorCleanupPlatformRequirements()).toHaveLength(1012);
+    expect(cleanupWriterNamed()).toHaveLength(52); expect(priorCleanupPlatformRequirements()).toHaveLength(1012);
     expect(manifestFor("postgres", root).requirements).toHaveLength(93);
     expect(requirementsFor("workflows", root)).toHaveLength(113);
     expect(priorCriticalScheduleWorkflowRequirements()).toHaveLength(60);
@@ -2711,13 +2711,13 @@ describe("mandatory saved builtin settlement cases [report models]", () => {
     }
   });
 
-  it("binds all 100 source cases while preserving the original 46 and refusing unavailable native prerequisites before hooks", () => {
+  it("binds all 106 source cases while preserving the original 46 and refusing unavailable native prerequisites before hooks", () => {
     const source = fs.readFileSync(path.join(root, settlementGroup.file), "utf8");
     expectNativePlanFixtureSource(settlementGroup.file, source);
     const all = declaredLiteralTests(settlementGroup.file, settlementGroup.suite);
     const retained = new Set(cleanupWriterNamed().map(item => item.test));
     const names = all.filter(name => !retained.has(name)), required = settlementNamed();
-    expect(all).toHaveLength(100); expect(new Set(all).size).toBe(100);
+    expect(all).toHaveLength(106); expect(new Set(all).size).toBe(106);
     expect(names).toHaveLength(54); expect(required.map(item => item.test)).toEqual(names);
     expect(createHash("sha256").update(source).digest("hex")).toBe(settlementGroup.sourceSha256);
     expect(createHash("sha256").update(names.join("\n") + "\n").digest("hex")).toBe(settlementGroup.namesSha256);
@@ -2953,8 +2953,8 @@ describe("mandatory owned critical scheduling [source/report models]", () => {
     expect(manifest.excludeFiles).not.toContain(file);
     expect(manifest.command).not.toContain("--passWithNoTests");
     expect(reportFailures(named(), contractReport(named()), root)).toEqual([]);
-    expect(requirementsFor("platform-postgres", root)).toHaveLength(1162);
-    expect(CLEANUP_WRITER_BARRIER_POSTGRES_REQUIREMENTS).toHaveLength(46);
+    expect(requirementsFor("platform-postgres", root)).toHaveLength(1168);
+    expect(CLEANUP_WRITER_BARRIER_POSTGRES_REQUIREMENTS).toHaveLength(52);
     expect(SAVED_PLAN_SETTLEMENT_POSTGRES_REQUIREMENTS).toHaveLength(54);
     expect(requirementsFor("postgres", root)).toHaveLength(93);
     expect(linuxGuestManifest().requiredCases).toHaveLength(159);
@@ -3138,11 +3138,11 @@ describe("mandatory live agent journal PostgreSQL cases [report models]", () => 
 describe("incoming platform and workflow obligations", () => {
   it("requires every fixed additive native identity without losing historical obligations", () => {
     const current = requirementsFor("platform-postgres", root);
-    expect(current).toHaveLength(1162);
+    expect(current).toHaveLength(1168);
     const added = current.filter(item => incomingPlatformIds.has(item.id));
     expect(added).toHaveLength(23);
     expect(new Set(added.map(item => item.id))).toEqual(incomingPlatformIds);
-    expect(withoutIncomingPlatform(current)).toHaveLength(1124);
+    expect(withoutIncomingPlatform(current)).toHaveLength(1123);
     expect(withoutIncomingPlatform([...current, { ...current[0], id: "unknown-successor" }]).some(item => item.id === "unknown-successor")).toBe(true);
     for (const item of added) {
       expect(reportFailures([item], contractReport([item]), root)).toEqual([]);
@@ -3226,7 +3226,7 @@ describe("mixed run store application-boundary gate", () => {
   ];
   const named = () => requirementsFor("platform-postgres", root).filter(item => mixedRunStorePlatformIds.has(item.id));
 
-  it("adds exactly five PostgreSQL cases while preserving the complete 1141 predecessor and native 100", () => {
+  it("adds exactly five PostgreSQL cases while preserving the complete 1140 predecessor and native 100", () => {
     const current = requirementsFor("platform-postgres", root), required = named();
     expect(required).toHaveLength(5);
     expect(required).toEqual(names.map(test => {
@@ -3237,15 +3237,15 @@ describe("mixed run store application-boundary gate", () => {
     expect(new Set(required.map(item => item.id))).toEqual(mixedRunStorePlatformIds);
     const prior = priorOwnershipSnapshotRequirements(current).filter(item => !mixedRunStorePlatformIds.has(item.id) && !integrationPlatformIds.has(item.id));
     const verifierPrior = prior.filter(item => !wave5PlatformIds.has(item.id));
-    expect(current).toHaveLength(1162); expect(prior).toHaveLength(1144);
+    expect(current).toHaveLength(1168); expect(prior).toHaveLength(1143);
     expect(createHash("sha256").update(JSON.stringify(prior.map(item => item.id).sort())).digest("hex"))
-      .toBe("9853b95bb67ad11ca77d19ead6db0f484fe718abf7c09b9cb144766806be2873");
-    expect(verifierPrior).toHaveLength(1141);
+      .toBe("35005913623966fb2520de4a69de2c172a289213a0911cd7691caf125cb0670a");
+    expect(verifierPrior).toHaveLength(1140);
     expect(createHash("sha256").update(JSON.stringify(verifierPrior.map(item => item.id).sort())).digest("hex"))
-      .toBe("133320ef5a7fac2ba03281e597a3305d7cdf0957c61fe6b8c8b4704973d4cdd3");
+      .toBe("d69bfb94043d51dd0c2631fa9a2864b08cd05b590e6c3a4d5d0380aace6c7047");
     expect(manifestFor("platform-postgres", root).files).toContain(file);
     expect(manifestFor("platform-postgres", root).excludeFiles).not.toContain(file);
-    expect(CLEANUP_WRITER_BARRIER_POSTGRES_REQUIREMENTS).toHaveLength(46);
+    expect(CLEANUP_WRITER_BARRIER_POSTGRES_REQUIREMENTS).toHaveLength(52);
     expect(SAVED_PLAN_SETTLEMENT_POSTGRES_REQUIREMENTS).toHaveLength(54);
     const future = { ...current[0], id: "future-mixed-successor" };
     expect(withoutIncomingPlatform([...current, future])).toContainEqual(future);
@@ -3414,22 +3414,22 @@ describe("assembled job workflow obligations", () => {
 
 // Report models; genuine SQL concurrency evidence remains in the native lane.
 describe("ownership snapshot final-statement PostgreSQL requirements", () => {
-  it("adds ten exact native cases and preserves the complete 1146 predecessor", () => {
+  it("adds ten exact native cases and preserves the complete 1145 predecessor", () => {
     const current = requirementsFor("platform-postgres", root);
     const required = current.filter(item => ownershipSnapshotCasIds.has(item.id));
-    expect(current).toHaveLength(1162);
-    expect(new Set(current.map(item => item.id)).size).toBe(1162);
+    expect(current).toHaveLength(1168);
+    expect(new Set(current.map(item => item.id)).size).toBe(1168);
     expect(required).toEqual(OWNERSHIP_SNAPSHOT_CAS_POSTGRES_REQUIREMENTS.map(item => ({ ...item, id: requirementId("platform-postgres", item) })));
     expect(required).toHaveLength(10);
     expect(required.every(item => item.postgres === true && item.suite === "ownership transfer immutable service-role custody [postgres]")).toBe(true);
     const prior = priorOwnershipSnapshotRequirements(current);
-    expect(prior).toHaveLength(1150);
+    expect(prior).toHaveLength(1149);
     expect(createHash("sha256").update(JSON.stringify(prior.map(item => item.id).sort())).digest("hex"))
-      .toBe("963ac1b102323bea9f03e3b45008fa9183ec7382e743d5b5f240eb2a2386bac0");
+      .toBe("92df99d8de16e4ef6e1072114c12aafff513bf43774c12c9c390998308ca5729");
     const verifierPrior = prior.filter(item => !wave5PlatformIds.has(item.id) && !integrationPlatformIds.has(item.id));
-    expect(verifierPrior).toHaveLength(1146);
+    expect(verifierPrior).toHaveLength(1145);
     expect(createHash("sha256").update(JSON.stringify(verifierPrior.map(item => item.id).sort())).digest("hex"))
-      .toBe("ae11ed1db712427ee9f71e23e997f1c4ce2d30d9ff63c3d7a955d023db3d20fa");
+      .toBe("349b983956a0d8569c4bc475584e0a6bf69cd5fa476e2b709954536aacc34c00");
     expect(INCIDENT_OWNERSHIP_HARDENING_POSTGRES_REQUIREMENTS).toHaveLength(5);
     const future = { ...current[0], id: "unknown-ownership-snapshot-successor" };
     expect(priorOwnershipSnapshotRequirements([...current, future])).toContainEqual(future);

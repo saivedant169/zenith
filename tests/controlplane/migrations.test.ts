@@ -152,7 +152,7 @@ async function withOwnedHistoricalRepairAdmission<T>(admit42: boolean, fixture: 
 async function migrateDrainedWave5(db: PlatformDbHandle) {
   const admission = process.env.ZENITH_ALLOW_CONTRACT_MIGRATIONS;
   try {
-    process.env.ZENITH_ALLOW_CONTRACT_MIGRATIONS = [admission, "49", "51", "57", "58"].filter(Boolean).join(",");
+    process.env.ZENITH_ALLOW_CONTRACT_MIGRATIONS = [admission, "49", "51", "57", "58", "61"].filter(Boolean).join(",");
     return await migratePlatformDb(db);
   } finally {
     if (admission === undefined) delete process.env.ZENITH_ALLOW_CONTRACT_MIGRATIONS;
@@ -319,7 +319,7 @@ describe.each(lanes)("migrator [$name]", (lane) => {
       [approvalId, workspaceId, op.id, op.proposalDigest, JSON.stringify(approver), approver.id]);
       await db.query("update platform.operations set status = 'approved' where workspace_id = $1 and id = $2", [workspaceId, op.id]);
       // 61 (hold generations) drops the holds primary key: a contract migration with no LIFE-10 approval registered yet.
-      await expectHistoricalContractRefusal(db, [4, 5, 11, 15, 28, 30, 61, 49, 51, 57, 58]);
+      await expectHistoricalContractRefusal(db, [4, 5, 11, 15, 28, 30, 49, 51, 57, 58, 61]);
       await historicalFixtureRange(db, 4, 30);
       expect((await migrateDrainedWave5(db)).applied).toEqual(PLATFORM_MIGRATIONS.filter(m => m.version > 30).map(m => m.version));
       expect(await db.query("select approval_round from platform.approvals where workspace_id = $1 and id = $2", [workspaceId, approvalId])).toEqual([{ approval_round: 0 }]);
@@ -781,7 +781,7 @@ describe.skipIf(!PG_URL)("migrator [postgres] concurrency and fail-closed open",
             await tx.query("drop table platform.agent_receipt_acl_probe");
           }
           if (mode === "same-owner schema6") {
-            await expectHistoricalContractRefusal(db, [11, 15, 28, 30, 61, 49, 51, 57, 58]);
+            await expectHistoricalContractRefusal(db, [11, 15, 28, 30, 49, 51, 57, 58, 61]);
             await historicalFixtureRange(db, 7, 30);
           }
           await migrateDrainedWave5(db);
@@ -823,7 +823,7 @@ describe.skipIf(!PG_URL)("migrator [postgres] concurrency and fail-closed open",
             for (const privilege of ["SELECT", "INSERT", "UPDATE", "DELETE", "TRUNCATE", "REFERENCES", "TRIGGER"])
               expect((await tx.query<{ inherited: boolean }>("select has_table_privilege('service_role','platform.approved_source_acl_probe',$1) as inherited", [privilege]))[0].inherited).toBe(true);
             await tx.query("drop table platform.approved_source_acl_probe");
-            await expectHistoricalContractRefusal(db, [11, 15, 28, 30, 61, 49, 51, 57, 58]);
+            await expectHistoricalContractRefusal(db, [11, 15, 28, 30, 49, 51, 57, 58, 61]);
             await historicalFixtureRange(db, 7, 12);
             expect((await migratePlatformDb(db, PLATFORM_MIGRATIONS.filter(m => m.version <= 13))).applied).toEqual([13]);
             await historicalFixtureRange(db, 14, 30);

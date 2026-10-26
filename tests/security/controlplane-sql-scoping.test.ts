@@ -210,8 +210,9 @@ function isFixedCleanupWriteContext(fn: Fn, repo: ts.SourceFile, owning: ts.Func
     "input.lease.fenceToken", "JSON.stringify({...bound.proof,standaloneSettlements:bound.settlements})", "JSON.stringify(sourceAuthority)", "JSON.stringify(productAuthority)"];
   const contexts: Record<string, { purpose: string; hash: string; functionHash: string; tail: string[]; returned: string }> = {
     // WP5 (schema 61): functionHash changed only by the one call that releases a drained superseded generation
-    // before the unchanged hold INSERT. The INSERT text, its parameters and the single authority check are unchanged.
-    retainCleanupWriterHold: { purpose: "hold", hash: "83d3c130597d17ff6461f80c21fdc322140b12a46d562d207526af7c8c58b8ed", functionHash: "9ee355a429c95c5722c8277b1782174f4eaaf15067896eb0c1acf2cfd488e493",
+    // before the unchanged hold INSERT, and the one call after the inventory read that releases a refused attempt's own
+    // generation. The INSERT text, its parameters and the single authority check are unchanged.
+    retainCleanupWriterHold: { purpose: "hold", hash: "83d3c130597d17ff6461f80c21fdc322140b12a46d562d207526af7c8c58b8ed", functionHash: "12f8b6457091856fa999bb4c8c8e4e76ebafe581d9772a2c16b698c28bffe97e",
       tail: ["c.projectId", "c.environmentId", "generation", "bound.manifestDigest", "frame.authorityDigest"], returned: "generation" },
     reserveCleanupOwnerGrant: { purpose: "grant", hash: "30d525a135fb41d74740a3c2048965d8b9290150c8f38158164fff55aad7117b", functionHash: "13fc8a46cded322591360ed4b84e1fe78498e1839431db3e330c1c2d5dc138be",
       tail: ["h.generation", "jti", "frame.authorityDigest"], returned: "jti" },

@@ -353,46 +353,38 @@ describe.skipIf(!PG_URL)("native cleanup writer barrier [postgres; modeled hoste
     from platform.cleanup_writer_holds h where h.workspace_id=$1 and h.environment_id=$2 order by h.hold_seq`,[o.f.op.workspaceId,o.f.op.environmentId]);}
   async function releasesOf(o:Owning){return observer.query<{hold_seq:string;released_by:string}>(`select r.hold_seq::text as hold_seq,r.released_by
     from platform.cleanup_writer_hold_releases r where r.workspace_id=$1 and r.environment_id=$2 order by r.hold_seq`,[o.f.op.workspaceId,o.f.op.environmentId]);}
-  it("a refused teardown freezes its environment: a later writer is refused while the newest hold is unreleased",async()=>{
+  it("a refused teardown releases its own generation in the same commit, so a later writer is allowed",async()=>{
     const o=await owning();await clearScope(o);await blocked(o);
+    const [hold]=await holdSeqs(o);expect(hold.released).toBe(true);
+    expect(await releasesOf(o)).toEqual([{hold_seq:hold.hold_seq,released_by:`refused:${hold.attempt_id}`}]);
     const other=await sibling(o);
-    await expect(recordGrant(o,other.id)).rejects.toThrow(/refuses a new possible delivery/);
-    expect(await holdSeqs(o)).toEqual([expect.objectContaining({released:false})]);
-  });
-  it("writers are allowed again once a drained hold is released by the janitor",async()=>{
-    const o=await owning();await clearScope(o);await blocked(o);
-    const other=await sibling(o);
-    await expect(recordGrant(o,other.id)).rejects.toThrow(/refuses a new possible delivery/);
-    await restoreScope(o);
-    await artifacts.releaseDrainedHolds(db);
-    expect(await releasesOf(o)).toHaveLength(1);
     await expect(recordGrant(o,other.id)).resolves.toBeDefined();
   });
-  it("a janitor sweep releases a drained superseded generation, and the next teardown attempt proceeds on a new generation",async()=>{
-    const o=await owning();await clearScope(o);await blocked(o);
-    await restoreScope(o);
+  it("an entered attempt's hold freezes the environment until the janitor releases it drained",async()=>{
+    const o=await owning();const result=await consume(o);expect(result.entered).toBe(1);expect(result.error).toBe(stop);
+    const other=await sibling(o);
+    await expect(recordGrant(o,other.id)).rejects.toThrow(/refuses a new possible delivery/);
     // The sweep is global across fixtures; this environment's own release is what is asserted.
     await artifacts.releaseDrainedHolds(db);
     const [first]=await holdSeqs(o);expect(first.released).toBe(true);
     expect(await releasesOf(o)).toEqual([{hold_seq:first.hold_seq,released_by:"janitor"}]);
-    const result=await consume(o);expect(result.entered).toBe(1);expect(result.error).toBe(stop);
-    const seqs=await holdSeqs(o);expect(seqs).toHaveLength(2);expect(BigInt(seqs[1].hold_seq)>BigInt(first.hold_seq)).toBe(true);
-    expect(seqs[1].released).toBe(false);expect(await releasesOf(o)).toHaveLength(1);
+    await expect(recordGrant(o,other.id)).resolves.toBeDefined();
   });
   it("the retain path releases a drained superseded generation first, and only then inserts the new one",async()=>{
-    const o=await owning();await clearScope(o);await blocked(o);
-    await restoreScope(o);
+    const o=await owning();expect((await consume(o)).entered).toBe(1);
     const result=await consume(o);expect(result.entered).toBe(1);expect(result.error).toBe(stop);
     const [first,second]=await holdSeqs(o);
+    expect(BigInt(second.hold_seq)>BigInt(first.hold_seq)).toBe(true);
     expect(first.released).toBe(true);expect(second.released).toBe(false);
     expect(await releasesOf(o)).toEqual([{hold_seq:first.hold_seq,released_by:expect.stringMatching(/^retain:/)}]);
   });
   it("a janitor sweep does not release a hold while the counted inventory is nonzero",async()=>{
-    const o=await owning(),other=await sibling(o);await recordGrant(o,other.id);
-    await blocked(o);
+    const o=await owning();expect((await consume(o)).entered).toBe(1);
+    await clearScope(o);
     await artifacts.releaseDrainedHolds(db);
     expect(await releasesOf(o)).toEqual([]);
     expect(await holdSeqs(o)).toEqual([expect.objectContaining({released:false})]);
+    await restoreScope(o);
   });
   it("a janitor sweep never releases the hold of a live claimed attempt, even at zero inventory",async()=>{
     const o=await owning();
@@ -401,8 +393,7 @@ describe.skipIf(!PG_URL)("native cleanup writer barrier [postgres; modeled hoste
     expect(await holdSeqs(o)).toHaveLength(1);expect(await releasesOf(o)).toEqual([]);
   });
   it("hold release rows are append-only",async()=>{
-    const o=await owning();await clearScope(o);await blocked(o);await restoreScope(o);
-    await artifacts.releaseDrainedHolds(db);
+    const o=await owning();await clearScope(o);await blocked(o);
     await expect(peer.query("update platform.cleanup_writer_hold_releases set released_by='changed' where workspace_id=$1",[o.f.op.workspaceId])).rejects.toThrow(/cannot be changed or cleared/);
     await expect(peer.query("delete from platform.cleanup_writer_hold_releases where workspace_id=$1",[o.f.op.workspaceId])).rejects.toThrow(/cannot be changed or cleared/);
     expect(await releasesOf(o)).toHaveLength(1);

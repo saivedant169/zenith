@@ -371,9 +371,9 @@ describe("platform suite coverage", () => {
     const cleanupFile = "tests/controlplane/cleanup-writer-barriers.test.ts";
     const cleanupSuite = "native cleanup writer barrier [postgres; modeled hosted association and policy]";
     const cleanupCases = [...CLEANUP_WRITER_BARRIER_POSTGRES_REQUIREMENTS, ...SAVED_PLAN_SETTLEMENT_POSTGRES_REQUIREMENTS];
-    expect(CLEANUP_WRITER_BARRIER_POSTGRES_REQUIREMENTS).toHaveLength(46);
+    expect(CLEANUP_WRITER_BARRIER_POSTGRES_REQUIREMENTS).toHaveLength(52);
     expect(SAVED_PLAN_SETTLEMENT_POSTGRES_REQUIREMENTS).toHaveLength(54);
-    expect(new Set(cleanupCases.map(item => requirementId("platform-postgres", item))).size).toBe(100);
+    expect(new Set(cleanupCases.map(item => requirementId("platform-postgres", item))).size).toBe(106);
     const cleanupNetwork = platformManifest.requirements.filter(item => item.file === cleanupFile);
     expect(cleanupNetwork).toEqual([
       { file: cleanupFile, suite: cleanupSuite, backend: "postgres", id: requirementId("platform-postgres", { file: cleanupFile, suite: cleanupSuite, backend: "postgres" }) },
@@ -866,26 +866,26 @@ describe("saved builtin settlement mandatory CI admission", () => {
     const manifest = manifestFor("platform-postgres", root);
     const added = currentSuccessorPlatformCohort.map(item => ({ ...item, id: requirementId("platform-postgres", item) }));
     expect(manifest.requirements.filter(item => added.some(value => value.id === item.id)).sort((a, b) => a.id.localeCompare(b.id))).toEqual(added.sort((a, b) => a.id.localeCompare(b.id)));
-    expect(manifest.requirements).toHaveLength(1162);
-    expect(new Set(manifest.requirements.map(item => item.id)).size).toBe(1162);
+    expect(manifest.requirements).toHaveLength(1168);
+    expect(new Set(manifest.requirements.map(item => item.id)).size).toBe(1168);
     const mixedStore = manifest.requirements.filter(item => item.file === "tests/execution/mixed-run-store.test.ts");
     expect(mixedStore).toHaveLength(5);
     expect(mixedStore.every(item => item.postgres && item.suite === "mixed run store validation [postgres]" && item.test)).toBe(true);
     const beforeMixedStore = manifest.requirements.filter(item => !mixedStore.some(addition => addition.id === item.id));
-    expect(beforeMixedStore).toHaveLength(1157);
-    expect(beforeMixedStore.filter(item => !wave5PlatformIds.has(item.id))).toHaveLength(1154);
+    expect(beforeMixedStore).toHaveLength(1163);
+    expect(beforeMixedStore.filter(item => !wave5PlatformIds.has(item.id))).toHaveLength(1160);
     const prior = priorOwnershipSnapshotRequirements(manifest.requirements);
-    expect(prior).toHaveLength(1150);
+    expect(prior).toHaveLength(1149);
     expect(createHash("sha256").update(JSON.stringify(prior.map(item => item.id).sort())).digest("hex"))
-      .toBe("963ac1b102323bea9f03e3b45008fa9183ec7382e743d5b5f240eb2a2386bac0");
+      .toBe("92df99d8de16e4ef6e1072114c12aafff513bf43774c12c9c390998308ca5729");
     const verifierPrior = prior.filter(item => !wave5PlatformIds.has(item.id) && !integrationPlatformIds.has(item.id));
-    expect(verifierPrior).toHaveLength(1146);
+    expect(verifierPrior).toHaveLength(1145);
     expect(createHash("sha256").update(JSON.stringify(verifierPrior.map(item => item.id).sort())).digest("hex"))
-      .toBe("ae11ed1db712427ee9f71e23e997f1c4ce2d30d9ff63c3d7a955d023db3d20fa");
+      .toBe("349b983956a0d8569c4bc475584e0a6bf69cd5fa476e2b709954536aacc34c00");
     const priorMixedStore = verifierPrior.filter(item => !mixedStore.some(addition => addition.id === item.id));
-    expect(priorMixedStore).toHaveLength(1141);
+    expect(priorMixedStore).toHaveLength(1140);
     expect(createHash("sha256").update(JSON.stringify(priorMixedStore.map(item => item.id).sort())).digest("hex"))
-      .toBe("133320ef5a7fac2ba03281e597a3305d7cdf0957c61fe6b8c8b4704973d4cdd3");
+      .toBe("d69bfb94043d51dd0c2631fa9a2864b08cd05b590e6c3a4d5d0380aace6c7047");
     const future = { ...manifest.requirements[0], id: "unknown-snapshot-platform-successor" };
     expect(priorOwnershipSnapshotRequirements([...manifest.requirements, future])).toContainEqual(future);
     expect(withoutIncomingPlatform(manifest.requirements).map(item => item.id).sort()).toEqual([...priorCurrentSuccessorPlatformRequirements(), ...added, ...INCIDENT_OWNERSHIP_HARDENING_POSTGRES_REQUIREMENTS.map(item => ({ ...item, id: requirementId("platform-postgres", item) }))].map(item => item.id).sort());
@@ -903,7 +903,7 @@ describe("saved builtin settlement mandatory CI admission", () => {
     const added = INCIDENT_OWNERSHIP_HARDENING_POSTGRES_REQUIREMENTS.map(item => ({ ...item, id: requirementId("platform-postgres", item) }));
     expect(added).toHaveLength(5); expect(new Set(added.map(item => item.id)).size).toBe(5);
     expect(manifest.requirements.filter(item => hardeningPlatformIds.includes(item.id))).toEqual(added);
-    expect(priorHardeningPlatformRequirements()).toHaveLength(1119);
+    expect(priorHardeningPlatformRequirements()).toHaveLength(1118);
     for (const item of added) {
       expect(item.postgres).toBe(true);
       expect(manifest.command.some(argument => argument === item.file || item.file.startsWith(`${argument}/`))).toBe(true);
@@ -914,18 +914,18 @@ describe("saved builtin settlement mandatory CI admission", () => {
     gate("platform-postgres", "node scripts/ci/run-gate.mjs platform-postgres --validate .data-ci-lane/platform-lane.json --require-execution", "always()");
   });
 
-  it("retains all 100 literal cleanup and settlement network requirements after source deletion", () => {
+  it("retains all 106 literal cleanup and settlement network requirements after source deletion", () => {
     const sourceRoot = modelRoot(path.join(os.tmpdir(), "zenith-cleanup-coverage-"));
     try {
       fs.cpSync(path.join(root, "tests"), path.join(sourceRoot, "tests"), { recursive: true });
       const required = [...CLEANUP_WRITER_BARRIER_POSTGRES_REQUIREMENTS, ...SAVED_PLAN_SETTLEMENT_POSTGRES_REQUIREMENTS];
       const ids = new Set(required.map(item => requirementId("platform-postgres", item)));
       const expected = required.map(item => ({ ...item, id: requirementId("platform-postgres", item) }));
-      expect(ids.size).toBe(100);
+      expect(ids.size).toBe(106);
       expect(requirementsFor("platform-postgres", sourceRoot).filter(item => ids.has(item.id))).toEqual(expected);
       fs.unlinkSync(path.join(sourceRoot, "tests/controlplane/cleanup-writer-barriers.test.ts"));
       expect(requirementsFor("platform-postgres", sourceRoot).filter(item => ids.has(item.id))).toEqual(expected);
-      expect(reportFailures(expected, { success: true, testResults: [] }, root)).toHaveLength(100);
+      expect(reportFailures(expected, { success: true, testResults: [] }, root)).toHaveLength(106);
     } finally { fs.rmSync(sourceRoot, { recursive: true, force: true }); }
   });
 
@@ -934,9 +934,9 @@ describe("saved builtin settlement mandatory CI admission", () => {
     const ids = new Set(added.map(item => requirementId("platform-postgres", item)));
     expect(added).toHaveLength(54); expect(ids.size).toBe(54);
     expect(manifest.requirements.filter(item => ids.has(item.id))).toEqual(added.map(item => ({ ...item, id: requirementId("platform-postgres", item) })));
-    expect(priorCurrentSuccessorPlatformRequirements()).toHaveLength(1113);
-    expect(priorSettlementPlatformRequirements()).toHaveLength(1059);
-    expect(createHash("sha256").update(JSON.stringify(priorSettlementPlatformRequirements().map(item => item.id).sort())).digest("hex")).toBe("49f54d75ca5cd7114b69efedabfed9843fcdc1186e49422f9f7e26cae79cf07f");
+    expect(priorCurrentSuccessorPlatformRequirements()).toHaveLength(1112);
+    expect(priorSettlementPlatformRequirements()).toHaveLength(1058);
+    expect(createHash("sha256").update(JSON.stringify(priorSettlementPlatformRequirements().map(item => item.id).sort())).digest("hex")).toBe("96d2bd4f33c4cc42b1e0df6ce4bb13537f92db7132dd43d2250b9315191e24cb");
     expect(manifest.env.ZENITH_TEST_SAVED_PLAN_SETTLEMENT_REQUIRED).toBe("1");
     expect(workflow.jobs["platform-postgres"].env?.ZENITH_TEST_SAVED_PLAN_SETTLEMENT_REQUIRED).toBe("1");
     expect(manifest.prerequisites.some(value => value.startsWith("ZENITH_TEST_SAVED_PLAN_SETTLEMENT_REQUIRED=1;"))).toBe(true);

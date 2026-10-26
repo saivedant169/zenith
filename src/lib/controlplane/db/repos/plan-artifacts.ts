@@ -467,6 +467,19 @@ async function releaseDrainedScopeHold(tx:Sql,workspaceId:string,projectId:strin
     on conflict do nothing returning hold_seq::text as hold_seq`,[workspaceId,projectId,environmentId,releasedBy,JSON.stringify(inventory)]);
   return rows.length;
 }
+/**
+ * shortcut: until delivery settlement (WP2/WP3) exists nothing drains, so a refused attempt's own hold would freeze the
+ * environment for good. The caller refuses right after this commit and a released generation can never authorize a destroy
+ * grant, so it is released in the hold transaction (owner decision 2026-10-26). Remove once settlement lets a frozen scope drain.
+ */
+async function releaseRefusedHold(tx:Sql,workspaceId:string,operationId:string,attemptId:string,generation:string,inventory:cleanup.CleanupInventory):Promise<void> {
+  if(!Object.values(inventory).some(n=>n!==0))return;
+  const released=await tx.query(`insert into platform.cleanup_writer_hold_releases(workspace_id,project_id,environment_id,hold_seq,operation_id,attempt_id,generation,released_by,inventory_snapshot)
+    select h.workspace_id,h.project_id,h.environment_id,h.hold_seq,h.operation_id,h.attempt_id,h.generation,$5::text,$6::text::jsonb from platform.cleanup_writer_holds h
+    where h.workspace_id=$1 and h.operation_id=$2 and h.attempt_id=$3 and h.generation=$4
+    on conflict do nothing returning hold_seq`,[workspaceId,operationId,attemptId,generation,`refused:${attemptId}`,JSON.stringify(inventory)]);
+  if(released.length!==1)throw new cleanup.CleanupWriterBarrierError();
+}
 /** Guarded private origin only. Commit the hold even when the counted inventory blocks continuation. */
 export async function retainCleanupWriterHold(sql:Sql,origin:unknown):Promise<Readonly<{hold:cleanup.CleanupHold;inventory:cleanup.CleanupInventory}>> {
   const bound=await readNativeCleanupOrigin(origin,sql,"hold"),c=bound.access.custody;
@@ -500,6 +513,7 @@ export async function retainCleanupWriterHold(sql:Sql,origin:unknown):Promise<Re
     if(rows.length!==1)throw new cleanup.CleanupWriterBarrierError();
     const hold=Object.freeze({workspaceId:c.workspaceId,projectId:c.projectId,environmentId:c.environmentId,operationId:c.operationId,attemptId:bound.attempt,generation,manifestDigest:bound.manifestDigest,authorityDigest:frame.authorityDigest});
     const inventory=await cleanup.inventoryForNativeOrigin(sql,tx,origin);
+    await releaseRefusedHold(tx,c.workspaceId,c.operationId,bound.attempt,generation,inventory);
     return Object.freeze({hold,inventory});
   });
 }

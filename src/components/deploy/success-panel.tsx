@@ -222,7 +222,7 @@ export function SuccessPanel({
               went live; its cost is never folded into the number above. */}
           {pendingCount > 0 && (
             <span className="block text-[11.5px] text-ink-faint">
-              working copy {fmtUsd(pending.totalCostDeltaUsd, { sign: true })}/mo in {pendingCount}{" "}
+              working copy {fmtUsd(pending.totalCostDeltaUsd, { sign: true })}/mo est. in {pendingCount}{" "}
               pending change{pendingCount === 1 ? "" : "s"}
             </span>
           )}

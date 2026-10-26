@@ -91,13 +91,16 @@ function implementedCell(evidence: Evidence, driver: DriverFact, sharedWith: str
   if (evidence === "undeclared") return { level: "unsupported", evidence, reason: "The driver declares no valid evidence level for this operation." };
   const caveats: string[] = [];
   if (evidence === "contract") caveats.push("Evidence is contract-level only (mocked SDK or HTTP tests); no emulator or live-account acceptance run.");
-  if (driver.experimental) caveats.push("The driver is experimental.");
   if (sharedWith !== undefined) caveats.push(`The native type is shared with kind ${sharedWith}; the driver is declared for ${sharedWith} and disambiguates by spec.`);
   if (caveats.length > 0) return { level: "preview", evidence, reason: caveats.join(" ") };
   return { level: "supported", evidence };
 }
 
 function offeredEntry(provider: ProviderKey, kind: PortableKind, domain: Domain, nativeType: string, driver: DriverFact, dayTwoNames: readonly string[]): Entry {
+  // Beta (2026-10-26): an experimental driver is not offered to customers, whatever its evidence. The driver's own flag decides.
+  if (driver.experimental) {
+    return { provider, kind, domain, status: "not_offered", level: "unsupported", nativeType, experimental: true, reason: "The driver is experimental and is not offered in the private beta." };
+  }
   const sharedWith = (PORTABLE_KINDS as readonly string[]).includes(driver.kind) && driver.kind !== kind ? driver.kind : undefined;
   const lifecycle: Partial<Record<LifecycleOp, Cell>> = {};
   for (const op of LIFECYCLE_OPS) {
@@ -125,7 +128,6 @@ function offeredEntry(provider: ProviderKey, kind: PortableKind, domain: Domain,
     nativeType,
     driverId: driver.driverId,
     registration: driver.registration,
-    ...(driver.experimental ? { experimental: true } : {}),
     lifecycle,
     dayTwo,
   };

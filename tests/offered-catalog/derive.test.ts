@@ -90,10 +90,10 @@ describe("deriveOfferedCatalog", () => {
     expect(lifecycle(e, "observe").level).toBe("supported");
   });
 
-  it("an experimental driver is preview even with emulator evidence", () => {
+  it("an experimental driver is not offered even with emulator evidence", () => {
     const e = entry([driver({ experimental: true })], "aws", "container_service");
-    expect(lifecycle(e, "observe").level).toBe("preview");
-    expect(e.experimental).toBe(true);
+    expect(e).toMatchObject({ status: "not_offered", level: "unsupported", experimental: true });
+    expect(e.lifecycle).toBeUndefined();
   });
 
   it("simulated evidence is unsupported", () => {

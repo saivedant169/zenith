@@ -7,7 +7,7 @@ const NOTABLE_INCREASE_USD = 25;
 export interface CostDeltaProps {
   /** monthly delta in USD; negative means the change saves money */
   usd: number;
-  /** trailing unit, defaults to "/mo" */
+  /** trailing unit, defaults to "/mo est." (every delta is an estimate) */
   suffix?: ReactNode;
   /** hide the unit entirely */
   bare?: boolean;
@@ -16,10 +16,9 @@ export interface CostDeltaProps {
 
 /**
  * Signed monthly cost change. Savings read in `ok`; increases stay in `ink`
- * and pick up a warn tint past $25/mo. Always an estimate — label it as one
- * in the surrounding copy.
+ * and pick up a warn tint past $25/mo. Always an estimate, so the default unit says so.
  */
-export function CostDelta({ usd, suffix = "/mo", bare = false, className }: CostDeltaProps) {
+export function CostDelta({ usd, suffix = "/mo est.", bare = false, className }: CostDeltaProps) {
   const zero = Math.abs(usd) < 0.005;
   const saving = usd < 0 && !zero;
   const notable = usd > NOTABLE_INCREASE_USD;

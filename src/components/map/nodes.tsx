@@ -281,7 +281,7 @@ function Cost({ usd }: { usd: number }) {
   return (
     <span className="tnum shrink-0 font-mono text-[11.5px] text-ink-faint" title="Estimated monthly cost at list prices.">
       {fmtUsd(usd)}
-      <span className="opacity-70">/mo</span>
+      <span className="opacity-70">/mo est.</span>
     </span>
   );
 }

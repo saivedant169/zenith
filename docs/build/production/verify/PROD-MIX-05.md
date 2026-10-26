@@ -93,3 +93,20 @@ node scripts/ci/wave6-gates.mjs --requirement PROD-MIX-05 --print > /tmp/zenith-
 ```
 
 This prints the exact argv for each contract batch and required engine case, its gate names, private prerequisites, and its strict report-validation command. Set only the gates for the selected lane after preparing its owned fixture; a skip cannot satisfy that lane. Run each `argv` sequentially and then its `verify` argv. [Final integration setup and results](FINAL-INTEGRATION.md), [canonical inventory](../../../../scripts/ci/wave6-gates.json), [owner live runbook](../LIVE-ACCEPTANCE.md).
+
+## Owner decision (2026-10-26): protected connectivity only across a cloud or account boundary
+
+Delegated owner decision. Protected connectivity is required only where a dependency crosses a cloud or account boundary. Two partitions bound to the SAME connection (same provider and same connection id: one account, project or subscription, governed by that provider's IAM) share one trust boundary, so a dependency or typed reference between them needs no declared endpoint.
+
+- Before: every dependency or typed reference between two partitions required a declared protected endpoint or opted-in VPN (`requiredPairs`; refused by `planMixed` as `missing_connectivity`).
+- After: `requiredPairs` (`src/lib/execution/mixed/connectivity.ts`) drops only pairs whose two partitions have the same provider AND the same connection id. Cross-provider pairs, cross-connection pairs (including the same provider on another AWS account) and any pair naming a partition the plan does not contain stay required (fail closed). A supplied declaration is still judged in full, including for same-connection pairs.
+- Identity source: the plan's stored child authority (connection id and provider from the verified connection binding, covered by the subplan and semantics digests), never caller input.
+- Security reasoning: no cross-cloud or cross-account path is weakened. Nothing is inferred as a path, and no endpoint is produced by default. The exclusion fires only on an identical provider and connection id, which the plan has verified and digest-bound.
+
+Tests: `tests/execution/mixed/same-connection.test.ts` (same-connection AWS to AWS dependency and typed reference accepted with no declaration; same provider on another connection and cross-provider still required; declaration still judged), `tests/controlplane/mixed-parent-plans.test.ts` (`planMixed` plans one connection split over two child environments and refuses the other-account variant, on PGlite and real PostgreSQL lanes), and the unchanged `tests/execution/mixed/connectivity.test.ts`.
+
+Verification scope: offline contract tests only. No cloud was called and no live probe ran. Status is unchanged: `implementation_complete_verification_pending`.
+
+## Owner decision (2026-10-26): reference contracts in readback
+
+Protected connectivity above and reference readback below are the two parts of the same owner decision. Readback: `GET /api/platform/v1/mixed/plans/:id` now returns `desiredDigest` and `references[]`; `GET /api/platform/v1/operations/:id/mixed-run` returns `references[]` joined from the stored plan by parent operation. Each entry has the reference id, producer and consumer partition ids and addresses, output and input names, value type, the `contractDigest` the consumer approval binds, the producer and consumer subplan digests, and the state. Those are exactly the fields a one-reference preauthorization names (`docs/build/production/verify/PROD-MIX-03.md`). Digests and types only: no value, no vault reference, no credential. A legacy reference without a stored contract reads as nulls, never a guess. Serializer: `src/lib/execution/mixed/readback.ts`. Tests: `tests/execution/mixed/reference-readback.test.ts`.

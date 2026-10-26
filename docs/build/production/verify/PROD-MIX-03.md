@@ -93,3 +93,16 @@ node scripts/ci/wave6-gates.mjs --requirement PROD-MIX-03 --print > /tmp/zenith-
 ```
 
 This prints the exact argv for each contract batch and required engine case, its gate names, private prerequisites, and its strict report-validation command. Set only the gates for the selected lane after preparing its owned fixture; a skip cannot satisfy that lane. Run each `argv` sequentially and then its `verify` argv. [Final integration setup and results](FINAL-INTEGRATION.md), [canonical inventory](../../../../scripts/ci/wave6-gates.json), [owner live runbook](../LIVE-ACCEPTANCE.md).
+
+## Owner decision (2026-10-26): reference contracts in readback
+
+Delegated owner decision. A client must be able to issue a precise one-reference preauthorization without guessing any digest. The readbacks now expose, per dependency reference:
+
+- `GET /api/platform/v1/mixed/plans/:id`: `desiredDigest` (top level) and `references[]`.
+- `GET /api/platform/v1/operations/:id/mixed-run`: `references[]`, joined from the stored plan by parent operation (empty when the operation has no stored plan).
+
+Each entry carries the reference id, producer and consumer partition ids, producer and consumer addresses, output and input names, value type, the `contractDigest` the consumer approval binds, the producer and consumer subplan digests, and the state. With the parent operation and environment from the plan, these are exactly the fields `POST /api/platform/v1/mixed-output-preauthorizations` checks (`referenceId`, `contractDigest`, `consumerSubplanDigest`, `producerSubplanDigest`, `desiredDigest`, `valueType`). Nothing is a value: no secret, no vault reference, no credential. A legacy reference without a stored contract reads as nulls.
+
+Serializer: `src/lib/execution/mixed/readback.ts` (pure; used by both routes). Tests: `tests/execution/mixed/reference-readback.test.ts` (shape, digest equal to the recomputed contract digest, digests and types only, legacy nulls, empty inventory). No preauthorization or review behaviour changed.
+
+Verification scope: offline contract tests only. Status is unchanged: `implementation_complete_verification_pending`.

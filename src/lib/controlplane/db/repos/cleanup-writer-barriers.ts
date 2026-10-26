@@ -4,8 +4,8 @@ import type { Sealed, VaultCipher } from "@/lib/secrets";
 import type { InsertGrantInput } from "./grants";
 
 const DELIVERY_SETTLEMENT_FORMAT = "zenith.cleanup.delivery-settlement.v1";
-// Above this many settlement rows in one scope nothing is verified, so nothing settles (fail closed).
-const DELIVERY_SETTLEMENT_LIMIT = 256;
+// Liveness bound: a few dozen deploys stay far below it. Above it nothing is verified, so nothing settles (fail closed).
+const DELIVERY_SETTLEMENT_LIMIT = 4096;
 export interface DeliverySettlementPlain {
   readonly workspaceId: string; readonly family: string; readonly source: string; readonly identity: string; readonly operationId: string;
 }

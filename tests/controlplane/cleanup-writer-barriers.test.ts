@@ -1047,9 +1047,41 @@ describe.skipIf(!PG_URL)("native cleanup writer barrier [postgres; modeled hoste
     await peer.query(`insert into platform.runner_jobs(id,runner_id,workspace_id,operation_id,kind,capability,envelope,status,expires_at,started_at)
       values($1,$2,$3,$4,'diagnostic','infrastructure.apply','synthetic-no-authority','running',clock_timestamp()-interval '1 hour',clock_timestamp()-interval '2 hours')`,[open,target,s.ws,s.id]);
     await peer.query(`insert into platform.runner_jobs(id,runner_id,workspace_id,operation_id,kind,capability,envelope,status,expires_at,started_at,settled_at)
-      values($1,$2,$3,$4,'diagnostic','infrastructure.apply','synthetic-no-authority','succeeded',clock_timestamp()-interval '1 hour',clock_timestamp()-interval '2 hours',clock_timestamp()-interval '2 hours')`,[done,target,s.ws,s.id]);
+      values($1,$2,$3,$4,'diagnostic','infrastructure.apply','synthetic-no-authority','succeeded',clock_timestamp()-interval '3 hours',clock_timestamp()-interval '2 hours',clock_timestamp()-interval '2 hours')`,[done,target,s.ws,s.id]);
     await expect(settlementRow(s,"runner","runner_jobs",open)).rejects.toThrow(/refused before its horizon/);
     await settlementRow(s,"runner","runner_jobs",done);
+  });
+  it("a revoked runner's cancelled job never settles at its revocation time, only after its envelope horizon passes",async()=>{
+    const s=await settlementScope();
+    const target=`diagnostic_${randomUUID()}`;
+    await peer.query("insert into platform.runners(id,workspace_id,name,public_key) values($1,$2,'diagnostic','fixture-public-key')",[target,s.ws]);
+    const live=`job_${randomUUID()}`, old=`job_${randomUUID()}`;
+    // Revocation stamps settled_at now while the envelope is still live: the revoked runner may still be executing.
+    await peer.query(`insert into platform.runner_jobs(id,runner_id,workspace_id,operation_id,kind,capability,envelope,status,expires_at,started_at,settled_at)
+      values($1,$2,$3,$4,'diagnostic','infrastructure.apply','synthetic-no-authority','cancelled',clock_timestamp()+interval '1 hour',clock_timestamp()-interval '2 hours',clock_timestamp())`,[live,target,s.ws,s.id]);
+    await expect(settlementRow(s,"runner","runner_jobs",live)).rejects.toThrow(/refused before its horizon/);
+    // The same revocation with the envelope and its session long past: both timestamps move into the past.
+    await peer.query(`insert into platform.runner_jobs(id,runner_id,workspace_id,operation_id,kind,capability,envelope,status,expires_at,started_at,settled_at)
+      values($1,$2,$3,$4,'diagnostic','infrastructure.apply','synthetic-no-authority','cancelled',clock_timestamp()-interval '3 hours',clock_timestamp()-interval '4 hours',clock_timestamp()-interval '2 hours')`,[old,target,s.ws,s.id]);
+    vi.stubEnv("ZENITH_PLAN_ARTIFACT_KEY",settlementKey);
+    expect(await cleanup.inventory(db,s.ws,s.project,s.environment)).toMatchObject({handoffs:2});
+    await expect(settlementRow(s,"runner","runner_jobs",old)).resolves.toBeDefined();
+    expect(await cleanup.inventory(db,s.ws,s.project,s.environment)).toMatchObject({handoffs:1});
+  });
+  it("a revoked machine's cancelled request never settles at its revocation time, only after its envelope horizon passes",async()=>{
+    const s=await settlementScope();
+    const target=`diagnostic_${randomUUID()}`;
+    await peer.query("insert into platform.machines(id,workspace_id,name,transport,target_id) values($1,$2,'diagnostic','zenithd',$1)",[target,s.ws]);
+    const live=`mreq_${randomUUID()}`, old=`mreq_${randomUUID()}`;
+    await peer.query(`insert into platform.machine_requests(id,machine_id,workspace_id,operation_id,operation,capability,envelope,status,expires_at,started_at,settled_at)
+      values($1,$2,$3,$4,'diagnostic','infrastructure.apply','synthetic-no-authority','cancelled',clock_timestamp()+interval '1 hour',clock_timestamp()-interval '2 hours',clock_timestamp())`,[live,target,s.ws,s.id]);
+    await expect(settlementRow(s,"runner","machine_requests",live)).rejects.toThrow(/refused before its horizon/);
+    await peer.query(`insert into platform.machine_requests(id,machine_id,workspace_id,operation_id,operation,capability,envelope,status,expires_at,started_at,settled_at)
+      values($1,$2,$3,$4,'diagnostic','infrastructure.apply','synthetic-no-authority','cancelled',clock_timestamp()-interval '3 hours',clock_timestamp()-interval '4 hours',clock_timestamp()-interval '2 hours')`,[old,target,s.ws,s.id]);
+    vi.stubEnv("ZENITH_PLAN_ARTIFACT_KEY",settlementKey);
+    expect(await cleanup.inventory(db,s.ws,s.project,s.environment)).toMatchObject({handoffs:2});
+    await settlementRow(s,"runner","machine_requests",old);
+    expect(await cleanup.inventory(db,s.ws,s.project,s.environment)).toMatchObject({handoffs:1});
   });
   it("a build launch settles only after its provider finished and never while it is still dispatched",async()=>{
     const s=await settlementScope();

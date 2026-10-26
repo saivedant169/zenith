@@ -5704,6 +5704,18 @@ export const CLEANUP_WRITER_BARRIER_POSTGRES_REQUIREMENTS = [
   {
     "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
     "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
+    "test": "a revoked runner's cancelled job never settles at its revocation time, only after its envelope horizon passes",
+    "backend": "postgres"
+  },
+  {
+    "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
+    "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
+    "test": "a revoked machine's cancelled request never settles at its revocation time, only after its envelope horizon passes",
+    "backend": "postgres"
+  },
+  {
+    "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
+    "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
     "test": "a build launch settles only after its provider finished and never while it is still dispatched",
     "backend": "postgres"
   },

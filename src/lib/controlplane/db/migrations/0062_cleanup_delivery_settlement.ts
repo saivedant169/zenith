@@ -27,12 +27,14 @@ begin
   elsif p_source='capability_grants' then
     return query select g.operation_id, g.expires_at + interval '3600 seconds' + skew
       from platform.capability_grants g where g.workspace_id=p_ws and g.jti=p_identity;
+  -- settled_at alone is server-set (a revoked runner's job is cancelled at revocation while it may still run), so the
+  -- envelope's expiry plus the session horizon also has to pass; the verified signed result is still required.
   elsif p_source='runner_jobs' then
-    return query select j.operation_id, j.settled_at from platform.runner_jobs j
+    return query select j.operation_id, greatest(j.settled_at, j.expires_at + interval '3600 seconds' + skew) from platform.runner_jobs j
       where j.workspace_id=p_ws and j.id=p_identity and j.status in ('succeeded','failed','rejected','timed_out','expired','cancelled')
         and j.settled_at is not null;
   elsif p_source='machine_requests' then
-    return query select j.operation_id, j.settled_at from platform.machine_requests j
+    return query select j.operation_id, greatest(j.settled_at, j.expires_at + interval '3600 seconds' + skew) from platform.machine_requests j
       where j.workspace_id=p_ws and j.id=p_identity and j.status in ('succeeded','failed','rejected','timed_out','expired','cancelled')
         and j.settled_at is not null;
   elsif p_source='build_launches' then

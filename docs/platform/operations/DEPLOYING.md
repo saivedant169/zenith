@@ -734,7 +734,7 @@ Registered migrations: **62**; highest version: **62**.
 | 59 | `field_ownership_grant_revocation` | `f5490db5eed06ab6ada997f33f13430eb249dbcfcc8a1b0c75252b6bb5a87b29` |
 | 60 | `cleanup_writer_expand` | `53b527c13d0900e420cdba1572bd2344514aa89e75ecdbe98ed1dcbb829efceb` |
 | 61 | `cleanup_writer_hold_generations` | `2b53e22219cf351ba8d2bbeb3e7de031e113526e91f3bf68629f13c373c9ba25` |
-| 62 | `cleanup_delivery_settlement` | `a41909f74b56efce419f52768f87b5abad1310c5a5e98503a02b4ced067096f5` |
+| 62 | `cleanup_delivery_settlement` | `190cde731b7c52cecbded4938d9caa70b8bb8c7f6e90a30f626b7608f421509d` |
 <!-- platform-migrations:end -->
 
 For the actual target, `npm run migrate:platform -- --status` calls the canonical

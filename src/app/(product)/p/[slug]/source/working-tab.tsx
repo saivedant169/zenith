@@ -425,8 +425,8 @@ export function WorkingTab({
                   <div role="status" className="space-y-1">
                     <p className={costDisagrees ? "text-warn" : "text-ink"}>
                       {costDisagrees
-                        ? `The two disagree: this page shows ${fmtUsd(changeset.totalCostDeltaUsd)}/month, the server's plan says ${fmtUsd(serverPlan.costDeltaUsd)}/month. Trust the server's — reload the page to pick up whatever changed underneath.`
-                        : `Agreed: both make it ${fmtUsd(serverPlan.costDeltaUsd)}/month different.`}
+                        ? `The two disagree: this page estimates ${fmtUsd(changeset.totalCostDeltaUsd)}/month, the server's plan estimates ${fmtUsd(serverPlan.costDeltaUsd)}/month. Trust the server's — reload the page to pick up whatever changed underneath.`
+                        : `Agreed: both estimate it makes it ${fmtUsd(serverPlan.costDeltaUsd)}/month different.`}
                     </p>
                     <p className="text-ink-mute">{serverPlan.summary}</p>
                     {serverPlan.warnings.map((w) => (

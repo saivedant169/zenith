@@ -43,6 +43,8 @@
  *
  * Static-site output (`output.staticSite`): EXPERIMENTAL conventional Node
  * build (`npm ci` or `npm install`, `npm run build`, sync `dist|build|out|public`
+ * — refused unless the execution layer sets `ctx.allowExperimentalAws`, from
+ * the operator's `ZENITH_AWS_ALLOW_EXPERIMENTAL=1` —
  * to the site's bucket, invalidate CloudFront). A repository that needs
  * another toolchain should build through a Dockerfile instead.
  *
@@ -191,6 +193,7 @@ const compile = (node: ResourceNode, ctx: CompileContext) =>
     const site = output.staticSite !== undefined ? ctx.node(output.staticSite) : undefined;
     if (output.registry !== undefined && registry?.kind !== "container_registry") throw new ComputeCompileError("missing_neighbour", `output registry ${output.registry} is not a container_registry node.`);
     if (output.staticSite !== undefined && site?.kind !== "static_site") throw new ComputeCompileError("missing_neighbour", `output static site ${output.staticSite} is not a static_site node.`);
+    if (output.staticSite !== undefined && ctx.allowExperimentalAws !== true) throw new ComputeCompileError("unsupported", "Static-site builds are experimental; set ZENITH_AWS_ALLOW_EXPERIMENTAL=1 on the Zenith host to allow them.");
     if (!registry && !site) throw new ComputeCompileError("invalid_spec", "the pipeline has no output (a registry or a static site).");
 
     const src = emitPrivateBucket(b, node, ctx, { label: `${label}_src`, nameBase: `${name}-src`, expireAfterDays: SOURCE_EXPIRY_DAYS, expirePrefix: sourcePrefix });

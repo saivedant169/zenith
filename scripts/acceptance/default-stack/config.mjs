@@ -175,6 +175,17 @@ export function stackComposition(config, directory, profile, gatewayImage, peer)
     service.environment = { NODE_EXTRA_CA_CERTS: '/run/zenith-ca.crt',
       ...(name === 'platform-migrate' ? {} : { NODE_OPTIONS: `--max-old-space-size=${Math.floor(limit * 3 / 4)}` }) };
   }
+  // Live AWS scenarios only: Zenith's own default credential chain (aws_assume_role connections) reads a shared credentials
+  // file that the workflow writes after its OIDC step. The directory is empty while the stack starts, so no credential exists then.
+  const awsShared = process.env.ZENITH_DEFAULT_STACK_AWS_SHARED_DIR?.trim();
+  if (awsShared) {
+    if (!path.isAbsolute(awsShared) || !fs.existsSync(awsShared) || !fs.statSync(awsShared).isDirectory()) fail('aws-shared-dir');
+    for (const name of ['api', 'execution-worker']) {
+      const service = document.services[name];
+      service.volumes = [...service.volumes, `${awsShared}:/run/zenith-aws:ro`];
+      service.environment = { ...service.environment, AWS_SHARED_CREDENTIALS_FILE: '/run/zenith-aws/credentials', AWS_CONFIG_FILE: '/run/zenith-aws/config', AWS_EC2_METADATA_DISABLED: 'true' };
+    }
+  }
   document.services.api.ports = [`127.0.0.1:${ports.api}:3400`];
   document.services.api.tmpfs = ['/tmp:rw,noexec,nosuid,size=64m,uid=1001,gid=1001,mode=1770', '/app/.next/cache:rw,noexec,nosuid,size=64m,uid=1001,gid=1001,mode=1770'];
   document.services['execution-worker'].tmpfs = ['/tmp:rw,nosuid,size=256m,uid=10001,gid=10001,mode=1770'];

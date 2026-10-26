@@ -303,6 +303,12 @@ jobs:
           umask 077
           # Private root for the stack, its TMPDIR and the host environment file.
           mkdir -m 700 "$RUNNER_TEMP/zenith" "$RUNNER_TEMP/zenith/tmp"
+          # Browser scenarios: an EMPTY directory for Zenith's own AWS default credential chain (aws_assume_role connections).
+          # The sandbox session is written into it only after the OIDC step below; nothing is in it while the stack starts.
+          if [ "$ZENITH_LIVE_AWS_SCENARIO" = mix-03 ] || [ "$ZENITH_LIVE_AWS_SCENARIO" = deploy-01 ]; then
+            mkdir -m 755 "$RUNNER_TEMP/zenith-aws"
+            export ZENITH_DEFAULT_STACK_AWS_SHARED_DIR="$RUNNER_TEMP/zenith-aws"
+          fi
           ZENITH_ACCEPTANCE_DEFAULT_STACK=1 TMPDIR="$RUNNER_TEMP/zenith/tmp" ZENITH_DEFAULT_STACK_REGISTRY_IMAGE="$REGISTRY_IMAGE" \
             node scripts/acceptance/default-stack/up.mjs --profile lean --directory "$RUNNER_TEMP/zenith/stack"
           # up.mjs fails unless readiness passes; re-check the receipt it wrote.
@@ -347,6 +353,20 @@ jobs:
           # Matches the role's one-hour maximum session. The job timeout is longer
           # only because the Zenith stack starts before this session (see the header).
           role-duration-seconds: 3600
+
+      # Browser scenarios: Zenith's API and worker assume the sandbox connection roles as ZenithLiveAcceptance (the
+      # connection stack's ZenithPrincipalArn), through their default credential chain. The file is readable by the
+      # containers' non-root users; the runner VM is ephemeral and the session expires with the OIDC session.
+      - name: Hand the sandbox session to the Zenith stack
+        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && contains(fromJSON('["mix-03","deploy-01"]'), inputs.scenario)
+        run: |
+          set -euo pipefail
+          umask 022
+          dir="$RUNNER_TEMP/zenith-aws"
+          printf '[default]\naws_access_key_id = %s\naws_secret_access_key = %s\naws_session_token = %s\n' "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY" "$AWS_SESSION_TOKEN" > "$dir/credentials.tmp"
+          printf '[default]\nregion = %s\n' "$AWS_REGION" > "$dir/config.tmp"
+          mv "$dir/credentials.tmp" "$dir/credentials"
+          mv "$dir/config.tmp" "$dir/config"
 
       - name: Live acceptance against the sandbox account
         id: acceptance

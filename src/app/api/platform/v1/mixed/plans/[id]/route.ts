@@ -4,11 +4,13 @@
  * The stored parent plan: each child's partition (provider, account, region, state
  * backend digest, connection identity digest, environment), its dependency order,
  * its stable resource addresses, its current execution state and, once it ran, its
- * durable receipt. Digests and ids only; read-only.
+ * durable receipt, and every dependency reference with the contract digest its consumer approval binds. Digests and ids
+ * only; read-only.
  */
 import { authorizeEnvironment, publicData } from "@/app/(product)/platform/_lib/read-models";
 import { notFound } from "@/lib/capabilities/errors";
 import * as plans from "@/lib/controlplane/db/repos/mixed-parent-plans";
+import { referenceReadback } from "@/lib/execution/mixed/readback";
 import { mixedDeps } from "@/lib/execution/mixed/runtime";
 import { platformRoute } from "../../../_lib/http";
 import { guarded } from "../../../_lib/mixed";
@@ -30,7 +32,9 @@ export const GET = platformRoute<{ id: string }>(async (req, { id }) => {
   return {
     body: publicData({
       parentPlanId: stored.plan.parentPlanId, status: stored.status, parentOperationId: stored.parentOperationId ?? null, parentEnvironmentId: stored.plan.parentEnvironmentId,
-      parentDigest: stored.plan.parentDigest, childSetDigest: stored.plan.childSetDigest, executionOrder: stored.plan.executionOrder, teardownOrder: stored.plan.teardownOrder,
+      parentDigest: stored.plan.parentDigest, desiredDigest: stored.plan.desiredDigest, childSetDigest: stored.plan.childSetDigest, executionOrder: stored.plan.executionOrder, teardownOrder: stored.plan.teardownOrder,
+      // PROD-MIX-03: each reference's id, addresses, value type and the contract digest the consumer approval binds; digests and types only.
+      references: referenceReadback(stored.plan),
       // PROD-MIX-05: what the approval bound, without vault references or identity digests; the live connectivity probe reads this.
       connectivity: stored.plan.connectivity ? {
         digest: stored.plan.connectivity.digest, vpnOptIn: stored.plan.connectivity.declaration.vpn?.optIn === true,

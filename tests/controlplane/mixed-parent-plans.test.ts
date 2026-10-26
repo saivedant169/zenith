@@ -10,6 +10,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as plans from "@/lib/controlplane/db/repos/mixed-parent-plans";
 import type { Sql } from "@/lib/controlplane/types";
+import { digest } from "@/lib/controlplane/digest";
 import { admitMixedGraph } from "@/lib/execution/mixed/admission";
 import { parentProposalInput } from "@/lib/execution/mixed/parent-plan";
 import { settleOutcome } from "@/lib/execution/mixed/settle";
@@ -19,6 +20,10 @@ import {
 } from "@/lib/execution/mixed/service";
 import { MixedPlanError, type MixedParentPlan, type MixedPlanErrorCode } from "@/lib/execution/mixed/types";
 import type { MixedWorld } from "@/lib/execution/mixed/world";
+import type { DeclaredReference } from "@/lib/execution/mixed/parent-plan";
+import type { PartitionPin } from "@/lib/execution/mixed/partitioner";
+import { finalizeGraph, GraphBuilder } from "@/lib/resources/expand-support";
+import type { ResourceGraph } from "@/lib/resources/types";
 import type { SemanticsStore } from "@/lib/execution/semantics/store";
 import type { DeployWorkflowInput } from "@/lib/workflows/types";
 import type { ProviderConnection } from "@/lib/credentials/types";
@@ -35,6 +40,26 @@ async function refusal(promise: Promise<unknown>, code: MixedPlanErrorCode): Pro
   expect(failure).toBeInstanceOf(MixedPlanError);
   expect((failure as MixedPlanError).code).toBe(code);
   return failure as MixedPlanError;
+}
+
+/** Two AWS functions in one region; b depends on a and reads a's queue through a typed reference. */
+function awsPairGraph(): ResourceGraph {
+  const b = new GraphBuilder(PARENT_ENV);
+  b.add({ address: "service/a", kind: "function", place: { provider: "aws", region: "us-east-1" }, spec: { n: 1 }, origin: ["a"] });
+  b.add({ address: "service/b", kind: "function", place: { provider: "aws", region: "us-east-1" }, spec: { n: 2 }, origin: ["b"], dependsOn: ["service/a"] });
+  return finalizeGraph(b, PARENT_ENV, digest("manifest-aws-pair-plan"));
+}
+const PAIR_PINS: PartitionPin[] = [{ address: "service/a", childEnvironmentId: "env-aws-1" }, { address: "service/b", childEnvironmentId: "env-aws-2" }];
+const PAIR_REFERENCE: DeclaredReference = { id: "ref-queue", producer: { address: "service/a", output: "queueArn", type: "resource_id" }, consumer: { address: "service/b", input: "queueArn", type: "resource_id" } };
+const pairWorld = (conns: Record<string, ProviderConnection>): MixedWorld => ({
+  parentGraph: async () => ({ projectId: PROJECT, graph: awsPairGraph() }), childEnvironment: async (_w, env) => ({ projectId: PROJECT, connection: conns[env]! }),
+  childGraph: async () => awsPairGraph(), childStartInput: async () => { throw new Error("unused"); }, connections: async () => new Map(),
+});
+/** Same provider, another AWS account: a different connection, so a different trust boundary. */
+function otherAwsAccount(workspaceId: string): ProviderConnection {
+  const base = connection("aws", { id: "conn-aws-other", workspaceId });
+  const other = "210987654321";
+  return { ...base, config: { ...base.config, accountId: other, observeRoleArn: `arn:aws:iam::${other}:role/observe`, deployRoleArn: `arn:aws:iam::${other}:role/deploy` } as ProviderConnection["config"] };
 }
 
 class FakeLauncher implements ChildLauncher {
@@ -138,6 +163,28 @@ describe.each(LANES)("mixed parent and child plans [$name]", (lane) => {
       const failure = await refusal(planMixed(s.deps, {workspaceId:s.ws,parentEnvironmentId:PARENT_ENV,childEnvironmentIds:[...ENVIRONMENTS],createdBy:"user-planner"}), "plan_refused");
       expect(failure.detail).toMatchObject({code:"missing_connectivity"});
       expect((await plans.listPlansForEnvironment(db(),s.ws,PARENT_ENV)).map(p => p.plan.parentPlanId)).toEqual([s.plan.parentPlanId]);
+    });
+
+    it("plans one AWS connection split over two child environments with a typed reference and no declaration (one trust boundary)", async () => {
+      const ws = uid("ws");
+      const aws = connection("aws", { workspaceId: ws });
+      const planned = await planMixed({ sql: db(), world: pairWorld({ "env-aws-1": aws, "env-aws-2": aws }) }, {
+        workspaceId: ws, parentEnvironmentId: PARENT_ENV, childEnvironmentIds: ["env-aws-1", "env-aws-2"], pins: PAIR_PINS, references: [PAIR_REFERENCE], createdBy: "user-planner",
+      });
+      expect(planned.created).toBe(true);
+      expect(planned.stored.plan.connectivity).toBeUndefined();
+      expect(planned.stored.plan.children.map((child) => child.authority.connectionId)).toEqual(["conn-aws", "conn-aws"]);
+      expect(planned.stored.plan.references).toHaveLength(1);
+      expect((await plans.listPlansForEnvironment(db(), ws, PARENT_ENV)).map((p) => p.plan.parentPlanId)).toEqual([planned.stored.plan.parentPlanId]);
+    });
+
+    it("still refuses the same provider on a different connection without a declaration, and stores nothing", async () => {
+      const ws = uid("ws");
+      const failure = await refusal(planMixed({ sql: db(), world: pairWorld({ "env-aws-1": connection("aws", { workspaceId: ws }), "env-aws-2": otherAwsAccount(ws) }) }, {
+        workspaceId: ws, parentEnvironmentId: PARENT_ENV, childEnvironmentIds: ["env-aws-1", "env-aws-2"], pins: PAIR_PINS, references: [PAIR_REFERENCE], createdBy: "user-planner",
+      }), "plan_refused");
+      expect(failure.detail).toMatchObject({ code: "missing_connectivity" });
+      expect(await plans.listPlansForEnvironment(db(), ws, PARENT_ENV)).toEqual([]);
     });
 
     it("refuses to plan when a partition has no verified connection, and stores nothing", async () => {

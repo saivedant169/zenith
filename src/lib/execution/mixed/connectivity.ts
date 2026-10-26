@@ -2,7 +2,8 @@
  * Protected cross-cloud connectivity (PROD-MIX-05).
  *
  * A mixed plan splits one application over partitions that live in different clouds. Whatever crosses a
- * partition boundary needs a declared, checked, approved path. The DEFAULT path is a PROTECTED ENDPOINT:
+ * cloud or account boundary (partitions on different providers or connections; see `requiredPairs`) needs a declared,
+ * checked, approved path. The DEFAULT path is a PROTECTED ENDPOINT:
  * a DNS name that resolves to the producer, behind mutual TLS (the client must present a certificate; the
  * server certificate is pinned) and an IP allowlist limited to the consumer partition's own egress
  * addresses. A VPN is an OPT-IN module (`vpn.optIn: true`): it needs non-overlapping address space and
@@ -206,11 +207,29 @@ export function connectivityDigest(declaration: ConnectivityDeclaration): string
 
 const pairKey = (consumer: string, producer: string): string => `${consumer}\u0000${producer}`;
 
-/** The (consumer, producer) partition pairs the plan itself says must talk. */
+/**
+ * The (consumer, producer) partition pairs the plan itself says must talk AND that cross a cloud or account boundary.
+ * Two partitions bound to the SAME connection (same provider, same connection id: one account, project or subscription,
+ * governed by that provider's IAM) share one trust boundary, so they need no declared protected endpoint. Every other
+ * pair stays required: another provider, another connection, or a partition this view cannot place (fail closed).
+ * The identity comes from the plan's stored authority, which is part of its digests, never from caller input.
+ */
 export function requiredPairs(plan: ConnectivityPlanView): { consumer: string; producer: string }[] {
+  const byId = new Map(plan.children.map((child) => [child.partitionId, child.authority]));
   const seen = new Map<string, { consumer: string; producer: string }>();
-  for (const child of plan.children) for (const dep of child.dependsOn) seen.set(pairKey(child.partitionId, dep), { consumer: child.partitionId, producer: dep });
-  for (const ref of plan.references) seen.set(pairKey(ref.consumerPartitionId, ref.producerPartitionId), { consumer: ref.consumerPartitionId, producer: ref.producerPartitionId });
+  const add = (consumer: string, producer: string): void => {
+    const a = byId.get(consumer);
+    const b = byId.get(producer);
+    // Excuse only a proven same-boundary pair: both ids are non-empty strings and equal, and both providers are equal non-empty strings.
+    // A missing or empty id never matches, so two unplaced partitions stay required (fail closed).
+    const sameBoundary = a !== undefined && b !== undefined
+      && typeof a.connectionId === "string" && a.connectionId.length > 0 && a.connectionId === b.connectionId
+      && typeof a.provider === "string" && a.provider.length > 0 && a.provider === b.provider;
+    if (sameBoundary) return;
+    seen.set(pairKey(consumer, producer), { consumer, producer });
+  };
+  for (const child of plan.children) for (const dep of child.dependsOn) add(child.partitionId, dep);
+  for (const ref of plan.references) add(ref.consumerPartitionId, ref.producerPartitionId);
   return [...seen.values()].sort((a, b) => (pairKey(a.consumer, a.producer) < pairKey(b.consumer, b.producer) ? -1 : 1));
 }
 

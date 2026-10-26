@@ -19,11 +19,11 @@ import type { Sql } from "@/lib/controlplane/types";
 import { repos } from "@/lib/controlplane/db";
 import { ControlStoreError } from "@/lib/controlplane/db/errors";
 import * as plans from "@/lib/controlplane/db/repos/mixed-parent-plans";
-import { createPlatformSemanticsStore } from "@/lib/controlplane/db/repos/executable-semantics";
 import { createConnectionsPort, createLeasesPort } from "@/lib/execution/platform";
 import { createProductPort } from "@/lib/execution/product-port";
 import { settleOutcome } from "@/lib/execution/mixed/settle";
-import { advanceChild, beginParent, observeChild, settleParent, verifyParent, type ChildLauncher, type MixedDeps } from "@/lib/execution/mixed/service";
+import { composeMixedDeps } from "@/lib/execution/mixed/deps";
+import { advanceChild, beginParent, observeChild, settleParent, verifyParent, type ChildLauncher } from "@/lib/execution/mixed/service";
 import {
   cancelRunForParent, joinedLauncher, materializeIncoming, openRunForParent, reviewStillPending, syncAllChildren, syncChildOutcome, tickRun, type JoinDeps, type ParentReviewOpener,
 } from "@/lib/execution/mixed/orchestration-join";
@@ -117,9 +117,10 @@ export function createMixedActivities(options: MixedActivityDeps): MixedActiviti
     product: createProductPort(), connections: createConnectionsPort(options.db), platformConnection: (workspaceId, id) => repos.connections.get(options.db, workspaceId, id), sql: options.db,
   });
   const launcher = options.launcher ?? createChildLauncher();
-  // A child with cross-partition references may start only when the world can supply the producers' typed outputs; the run
-  // then refuses its start until every incoming reference is materialized (never on a guess).
-  const deps: MixedDeps = { sql: options.db, world, semantics: createPlatformSemanticsStore(options.db), referencesReady: async () => typeof world.childTypedOutputs === "function" };
+  // A child with cross-partition references may start only when the world can supply the producers' typed outputs: the run
+  // then refuses its start until every incoming reference is materialized (never on a guess). Same composition as the REST
+  // start (execution/mixed/deps.ts), so both paths judge reference readiness with one check.
+  const deps = composeMixedDeps(options.db, world);
   const reviews = options.reviews ?? createParentReviewOpener();
   let joinPromise: Promise<JoinDeps> | undefined;
   const join = (): Promise<JoinDeps> => {

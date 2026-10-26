@@ -17,7 +17,8 @@ import { PLATFORM_MIGRATIONS, repos } from "@/lib/controlplane/db";
 import * as outputRecords from "@/lib/controlplane/db/repos/mixed-output-records";
 import * as plans from "@/lib/controlplane/db/repos/mixed-parent-plans";
 import { createPlatformReleaseStore } from "@/lib/controlplane/db/repos/release-pipelines";
-import type { Sql } from "@/lib/controlplane/types";
+import type { Principal, Sql } from "@/lib/controlplane/types";
+import type { Broker } from "@/lib/capabilities/platform";
 import type { ProviderConnection } from "@/lib/credentials/types";
 import { parentProposalInput } from "@/lib/execution/mixed/parent-plan";
 import { adoptChildOperation, advanceChild, beginParent, observeChild, planMixed, type ChildLauncher, type MixedDeps } from "@/lib/execution/mixed/service";
@@ -27,7 +28,9 @@ import { platformOutputRecordStore, productionWorldHooks } from "@/lib/execution
 import { createPlatformTypedInputs } from "@/lib/execution/mixed/typed-inputs";
 import { StepFailedError } from "@/lib/execution/errors";
 import { platformOrderingSignals, readOrderingSignals, readRunSignals } from "@/lib/execution/mixed/signals";
-import type { MixedParentPlan } from "@/lib/execution/mixed/types";
+import { MIXED_PARENT_CAPABILITY, type MixedParentPlan } from "@/lib/execution/mixed/types";
+import { composeMixedDeps } from "@/lib/execution/mixed/deps";
+import { startMixedParent, type MixedWorkflowStarter } from "@/lib/execution/mixed/start";
 import type { MixedWorld } from "@/lib/execution/mixed/world";
 import { MixedOrchestrationError, readMixedRun, refusingParentReviewPort, type MixedRunDeps } from "@/lib/execution/mixed-orchestration";
 import { MemoryPreauthorizationStore } from "@/lib/execution/mixed-orchestration/preauthorization";
@@ -457,6 +460,42 @@ describe.each(LANES)("mixed follow-up: producer outputs and ordering signals [$n
       expect(s.reviews).toHaveLength(1);
       const [row] = await outputRecords.listOutputs(db(), s.ws, s.plan.parentPlanId);
       expect(row).toMatchObject({ source: "tofu_output", value: HOST_VALUE });
+      expect((await readMixedRun(s.join.run, s.ws, s.parentOperationId))!.state.children[s.consumer].status).toBe("pending");
+    });
+  });
+
+  describe("REST start of a mixed parent uses the worker's reference readiness", () => {
+    const callerOf = (s: Scenario) => ({ workspaceId: s.ws, operationId: s.parentOperationId, caller: { id: "user-planner" } as unknown as Principal });
+    // The parent is already running here, so the broker is only asked for its detail; a claim would be a test failure.
+    const brokerFor = (s: Scenario) => ({
+      getOperationDetail: async () => ({ operation: { id: s.parentOperationId, workspaceId: s.ws, capability: MIXED_PARENT_CAPABILITY, environmentId: s.plan.parentEnvironmentId, status: "running", principal: { id: "user-planner" } } }),
+      beginExecution: async () => { throw new Error("a running parent must not be claimed again"); },
+    }) as unknown as Broker;
+    // Labelled fake: the production starter starts the parent's Temporal workflow.
+    const starter: MixedWorkflowStarter = { available: async () => ({ available: true }), start: async () => ({ workflowId: "wf-fake", runId: "run-fake" }) };
+    // The REST start composes its deps through the same factory as the worker; only the semantics store stays the fake.
+    const restDepsOf = (s: Scenario, world: MixedWorld): MixedDeps => ({ ...composeMixedDeps(db(), world), semantics: s.deps.semantics });
+
+    it("admits a parent with an incoming reference when the typed-output source is wired, as the worker does", async () => {
+      const s = await scenario({ references: true });
+      await expect(startMixedParent(brokerFor(s), restDepsOf(s, s.deps.world), callerOf(s), starter)).resolves.toMatchObject({ operationId: s.parentOperationId, status: "running", workflow: { id: "wf-fake" } });
+    });
+
+    it("still refuses the parent when no typed-output source is wired, before anything is claimed", async () => {
+      const s = await scenario({ references: true });
+      const unwired: MixedWorld = { ...s.deps.world, childTypedOutputs: undefined };
+      await expect(startMixedParent(brokerFor(s), restDepsOf(s, unwired), callerOf(s), starter)).rejects.toMatchObject({ code: "invalid_state", message: expect.stringContaining("not materialized under their approved contract") });
+    });
+
+    it("holds the admitted consumer until the producer's receipt and the read-back, then opens a review for the changed parent digest and never starts it", async () => {
+      const s = await scenario({ references: true });
+      await startMixedParent(brokerFor(s), restDepsOf(s, s.deps.world), callerOf(s), starter);
+      await startProducer(s);
+      await seedObservation(s);
+      await finishProducer(s);
+      // Receipt matches and the output moved the parent digest: review_required, the consumer waits and nothing is rebound.
+      expect(await materializeIncoming(s.join, scope(s, s.consumer))).toEqual({ state: "waiting", reviewOperationId: "op-review-fake" });
+      expect(s.reviews).toHaveLength(1);
       expect((await readMixedRun(s.join.run, s.ws, s.parentOperationId))!.state.children[s.consumer].status).toBe("pending");
     });
   });

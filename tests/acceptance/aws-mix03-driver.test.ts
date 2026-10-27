@@ -327,6 +327,27 @@ describe("mixed start: adoption of both children, then the start", () => {
     ]);
   });
 
+  it("children names the open review of the changed parent digest as the consumer's awaiting approval", async () => {
+    const t = transport((sent) => {
+      if (sent.endpoint === "/api/platform/v1/mixed/plans/plan-1") return ok({ parentOperationId: "op-parent", children: [
+        { partitionId: P_PRODUCER, dependsOn: [], state: "succeeded", childOperationId: "op-p", receipt: { childOperationId: "op-p" } },
+        { partitionId: P_CONSUMER, dependsOn: [P_PRODUCER], state: "adopted", childOperationId: "op-c", receipt: null },
+      ] });
+      if (sent.endpoint === "/api/platform/v1/operations/op-c") return ok({ operation: { id: "op-c", status: "approved" } });
+      if (sent.endpoint.startsWith("/api/platform/v1/operations?")) return ok({ operations: [
+        { id: "op-other-review", proposal: { input: { mixedParentReviewOf: "op-someone-else" } } },
+        { id: "op-review", proposal: { input: { mixedParentReviewOf: "op-parent" } } },
+      ] });
+      throw new Error(`unexpected ${sent.endpoint}`);
+    });
+    const product = await driverWithTenant({ request: t.request });
+    expect(await product.children(TENANT, "plan-1")).toEqual([
+      { role: "producer", status: "succeeded", childOperationId: "op-p", receiptOperationId: "op-p" },
+      { role: "consumer", status: "pending", childOperationId: "op-c", operationStatus: "approved", awaitingOperationId: "op-review" },
+    ]);
+    expect(t.sent.every(call => call.method === "GET")).toBe(true);
+  });
+
   it("children refuses with a fixed reason when the readback is refused", async () => {
     const t = transport(() => ({ status: 404, data: { error: { code: "not_found" } } }));
     await expect((await driverWithTenant({ request: t.request })).children(TENANT, "plan-1"))

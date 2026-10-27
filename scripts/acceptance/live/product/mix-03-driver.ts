@@ -314,7 +314,7 @@ export function browserMix03Product(env: EnvLike = process.env, seams: Mix03Driv
     async children(tenant, planId) {
       return step("children readback", async () => {
         const session = sessionOf(tenant);
-        const plan = ok(await send(session, session.owner, `/api/platform/v1/mixed/plans/${planId}`, undefined, "GET")) as { children?: unknown };
+        const plan = ok(await send(session, session.owner, `/api/platform/v1/mixed/plans/${planId}`, undefined, "GET")) as { children?: unknown; parentOperationId?: unknown };
         const rows = (Array.isArray(plan.children) ? plan.children : []) as {
           dependsOn?: unknown[]; state?: string; childOperationId?: string | null; receipt?: { childOperationId?: string } | null;
         }[];
@@ -335,6 +335,15 @@ export function browserMix03Product(env: EnvLike = process.env, seams: Mix03Driv
             ...(awaitingOperationId ? { awaitingOperationId } : {}),
             ...(operationStatus ? { operationStatus } : {}),
           });
+        }
+        // The producer's real outputs change the consumer's input, so the parent workflow opens a review operation of the new
+        // parent digest (mixed-activities.ts createParentReviewOpener). The consumer waits until a person approves it.
+        const producer = children.find(child => child.role === "producer"), consumer = children.find(child => child.role === "consumer");
+        if (producer?.status === "succeeded" && consumer?.status === "pending" && !consumer.awaitingOperationId && typeof plan.parentOperationId === "string") {
+          const listed = ok(await send(session, session.owner, "/api/platform/v1/operations?status=awaiting_approval&capability=deployment.deploy&limit=200", undefined, "GET")) as { operations?: unknown };
+          const review = (Array.isArray(listed.operations) ? listed.operations : [] as unknown[])
+            .find(op => (op as { proposal?: { input?: { mixedParentReviewOf?: unknown } } }).proposal?.input?.mixedParentReviewOf === plan.parentOperationId) as { id?: unknown } | undefined;
+          if (review) consumer.awaitingOperationId = idOf(review.id, "the parent review operation");
         }
         return children;
       });

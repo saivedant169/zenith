@@ -334,6 +334,7 @@ describe("mixed start: adoption of both children, then the start", () => {
         { partitionId: P_CONSUMER, dependsOn: [P_PRODUCER], state: "uncertain", childOperationId: "op-c", receipt: null },
       ] });
       if (sent.endpoint === "/api/platform/v1/operations/op-c") return ok({ operation: { id: "op-c", status: "uncertain", error: "The deploy was applied (secret-ish summary) but verification was inconclusive; its result is unknown." } });
+      if (sent.endpoint === "/api/platform/v1/operations/op-p") return ok({ operation: { id: "op-p", status: "succeeded" } });
       throw new Error(`unexpected ${sent.endpoint}`);
     });
     const product = await driverWithTenant({ request: t.request });
@@ -343,6 +344,21 @@ describe("mixed start: adoption of both children, then the start", () => {
       { role: "consumer", status: "uncertain", childOperationId: "op-c", operationStatus: "uncertain", halt: "verify_inconclusive" },
     ]);
     expect(JSON.stringify(children)).not.toContain("secret-ish");
+  });
+
+  it("children reads the halt of an uncertain child that already has a receipt, naming only the step", async () => {
+    const t = transport((sent) => {
+      if (sent.endpoint === "/api/platform/v1/mixed/plans/plan-1") return ok({ children: [
+        { partitionId: P_PRODUCER, dependsOn: [], state: "succeeded", childOperationId: "op-p", receipt: { childOperationId: "op-p", childStatus: "succeeded" } },
+        { partitionId: P_CONSUMER, dependsOn: [P_PRODUCER], state: "uncertain", childOperationId: "op-c", receipt: { childOperationId: "op-c", childStatus: "uncertain" } },
+      ] });
+      if (sent.endpoint === "/api/platform/v1/operations/op-c") return ok({ operation: { id: "op-c", status: "uncertain", error: "deploy did not complete cleanly and may have acted; the outcome is unknown. Reconcile will observe the environment. (arn:aws:lambda:secret)" } });
+      throw new Error(`unexpected ${sent.endpoint}`);
+    });
+    const product = await driverWithTenant({ request: t.request });
+    const children = await product.children(TENANT, "plan-1");
+    expect(children[1]).toEqual({ role: "consumer", status: "uncertain", childOperationId: "op-c", receiptOperationId: "op-c", operationStatus: "uncertain", halt: "deploy_unclean" });
+    expect(JSON.stringify(children)).not.toContain("arn:aws");
   });
 
   it("children names the open review of the changed parent digest as the consumer's awaiting approval", async () => {

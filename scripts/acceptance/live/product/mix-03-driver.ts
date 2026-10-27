@@ -112,11 +112,25 @@ const codeOf = (data: unknown): string | undefined => {
   return typeof code === "string" ? code : undefined;
 };
 const CHILD_STATUS: Record<string, string> = { pending: "pending", adopted: "pending", started: "running", succeeded: "succeeded", failed: "failed", uncertain: "uncertain", cancelled: "cancelled", blocked: "blocked" };
-/** Fixed categories of a child operation's halt message (src/lib/workflows/definitions/capability.ts, runtime.ts). */
+/**
+ * Fixed categories of a child operation's halt message (src/lib/workflows/definitions/deploy.ts, capability.ts, failures.ts,
+ * runtime.ts). A "$1" is the workflow step name the message starts with; anything else in the message never leaves the driver.
+ */
 const HALTS: [RegExp, string][] = [
+  [/^Infrastructure verification was inconclusive/, "verify_infrastructure_inconclusive"], [/^Infrastructure verification failed/, "verify_infrastructure_failed"],
   [/verification was inconclusive/, "verify_inconclusive"], [/verification failed/, "verify_failed"], [/did not succeed/, "apply_failed"],
-  [/Cancellation stopped/, "cancel_unconfirmed"], [/lease/i, "lease"], [/timed? ?out|deadline/i, "timeout"],
+  [/^apply failed/, "apply_failed"], [/^Unexpected error outside a step/, "outside_step"], [/^Cancellation stopped/, "cancel_unconfirmed"],
+  [/lease was lost during ([a-z_]+)/, "lease_lost_$1"], [/^([a-z_]+) did not complete cleanly/, "$1_unclean"], [/^([a-z_]+) failed/, "$1_failed"],
 ];
+const haltOf = (error: string): string => {
+  for (const [pattern, code] of HALTS) {
+    const match = pattern.exec(error);
+    if (!match) continue;
+    const named = code.replace("$1", match[1] ?? "");
+    return SAFE_CODE.test(named) ? named : "other";
+  }
+  return "other";
+};
 const SAFE_CODE = /^[a-z_]{1,40}$/, ID = /^[A-Za-z0-9_.:-]{1,128}$/, HEX64 = /^[a-f0-9]{64}$/;
 /** A partition id is "partition/<digest>"; this is the adoption route's own body shape. */
 const PARTITION = /^[A-Za-z0-9_.:/-]{1,200}$/;
@@ -330,13 +344,13 @@ export function browserMix03Product(env: EnvLike = process.env, seams: Mix03Driv
           let awaitingOperationId: string | undefined, operationStatus: string | undefined, halt: string | undefined;
           const receiptStatus = row.receipt?.childStatus;
           if (typeof receiptStatus === "string" && SAFE_CODE.test(receiptStatus)) operationStatus = receiptStatus;
-          else if (row.childOperationId && row.state !== "pending" && row.state !== "succeeded") {
+          if (row.childOperationId && row.state !== "pending" && row.state !== "succeeded") {
             const detail = ok(await send(session, session.owner, `/api/platform/v1/operations/${row.childOperationId}`, undefined, "GET")) as { operation?: { status?: string; error?: unknown } };
             if (detail.operation?.status === "awaiting_approval") awaitingOperationId = row.childOperationId;
-            if (typeof detail.operation?.status === "string" && SAFE_CODE.test(detail.operation.status)) operationStatus = detail.operation.status;
+            if (!operationStatus && typeof detail.operation?.status === "string" && SAFE_CODE.test(detail.operation.status)) operationStatus = detail.operation.status;
             // The error is free text: only a fixed category of it leaves the driver.
             const error = detail.operation?.error;
-            if (typeof error === "string") halt = HALTS.find(([pattern]) => pattern.test(error))?.[1] ?? "other";
+            if (typeof error === "string") halt = haltOf(error);
           }
           children.push({
             role, status: CHILD_STATUS[row.state ?? ""] ?? "unknown",

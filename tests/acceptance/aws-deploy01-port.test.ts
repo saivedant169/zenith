@@ -8,7 +8,7 @@ import { grantsFor, Guard } from "../../scripts/acceptance/live/guard";
 import type { Call, Json, Plan } from "../../scripts/acceptance/live/contracts";
 import { trustDocument } from "../../scripts/acceptance/live/product/mix-03";
 import { DEPLOY01_IMAGES, deploy01Port } from "../../scripts/acceptance/live/product/deploy-01";
-import { failedCheckRefs, sanitizedError, type Deploy01Product } from "../../scripts/acceptance/live/product/deploy-01-driver";
+import { browserDeploy01Product, failedCheckRefs, sanitizedError, type Deploy01Product } from "../../scripts/acceptance/live/product/deploy-01-driver";
 import { dispatchRequirementGap } from "@/lib/platform/broker";
 
 const ACCOUNT = "123456789012", REGION = "ap-south-1", RUN = "zlive-202610260000-ab01";
@@ -71,6 +71,24 @@ describe("DEPLOY-01 driver error detail", () => {
     expect(sanitizedError("x".repeat(500))!.length).toBeLessThanOrEqual(240);
     expect(sanitizedError(undefined)).toBeUndefined();
     expect(sanitizedError("The apply ended with an unclassified error (Error: Reviewed plan artifact is unavailable or changed; a new review is required.; cause Gate/requirement:plan-facts).")).toBe("The apply ended with an unclassified error (Error: Reviewed plan artifact is unavailable or changed; a new review is required.). [cause Gate/requirement:plan-facts]");
+  });
+});
+
+describe("DEPLOY-01 driver deploy approval", () => {
+  it("retries deploy.approve on HTTP 409 while the operation changes state, then waits for the terminal status", async () => {
+    const owner = {} as never, approver = {} as never;
+    const tenant = { workspaceId: "ws1", projectId: "p1", owner, approver, stack: {}, ownerSecret: "o", approverSecret: "a" };
+    let conflicts = 2;
+    const request = async (_page: unknown, endpoint: string) => {
+      if (endpoint === "/api/actions/deploy.apply") return { status: 200, data: { result: { ok: true, data: { operationId: "op1", deploymentId: "d1" } } } };
+      if (endpoint === "/api/actions/deploy.approve") return conflicts-- > 0 ? { status: 409, data: { error: { code: "conflict" } } } : { status: 200, data: { result: { ok: true } } };
+      if (endpoint.startsWith("/api/platform/v1/operations/")) return { status: 200, data: { operation: { status: "succeeded", approvalRound: 1 } } };
+      throw new Error(endpoint);
+    };
+    const product = browserDeploy01Product({}, { request: request as never, approve: async () => undefined, session: async () => ({ tenant: tenant as never, close: async () => undefined }), sleep: async () => undefined });
+    const t = await product.createTenant();
+    await expect(product.deploy(t, "env1", "apply")).resolves.toEqual({ operationId: "op1", status: "succeeded" });
+    expect(conflicts).toBe(-1);
   });
 });
 

@@ -264,6 +264,20 @@ describe("PROD-MIX-03 children, receipts and independent readback", () => {
     expect(approved).toEqual(["op-parent", "op-p-round"]);
   });
 
+  it("stops polling children before the run window closes, names their states, and still tears down", async () => {
+    const state = world();
+    // 15-minute window, 5 reserved for teardown: each poll advances the clock 4 minutes, so the third poll is past the deadline.
+    let clock = 0;
+    const { run, sent } = harness(state, happy({ children: async () => { clock += 4 * 60_000; return [
+      { role: "producer", status: "running", childOperationId: "op-p", operationStatus: "queued" }, { role: "consumer", status: "pending" },
+    ]; } }), { now: () => clock, polls: { attempts: 120, intervalMs: 0 } });
+    const result = await run();
+    expect(result.complete).toBe(false);
+    expect(result.reason).toContain("did not finish within the bound (producer running/queued, consumer pending)");
+    expect(state.trustDocs.deploy).toBe(trustDocument(PRINCIPAL, OLD_EXT));
+    expect(sent.some(s => s.id === "mix03-bucket-delete")).toBe(true);
+  });
+
   it("refuses when the consumer's deployed PRODUCER_BUCKET_ARN differs from the producer bucket", async () => {
     const state = world();
     state.envArn = "arn:aws:s3:::zenith-envlive1-other";

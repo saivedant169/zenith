@@ -307,7 +307,7 @@ describe("mixed start: adoption of both children, then the start", () => {
     const product = await driverWithTenant({ request: t.request });
     expect(await product.children(TENANT, "plan-1")).toEqual([
       { role: "producer", status: "succeeded", childOperationId: "op-p", receiptOperationId: "op-p" },
-      { role: "consumer", status: "pending", childOperationId: "op-c", awaitingOperationId: "op-c" },
+      { role: "consumer", status: "pending", childOperationId: "op-c", awaitingOperationId: "op-c", operationStatus: "awaiting_approval" },
     ]);
     expect(t.sent.every(call => call.method === "GET")).toBe(true);
   });
@@ -322,7 +322,7 @@ describe("mixed start: adoption of both children, then the start", () => {
     });
     const product = await driverWithTenant({ request: t.request });
     expect(await product.children(TENANT, "plan-1")).toEqual([
-      { role: "producer", status: "running", childOperationId: "op-p" },
+      { role: "producer", status: "running", childOperationId: "op-p", operationStatus: "running" },
       { role: "consumer", status: "blocked" },
     ]);
   });

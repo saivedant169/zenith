@@ -147,3 +147,18 @@ Windows: offline contracts built and checked; two operated cases not run (needs
 Mac Docker, native PostgreSQL, Temporal, kind and browser). Requirement status
 remains `implementation_complete_verification_pending`; no acceptance receipt was
 manufactured and no live API was called.
+
+## DEPLOY-01 on the live AWS sandbox (2026-10-27)
+
+Run [40460096635](https://github.com/saivedant169/zenith/actions/runs/40460096635), run id `zlive-202610270616-201f`, source `f436e3dbeda2f40007301bd05d23048b10ec70b0`. Sandbox account 361646636162 in ap-south-1. Plan `8fb3cbd1…9eca48`, cap USD 2.20 (provisional, billing not measured), 40 minutes. Verdict passed, cleanup complete. Files: `evidence/PROD-REL-01/2026-10-27-live-aws-40460096635/`.
+
+What it proved:
+
+- Zenith connected to the sandbox through the `zenith-connection-live` roles.
+- It deployed nginx `@sha256:df80ece7…` to ECS Fargate behind an ALB with two-person approval, and the service answered HTTP 200.
+- It updated to `@sha256:4aad0a9f…`, then rolled back to `@sha256:df80ece7…`. Each step was read back from the recorded OpenTofu state and over HTTP.
+- The harness destroyed the environment's recorded state and found no tagged resources left.
+
+How we got here (runs 7 to 14): deploy-role permission gaps (fixed in PRs #55 and #56), pinned image digests (#57), failed-check diagnostics (#58), IAM role lookup through the lagging tag index (#59), the leak check's handling of the lagging tag index (#60 and #62), and a transient 409 on approval (#61). The leak check excuses only ARNs or ids the destroy removed, task definitions and stopped tasks of destroyed families and clusters, and subnets once their VPC was destroyed. AWS refuses DeleteVpc while a subnet remains.
+
+Limits: this covers one ECS service through clean install, plan approval, update, rollback and teardown. DNS-TLS, stateful traffic, schedules, drift repair, revocation, key rotation, upgrade, restore, two tenants and export are still pending. No operational rehearsal. Not a promotion.

@@ -43,6 +43,7 @@ const COVERED_BY: Record<string, string> = {
   "tests/acceptance/aws-mix03-port.test.ts": "scripts/acceptance/live/scope.ts",
   "tests/acceptance/aws-mix03-driver.test.ts": "scripts/acceptance/live/scope.ts",
   "scripts/acceptance/live/product/deploy-01.ts": "scripts/acceptance/live/cli.ts",
+  "scripts/acceptance/live/product/deploy-01-driver.ts": "scripts/acceptance/live/cli.ts",
   "tests/acceptance/aws-deploy01-port.test.ts": "scripts/acceptance/live/scope.ts",
   // The PROD-REL-04 drill only spawns the production CLI (which loads and enforces the root and envelope scope) and reads the journals it writes.
   "scripts/acceptance/live/drill/rel-04.ts": "scripts/acceptance/live/cli.ts",

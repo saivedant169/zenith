@@ -8,7 +8,7 @@ import { grantsFor, Guard } from "../../scripts/acceptance/live/guard";
 import type { Call, Json, Plan } from "../../scripts/acceptance/live/contracts";
 import { trustDocument } from "../../scripts/acceptance/live/product/mix-03";
 import { DEPLOY01_IMAGES, deploy01Port } from "../../scripts/acceptance/live/product/deploy-01";
-import { sanitizedError, type Deploy01Product } from "../../scripts/acceptance/live/product/deploy-01-driver";
+import { failedCheckRefs, sanitizedError, type Deploy01Product } from "../../scripts/acceptance/live/product/deploy-01-driver";
 import { dispatchRequirementGap } from "@/lib/platform/broker";
 
 const ACCOUNT = "123456789012", REGION = "ap-south-1", RUN = "zlive-202610260000-ab01";
@@ -50,7 +50,7 @@ function harness(opts: { deployStatus?: string; leftAfterDestroy?: number; image
       case "deploy01-iam-trust-observe": trust.observe = String(i.PolicyDocument); return {};
       case "deploy01-iam-trust-deploy": trust.deploy = String(i.PolicyDocument); return {};
       case "deploy01-sts-assume": expect(i.ExternalId).toBe(NEW_EXT); return { Credentials: { AccessKeyId: "A", SecretAccessKey: "S", SessionToken: "T" } };
-      case "deploy01-tag-read": return { ResourceTagMappingList: destroyed ? [{ ResourceARN: CLUSTER }, ...new Array(opts.leftAfterDestroy ?? 0).fill({ ResourceARN: "arn:x" })] : [] };
+      case "deploy01-tag-read": return { ResourceTagMappingList: destroyed ? [{ ResourceARN: CLUSTER }, ...new Array(opts.leftAfterDestroy ?? 0).fill({ ResourceARN: `arn:aws:elasticloadbalancing:${REGION}:${ACCOUNT}:loadbalancer/app/zenith-x/1` }), { ResourceARN: `arn:aws:ec2:${REGION}:${ACCOUNT}:natgateway/nat-0abc` }] : [] };
       default: throw new Error(`unexpected ${c.id}`);
     }
   };
@@ -59,7 +59,7 @@ function harness(opts: { deployStatus?: string; leftAfterDestroy?: number; image
       { type: "aws_ecs_task_definition", instances: [{ attributes: { container_definitions: JSON.stringify([{ image: (opts.image ?? (() => images[images.length - 1]!))(images.length) }]) } }] },
       { type: "aws_lb", instances: [{ attributes: { dns_name: DNS } }] },
     ] }),
-    destroy: async (input: { stateKey: string }) => { expect(input.stateKey).toBe("zenith/ws1/env1/terraform.tfstate"); destroyed = true; return { destroyed: 20, destroyedArns: [CLUSTER] }; },
+    destroy: async (input: { stateKey: string }) => { expect(input.stateKey).toBe("zenith/ws1/env1/terraform.tfstate"); destroyed = true; return { destroyed: 20, destroyedArns: [CLUSTER], destroyedIds: ["nat-0abc"] }; },
   };
   const port = deploy01Port(env, { product, sleep: async () => undefined, propagation: { attempts: 2, intervalMs: 0 }, probe: async (dns, host) => (dns === DNS && host.startsWith("web-") ? 200 : 503), state });
   return { trust, images, sent, connections, run: () => port.verify(requirement, { plan, commit: COMMIT, call }) };
@@ -71,6 +71,17 @@ describe("DEPLOY-01 driver error detail", () => {
     expect(sanitizedError("x".repeat(500))!.length).toBeLessThanOrEqual(240);
     expect(sanitizedError(undefined)).toBeUndefined();
     expect(sanitizedError("The apply ended with an unclassified error (Error: Reviewed plan artifact is unavailable or changed; a new review is required.; cause Gate/requirement:plan-facts).")).toBe("The apply ended with an unclassified error (Error: Reviewed plan artifact is unavailable or changed; a new review is required.). [cause Gate/requirement:plan-facts]");
+  });
+});
+
+describe("DEPLOY-01 failed infrastructure checks", () => {
+  it("lists only address:check references from the verification evidence", () => {
+    expect(failedCheckRefs({ nodes: [
+      { address: "container_service/web", status: "failed", failed: ["service_steady", "secret=abc"] },
+      { address: "network/main", status: "passed", failed: [] },
+      { address: "lb/public", status: "failed", failed: ["listener_80"] },
+    ] })).toEqual(["container_service/web:service_steady", "lb/public:listener_80"]);
+    expect(failedCheckRefs(undefined)).toEqual([]);
   });
 });
 
@@ -108,7 +119,7 @@ describe("DEPLOY-01 port", () => {
   it("reports leaks when tagged resources remain after the destroy, excusing only ECS clusters the destroy removed", async () => {
     const result = await harness({ leftAfterDestroy: 2 }).run();
     expect(result.complete).toBe(false);
-    expect(result.leaks).toEqual(["2 tagged resource(s) still present after cleanup"]);
+    expect(result.leaks).toEqual(["2 tagged resource(s) still present after cleanup (elasticloadbalancing:loadbalancer)"]);
   });
   it("is only for PROD-REL-01 and refuses without the live product flag", async () => {
     const plan = buildPlan(settings);

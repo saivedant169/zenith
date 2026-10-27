@@ -13,7 +13,8 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { GRANT_RULES, iamRoleDriver as driver } from "@/lib/providers/aws/drivers/data";
 import { DriverCompileError } from "@/lib/providers/aws/drivers/shared";
 import { assertNoWildcards, compileGrantStatements, expectedGrantActions, type PolicyStatement } from "@/lib/providers/aws/drivers/data/iam-grants";
-import { normalizePolicyDocument, roleNameOf, summarizePolicies, trustPrincipalsOf } from "@/lib/providers/aws/drivers/data/iam-role";
+import { normalizePolicyDocument, roleNameFor, roleNameOf, summarizePolicies, trustPrincipalsOf } from "@/lib/providers/aws/drivers/data/iam-role";
+import { environmentName } from "@/lib/credentials/aws/naming";
 import type { IdentityGrant } from "@/lib/resources/specs";
 import type { ResourceNode } from "@/lib/resources/types";
 import { driftOf } from "./_drift";
@@ -414,6 +415,19 @@ describe("aws:iam_role observe", () => {
     tagging.on(GetResourcesCommand).resolves({ ResourceTagMappingList: [{ ResourceARN: ROLE_ARN }, { ResourceARN: `${ROLE_ARN}2` }] });
     expect((await driver.observe!(driverCtx(), id)).presence).toBe("unknown");
     tagging.on(GetResourcesCommand).resolves({ ResourceTagMappingList: [] });
+    iam.on(GetRoleCommand).rejects(awsError("NoSuchEntityException", "The role cannot be found.", 404));
+    expect((await driver.observe!(driverCtx(), id)).presence).toBe("missing");
+  });
+
+  it("falls back to the compiled role name when the IAM tagging index lags, only for this node's exact tags", async () => {
+    tagging.on(GetResourcesCommand).resolves({ ResourceTagMappingList: [] });
+    const compiled = roleNameFor({ namePrefix: environmentName("env_test") }, id.address);
+    healthyRole();
+    iam.on(GetRoleCommand, { RoleName: compiled }).resolves({ Role: { RoleName: compiled, Path: "/", RoleId: "x", CreateDate: new Date(), Arn: ROLE_ARN, AssumeRolePolicyDocument: enc(trustDoc), Tags: tagList(id.address) } });
+    const found = await driver.observe!(driverCtx(), id);
+    expect(iam.commandCalls(GetRoleCommand)[0].args[0].input).toEqual({ RoleName: compiled });
+    expect(found.presence).toBe("present");
+    iam.on(GetRoleCommand, { RoleName: compiled }).resolves({ Role: { RoleName: compiled, Path: "/", RoleId: "x", CreateDate: new Date(), Arn: ROLE_ARN, AssumeRolePolicyDocument: enc(trustDoc), Tags: tagList("identity/other") } });
     expect((await driver.observe!(driverCtx(), id)).presence).toBe("missing");
   });
 

@@ -39,7 +39,8 @@
  * action set, wildcard check, boundary and attachments are. `contract` evidence
  * only.
  */
-import { AWS_ROLE_BOUNDARIES, awsBoundaryArn, trustedAwsBoundaryArn } from "@/lib/credentials/aws/naming";
+import { AWS_ROLE_BOUNDARIES, awsBoundaryArn, environmentName, trustedAwsBoundaryArn } from "@/lib/credentials/aws/naming";
+import { isZenithTagged, TAG_RESOURCE } from "@/lib/providers/aws/drivers/shared/tags";
 import { isAwsPartition, principalForPartition, type AwsPartition } from "@/lib/credentials/aws/partition";
 import {
   GetRoleCommand,
@@ -383,6 +384,22 @@ export function roleNameOf(externalId: string | undefined): string | undefined {
   return ROLE_NAME.test(externalId) ? externalId : undefined;
 }
 
+/**
+ * The IAM tagging index (us-east-1) lags role creation, so a role created minutes ago can be absent from it. The compiled
+ * name is deterministic: accept it only when the role there carries this node's exact Zenith tags.
+ */
+async function compiledRoleName(ctx: AwsDriverContext, node: ResourceNode): Promise<{ name: string } | undefined> {
+  const RoleName = roleNameFor({ namePrefix: environmentName(ctx.environmentId) }, node.address);
+  try {
+    const { Role: role } = await call(ctx, (o) => ctx.session.client(IAMClient).send(new GetRoleCommand({ RoleName }), o));
+    const tags = tagMap(role?.Tags);
+    return role && isZenithTagged(tags, ctx) && tags[TAG_RESOURCE] === node.address ? { name: RoleName } : undefined;
+  } catch (error) {
+    if ((error as { name?: unknown })?.name === "NoSuchEntityException" || (error as { name?: unknown })?.name === "NoSuchEntity") return undefined;
+    throw error;
+  }
+}
+
 async function resolveRoleName(ctx: AwsDriverContext, node: ResourceNode, externalId: string | undefined): Promise<{ name: string } | "missing" | { ambiguous: string }> {
   const name = roleNameOf(externalId);
   if (externalId !== undefined && externalId !== "" && name === undefined) return { ambiguous: "externalId is not an IAM role ARN or name" };
@@ -393,7 +410,7 @@ async function resolveRoleName(ctx: AwsDriverContext, node: ResourceNode, extern
     const n = roleNameOf(m.arn);
     return n ? [n] : [];
   });
-  if (names.length === 0) return "missing";
+  if (names.length === 0) return (await compiledRoleName(ctx, node)) ?? "missing";
   if (names.length > 1) return { ambiguous: `${names.length} roles carry the Zenith tags for ${node.address}; refusing to choose one` };
   return { name: names[0] };
 }

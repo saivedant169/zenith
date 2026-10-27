@@ -8,7 +8,7 @@ import { allCalls, buildPlan, scopedRequirementIds } from "../../scripts/accepta
 import { grantsFor, Guard } from "../../scripts/acceptance/live/guard";
 import type { Call, Json, Plan } from "../../scripts/acceptance/live/contracts";
 import {
-  fill, mix03Port, templateExternalId, trustDocument, unwiredProduct, type Mix03Product,
+  consumerPackage, fill, mix03Port, templateExternalId, trustDocument, unwiredProduct, type Mix03Product,
 } from "../../scripts/acceptance/live/product/mix-03";
 
 const ACCOUNT = "123456789012", REGION = "ap-south-1", RUN = "zlive-202610260000-ab01", ENV = "envlive1";
@@ -17,12 +17,12 @@ const PRINCIPAL = `arn:aws:iam::${ACCOUNT}:role/ZenithLiveAcceptance`;
 const OLD_EXT = "old-live-external-id", NEW_EXT = `zenith-${"b".repeat(32)}`;
 const OWNED = [{ Key: "zenith:managed", Value: "true" }, { Key: "zenith:environment", Value: ENV }];
 const settings = { accountId: ACCOUNT, region: REGION, runId: RUN, durationMinutes: 15, dbSubnetGroup: "zenith-live-sandbox", dbSecurityGroup: "sg-12345678", workloadBoundaryArn: `arn:aws:iam::${ACCOUNT}:policy/ZenithLiveWorkloadBoundary`, scenario: "mix-03" as const };
-const ARTIFACT_ENV = { ZENITH_MIX03_LAMBDA_KEY: "mix03/consumer.zip", ZENITH_MIX03_LAMBDA_VERSION_ID: "3HL4kqtJlcpXroDTDmJ", ZENITH_MIX03_LAMBDA_SHA256: "c".repeat(64), ZENITH_MIX03_LAMBDA_SOURCE_DIGEST: "d".repeat(64) };
-const env = { ZENITH_LIVE_PRODUCT: "1", AWS_ACCESS_KEY_ID: "test-access", AWS_SECRET_ACCESS_KEY: "test-secret", AWS_SESSION_TOKEN: "test-token", ...ARTIFACT_ENV };
+const VERSION = "3HL4kqtJlcpXroDTDmJ";
+const env = { ZENITH_LIVE_PRODUCT: "1", AWS_ACCESS_KEY_ID: "test-access", AWS_SECRET_ACCESS_KEY: "test-secret", AWS_SESSION_TOKEN: "test-token" };
 const STATE_BUCKET = `zenith-state-${ACCOUNT}-${REGION}-live`;
 const requirement = { id: "PROD-MIX-03", acceptance: [], fixtures: [], join: "" };
 const COMMIT = "a".repeat(40);
-const fast = { sleep: async () => undefined, propagation: { attempts: 3, intervalMs: 0 }, polls: { attempts: 3, intervalMs: 0 } };
+const fast = { upload: async () => VERSION, sleep: async () => undefined, propagation: { attempts: 3, intervalMs: 0 }, polls: { attempts: 3, intervalMs: 0 } };
 
 /** The AWS side: the sandbox trust documents, the tagged product resources and what has been deleted. */
 interface World { trustDocs: Record<"observe" | "deploy", string>; deleted: Set<string>; extra: { ResourceARN: string; Tags: { Key: string; Value: string }[] }[]; failDelete: boolean; envArn?: string }
@@ -44,6 +44,7 @@ function respond(state: World, c: Call, input: Record<string, Json>): Record<str
     case "mix03-iam-read-deploy": return { Role: { AssumeRolePolicyDocument: encodeURIComponent(state.trustDocs.deploy) } };
     case "mix03-iam-trust-observe": state.trustDocs.observe = String(input.PolicyDocument); return {};
     case "mix03-iam-trust-deploy": state.trustDocs.deploy = String(input.PolicyDocument); return {};
+    case "mix03-sts-assume": expect(input.ExternalId).toBe(NEW_EXT); return { Credentials: { AccessKeyId: "A", SecretAccessKey: "S", SessionToken: "T" } };
     // One answer per child environment, as the tag API filters by one tag value: only the producer and consumer ENV have resources here.
     case "mix03-tag-read": return { ResourceTagMappingList: (input.TagFilters as { Values: string[] }[])[0]!.Values[0] === ENV ? resources(state) : [] };
     case "mix03-lambda-read": return { Role: `arn:aws:iam::${ACCOUNT}:role/${FN}-fn`, Environment: { Variables: { PRODUCER_BUCKET_ARN: state.envArn ?? `arn:aws:s3:::${BUCKET}` } } };
@@ -127,25 +128,38 @@ describe("PROD-MIX-03 preconditions and the default driver", () => {
     expect(result.reason).toContain("not the mix-03 scenario");
   });
 
-  it("refuses before the first product or AWS call when the Lambda package is not exported", async () => {
+  it("refuses before the mixed proposal when the state bucket returns no object version", async () => {
     const state = world();
-    const { run, sent } = harness(state, happy(), {}, { ...env, ZENITH_MIX03_LAMBDA_KEY: undefined });
+    const proposeMixed = vi.fn();
+    const { run } = harness(state, happy({ proposeMixed }), { upload: async () => undefined });
     const result = await run();
-    expect(result.complete).toBe(false);
-    expect(result.reason).toContain("the consumer's Lambda package is not exported");
-    expect(sent).toEqual([]);
+    expect(result.reason).toContain("did not return an object version for the consumer's package");
+    expect(proposeMixed).not.toHaveBeenCalled();
+    expect(state.trustDocs.deploy).toBe(trustDocument(PRINCIPAL, OLD_EXT));
   });
 
-  it("passes the state bucket to the connection and the exported package to the mixed proposal", async () => {
+  it("builds a stable one-file zip whose digests match its bytes", () => {
+    const a = consumerPackage(), b = consumerPackage();
+    expect(a.zip.equals(b.zip)).toBe(true);
+    expect(a.zip.subarray(0, 4).toString("hex")).toBe("504b0304");
+    expect(a.zip.toString()).toContain("exports.handler");
+    expect(a.sha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(a.sourceDigest).not.toBe(a.sha256);
+  });
+
+  it("passes the state bucket to the connection and the uploaded package to the mixed proposal", async () => {
     const state = world();
     const createAwsConnection = vi.fn(async () => ({ connectionId: "conn-1", externalId: NEW_EXT }));
     const proposeMixed = vi.fn(async () => ({ environmentIds: [ENV, "envlive2"], planId: "plan-1", parentOperationId: "op-parent" }));
-    const { run } = harness(state, happy({ createAwsConnection, proposeMixed }));
-    expect((await run()).complete).toBe(true);
+    const upload = vi.fn(async () => VERSION);
+    const { run } = harness(state, happy({ createAwsConnection, proposeMixed }), { upload });
+    expect((await run()).reason).toMatch(/^PROD-MIX-03 partly proven/);
+    const pkg = consumerPackage();
+    expect(upload).toHaveBeenCalledWith({ region: REGION, credentials: { accessKeyId: "A", secretAccessKey: "S", sessionToken: "T" }, bucket: STATE_BUCKET, key: `zenith-live/${RUN}/consumer.zip`, body: pkg.zip });
     expect(createAwsConnection).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ stateBucket: STATE_BUCKET, accountId: ACCOUNT, region: REGION }));
     expect(proposeMixed).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
       connectionId: "conn-1", accountId: ACCOUNT, region: REGION,
-      artifact: { bucket: STATE_BUCKET, key: "mix03/consumer.zip", versionId: "3HL4kqtJlcpXroDTDmJ", sha256: "c".repeat(64), sourceDigest: "d".repeat(64) },
+      artifact: { bucket: STATE_BUCKET, key: `zenith-live/${RUN}/consumer.zip`, versionId: VERSION, sha256: pkg.sha256, sourceDigest: pkg.sourceDigest },
     }));
   });
 
@@ -173,7 +187,7 @@ describe("PROD-MIX-03 trust update (ExternalId only, restored afterwards)", () =
     const state = world();
     const { run, sent } = harness(state, happy());
     const result = await run();
-    expect(result.complete).toBe(true);
+    expect(result.reason).toMatch(/^PROD-MIX-03 partly proven/);
     expect(result.leaks).toEqual([]);
     const writes = sent.filter(s => s.id === "mix03-iam-trust-observe" || s.id === "mix03-iam-trust-deploy");
     expect(writes.map(w => w.input.PolicyDocument)).toEqual([
@@ -246,7 +260,7 @@ describe("PROD-MIX-03 children, receipts and independent readback", () => {
         : [{ role: "producer", status: "succeeded", childOperationId: "op-p", receiptOperationId: "op-p" }, { role: "consumer", status: "succeeded", childOperationId: "op-c", receiptOperationId: "op-c" }],
     }));
     const result = await run();
-    expect(result.complete).toBe(true);
+    expect(result.reason).toMatch(/^PROD-MIX-03 partly proven/);
     expect(approved).toEqual(["op-parent", "op-p-round"]);
   });
 
@@ -268,34 +282,11 @@ describe("PROD-MIX-03 children, receipts and independent readback", () => {
     expect(result.reason).toContain("exactly one tagged consumer function and one tagged producer bucket");
   });
 
-  it("refuses when a producer change does not make the consumer require review", async () => {
-    const state = world();
-    const { run } = harness(state, happy({ changeProducer: async () => ({ consumerState: "unchanged" }) }));
-    const result = await run();
-    expect(result.complete).toBe(false);
-    expect(result.reason).toContain("did not make the consumer require review");
-  });
-
-  it("refuses when the single-use preauthorization is accepted a second time", async () => {
-    const state = world();
-    const { run } = harness(state, happy({ useOutputOnce: async () => ({ ok: true }) }));
-    const result = await run();
-    expect(result.complete).toBe(false);
-    expect(result.reason).toContain("second use of the one-use preauthorization was not refused");
-  });
-
-  it("refuses when the first use of the preauthorization is refused", async () => {
-    const state = world();
-    const { run } = harness(state, happy({ useOutputOnce: async () => ({ ok: false }) }));
-    const result = await run();
-    expect(result.reason).toContain("first use of the one-use preauthorization was refused");
-  });
-
-  it("a full pass names the automated test approver and makes no unplanned call", async () => {
+  it("a run names the automated test approver and makes no unplanned call", async () => {
     const state = world();
     const { run, sent } = harness(state, happy());
     const result = await run();
-    expect(result.complete).toBe(true);
+    expect(result.reason).toMatch(/^PROD-MIX-03 partly proven/);
     expect(result.reason).toContain("automated test approver");
     expect(sent.map(s => s.id)).toContain("mix03-lambda-read");
   });

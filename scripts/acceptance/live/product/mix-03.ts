@@ -14,6 +14,9 @@
  *
  * Seams: `product` (browser driver), `sleep` and the bounds for propagation and child polling. Tests inject all of them.
  */
+import { createHash } from "node:crypto";
+import { crc32 } from "node:zlib";
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import type { EnvLike } from "../../config";
 import type { Call, Json, Plan, ProductScenarioPort } from "../contracts";
 import { MIX03_ROLE_NAMES } from "../plan";
@@ -49,8 +52,12 @@ export interface Mix03Product {
   close?(): Promise<void>;
 }
 
+export interface Mix03Credentials { accessKeyId: string; secretAccessKey: string; sessionToken: string }
+/** Puts one object with the deploy role session and returns its S3 version id. */
+export type Mix03Upload = (input: { region: string; credentials: Mix03Credentials; bucket: string; key: string; body: Buffer }) => Promise<string | undefined>;
 export interface Mix03Seams {
   product?: Mix03Product;
+  upload?: Mix03Upload;
   sleep?: (ms: number) => Promise<void>;
   propagation?: { attempts: number; intervalMs: number };
   polls?: { attempts: number; intervalMs: number };
@@ -128,7 +135,7 @@ const tagMap = (list: unknown): Record<string, string> => Object.fromEntries((Ar
 const owned = (tags: Record<string, string>, environmentIds: string[]): boolean => tags["zenith:managed"] === "true" && environmentIds.includes(tags["zenith:environment"] ?? "");
 const errorName = (error: unknown): string => typeof field(error, "name") === "string" ? String(field(error, "name")) : "";
 /** Exact shapes of the exported Lambda package inputs (S3 key, object version, sha256 and the source digest). */
-const ARTIFACT_KEY = /^[A-Za-z0-9!_.*'()/=+@:-]{1,900}$/, ARTIFACT_VERSION = /^[A-Za-z0-9._-]{1,1024}$/, SHA256 = /^[a-f0-9]{64}$/;
+const ARTIFACT_VERSION = /^[A-Za-z0-9._-]{1,1024}$/;
 
 interface RunState { attempted: boolean; environmentIds: string[]; trust: { role: "observe" | "deploy"; original: string; write: Call }[] }
 
@@ -139,19 +146,28 @@ function preconditions(env: EnvLike, plan: Plan): void {
   if (!plan.productCalls?.length) refuse("the plan has no PROD-MIX-03 product calls");
 }
 
+/** The consumer's handler: it only reports the producer bucket ARN it was given. */
+const CONSUMER_SOURCE = "exports.handler = async () => ({ producerBucketArn: process.env.PRODUCER_BUCKET_ARN });\n";
 /**
- * The consumer's Lambda package. The caller packages and uploads it to the connection's state bucket beforehand and exports the
- * version, the object key and both digests. Anything missing or malformed refuses before the first AWS call.
+ * The consumer's Lambda package: index.js in a stored (uncompressed) zip with a fixed timestamp, so its sha256 is stable.
+ * sourceDigest is the sha256 of the source file.
  */
-export function artifactOf(env: EnvLike, stateBucket: string): Mix03Artifact {
-  const key = env.ZENITH_MIX03_LAMBDA_KEY?.trim(), versionId = env.ZENITH_MIX03_LAMBDA_VERSION_ID?.trim();
-  const sha256 = env.ZENITH_MIX03_LAMBDA_SHA256?.trim(), sourceDigest = env.ZENITH_MIX03_LAMBDA_SOURCE_DIGEST?.trim();
-  if (!key || !versionId || !sha256 || !sourceDigest) refuse("the consumer's Lambda package is not exported (ZENITH_MIX03_LAMBDA_KEY, ZENITH_MIX03_LAMBDA_VERSION_ID, ZENITH_MIX03_LAMBDA_SHA256 and ZENITH_MIX03_LAMBDA_SOURCE_DIGEST are required)");
-  if (!ARTIFACT_KEY.test(key) || key.includes("..") || !ARTIFACT_VERSION.test(versionId) || versionId === "null" || !SHA256.test(sha256) || !SHA256.test(sourceDigest)) {
-    refuse("the consumer's Lambda package inputs have an unexpected shape");
-  }
-  return { bucket: stateBucket, key, versionId, sha256, sourceDigest };
+export function consumerPackage(): { zip: Buffer; sha256: string; sourceDigest: string } {
+  const name = Buffer.from("index.js"), data = Buffer.from(CONSUMER_SOURCE), crc = crc32(data);
+  const dosTime = 0, dosDate = (1 << 5) | 1; // 1980-01-01 00:00
+  const local = Buffer.alloc(30); local.writeUInt32LE(0x04034b50, 0); local.writeUInt16LE(20, 4); local.writeUInt16LE(dosTime, 10); local.writeUInt16LE(dosDate, 12);
+  local.writeUInt32LE(crc, 14); local.writeUInt32LE(data.length, 18); local.writeUInt32LE(data.length, 22); local.writeUInt16LE(name.length, 26);
+  const central = Buffer.alloc(46); central.writeUInt32LE(0x02014b50, 0); central.writeUInt16LE(0x0314, 4); central.writeUInt16LE(20, 6); central.writeUInt16LE(dosTime, 12); central.writeUInt16LE(dosDate, 14);
+  central.writeUInt32LE(crc, 16); central.writeUInt32LE(data.length, 20); central.writeUInt32LE(data.length, 24); central.writeUInt16LE(name.length, 28); central.writeUInt32LE((0o100644 << 16) >>> 0, 38);
+  const centralOffset = local.length + name.length + data.length, centralSize = central.length + name.length;
+  const end = Buffer.alloc(22); end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(1, 8); end.writeUInt16LE(1, 10); end.writeUInt32LE(centralSize, 12); end.writeUInt32LE(centralOffset, 16);
+  const zip = Buffer.concat([local, name, data, central, name, end]);
+  const sha = (b: Buffer) => createHash("sha256").update(b).digest("hex");
+  return { zip, sha256: sha(zip), sourceDigest: sha(data) };
 }
+
+const s3Upload: Mix03Upload = async ({ region, credentials, bucket, key, body }) =>
+  (await new S3Client({ region, credentials }).send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: "application/zip" }))).VersionId;
 
 /** Only the children's own tagged resources, found through the tag API and matched against exact patterns, one tag value per child. */
 async function inventoryOf(invoke: Invoke, call: Call, environmentIds: string[]): Promise<Mapping[]> {
@@ -242,6 +258,7 @@ async function teardown(run: RunState, plan: Plan, invoke: Invoke, planned: (id:
 /** PROD-MIX-03 only. Every other requirement is reported not implemented. Never throws. */
 export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): ProductScenarioPort {
   const product = seams.product ?? unwiredProduct;
+  const upload = seams.upload ?? s3Upload;
   const sleep = seams.sleep ?? ((ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms)));
   const propagation = seams.propagation ?? { attempts: 12, intervalMs: 15_000 };
   const polls = seams.polls ?? { attempts: 120, intervalMs: 15_000 };
@@ -262,7 +279,6 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
       let outcome: { complete: boolean; reason: string };
       try {
         preconditions(env, plan);
-        const artifact = artifactOf(env, stateBucket);
         step = "tenant";
         const tenant = await product.createTenant();
         step = "connection";
@@ -282,6 +298,14 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
           if (attempt >= propagation.attempts) refuse("connection.verifyAws did not pass after the trust update within the propagation bound");
           await sleep(propagation.intervalMs);
         }
+        step = "consumer package";
+        const assumed = field(await invoke(planned("mix03-sts-assume"), { externalId: connection.externalId }), "Credentials");
+        const accessKeyId = field(assumed, "AccessKeyId"), secretAccessKey = field(assumed, "SecretAccessKey"), sessionToken = field(assumed, "SessionToken");
+        if (typeof accessKeyId !== "string" || typeof secretAccessKey !== "string" || typeof sessionToken !== "string") refuse("the deploy role session could not be read");
+        const pkg = consumerPackage(), key = `zenith-live/${plan.settings.runId}/consumer.zip`;
+        const versionId = await upload({ region, credentials: { accessKeyId, secretAccessKey, sessionToken }, bucket: stateBucket, key, body: pkg.zip });
+        if (!versionId || versionId === "null" || !ARTIFACT_VERSION.test(versionId)) refuse("the state bucket did not return an object version for the consumer's package");
+        const artifact: Mix03Artifact = { bucket: stateBucket, key, versionId, sha256: pkg.sha256, sourceDigest: pkg.sourceDigest };
         step = "mixed plan";
         run.attempted = true;
         const proposal = await product.proposeMixed(tenant, { connectionId: connection.connectionId, accountId: account, region, artifact });
@@ -319,15 +343,11 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
         await invoke(planned("mix03-bucket-head"), { bucketName });
         const bucketTags = tagMap(field(await invoke(planned("mix03-bucket-tags"), { bucketName }), "TagSet"));
         if (!owned(bucketTags, run.environmentIds)) refuse("the producer bucket lacks the run's ownership tags");
-        step = "producer change";
-        const changed = await product.changeProducer(tenant, proposal.planId);
-        if (changed.consumerState !== "review_required") refuse("changing the producer did not make the consumer require review");
-        await product.issueOutputPreauthorization(tenant, proposal.planId);
-        if (!(await product.useOutputOnce(tenant, proposal.planId)).ok) refuse("the first use of the one-use preauthorization was refused");
-        if ((await product.useOutputOnce(tenant, proposal.planId)).ok) refuse("the second use of the one-use preauthorization was not refused");
+        // Not provable through product routes: the producer-change review and the one-use preauthorization are decided by
+        // consumeOutputs inside the parent workflow, which no route re-runs (tests/execution/mixed-orchestration*.test.ts cover them).
         outcome = {
-          complete: true,
-          reason: "PROD-MIX-03 proven: the trust change touched only the ExternalId of both sandbox roles and was restored; connection.verifyAws passed; the producer finished before the consumer started; both receipts link their child operations; the consumer's deployed PRODUCER_BUCKET_ARN equals the producer bucket ARN by independent readback; a producer change made the consumer require review; the one-use preauthorization was used once and refused the second time. Approvals by an automated test approver through the browser path.",
+          complete: false,
+          reason: "PROD-MIX-03 partly proven: the trust change touched only the ExternalId of both sandbox roles and was restored; connection.verifyAws passed; the producer finished before the consumer started; both receipts link their child operations; the consumer's deployed PRODUCER_BUCKET_ARN equals the producer bucket ARN by independent readback. Approvals by an automated test approver through the browser path. Pending: the producer-change review and the one-use preauthorization refusal, which no product route can trigger.",
         };
       } catch (error) {
         outcome = error instanceof Refusal

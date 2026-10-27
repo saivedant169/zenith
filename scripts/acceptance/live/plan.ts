@@ -22,7 +22,7 @@ export const MIX03_ROLE_NAMES = { observe: "ZenithObserveRole-live", deploy: "Ze
  * and the guard still admits only these planned templates. Resources are patterns because product-created names are not
  * known at plan time; the permission approves each exact action/resource pair (see the PR body for the list).
  */
-export function mix03ProductCalls(account: string, region: string): Call[] {
+export function mix03ProductCalls(account: string, region: string, runId: string): Call[] {
   const arn = (service: string, suffix: string) => `arn:aws:${service}:${region}:${account}:${suffix}`;
   const roleArn = (name: string) => `arn:aws:iam::${account}:role/${name}`;
   const runtime = (name: string): Json => ({ $runtime: name });
@@ -36,6 +36,8 @@ export function mix03ProductCalls(account: string, region: string): Call[] {
     // Each trust write is the template document with the ExternalId filled in; the same call restores the original value.
     c("mix03-iam-trust-observe", "iam", "UpdateAssumeRolePolicy", "iam:UpdateAssumeRolePolicy", role.observe, { RoleName: MIX03_ROLE_NAMES.observe, PolicyDocument: runtime("trustDocument") }, 3),
     c("mix03-iam-trust-deploy", "iam", "UpdateAssumeRolePolicy", "iam:UpdateAssumeRolePolicy", role.deploy, { RoleName: MIX03_ROLE_NAMES.deploy, PolicyDocument: runtime("trustDocument") }, 3),
+    // The consumer's Lambda package is uploaded to the connection's state bucket with the deploy role (its StateObjects grant).
+    c("mix03-sts-assume", "sts", "AssumeRole", "sts:AssumeRole", role.deploy, { RoleArn: role.deploy, RoleSessionName: `zenith-${runId}`.slice(0, 64), ExternalId: runtime("externalId"), DurationSeconds: 3600 }, 2),
     c("mix03-tag-read", "tag", "GetResources", "tag:GetResources", "*", { TagFilters: [{ Key: "zenith:environment", Values: [runtime("environmentId")] }], ResourcesPerPage: 100 }, 24),
     c("mix03-lambda-read", "lambda", "GetFunctionConfiguration", "lambda:GetFunctionConfiguration", fn, { FunctionName: runtime("functionName") }, 10),
     c("mix03-bucket-head", "s3", "HeadBucket", "s3:ListBucket", bucket, { Bucket: runtime("bucketName") }, 6),
@@ -225,7 +227,7 @@ export function buildPlan(input: Settings): Plan {
   const body: Omit<Plan, "sha256"> = {
     schema: 1, settings, tags, fixtures, preflight, estimate,
     // Only the mix-03 body carries productCalls, so every other scenario's digest is unchanged.
-    ...(scenario === "mix-03" ? { productCalls: mix03ProductCalls(account, region) } : {}),
+    ...(scenario === "mix-03" ? { productCalls: mix03ProductCalls(account, region, runId) } : {}),
     ...(scenario === "deploy-01" ? { productCalls: deploy01ProductCalls(account, runId) } : {}),
     requirements: ledger.requirements.filter(r => r.requiredEvidence.includes("live_sandbox")).map(r => ({ id: r.id, acceptance: r.acceptance, fixtures: requirements[r.id] ?? [], join: "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement." })),
   };

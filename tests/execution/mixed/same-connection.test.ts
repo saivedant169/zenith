@@ -65,6 +65,13 @@ describe("same connection: no declaration needed inside one trust boundary", () 
     expect(assessConnectivity(plan, { format: CONNECTIVITY_FORMAT, networks: [], endpoints: [] }).problems).toEqual([]);
   });
 
+  it("plans a connection read from the store (absent columns as undefined, a Date) exactly like the in-memory one", () => {
+    const stored = { ...connection("aws"), revokedAt: undefined, verificationDetail: undefined, createdAt: new Date("2026-10-27T00:00:00.000Z") as unknown as string };
+    const plan = buildParentPlan(awsInput({ references: [REFERENCE], candidates: [{ childEnvironmentId: ENV_A, connection: stored }, { childEnvironmentId: ENV_B, connection: stored }] }));
+    const memory = buildParentPlan(awsInput({ references: [REFERENCE], candidates: [{ childEnvironmentId: ENV_A, connection: { ...connection("aws"), createdAt: "2026-10-27T00:00:00.000Z" } }, { childEnvironmentId: ENV_B, connection: { ...connection("aws"), createdAt: "2026-10-27T00:00:00.000Z" } }] }));
+    expect(plan.parentDigest).toBe(memory.parentDigest);
+  });
+
   it("accepts a typed reference between them without a declaration", () => {
     const plan = buildParentPlan(awsInput({ references: [REFERENCE] }));
     expect(plan.references).toHaveLength(1);

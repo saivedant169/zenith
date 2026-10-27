@@ -114,9 +114,15 @@ const codeOf = (data: unknown): string | undefined => {
 const CHILD_STATUS: Record<string, string> = { pending: "pending", adopted: "pending", started: "running", succeeded: "succeeded", failed: "failed", uncertain: "uncertain", cancelled: "cancelled", blocked: "blocked" };
 /**
  * Fixed categories of a child operation's halt message (src/lib/workflows/definitions/deploy.ts, capability.ts, failures.ts,
- * runtime.ts). A "$1" is the workflow step name the message starts with; anything else in the message never leaves the driver.
+ * runtime.ts; src/lib/execution/apply.ts; src/lib/platform/app.ts). "$1"/"$2" are the step, OpenTofu command, failure code or
+ * error class the message names; anything else in the message never leaves the driver.
  */
 const HALTS: [RegExp, string][] = [
+  [/^The environment lease was lost while OpenTofu was applying/, "lease_lost_tofu_apply"],
+  [/^OpenTofu ([a-z]+) did not finish \(([a-z_]+)\)/, "tofu_$1_$2"],
+  [/^The apply ended with an unclassified error \(([A-Za-z0-9_]+)[:)].*; cause ([A-Za-z0-9_]+)/, "unclassified_$1_$2"],
+  [/^The apply ended with an unclassified error \(([A-Za-z0-9_]+)[:)]/, "unclassified_$1"],
+  [/^An owning runner or machine job expired/, "job_expired"],
   [/^Infrastructure verification was inconclusive/, "verify_infrastructure_inconclusive"], [/^Infrastructure verification failed/, "verify_infrastructure_failed"],
   [/verification was inconclusive/, "verify_inconclusive"], [/verification failed/, "verify_failed"], [/did not succeed/, "apply_failed"],
   [/^apply failed/, "apply_failed"], [/^Unexpected error outside a step/, "outside_step"], [/^Cancellation stopped/, "cancel_unconfirmed"],
@@ -126,11 +132,12 @@ const haltOf = (error: string): string => {
   for (const [pattern, code] of HALTS) {
     const match = pattern.exec(error);
     if (!match) continue;
-    const named = code.replace("$1", match[1] ?? "");
-    return SAFE_CODE.test(named) ? named : "other";
+    const named = code.replace("$1", match[1] ?? "").replace("$2", match[2] ?? "").toLowerCase();
+    return HALT_CODE.test(named) ? named : "other";
   }
   return "other";
 };
+const HALT_CODE = /^[a-z0-9_]{1,60}$/;
 const SAFE_CODE = /^[a-z_]{1,40}$/, ID = /^[A-Za-z0-9_.:-]{1,128}$/, HEX64 = /^[a-f0-9]{64}$/;
 /** A partition id is "partition/<digest>"; this is the adoption route's own body shape. */
 const PARTITION = /^[A-Za-z0-9_.:/-]{1,200}$/;

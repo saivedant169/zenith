@@ -346,6 +346,26 @@ describe("mixed start: adoption of both children, then the start", () => {
     expect(JSON.stringify(children)).not.toContain("secret-ish");
   });
 
+  it.each([
+    ["OpenTofu apply did not finish (tofu_timeout); partial", "tofu_apply_tofu_timeout"],
+    ["The apply ended with an unclassified error (TypeError: cannot read arn:aws:secret; cause AbortError/ETIMEDOUT).", "unclassified_typeerror_aborterror"],
+    ["The apply ended with an unclassified error (RangeError: bad length).", "unclassified_rangeerror"],
+    ["The environment lease was lost while OpenTofu was applying.", "lease_lost_tofu_apply"],
+    ["An owning runner or machine job expired; the external outcome is unknown.", "job_expired"],
+    ["Something nobody planned for: arn:aws:secret", "other"],
+  ])("children names the apply halt %j as %s and never its text", async (error, halt) => {
+    const t = transport((sent) => {
+      if (sent.endpoint === "/api/platform/v1/mixed/plans/plan-1") return ok({ children: [
+        { partitionId: P_CONSUMER, dependsOn: [P_PRODUCER], state: "uncertain", childOperationId: "op-c", receipt: { childOperationId: "op-c", childStatus: "uncertain" } },
+      ] });
+      return ok({ operation: { id: "op-c", status: "uncertain", error } });
+    });
+    const product = await driverWithTenant({ request: t.request });
+    const children = await product.children(TENANT, "plan-1");
+    expect(children[0]!.halt).toBe(halt);
+    expect(JSON.stringify(children)).not.toContain("arn:aws");
+  });
+
   it("children reads the halt of an uncertain child that already has a receipt, naming only the step", async () => {
     const t = transport((sent) => {
       if (sent.endpoint === "/api/platform/v1/mixed/plans/plan-1") return ok({ children: [

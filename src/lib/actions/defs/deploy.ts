@@ -18,6 +18,7 @@ import {
   type Revision,
 } from "@/lib/domain/types";
 import { getEngine } from "./_engine";
+import { isV2 } from "@/lib/resources/manifest-v2";
 import { fmtUsd } from "@/lib/format";
 import { executionRoute, addWorkflowCheck, startWorkflowDeployment, startWorkflowRollback } from "@/lib/bridge/deploy";
 import { approveWorkflowDeployment, cancelWorkflowDeployment, workflowApprovalPlan } from "@/lib/bridge/lifecycle";
@@ -204,7 +205,8 @@ defineAction<ApplyInput>({
         summary: `${project.name} cannot be deployed yet — ${errors.length} problem(s) to fix first.`,
         error: errors.join(" "),
       };
-    if (working.services.length === 0 && working.resources.length === 0)
+    // A V2 manifest also deploys functions and native nodes, so one holding only those is not empty.
+    if (working.services.length === 0 && working.resources.length === 0 && !(isV2(working) && (working.functions?.length || working.native?.length)))
       return {
         ok: false,
         summary: "There is nothing to deploy.",

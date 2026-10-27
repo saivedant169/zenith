@@ -87,7 +87,9 @@ export function bindingFor(candidate: ChildEnvironmentCandidate, workspaceId: st
   }
   return {
     id: bindingIdFor(candidate.connection.id, candidate.childEnvironmentId),
-    connection: candidate.connection, accountId, region,
+    // The planner admits only plain JSON. A stored connection carries absent columns as undefined keys (and may carry Dates);
+    // the JSON copy drops them, so a connection read from the store plans exactly like the same connection built in memory.
+    connection: JSON.parse(JSON.stringify(candidate.connection)) as ProviderConnection, accountId, region,
     backend: state.backend, stateKey: state.stateKey, environmentId: candidate.childEnvironmentId,
   };
 }

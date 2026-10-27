@@ -20,6 +20,8 @@ const OWNER = { name: "owner" } as unknown as Page, APPROVER = { name: "approver
 const TENANT = { workspaceId: "ws-1", approverId: "u-approver" };
 const ENV = { ZENITH_DEFAULT_STACK_DIRECTORY: "/unused-in-tests", ZENITH_DEFAULT_MAILPIT_URL: "http://127.0.0.1:8025" };
 const EXTERNAL_ID = `zenith-${"a".repeat(32)}`;
+// Partition ids as the planner makes them: "partition/<digest>".
+const P_PRODUCER = `partition/${"1".repeat(64)}`, P_CONSUMER = `partition/${"2".repeat(64)}`;
 const STATE_BUCKET = "zenith-state-123456789012-ap-south-1-live";
 const ARTIFACT = { bucket: STATE_BUCKET, key: "mix03/consumer.zip", versionId: "3HL4kqtJlcpXroDTDmJ", sha256: "c".repeat(64), sourceDigest: "d".repeat(64) };
 const CONNECTION = { accountId: "123456789012", region: "ap-south-1", stateBucket: STATE_BUCKET, bootstrapNameSuffix: "-live", observeRoleArn: "arn:aws:iam::123456789012:role/Observe", deployRoleArn: "arn:aws:iam::123456789012:role/Deploy" };
@@ -74,8 +76,8 @@ function proposeRoute(options: { deployStatuses?: string[]; planStatus?: number;
         : { status: 201, data: { plan: { parentPlanId: "plan-1" }, operationId: "op-parent" } };
     }
     if (endpoint === "/api/platform/v1/mixed/plans/plan-1") return ok({ children: [
-      { partitionId: "p-producer", childEnvironmentId: "env-producer", dependsOn: [], childOperationId: null },
-      { partitionId: "p-consumer", childEnvironmentId: "env-consumer", dependsOn: ["p-producer"], childOperationId: null },
+      { partitionId: P_PRODUCER, childEnvironmentId: "env-producer", dependsOn: [], childOperationId: null },
+      { partitionId: P_CONSUMER, childEnvironmentId: "env-consumer", dependsOn: [P_PRODUCER], childOperationId: null },
     ] });
     if (endpoint.endsWith("/children")) return { status: 201, data: { child: { partitionId: "p" } } };
     if (endpoint === "/api/platform/v1/mixed/plans/plan-1/start") return ok({ operationId: "op-parent", parentPlanId: "plan-1", status: "running" });
@@ -251,8 +253,8 @@ describe("mixed start: adoption of both children, then the start", () => {
     t.sent.length = 0;
     expect(await product.startMixed(TENANT, "plan-1", "op-parent")).toEqual({ started: true });
     expect(t.sent.map(c => [c.method, c.endpoint, c.body])).toEqual([
-      ["POST", "/api/platform/v1/mixed/plans/plan-1/children", { partitionId: "p-producer", operationId: "op-env-producer" }],
-      ["POST", "/api/platform/v1/mixed/plans/plan-1/children", { partitionId: "p-consumer", operationId: "op-env-consumer" }],
+      ["POST", "/api/platform/v1/mixed/plans/plan-1/children", { partitionId: P_PRODUCER, operationId: "op-env-producer" }],
+      ["POST", "/api/platform/v1/mixed/plans/plan-1/children", { partitionId: P_CONSUMER, operationId: "op-env-consumer" }],
       ["POST", "/api/platform/v1/mixed/plans/plan-1/start", {}],
     ]);
   });
@@ -286,8 +288,8 @@ describe("mixed start: adoption of both children, then the start", () => {
   it("children maps the plan to producer and consumer, with receipts and the child awaiting approval", async () => {
     const t = transport((sent) => {
       if (sent.endpoint === "/api/platform/v1/mixed/plans/plan-1") return ok({ children: [
-        { partitionId: "p-producer", dependsOn: [], state: "succeeded", childOperationId: "op-p", receipt: { childOperationId: "op-p" } },
-        { partitionId: "p-consumer", dependsOn: ["p-producer"], state: "adopted", childOperationId: "op-c", receipt: null },
+        { partitionId: P_PRODUCER, dependsOn: [], state: "succeeded", childOperationId: "op-p", receipt: { childOperationId: "op-p" } },
+        { partitionId: P_CONSUMER, dependsOn: [P_PRODUCER], state: "adopted", childOperationId: "op-c", receipt: null },
       ] });
       if (sent.endpoint === "/api/platform/v1/operations/op-c") return ok({ operation: { id: "op-c", status: "awaiting_approval" } });
       throw new Error(`unexpected ${sent.endpoint}`);
@@ -303,8 +305,8 @@ describe("mixed start: adoption of both children, then the start", () => {
   it("children reports a started child as running and does not mark it awaiting when its operation is not awaiting", async () => {
     const t = transport((sent) => {
       if (sent.endpoint === "/api/platform/v1/mixed/plans/plan-1") return ok({ children: [
-        { partitionId: "p-producer", dependsOn: [], state: "started", childOperationId: "op-p", receipt: null },
-        { partitionId: "p-consumer", dependsOn: ["p-producer"], state: "blocked", childOperationId: null, receipt: null },
+        { partitionId: P_PRODUCER, dependsOn: [], state: "started", childOperationId: "op-p", receipt: null },
+        { partitionId: P_CONSUMER, dependsOn: [P_PRODUCER], state: "blocked", childOperationId: null, receipt: null },
       ] });
       return ok({ operation: { id: "op-p", status: "running" } });
     });
@@ -343,14 +345,14 @@ describe("browser approval", () => {
 describe("output preauthorization: one precise use for the consumer, from the plan's own digests", () => {
   const DIGEST = { desired: "e".repeat(64), contract: "1".repeat(64), producer: "2".repeat(64), consumer: "3".repeat(64) };
   const planReadback = (references: unknown[] = [{
-    referenceId: "bucket-arn", producerPartitionId: "p-producer", consumerPartitionId: "p-consumer", producerAddress: "object_store/bucket", producerOutput: "arn",
+    referenceId: "bucket-arn", producerPartitionId: P_PRODUCER, consumerPartitionId: P_CONSUMER, producerAddress: "object_store/bucket", producerOutput: "arn",
     consumerAddress: "function/consumer", consumerInput: "bucket_arn", valueType: "resource_id", contractDigest: DIGEST.contract,
     producerSubplanDigest: DIGEST.producer, consumerSubplanDigest: DIGEST.consumer, state: "unavailable", unavailableReason: "not_produced",
   }]) => ({
     parentOperationId: "op-parent", desiredDigest: DIGEST.desired, references,
     children: [
-      { partitionId: "p-producer", childEnvironmentId: "env-producer", dependsOn: [] },
-      { partitionId: "p-consumer", childEnvironmentId: "env-consumer", dependsOn: ["p-producer"] },
+      { partitionId: P_PRODUCER, childEnvironmentId: "env-producer", dependsOn: [] },
+      { partitionId: P_CONSUMER, childEnvironmentId: "env-consumer", dependsOn: [P_PRODUCER] },
     ],
   });
 

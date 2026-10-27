@@ -113,6 +113,8 @@ const codeOf = (data: unknown): string | undefined => {
 };
 const CHILD_STATUS: Record<string, string> = { pending: "pending", adopted: "pending", started: "running", succeeded: "succeeded", failed: "failed", uncertain: "uncertain", cancelled: "cancelled", blocked: "blocked" };
 const SAFE_CODE = /^[a-z_]{1,40}$/, ID = /^[A-Za-z0-9_.:-]{1,128}$/, HEX64 = /^[a-f0-9]{64}$/;
+/** A partition id is "partition/<digest>"; this is the adoption route's own body shape. */
+const PARTITION = /^[A-Za-z0-9_.:/-]{1,200}$/;
 /** Deployment readback bound: 60 polls, 5 seconds apart. */
 const DEPLOY_POLLS = { attempts: 60, intervalMs: 5_000 };
 /** One use, fifteen minutes: enough for one consumer materialization and short enough to lapse on its own. */
@@ -275,7 +277,10 @@ export function browserMix03Product(env: EnvLike = process.env, seams: Mix03Driv
         const consumerOperationId = await deployChild(consumerEnv, consumer);
 
         const readback = ok(await send(session, session.owner, `/api/platform/v1/mixed/plans/${planId}`, undefined, "GET")) as { children?: { partitionId?: unknown; childEnvironmentId?: unknown }[] };
-        const partitionOf = (environmentId: string): string => idOf(readback.children?.find(child => child.childEnvironmentId === environmentId)?.partitionId, "the child partition");
+        const partitionOf = (environmentId: string): string => {
+          const partitionId = readback.children?.find(child => child.childEnvironmentId === environmentId)?.partitionId;
+          return typeof partitionId === "string" && PARTITION.test(partitionId) ? partitionId : refuse("the child partition was not returned by the product");
+        };
         adoptions.set(planId, [
           { partitionId: partitionOf(producerEnv), operationId: producerOperationId },
           { partitionId: partitionOf(consumerEnv), operationId: consumerOperationId },

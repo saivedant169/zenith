@@ -101,3 +101,24 @@ describe("deploy.* actions", () => {
     expect(q.revision(q.environment(environmentId)!.deployedRevisionId!)!.number).toBe(1);
   });
 });
+
+describe("deploy.apply on a V2 manifest", () => {
+  it("does not call a functions-only system empty, and still refuses one with no nodes", async () => {
+    const created = await exec("project.applyBlueprint", { blueprint: "internal-tool", name: "Fn" });
+    const { projectId: pid, environmentId: eid } = created.data as { projectId: string; environmentId: string };
+    const { parseEditableManifest } = await import("@/lib/actions/defs/_manifest");
+    const parseManifest = (raw: unknown) => { const parsed = parseEditableManifest(raw); if (!parsed.ok) throw new Error(JSON.stringify(parsed.errors)); return parsed.manifest; };
+    const project = q.project(pid)!;
+    project.workingManifest = parseManifest({ version: 2, functions: [{
+      id: "fn", name: "fn", kind: "function", provider: "aws", region: "us-east-1", runtime: "nodejs22.x", handler: "index.handler",
+      source: { type: "s3", bucket: "b-123", key: "fn.zip", version: "3HL4kqtJlcpXroDTDmJ", sha256: "c".repeat(64), sourceDigest: "d".repeat(64) },
+    }] });
+    const withFunction = await exec("deploy.apply", {}, { projectId: pid, environmentId: eid });
+    expect(withFunction.error ?? "").not.toMatch(/system is empty/);
+
+    project.workingManifest = parseManifest({ version: 2 });
+    const empty = await exec("deploy.apply", {}, { projectId: pid, environmentId: eid });
+    expect(empty.ok).toBe(false);
+    expect(empty.error).toMatch(/system is empty/);
+  });
+});

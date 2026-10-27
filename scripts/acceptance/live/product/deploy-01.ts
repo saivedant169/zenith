@@ -142,13 +142,22 @@ export function deploy01Port(env: EnvLike = process.env, seams: Deploy01Seams = 
         try { ({ destroyedArns = [], destroyedIds = [] } = await state.destroy(await stateInput())); }
         catch (error) { leaks.push(error instanceof Error && /^(OpenTofu|\d+ resource|The recorded state)/.test(error.message) ? error.message : "state cleanup failed; resources may remain"); }
         try {
-          const left = await invoke(planned("deploy01-tag-read"), { environmentId });
           // Deleted ECS clusters and task definitions stay INACTIVE (no cost) and deleted rules can linger in the tag inventory;
           // only ARNs the successful destroy removed from the recorded state are excused. Anything else is a leak.
           // A stopped task of a destroyed cluster stays listed for about an hour (no cost).
           const stoppedTask = (arn: string) => { const m = /^(arn:aws:ecs:[a-z0-9-]+:\d{12}:)task\/([A-Za-z0-9_-]+)\/[a-f0-9]{32}$/.exec(arn); return !!m && destroyedArns.includes(`${m[1]}cluster/${m[2]}`); };
-          const gone = (arn: string) => destroyedArns.includes(arn) || destroyedIds.includes(arn.split(/[/:]/).pop() ?? "") || stoppedTask(arn);
-          const list = ((field(left, "ResourceTagMappingList") as unknown[] | undefined) ?? []).map(r => String(field(r, "ResourceARN"))).filter(arn => !gone(arn));
+          // Update and rollback register new task definition revisions; earlier revisions of a destroyed family stay INACTIVE.
+          const family = (arn: string) => /^(arn:aws:ecs:[a-z0-9-]+:\d{12}:task-definition\/[A-Za-z0-9_-]+):\d+$/.exec(arn)?.[1];
+          const families = new Set(destroyedArns.map(family).filter(Boolean));
+          const gone = (arn: string) => destroyedArns.includes(arn) || destroyedIds.includes(arn.split(/[/:]/).pop() ?? "") || stoppedTask(arn) || families.has(family(arn));
+          // The tagging index lags deletes (subnets, rules): re-list a few times before calling anything a leak.
+          let list: string[] = [];
+          for (let attempt = 1; ; attempt++) {
+            const left = await invoke(planned("deploy01-tag-read"), { environmentId });
+            list = ((field(left, "ResourceTagMappingList") as unknown[] | undefined) ?? []).map(r => String(field(r, "ResourceARN"))).filter(arn => !gone(arn));
+            if (!list.length || attempt >= 4) break;
+            await sleep(90_000);
+          }
           // The resource types (service:type, never ids) say what to look for.
           const types = [...new Set(list.map(arn => { const [, , service, , , rest] = arn.split(":"); return `${service}:${(rest ?? "").split("/")[0]}`; }))].filter(t => /^[a-z0-9-]{1,30}:[a-z0-9-]{0,40}$/.test(t)).sort();
           if (list.length) leaks.push(`${list.length} tagged resource(s) still present after cleanup${types.length ? ` (${types.join(", ")})` : ""}`);

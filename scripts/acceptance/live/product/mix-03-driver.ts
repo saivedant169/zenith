@@ -20,7 +20,7 @@
 import path from "node:path";
 import type { Browser, Page } from "@playwright/test";
 import type { EnvLike } from "../../config";
-import { refuse, Refusal, type Mix03Artifact, type Mix03Child, type Mix03Product, type Mix03Tenant } from "./mix-03";
+import { refuse, Refusal, sanitizedError, type Mix03Artifact, type Mix03Child, type Mix03Product, type Mix03Tenant } from "./mix-03";
 import { readState } from "../../default-stack/runtime.mjs";
 import { browserRequest, ensure, localUrl, nonce, ok, operator, privateFile, until, action } from "../../../../tests/e2e/default/support.mjs";
 import { enrollOperator, totp } from "../../../../tests/e2e/default/mfa.mjs";
@@ -144,7 +144,12 @@ export function mix03Manifests(region: string, artifact: Mix03Artifact) {
 /** Readback ids and digests are checked before they are sent back to the product; a malformed one refuses with its own name. */
 const idOf =(value: unknown, what: string): string => typeof value === "string" && ID.test(value) ? value : refuse(`${what} was not returned by the product`);
 const hexOf = (value: unknown, what: string): string => typeof value === "string" && HEX64.test(value) ? value : refuse(`${what} is not a digest in the plan readback`);
-const reasonCode = (data: unknown): string => { const code = codeOf(data); return code && SAFE_CODE.test(code) ? code.replace(/_/g, " ") : "no code"; };
+/** The error code, the service's own reason code (details.reason) and the sanitized message. */
+const reasonCode = (data: unknown): string => {
+  const code = codeOf(data), error = (data as { error?: { message?: unknown; details?: { reason?: unknown } } } | undefined)?.error;
+  const reason = error?.details?.reason, message = sanitizedError(error?.message);
+  return [code && SAFE_CODE.test(code) ? code.replace(/_/g, " ") : "no code", typeof reason === "string" && SAFE_CODE.test(reason) ? reason : undefined].filter(Boolean).join(", ") + (message ? `: ${message}` : "");
+};
 
 /** The product's PROD-MIX-03 driver. Create it once per run; `close()` releases the browser after teardown. */
 export function browserMix03Product(env: EnvLike = process.env, seams: Mix03DriverSeams = {}): Mix03Product & { close(): Promise<void> } {

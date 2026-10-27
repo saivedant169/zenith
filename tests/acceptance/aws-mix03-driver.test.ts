@@ -377,6 +377,13 @@ describe("output preauthorization: one precise use for the consumer, from the pl
     const product = await driverWithTenant({ request: t.request });
     await expect(product.issueOutputPreauthorization(TENANT, "plan-1")).rejects.toThrow("the product refused the output preauthorization (admin required)");
   });
+
+  it("adds the service's reason code and the sanitized message", async () => {
+    const t = transport((sent) => (sent.endpoint === "/api/platform/v1/mixed/plans/plan-1" ? ok(planReadback())
+      : { status: 409, data: { error: { code: "invalid_state", message: "A child environment has no usable platform connection for arn:aws:iam::1:role/x.", details: { reason: "connection_unverified" } } } }));
+    const product = await driverWithTenant({ request: t.request });
+    await expect(product.issueOutputPreauthorization(TENANT, "plan-1")).rejects.toThrow("the product refused the output preauthorization (invalid state, connection_unverified: A child environment has no usable platform connection for …arn)");
+  });
 });
 
 describe("steps with no product route: refused before any request", () => {

@@ -99,7 +99,10 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
   };
   const runAction = async (session: TenantSession, page: Page, id: string, input: Record<string, unknown>, scope: Record<string, unknown> = {}) => {
     const response = await send(session, page, `/api/actions/${id}`, { mode: "execute", input, scope, idempotencyKey: nonce() });
-    if (response.status < 200 || response.status >= 300) refuse(`${id} was refused by the product (HTTP ${response.status})`);
+    if (response.status < 200 || response.status >= 300) {
+      const code = codeOf(response.data);
+      refuse(`${id} was refused by the product (HTTP ${response.status}${code && /^[a-z_]{1,40}$/.test(code) ? `, ${code}` : ""})`);
+    }
     const body = response.data as { result?: { ok?: unknown; data?: unknown } } | undefined;
     return { ok: body?.result?.ok === true, data: (body?.result?.data ?? {}) as Record<string, unknown> };
   };
@@ -179,7 +182,15 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
         const operationId = started.data.operationId, deploymentId = started.data.deploymentId;
         if (!started.ok || typeof operationId !== "string" || typeof deploymentId !== "string") refuse(`deploy.${kind} did not propose a workflow operation`);
         await approve(session, operationId as string);
-        const approved = await runAction(session, session.approver, "deploy.approve", { deploymentId }, scope);
+        // A 409 right after the proposal approval is the operation still changing state; retry it for up to a minute.
+        let approved: Awaited<ReturnType<typeof runAction>> | undefined;
+        for (let attempt = 1; !approved; attempt++) {
+          try { approved = await runAction(session, session.approver, "deploy.approve", { deploymentId }, scope); }
+          catch (error) {
+            if (!(error instanceof Refusal && /\(HTTP 409\b/.test(error.message)) || attempt >= 6) throw error;
+            await sleep(10_000);
+          }
+        }
         if (!approved.ok) refuse("deploy.approve was refused by the product");
         const reviewed = await waitFor(session, operationId as string, op => TERMINAL.includes(op.status) || (op.status === "awaiting_approval" && op.round > 0), 15 * 60_000, "the plan review");
         if (!TERMINAL.includes(reviewed.status)) await approve(session, operationId as string);

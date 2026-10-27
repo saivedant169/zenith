@@ -36,5 +36,14 @@ describe("experimental manifest Lambda binding", () => {
     Object.assign(m.functions[0], { env: [{ key: "API_TOKEN", value: Array.from({ length: 30 }, () => "x").join("") }] });
     expect(ManifestV2.safeParse(m).success).toBe(false);
   });
+  it("orders a function after the resources it names in dependsOn and drops one this manifest lacks", () => {
+    const m = bind(); const resource = m.resources[0]!;
+    Object.assign(m.functions[0], { dependsOn: [resource.id, "absent"] });
+    const graph = expandManifest(ManifestV2.parse(m), { id: "mixed", name: "mixed", class: "production", provider: "gcp", region: "us-central1", baseDomain: "mixed.example.test" });
+    const fn = graph.nodes.find(n => n.address === "function/enricher")!;
+    expect(fn.dependsOn).toHaveLength(1);
+    expect(graph.nodes.find(n => n.address === fn.dependsOn[0])?.origin).toContain(resource.id);
+    expect(graph.notes.some(note => note.includes('depends on "absent"'))).toBe(true);
+  });
   it("refuses the unbound template instead of accepting fictional digest evidence", () => { expect(ManifestV2.safeParse(template).success).toBe(false); });
 });

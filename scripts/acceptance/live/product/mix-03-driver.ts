@@ -131,14 +131,19 @@ export const MIX03_REFERENCE = {
  * its own part, and the planner's pins bind every node of the graph to exactly one of those two children.
  */
 export function mix03Manifests(region: string, artifact: Mix03Artifact) {
-  const producer = { version: 2, resources: [{ id: "bucket", name: "bucket", kind: "object_store" }] };
+  // A resource has no provider of its own: without the override the sandbox parent would place the bucket on sandbox, which
+  // cannot take part in a mixed plan (unbound_partition).
+  const nodePlacement = { bucket: { provider: "aws", region } };
+  const producer = { version: 2, resources: [{ id: "bucket", name: "bucket", kind: "object_store" }], nodePlacement };
   const functions = [{
     id: "consumer", name: "consumer", kind: "function", provider: "aws", region, runtime: "nodejs22.x", handler: "index.handler",
     source: { type: "s3", bucket: artifact.bucket, key: artifact.key, version: artifact.versionId, sha256: artifact.sha256, sourceDigest: artifact.sourceDigest },
     env: [{ key: "PRODUCER_BUCKET_ARN", value: "{{zenith.input.bucket_arn}}" }],
+    // The planner needs the consumer to depend on the producer; the consumer child's own manifest drops it (no bucket there).
+    dependsOn: ["bucket"],
   }];
   const consumer = { version: 2, functions };
-  return { producer, consumer, graph: { version: 2, resources: producer.resources, functions } };
+  return { producer, consumer, graph: { version: 2, resources: producer.resources, nodePlacement, functions } };
 }
 
 /** Readback ids and digests are checked before they are sent back to the product; a malformed one refuses with its own name. */

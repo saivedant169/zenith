@@ -244,8 +244,8 @@ async function classifyApplyFailure(rt: Runtime, ec: ExecContext, err: unknown, 
   const shape = (value: unknown): string | undefined => typeof value === "string" && /^[A-Za-z0-9_.:-]{1,64}$/.test(value) ? value : undefined;
   const kind = err instanceof Error ? shape(err.name) ?? "Error" : "Error";
   // A wrapped failure (for example an unconfirmed plan dispatch) carries only its cause's class and code; keep those too.
-  const cause = err instanceof Error ? err.cause as { name?: unknown; code?: unknown } | undefined : undefined;
-  const caused = cause ? [shape(cause.name), shape(cause.code)].filter(Boolean).join("/") : "";
+  const cause = err instanceof Error ? err.cause as { name?: unknown; code?: unknown; detail?: unknown } | undefined : undefined;
+  const caused = cause ? [shape(cause.name), shape(cause.code), shape(cause.detail)].filter(Boolean).join("/") : "";
   await markUncertain(rt, ec, `The apply ended with an unclassified error (${kind}: ${errorText(err, 200)}${caused ? `; cause ${caused}` : ""}).`);
   return new Error(`The apply ended with an unclassified error (${errorText(err, 200)}); ${PARTIAL}.`);
 }

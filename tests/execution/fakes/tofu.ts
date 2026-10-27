@@ -27,7 +27,7 @@ export const PLAN_FILE_CANARY = `FAKE-BINARY-PLAN-FILE-${CANARY_SECRET}`;
 
 const run = (command: TofuRunResult["command"], exitCode = 1): TofuRunResult => ({ command, exitCode, output: "", truncated: false, durationMs: 7 });
 
-export type ApplyBehaviour = "ok" | "fail_apply" | "fail_plan_before_apply" | "timeout" | "abort" | "unclassified" | "plan_changed" | "hang" | "fail_output";
+export type ApplyBehaviour = "ok" | "fail_apply" | "fail_plan_before_apply" | "timeout" | "abort" | "unclassified" | "dispatch_unconfirmed" | "plan_changed" | "hang" | "fail_output";
 
 export class FakeTofu implements TofuPort {
   readonly planCalls: { ws: TofuWorkspace; opts: PlanWorkspaceOptions; envKeys: string[]; inputEnvKeys: string[] }[] = [];
@@ -99,6 +99,11 @@ export class FakeTofu implements TofuPort {
         throw new TofuCommandError("tofu_aborted", "tofu apply was aborted.", run("apply", -1));
       case "unclassified":
         throw new Error("socket hang up");
+      case "dispatch_unconfirmed":
+        // The plan dispatch wrapper's shape (src/lib/platform/plan-artifacts.ts): a sanitized cause only.
+        throw new Error("Original plan dispatch outcome is unconfirmed; inspect this operation before another write.", {
+          cause: Object.freeze({ name: "TofuCommandError", code: "tofu_command_failed", detail: "apply:api_AccessDeniedException" }),
+        });
       case "hang":
         await new Promise<never>((_, reject) => {
           const fail = (): void => reject(new TofuCommandError("tofu_aborted", "tofu apply was aborted.", run("apply", -1)));

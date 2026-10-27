@@ -230,6 +230,15 @@ describe("applyInfrastructure", () => {
     }
   });
 
+  it("keeps the OpenTofu failure code behind an unconfirmed plan dispatch on the uncertain operation", async () => {
+    const w = world();
+    const { lease, plan } = await planned(w);
+    w.tofu.apply = "dispatch_unconfirmed";
+    await w.activities.applyInfrastructure({ operationId: OP, planDigest: plan.planDigest, lease }).catch(() => undefined);
+    expect(w.ops.ops.get(OP)!.status).toBe("uncertain");
+    expect(w.ops.uncertain[0]!.reason).toContain("; cause TofuCommandError/tofu_command_failed/apply:api_AccessDeniedException).");
+  });
+
   it("rethrows plan_changed untouched: nothing was applied, re-approval is required", async () => {
     const w = world();
     const { lease, plan } = await planned(w);

@@ -2,6 +2,7 @@
 import { randomUUID } from "node:crypto";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { vaultCipherFromEnv } from "@/lib/secrets";
+import { tofuFailureCode } from "@/lib/tofu/failure-code";
 import { createPlanEngineAuthority, type PlanAdmission, type ApprovedPlan, type StandalonePlanBinding, type SealedStandaloneSettlement } from "@/lib/tofu/engine";
 import { createExecutionBroker, dispatchRequirementGap, isDefaultCurrentDispatchRequirement } from "./broker";
 import type { BrokerPort, PlanArtifactsPort } from "@/lib/execution/ports";
@@ -257,7 +258,8 @@ function pairedRuntime(db: Sql, env: Readonly<Record<string,string|undefined>>, 
           // Safety refusal is unchanged. Only a sanitized class/code (never the message, which may carry secrets) is attached for diagnosis.
           const raw = error as { name?: unknown; code?: unknown } | null;
           const shape = (value: unknown) => typeof value === "string" && /^[A-Za-z0-9_.:-]{1,64}$/.test(value) ? value : undefined;
-          const cause = Object.freeze({ name: shape(raw?.name) ?? "UnknownError", code: shape(raw?.code) });
+          const detail = tofuFailureCode(error);
+          const cause = Object.freeze({ name: shape(raw?.name) ?? "UnknownError", code: shape(raw?.code), ...(detail ? { detail } : {}) });
           throw new Error("Original plan dispatch outcome is unconfirmed; inspect this operation before another write.", { cause });
         }
         throw error;

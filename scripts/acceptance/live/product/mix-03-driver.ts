@@ -178,16 +178,16 @@ export function browserMix03Product(env: EnvLike = process.env, seams: Mix03Driv
     return call();
   };
   /** A product action: `{ ok, data }` from the action's own result. A refused action is `ok: false`, never a thrown error. */
-  const runAction = async (session: TenantSession, id: string, input: Record<string, unknown>, scope: Record<string, unknown> = {}): Promise<{ ok: boolean; data?: unknown }> => {
+  const runAction = async (session: TenantSession, id: string, input: Record<string, unknown>, scope: Record<string, unknown> = {}): Promise<{ ok: boolean; data?: unknown; error?: unknown }> => {
     const response = await send(session, session.owner, `/api/actions/${id}`, { mode: "execute", input, scope, idempotencyKey: nonce() });
     ensure(response.status >= 200 && response.status < 300, "http-refused");
-    const body = response.data as { result?: { ok?: unknown; data?: unknown } } | undefined;
-    return { ok: body?.result?.ok === true, data: body?.result?.data };
+    const body = response.data as { result?: { ok?: unknown; data?: unknown; error?: unknown } } | undefined;
+    return { ok: body?.result?.ok === true, data: body?.result?.data, error: body?.result?.error };
   };
-  /** A product action that must succeed; the action id is ours and fixed, the product's own sentence is withheld. */
+  /** A product action that must succeed; the action id is ours and fixed, the product's sentence passes only sanitized. */
   const must = async (session: TenantSession, id: string, input: Record<string, unknown>, scope: Record<string, unknown> = {}): Promise<Record<string, unknown>> => {
     const result = await runAction(session, id, input, scope);
-    if (!result.ok) refuse(`${id} was refused by the product`);
+    if (!result.ok) { const why = sanitizedError(result.error); refuse(`${id} was refused by the product${why ? ` (${why})` : ""}`); }
     return (result.data ?? {}) as Record<string, unknown>;
   };
   /** Deploys one environment from its own working copy and waits until the simulated parent deployment succeeds. */

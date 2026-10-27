@@ -8,7 +8,8 @@
  */
 import type { Page } from "@playwright/test";
 import type { EnvLike } from "../../config";
-import { refuse, Refusal } from "./mix-03";
+import { refuse, Refusal, sanitizedError } from "./mix-03";
+export { sanitizedError };
 import { openRealSession, stepUpWithAuthenticator, type ProductRequest, type RunnerStack, type TenantSession } from "./mix-03-driver";
 import { browserRequest, nonce } from "../../../../tests/e2e/default/support.mjs";
 import { approveOperation } from "../../../release/drivers/operated";
@@ -37,17 +38,6 @@ export interface Deploy01DriverSeams {
 }
 
 const TERMINAL = ["succeeded", "failed", "uncertain", "denied", "expired", "cancelled"];
-/** The product's error sentence with ARNs, key=value pairs, URLs, paths and long tokens elided (as scripts/release/drivers/operated.ts). */
-export function sanitizedError(raw: unknown): string | undefined {
-  if (typeof raw !== "string" || !raw.trim()) return undefined;
-  // The product's own fixed cause code ("; cause <class>/<code>") is kept verbatim; only its exact safe shape passes.
-  const cause = /; cause ([A-Za-z0-9_.:-]{1,64}(?:\/[A-Za-z0-9_.:-]{1,64})?)\)/.exec(raw)?.[1];
-  return elide(cause ? raw.replace(`; cause ${cause}`, "") : raw) + (cause ? ` [cause ${cause}]` : "");
-}
-function elide(raw: string): string {
-  return raw.replace(/\barn:\S+/g, "…arn").replace(/\b\w+=\S+/g, "…=…").replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/(?:\/[^\s/]+){2,}/g, "…path")
-    .replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").replace(/[\u0000-\u001f]/g, " ").slice(0, 240);
-}
 const CHECK_REF = /^[a-z_]{1,40}\/[A-Za-z0-9_.-]{1,80}:[a-z0-9_]{1,60}$/;
 /** Failed check references from the operation's verification evidence: node addresses and fixed check ids only. */
 export function failedCheckRefs(summary: unknown): string[] {

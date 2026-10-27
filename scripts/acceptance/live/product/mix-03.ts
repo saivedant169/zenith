@@ -63,6 +63,17 @@ export interface Mix03Seams {
   polls?: { attempts: number; intervalMs: number };
 }
 
+/** The product's error sentence with ARNs, key=value pairs, URLs, paths and long tokens elided (as scripts/release/drivers/operated.ts). */
+export function sanitizedError(raw: unknown): string | undefined {
+  if (typeof raw !== "string" || !raw.trim()) return undefined;
+  // The product's own fixed cause code ("; cause <class>/<code>") is kept verbatim; only its exact safe shape passes.
+  const cause = /; cause ([A-Za-z0-9_.:-]{1,64}(?:\/[A-Za-z0-9_.:-]{1,64})?)\)/.exec(raw)?.[1];
+  return elide(cause ? raw.replace(`; cause ${cause}`, "") : raw) + (cause ? ` [cause ${cause}]` : "");
+}
+function elide(raw: string): string {
+  return raw.replace(/\barn:\S+/g, "…arn").replace(/\b\w+=\S+/g, "…=…").replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/(?:\/[^\s/]+){2,}/g, "…path")
+    .replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").replace(/[\u0000-\u001f]/g, " ").slice(0, 240);
+}
 /** A fail-closed stop. Its message is ours and fixed; anything else is withheld. */
 export class Refusal extends Error {}
 export function refuse(message: string): never { throw new Refusal(message); }

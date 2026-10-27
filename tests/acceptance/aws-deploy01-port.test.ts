@@ -20,7 +20,7 @@ const requirement = { id: "PROD-REL-01", acceptance: [], fixtures: [], join: "" 
 const COMMIT = "a".repeat(40);
 const DNS = "zenith-web-123.ap-south-1.elb.amazonaws.com";
 
-function harness(opts: { deployStatus?: string; leftAfterDestroy?: number; image?: (n: number) => string } = {}) {
+function harness(opts: { deployStatus?: string; leftAfterDestroy?: number; keepVpc?: boolean; image?: (n: number) => string } = {}) {
   const trust = { observe: trustDocument(PRINCIPAL, OLD_EXT), deploy: trustDocument(PRINCIPAL, OLD_EXT) };
   const images: string[] = [];
   let destroyed = false;
@@ -50,7 +50,7 @@ function harness(opts: { deployStatus?: string; leftAfterDestroy?: number; image
       case "deploy01-iam-trust-observe": trust.observe = String(i.PolicyDocument); return {};
       case "deploy01-iam-trust-deploy": trust.deploy = String(i.PolicyDocument); return {};
       case "deploy01-sts-assume": expect(i.ExternalId).toBe(NEW_EXT); return { Credentials: { AccessKeyId: "A", SecretAccessKey: "S", SessionToken: "T" } };
-      case "deploy01-tag-read": return { ResourceTagMappingList: destroyed ? [{ ResourceARN: CLUSTER }, ...new Array(opts.leftAfterDestroy ?? 0).fill({ ResourceARN: `arn:aws:elasticloadbalancing:${REGION}:${ACCOUNT}:loadbalancer/app/zenith-x/1` }), { ResourceARN: `arn:aws:ec2:${REGION}:${ACCOUNT}:natgateway/nat-0abc` }, { ResourceARN: `arn:aws:ecs:${REGION}:${ACCOUNT}:task/zenith-x-web/${"a".repeat(32)}` }, { ResourceARN: `arn:aws:ecs:${REGION}:${ACCOUNT}:task-definition/zenith-x-web:1` }] : [] };
+      case "deploy01-tag-read": return { ResourceTagMappingList: destroyed ? [{ ResourceARN: CLUSTER }, ...new Array(opts.leftAfterDestroy ?? 0).fill({ ResourceARN: `arn:aws:elasticloadbalancing:${REGION}:${ACCOUNT}:loadbalancer/app/zenith-x/1` }), { ResourceARN: `arn:aws:ec2:${REGION}:${ACCOUNT}:natgateway/nat-0abc` }, { ResourceARN: `arn:aws:ecs:${REGION}:${ACCOUNT}:task/zenith-x-web/${"a".repeat(32)}` }, { ResourceARN: `arn:aws:ecs:${REGION}:${ACCOUNT}:task-definition/zenith-x-web:1` }, { ResourceARN: `arn:aws:ec2:${REGION}:${ACCOUNT}:subnet/subnet-0def` }] : [] };
       default: throw new Error(`unexpected ${c.id}`);
     }
   };
@@ -59,7 +59,7 @@ function harness(opts: { deployStatus?: string; leftAfterDestroy?: number; image
       { type: "aws_ecs_task_definition", instances: [{ attributes: { container_definitions: JSON.stringify([{ image: (opts.image ?? (() => images[images.length - 1]!))(images.length) }]) } }] },
       { type: "aws_lb", instances: [{ attributes: { dns_name: DNS } }] },
     ] }),
-    destroy: async (input: { stateKey: string }) => { expect(input.stateKey).toBe("zenith/ws1/env1/terraform.tfstate"); destroyed = true; return { destroyed: 20, destroyedArns: [CLUSTER, `arn:aws:ecs:${REGION}:${ACCOUNT}:task-definition/zenith-x-web:3`], destroyedIds: ["nat-0abc"] }; },
+    destroy: async (input: { stateKey: string }) => { expect(input.stateKey).toBe("zenith/ws1/env1/terraform.tfstate"); destroyed = true; return { destroyed: 20, destroyedArns: [CLUSTER, `arn:aws:ecs:${REGION}:${ACCOUNT}:task-definition/zenith-x-web:3`, ...(opts.keepVpc ? [] : [`arn:aws:ec2:${REGION}:${ACCOUNT}:vpc/vpc-0abc`])], destroyedIds: ["nat-0abc"] }; },
   };
   const port = deploy01Port(env, { product, sleep: async () => undefined, propagation: { attempts: 2, intervalMs: 0 }, probe: async (dns, host) => (dns === DNS && host.startsWith("web-") ? 200 : 503), state });
   return { trust, images, sent, connections, run: () => port.verify(requirement, { plan, commit: COMMIT, call }) };
@@ -141,6 +141,10 @@ describe("DEPLOY-01 port", () => {
     expect(h.sent.filter(id => id === "deploy01-tag-read")).toHaveLength(4);
     expect(result.complete).toBe(false);
     expect(result.leaks).toEqual(["2 tagged resource(s) still present after cleanup (elasticloadbalancing:loadbalancer)"]);
+  });
+  it("reports a listed subnet when the destroy did not remove the VPC", async () => {
+    const result = await harness({ keepVpc: true }).run();
+    expect(result.leaks).toEqual(["1 tagged resource(s) still present after cleanup (ec2:subnet)"]);
   });
   it("is only for PROD-REL-01 and refuses without the live product flag", async () => {
     const plan = buildPlan(settings);

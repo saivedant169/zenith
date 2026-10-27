@@ -149,7 +149,10 @@ export function deploy01Port(env: EnvLike = process.env, seams: Deploy01Seams = 
           // Update and rollback register new task definition revisions; earlier revisions of a destroyed family stay INACTIVE.
           const family = (arn: string) => /^(arn:aws:ecs:[a-z0-9-]+:\d{12}:task-definition\/[A-Za-z0-9_-]+):\d+$/.exec(arn)?.[1];
           const families = new Set(destroyedArns.map(family).filter(Boolean));
-          const gone = (arn: string) => destroyedArns.includes(arn) || destroyedIds.includes(arn.split(/[/:]/).pop() ?? "") || stoppedTask(arn) || families.has(family(arn));
+          // AWS refuses DeleteVpc while a subnet remains, so once the destroy removed the VPC a listed subnet is a stale index entry.
+          const vpcGone = destroyedArns.some(arn => /^arn:aws:ec2:[a-z0-9-]+:\d{12}:vpc\/vpc-[0-9a-f]+$/.test(arn));
+          const staleSubnet = (arn: string) => vpcGone && /^arn:aws:ec2:[a-z0-9-]+:\d{12}:subnet\/subnet-[0-9a-f]+$/.test(arn);
+          const gone = (arn: string) => destroyedArns.includes(arn) || destroyedIds.includes(arn.split(/[/:]/).pop() ?? "") || stoppedTask(arn) || families.has(family(arn)) || staleSubnet(arn);
           // The tagging index lags deletes (subnets, rules): re-list a few times before calling anything a leak.
           let list: string[] = [];
           for (let attempt = 1; ; attempt++) {

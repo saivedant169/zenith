@@ -7,6 +7,10 @@ import type { Page } from "@playwright/test";
 import { describe, expect, it, vi } from "vitest";
 import { buildPlan } from "../../scripts/acceptance/live/plan";
 import { mix03Port } from "../../scripts/acceptance/live/product/mix-03";
+import { expandManifest } from "@/lib/resources";
+import { parseManifest } from "@/lib/resources/manifest-v2";
+import { buildParentPlan } from "@/lib/execution/mixed/parent-plan";
+import { connection, PARENT_ENV, PROJECT, WS } from "../execution/mixed/_fixtures";
 import {
   browserMix03Product, MIX03_REFERENCE, mix03Manifests, runnerStack, type ProductRequest, type RunnerStack, type TenantSession,
 } from "../../scripts/acceptance/live/product/mix-03-driver";
@@ -420,5 +424,26 @@ describe("the port releases the driver after teardown", () => {
     expect(outcome.complete).toBe(false);
     expect(outcome.reason).toContain("ZENITH_LIVE_PRODUCT=1");
     expect(close).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("PROD-MIX-03 manifests against the real planner", () => {
+  it("plan into one AWS producer and one AWS consumer child with the reference, producer first", () => {
+    const { graph, consumer } = mix03Manifests("us-east-1", ARTIFACT);
+    const expand = (m: unknown, provider: "sandbox" | "aws") => {
+      const parsed = parseManifest(m);
+      if (!parsed.ok) throw new Error("manifest refused");
+      return expandManifest(parsed.manifest, { id: PARENT_ENV, name: "x", class: "sandbox", provider, region: "us-east-1", baseDomain: "example.com" });
+    };
+    expect(expand(consumer, "aws").nodes.find(n => n.address === "function/consumer")?.dependsOn).toEqual([]);
+    const aws = connection("aws");
+    const plan = buildParentPlan({
+      workspaceId: WS, projectId: PROJECT, parentEnvironmentId: PARENT_ENV, graph: expand(graph, "sandbox"),
+      candidates: [{ childEnvironmentId: "env-p", connection: aws }, { childEnvironmentId: "env-c", connection: aws }],
+      pins: [{ address: "object_store/bucket", childEnvironmentId: "env-p" }, { address: "function/consumer", childEnvironmentId: "env-c" }],
+      references: [MIX03_REFERENCE],
+    });
+    expect(plan.children.map(c => c.childEnvironmentId)).toEqual(["env-p", "env-c"]);
+    expect(plan.references).toHaveLength(1);
   });
 });

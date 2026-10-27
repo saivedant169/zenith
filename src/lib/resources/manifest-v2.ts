@@ -267,6 +267,8 @@ export const ManifestFunction = z.object({
   env: z.array(z.object({ key: z.string().regex(/^[A-Za-z][A-Za-z0-9_]{0,254}$/), value: z.string().max(4096) }).strict()).max(50).prefault([]),
   /** Service ids that invoke this function using separately scoped IAM credentials. No public URL is generated. */
   invokedBy: z.array(z.string()).max(32).prefault([]),
+  /** ids or names of resources or services this function needs first (as native[].dependsOn); one not in this manifest is dropped with a note */
+  dependsOn: z.array(z.string().min(1)).max(32).optional(),
 }).strict();
 export type ManifestFunction = z.infer<typeof ManifestFunction>;
 

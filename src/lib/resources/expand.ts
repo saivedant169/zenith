@@ -332,8 +332,14 @@ function emitFunctions(ctx: Ctx): void {
   for (const f of [...(ctx.v2?.functions ?? [])].sort((a, b) => cmp(a.id, b.id))) {
     const address = `function/${f.name}`;
     if (ctx.addrByKey.has(f.id) || ctx.b.nodes.has(address)) throw new ManifestExpansionError(`Duplicate function ${f.id}.`);
+    const dependsOn: string[] = [];
+    for (const d of f.dependsOn ?? []) {
+      const target = ctx.addrByKey.get(d);
+      if (target) dependsOn.push(target);
+      else ctx.b.note("function", `${address} depends on "${d}", which has no node in the graph; the dependency is dropped.`);
+    }
     ctx.b.add({ address, kind: "function", place: { provider: f.provider, region: f.region }, nativeType: "aws:lambda_function",
-      spec: { runtime: f.runtime, handler: f.handler, memoryMb: f.memoryMb, timeoutSec: f.timeoutSec, architecture: f.architecture, artifact: { ...f.source }, env: f.env }, origin: [f.id] });
+      spec: { runtime: f.runtime, handler: f.handler, memoryMb: f.memoryMb, timeoutSec: f.timeoutSec, architecture: f.architecture, artifact: { ...f.source }, env: f.env }, origin: [f.id], dependsOn: uniqSorted(dependsOn) });
     ctx.addrByKey.set(f.id, address); ctx.addrByKey.set(f.name, address);
     for (const id of f.invokedBy) {
       const svc = ctx.svcs.get(id);

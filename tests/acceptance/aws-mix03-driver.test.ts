@@ -230,6 +230,17 @@ describe("mixed proposal: the sandbox parent, two AWS children and the plan", ()
       .rejects.toThrow("the product refused the mixed plan (missing connectivity)");
     expect(t.sent.some(c => c.endpoint === "/api/actions/deploy.apply" && inputOf(c).environmentId === "env-producer")).toBe(false);
   });
+
+  it("a refused child deploy names the product's reason, with identifiers elided", async () => {
+    const base = proposeRoute();
+    const t = transport(sent => sent.endpoint === "/api/actions/deploy.apply" && inputOf(sent).environmentId === "env-producer"
+      ? action({ ok: false, summary: "no", error: "Platform policy denied this deployment for arn:aws:iam::123456789012:role/Deploy." })
+      : base(sent));
+    const product = await driverWithTenant({ request: t.request });
+    const failure = product.proposeMixed(TENANT, { connectionId: "conn-1", accountId: "123456789012", region: "ap-south-1", artifact: ARTIFACT });
+    await expect(failure).rejects.toThrow("deploy.apply was refused by the product (Platform policy denied this deployment for …arn)");
+    await expect(failure).rejects.not.toThrow("123456789012");
+  });
 });
 
 describe("mixed start: adoption of both children, then the start", () => {

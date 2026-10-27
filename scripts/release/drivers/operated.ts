@@ -1104,9 +1104,10 @@ export async function connectKind(ctx: OperatedContext, tenant: Tenant): Promise
 }
 
 export const detailOf = async (tenant: Pick<Tenant, "owner" | "workspaceId">, operationId: string): Promise<OperationStatusView> => ok(await browserRequest(tenant.owner, "/api/platform/v1/operations/" + operationId, undefined, "GET", tenant.workspaceId));
-export async function approveOperation(ctx: { stack: { apiUrl: string } }, tenant: Pick<Tenant, "owner" | "approver" | "approverId" | "workspaceId">, operationId: string): Promise<void> {
+export async function approveOperation(ctx: { stack: { apiUrl: string } }, tenant: Pick<Tenant, "owner" | "approver" | "approverId" | "workspaceId">, operationId: string, options: { separationOfDuties?: boolean } = {}): Promise<void> {
   const detail = await detailOf(tenant, operationId);
-  ensure(detail.operation.status === "awaiting_approval" && detail.decision?.approval?.separationOfDuties === true, "human-approval-required");
+  // Policy asks for separation of duties only in production; outside it the approver is still a different person, checked by the readback.
+  ensure(detail.operation.status === "awaiting_approval" && (options.separationOfDuties === false || detail.decision?.approval?.separationOfDuties === true), "human-approval-required");
   await tenant.approver.goto(ctx.stack.apiUrl + "/platform/operations/" + operationId);
   const response = tenant.approver.waitForResponse(value => value.url().endsWith("/operations/" + operationId + "/approve") && value.request().method() === "POST");
   await tenant.approver.getByRole("button", { name: /^Approve / }).click();

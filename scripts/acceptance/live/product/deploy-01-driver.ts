@@ -32,6 +32,8 @@ export interface Deploy01DriverSeams {
   sleep?: (ms: number) => Promise<void>;
   /** Terminal wait for one deploy, default 40 minutes (VPC, NAT, ALB and ECS on a fresh environment). */
   deployTimeoutMs?: number;
+  /** The failed infrastructure checks of an operation as `address:checkId` (default: the product store, when configured). */
+  failedChecks?: (workspaceId: string, operationId: string) => Promise<string[]>;
 }
 
 const TERMINAL = ["succeeded", "failed", "uncertain", "denied", "expired", "cancelled"];
@@ -46,6 +48,30 @@ function elide(raw: string): string {
   return raw.replace(/\barn:\S+/g, "…arn").replace(/\b\w+=\S+/g, "…=…").replace(/[a-z]+:\/\/\S+/gi, "…url").replace(/(?:\/[^\s/]+){2,}/g, "…path")
     .replace(/[A-Za-z0-9_+/=-]{24,}/g, "…").replace(/[\u0000-\u001f]/g, " ").slice(0, 240);
 }
+const CHECK_REF = /^[a-z_]{1,40}\/[A-Za-z0-9_.-]{1,80}:[a-z0-9_]{1,60}$/;
+/** Failed check references from the operation's verification evidence: node addresses and fixed check ids only. */
+export function failedCheckRefs(summary: unknown): string[] {
+  const nodes = (summary as { nodes?: unknown })?.nodes;
+  const refs: string[] = [];
+  for (const node of Array.isArray(nodes) ? nodes : []) {
+    const { address, failed } = (node ?? {}) as { address?: unknown; failed?: unknown };
+    for (const id of Array.isArray(failed) ? failed : []) {
+      const ref = `${String(address)}:${String(id)}`;
+      if (CHECK_REF.test(ref)) refs.push(ref);
+    }
+  }
+  return refs.slice(0, 8);
+}
+async function storeFailedChecks(env: EnvLike, workspaceId: string, operationId: string): Promise<string[]> {
+  const url = env.ZENITH_LIVE_PRODUCT_DATABASE_URL?.trim();
+  if (!url) return [];
+  const { openPlatformDb } = await import("@/lib/controlplane/db");
+  const db = await openPlatformDb({ kind: "postgres", url, max: 1, migrate: false });
+  try {
+    const rows = await db.query<{ summary: unknown }>("select summary from platform.evidence where workspace_id = $1 and operation_id = $2 and kind = 'verification' order by created_at desc limit 1", [workspaceId, operationId]);
+    return failedCheckRefs(rows[0]?.summary);
+  } finally { await db.close(); }
+}
 const codeOf = (data: unknown): string | undefined => {
   const value = data as { code?: unknown; error?: { code?: unknown } } | undefined;
   const code = value?.error?.code ?? value?.code;
@@ -59,6 +85,7 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
   const openSession = seams.session ?? (() => openRealSession(env));
   const sleep = seams.sleep ?? ((ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms)));
   const deployTimeoutMs = seams.deployTimeoutMs ?? 40 * 60_000;
+  const failedChecks = seams.failedChecks ?? ((ws: string, op: string) => storeFailedChecks(env, ws, op));
   const sessions = new Map<string, TenantSession>();
   const closers: (() => Promise<void>)[] = [];
 
@@ -157,7 +184,11 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
         const reviewed = await waitFor(session, operationId as string, op => TERMINAL.includes(op.status) || (op.status === "awaiting_approval" && op.round > 0), 15 * 60_000, "the plan review");
         if (!TERMINAL.includes(reviewed.status)) await approve(session, operationId as string);
         const terminal = await waitFor(session, operationId as string, op => TERMINAL.includes(op.status), deployTimeoutMs, "the deployment");
-        const detail = terminal.status === "succeeded" ? undefined : sanitizedError(terminal.error);
+        let detail = terminal.status === "succeeded" ? undefined : sanitizedError(terminal.error);
+        if (detail?.startsWith("Infrastructure verification failed")) {
+          const refs = await failedChecks(session.workspaceId, operationId as string).catch(() => []);
+          if (refs.length) detail += ` [failed checks: ${refs.join(", ")}]`;
+        }
         return { operationId: operationId as string, status: terminal.status, ...(detail ? { detail } : {}) };
       });
     },

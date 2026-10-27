@@ -40,7 +40,7 @@ export interface Deploy01Seams {
   propagation?: { attempts: number; intervalMs: number };
   /** HTTP probe of the load balancer with the route's Host header; resolves the status code. */
   probe?: (dnsName: string, host: string) => Promise<number>;
-  state?: { read: (input: StateDestroyInput) => Promise<unknown>; destroy: (input: StateDestroyInput) => Promise<{ destroyed: number; destroyedArns?: string[] }> };
+  state?: { read: (input: StateDestroyInput) => Promise<unknown>; destroy: (input: StateDestroyInput) => Promise<{ destroyed: number; destroyedArns?: string[]; destroyedIds?: string[] }> };
 }
 
 const field = (value: unknown, key: string): unknown => value && typeof value === "object" ? (value as Record<string, unknown>)[key] : undefined;
@@ -138,15 +138,18 @@ export function deploy01Port(env: EnvLike = process.env, seams: Deploy01Seams = 
       }
       const leaks: string[] = [];
       if (environmentId && externalId) {
-        let destroyedArns: string[] = [];
-        try { destroyedArns = (await state.destroy(await stateInput())).destroyedArns ?? []; }
+        let destroyedArns: string[] = [], destroyedIds: string[] = [];
+        try { ({ destroyedArns = [], destroyedIds = [] } = await state.destroy(await stateInput())); }
         catch (error) { leaks.push(error instanceof Error && /^(OpenTofu|\d+ resource|The recorded state)/.test(error.message) ? error.message : "state cleanup failed; resources may remain"); }
         try {
           const left = await invoke(planned("deploy01-tag-read"), { environmentId });
           // Deleted ECS clusters and task definitions stay INACTIVE (no cost) and deleted rules can linger in the tag inventory;
           // only ARNs the successful destroy removed from the recorded state are excused. Anything else is a leak.
-          const list = (field(left, "ResourceTagMappingList") as unknown[] | undefined)?.filter(r => !destroyedArns.includes(String(field(r, "ResourceARN"))));
-          if (Array.isArray(list) && list.length) leaks.push(`${list.length} tagged resource(s) still present after cleanup`);
+          const gone = (arn: string) => destroyedArns.includes(arn) || destroyedIds.includes(arn.split(/[/:]/).pop() ?? "");
+          const list = ((field(left, "ResourceTagMappingList") as unknown[] | undefined) ?? []).map(r => String(field(r, "ResourceARN"))).filter(arn => !gone(arn));
+          // The resource types (service:type, never ids) say what to look for.
+          const types = [...new Set(list.map(arn => { const [, , service, , , rest] = arn.split(":"); return `${service}:${(rest ?? "").split("/")[0]}`; }))].filter(t => /^[a-z0-9-]{1,30}:[a-z0-9-]{0,40}$/.test(t)).sort();
+          if (list.length) leaks.push(`${list.length} tagged resource(s) still present after cleanup${types.length ? ` (${types.join(", ")})` : ""}`);
         } catch { leaks.push("cleanup re-list failed; resources may remain"); }
       }
       for (const t of [...trust].reverse()) {

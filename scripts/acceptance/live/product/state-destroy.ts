@@ -93,10 +93,10 @@ export function readState(input: StateDestroyInput): Promise<unknown> {
 
 /**
  * Destroys everything in the recorded state, then proves the state is empty. Throws a fixed message on any failure.
- * Returns the ARNs it destroyed: some linger in the tag inventory after deletion (INACTIVE ECS clusters and task
- * definitions, deleted security-group rules).
+ * Returns the ARNs and ids it destroyed: some linger in the tag inventory after deletion (INACTIVE ECS clusters and task
+ * definitions, deleted NAT gateways and security-group rules). NAT gateways record no ARN, only their id.
  */
-export function destroyFromState(input: StateDestroyInput): Promise<{ destroyed: number; destroyedArns: string[] }> {
+export function destroyFromState(input: StateDestroyInput): Promise<{ destroyed: number; destroyedArns: string[]; destroyedIds: string[] }> {
   return withState(input, async ({ run, write, state }) => {
     const count = Array.isArray((state as { resources?: unknown })?.resources) ? ((state as { resources: unknown[] }).resources).length : 0;
     write(providerBlocks(state, input.region));
@@ -109,10 +109,10 @@ export function destroyFromState(input: StateDestroyInput): Promise<{ destroyed:
     }
     const left = Array.isArray((after as { resources?: unknown })?.resources) ? ((after as { resources: unknown[] }).resources).length : 0;
     if (left !== 0) throw new Error(`${left} resource(s) remain in the recorded state after cleanup.`);
-    const resources = (state as { resources?: { type?: unknown; instances?: { attributes?: { arn?: unknown } }[] }[] })?.resources;
-    const destroyedArns = (Array.isArray(resources) ? resources : [])
-      .flatMap(r => (Array.isArray(r.instances) ? r.instances : []).map(i => i.attributes?.arn)).filter((a): a is string => typeof a === "string");
-    return { destroyed: count, destroyedArns };
+    const resources = (state as { resources?: { type?: unknown; instances?: { attributes?: { arn?: unknown; id?: unknown } }[] }[] })?.resources;
+    const instances = (Array.isArray(resources) ? resources : []).flatMap(r => (Array.isArray(r.instances) ? r.instances : []));
+    const strings = (values: unknown[]) => values.filter((v): v is string => typeof v === "string" && v.length > 0);
+    return { destroyed: count, destroyedArns: strings(instances.map(i => i.attributes?.arn)), destroyedIds: strings(instances.map(i => i.attributes?.id)) };
   });
 }
 

@@ -157,7 +157,16 @@ const errorName = (error: unknown): string => typeof field(error, "name") === "s
 /** Exact shapes of the exported Lambda package inputs (S3 key, object version, sha256 and the source digest). */
 const ARTIFACT_VERSION = /^[A-Za-z0-9._-]{1,1024}$/;
 
-interface RunState { attempted: boolean; environmentIds: string[]; trust: { role: "observe" | "deploy"; original: string; write: Call }[] }
+interface RunState { attempted: boolean; environmentIds: string[]; trust: { role: "observe" | "deploy"; original: string; write: Call }[]; functionState?: string }
+const AWS_CODE = /^[A-Za-z]{1,40}$/;
+/** The consumer function's lifecycle as Lambda reports it: fixed AWS enum values only, never StateReason text. */
+const functionStateOf = (config: unknown): string | undefined => {
+  const codes = ["State", "StateReasonCode", "LastUpdateStatus", "LastUpdateStatusReasonCode"].map(key => {
+    const value = field(config, key);
+    return typeof value === "string" && AWS_CODE.test(value) ? `${key}=${value}` : undefined;
+  }).filter(Boolean);
+  return codes.length ? codes.join(" ") : undefined;
+};
 
 function preconditions(env: EnvLike, plan: Plan): void {
   if (env.ZENITH_LIVE_PRODUCT !== "1") refuse("ZENITH_LIVE_PRODUCT=1 is not set; no product scenario ran");
@@ -249,6 +258,7 @@ async function teardown(run: RunState, plan: Plan, invoke: Invoke, planned: (id:
   for (const fn of functions) {
     const config = await invoke(planned("mix03-lambda-read"), { functionName: fn.name }).catch(() => undefined);
     const roleArn = config ? field(config, "Role") : undefined;
+    run.functionState ??= functionStateOf(config);
     const roleMatch = typeof roleArn === "string" ? rolePattern.exec(roleArn) : null;
     const deleted = await attempt("deleting the consumer function", () => invoke(planned("mix03-lambda-delete"), { functionName: fn.name }));
     await attempt("deleting the function log group", () => invoke(planned("mix03-logs-delete"), { logGroupName: `/aws/lambda/${fn.name}` }), ["ResourceNotFoundException"]);
@@ -388,6 +398,8 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
       // Trust is restored and product resources deleted even after a refusal. Leaks make the requirement fail closed.
       const leaks = await teardown(run, plan, invoke, planned, principal).catch(() => ["cleanup did not complete; resources may remain"]);
       try { await product.close?.(); } catch { /* the browser is released best-effort; the outcome above stands */ }
+      // A consumer that did not succeed: what Lambda itself reported before teardown deleted it.
+      if (!outcome.reason.includes("partly proven") && run.functionState) outcome = { ...outcome, reason: `${outcome.reason}; consumer function before teardown: ${run.functionState}` };
       if (leaks.length) return { complete: false, reason: `${outcome.reason}; cleanup leaks: ${leaks.length} (see the cleanup checks)`, leaks };
       return { ...outcome, leaks };
     },

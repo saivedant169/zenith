@@ -349,6 +349,7 @@ describe("mixed start: adoption of both children, then the start", () => {
   it.each([
     ["OpenTofu apply did not finish (tofu_timeout); partial", "tofu_apply_tofu_timeout"],
     ["The apply ended with an unclassified error (TypeError: cannot read arn:aws:secret; cause AbortError/ETIMEDOUT).", "unclassified_typeerror_aborterror"],
+    ["The apply ended with an unclassified error (Error: Original plan dispatch outcome is unconfirmed; cause TofuCommandError/tofu_command_failed).", "unclassified_error_tofucommanderror_tofu_command_failed"],
     ["The apply ended with an unclassified error (RangeError: bad length).", "unclassified_rangeerror"],
     ["The environment lease was lost while OpenTofu was applying.", "lease_lost_tofu_apply"],
     ["An owning runner or machine job expired; the external outcome is unknown.", "job_expired"],

@@ -25,7 +25,7 @@ const COMMIT = "a".repeat(40);
 const fast = { upload: async () => VERSION, sleep: async () => undefined, propagation: { attempts: 3, intervalMs: 0 }, polls: { attempts: 3, intervalMs: 0 } };
 
 /** The AWS side: the sandbox trust documents, the tagged product resources and what has been deleted. */
-interface World { trustDocs: Record<"observe" | "deploy", string>; deleted: Set<string>; extra: { ResourceARN: string; Tags: { Key: string; Value: string }[] }[]; failDelete: boolean; envArn?: string; inline?: string[] }
+interface World { trustDocs: Record<"observe" | "deploy", string>; deleted: Set<string>; extra: { ResourceARN: string; Tags: { Key: string; Value: string }[] }[]; failDelete: boolean; envArn?: string; inline?: string[]; fnState?: Record<string, string> }
 function world(): World {
   return {
     trustDocs: { observe: trustDocument(PRINCIPAL, OLD_EXT), deploy: trustDocument(PRINCIPAL, OLD_EXT) },
@@ -47,7 +47,7 @@ function respond(state: World, c: Call, input: Record<string, Json>): Record<str
     case "mix03-sts-assume": expect(input.ExternalId).toBe(NEW_EXT); return { Credentials: { AccessKeyId: "A", SecretAccessKey: "S", SessionToken: "T" } };
     // One answer per child environment, as the tag API filters by one tag value: only the producer and consumer ENV have resources here.
     case "mix03-tag-read": return { ResourceTagMappingList: (input.TagFilters as { Values: string[] }[])[0]!.Values[0] === ENV ? resources(state) : [] };
-    case "mix03-lambda-read": return { Role: `arn:aws:iam::${ACCOUNT}:role/${FN}-fn`, Environment: { Variables: { PRODUCER_BUCKET_ARN: state.envArn ?? `arn:aws:s3:::${BUCKET}` } } };
+    case "mix03-lambda-read": return { ...state.fnState, Role: `arn:aws:iam::${ACCOUNT}:role/${FN}-fn`, Environment: { Variables: { PRODUCER_BUCKET_ARN: state.envArn ?? `arn:aws:s3:::${BUCKET}` } } };
     case "mix03-bucket-head": return {};
     case "mix03-bucket-tags": return { TagSet: OWNED };
     case "mix03-lambda-delete": if (state.failDelete) throw Object.assign(new Error("denied"), { name: "AccessDenied" }); state.deleted.add(`arn:aws:lambda:${REGION}:${ACCOUNT}:function:${FN}`); return {};
@@ -358,6 +358,25 @@ describe("PROD-MIX-03 cleanup", () => {
     const result = await run();
     expect(result.reason).toContain("a child operation did not succeed (producer succeeded/succeeded, consumer uncertain/uncertain:verify_inconclusive)");
     expect(sent.filter(s => s.id === "mix03-lambda-delete")).toHaveLength(1);
+  });
+
+  it("names the consumer function's Lambda state codes, never its reason text, when a child did not succeed", async () => {
+    const state = world();
+    state.fnState = { State: "Failed", StateReasonCode: "InvalidZipFileException", StateReason: "secret text arn:aws:x", LastUpdateStatus: "Failed" };
+    const { run } = harness(state, happy({ children: async () => [
+      { role: "producer", status: "succeeded", childOperationId: "op-p", receiptOperationId: "op-p" },
+      { role: "consumer", status: "uncertain", childOperationId: "op-c", operationStatus: "uncertain" },
+    ] }));
+    const result = await run();
+    expect(result.reason).toContain("consumer function before teardown: State=Failed StateReasonCode=InvalidZipFileException LastUpdateStatus=Failed");
+    expect(result.reason).not.toContain("secret text");
+  });
+
+  it("a passing run does not append the function state", async () => {
+    const state = world();
+    state.fnState = { State: "Active" };
+    const { run } = harness(state, happy());
+    expect((await run()).reason).not.toContain("consumer function before teardown");
   });
 
   it("a failed delete is a leak, not a pass", async () => {

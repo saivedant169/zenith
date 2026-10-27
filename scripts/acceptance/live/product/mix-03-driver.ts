@@ -120,7 +120,7 @@ const CHILD_STATUS: Record<string, string> = { pending: "pending", adopted: "pen
 const HALTS: [RegExp, string][] = [
   [/^The environment lease was lost while OpenTofu was applying/, "lease_lost_tofu_apply"],
   [/^OpenTofu ([a-z]+) did not finish \(([a-z_]+)\)/, "tofu_$1_$2"],
-  [/^The apply ended with an unclassified error \(([A-Za-z0-9_]+)[:)].*; cause ([A-Za-z0-9_]+)/, "unclassified_$1_$2"],
+  [/^The apply ended with an unclassified error \(([A-Za-z0-9_]+)[:)].*; cause ([A-Za-z0-9_]+)(?:\/([a-z_]+))?/, "unclassified_$1_$2_$3"],
   [/^The apply ended with an unclassified error \(([A-Za-z0-9_]+)[:)]/, "unclassified_$1"],
   [/^An owning runner or machine job expired/, "job_expired"],
   [/^Infrastructure verification was inconclusive/, "verify_infrastructure_inconclusive"], [/^Infrastructure verification failed/, "verify_infrastructure_failed"],
@@ -132,7 +132,7 @@ const haltOf = (error: string): string => {
   for (const [pattern, code] of HALTS) {
     const match = pattern.exec(error);
     if (!match) continue;
-    const named = code.replace("$1", match[1] ?? "").replace("$2", match[2] ?? "").toLowerCase();
+    const named = code.replace(/\$(\d)/g, (_, i: string) => match[Number(i)] ?? "").replace(/_+$/, "").toLowerCase();
     return HALT_CODE.test(named) ? named : "other";
   }
   return "other";

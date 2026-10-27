@@ -27,7 +27,7 @@ type Invoke = (call: Call, values?: Values, extra?: Record<string, Json>) => Pro
 
 /** Opaque, non-secret product identifiers. The approver is an automated test approver created by CI (decision D1). */
 export interface Mix03Tenant { workspaceId: string; approverId: string }
-export interface Mix03Child { role: "producer" | "consumer"; status: string; childOperationId?: string; receiptOperationId?: string; awaitingOperationId?: string }
+export interface Mix03Child { role: "producer" | "consumer"; status: string; childOperationId?: string; receiptOperationId?: string; awaitingOperationId?: string; operationStatus?: string }
 /** The consumer's Lambda package in S3: the object version and both immutable digests the function source must carry. */
 export interface Mix03Artifact { bucket: string; key: string; versionId: string; sha256: string; sourceDigest: string }
 export interface Mix03Product {
@@ -61,6 +61,7 @@ export interface Mix03Seams {
   sleep?: (ms: number) => Promise<void>;
   propagation?: { attempts: number; intervalMs: number };
   polls?: { attempts: number; intervalMs: number };
+  now?: () => number;
 }
 
 /** The product's error sentence with ARNs, key=value pairs, URLs, paths and long tokens elided (as scripts/release/drivers/operated.ts). */
@@ -90,6 +91,14 @@ export const unwiredProduct: Mix03Product = {
 const EXTERNAL_ID_NEW = /^zenith-[0-9a-f]{32}$/;
 const EXTERNAL_ID_TEMPLATE = /^[A-Za-z0-9+=,.@:/_-]{2,1224}$/;
 const FIXED_TEXT = /^[A-Za-z0-9 ,.'()-]{1,200}$/;
+/** Teardown makes about twenty planned calls; five minutes covers them and the tagging index re-list. */
+export const TEARDOWN_RESERVE_MS = 5 * 60_000;
+const STATE_WORD = /^[a-z_]{1,40}$/;
+/** "producer running/queued": the plan child's state and, when read, its operation's status. Fixed words only. */
+const childState = (child: Mix03Child): string => {
+  const word = (value: string | undefined) => (value && STATE_WORD.test(value) ? value : "unknown");
+  return `${child.role} ${word(child.status)}${child.operationStatus ? `/${word(child.operationStatus)}` : ""}`;
+};
 
 /** The sandbox trust document exactly as deploy/aws/zenith-connection.cfn.yaml renders it (AssumeRole mode, no OIDC). */
 export function trustDocument(principalArn: string, externalId: string): string {
@@ -273,10 +282,13 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
   const sleep = seams.sleep ?? ((ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms)));
   const propagation = seams.propagation ?? { attempts: 12, intervalMs: 15_000 };
   const polls = seams.polls ?? { attempts: 120, intervalMs: 15_000 };
+  const now = seams.now ?? Date.now;
   return {
     async verify(requirement, { plan, call }) {
       if (requirement.id !== "PROD-MIX-03") return { complete: false, reason: `${requirement.id}: not implemented by this port` };
       const run: RunState = { attempted: false, environmentIds: [], trust: [] };
+      // The harness refuses every AWS call once the run window closes, teardown included: stop polling with room left for it.
+      const pollDeadline = now() + plan.settings.durationMinutes * 60_000 - TEARDOWN_RESERVE_MS;
       const invoke: Invoke = (c, values = {}, extra = {}) => call(c, { ...fill(c.input, values), ...extra });
       const planned = (id: string): Call => plan.productCalls?.find(c => c.id === id) ?? refuse(`the plan has no call ${id}`);
       const account = plan.settings.accountId, region = plan.settings.region;
@@ -336,7 +348,7 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
           if (producer.status === "failed" || consumer.status === "failed") refuse("a child operation failed");
           for (const child of children) if (child.awaitingOperationId) await product.approve(tenant, child.awaitingOperationId);
           if (producer.status === "succeeded" && consumer.status === "succeeded") break;
-          if (poll >= polls.attempts) refuse("the child operations did not finish within the bound");
+          if (poll >= polls.attempts || now() >= pollDeadline) refuse(`the child operations did not finish within the bound (${[producer, consumer].map(childState).join(", ")})`);
           await sleep(polls.intervalMs);
         }
         step = "receipts";

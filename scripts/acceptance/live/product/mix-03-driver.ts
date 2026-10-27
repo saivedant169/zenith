@@ -322,16 +322,18 @@ export function browserMix03Product(env: EnvLike = process.env, seams: Mix03Driv
         for (const row of rows) {
           // The producer is the child nothing depends on; the consumer depends on it.
           const role = row.dependsOn?.length ? "consumer" : "producer";
-          let awaitingOperationId: string | undefined;
+          let awaitingOperationId: string | undefined, operationStatus: string | undefined;
           if (row.childOperationId && (row.state === "adopted" || row.state === "started")) {
             const detail = ok(await send(session, session.owner, `/api/platform/v1/operations/${row.childOperationId}`, undefined, "GET")) as { operation?: { status?: string } };
             if (detail.operation?.status === "awaiting_approval") awaitingOperationId = row.childOperationId;
+            if (typeof detail.operation?.status === "string" && SAFE_CODE.test(detail.operation.status)) operationStatus = detail.operation.status;
           }
           children.push({
             role, status: CHILD_STATUS[row.state ?? ""] ?? "unknown",
             ...(row.childOperationId ? { childOperationId: row.childOperationId } : {}),
             ...(row.receipt?.childOperationId ? { receiptOperationId: row.receipt.childOperationId } : {}),
             ...(awaitingOperationId ? { awaitingOperationId } : {}),
+            ...(operationStatus ? { operationStatus } : {}),
           });
         }
         return children;

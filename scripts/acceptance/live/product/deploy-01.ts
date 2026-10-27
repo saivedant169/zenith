@@ -145,7 +145,9 @@ export function deploy01Port(env: EnvLike = process.env, seams: Deploy01Seams = 
           const left = await invoke(planned("deploy01-tag-read"), { environmentId });
           // Deleted ECS clusters and task definitions stay INACTIVE (no cost) and deleted rules can linger in the tag inventory;
           // only ARNs the successful destroy removed from the recorded state are excused. Anything else is a leak.
-          const gone = (arn: string) => destroyedArns.includes(arn) || destroyedIds.includes(arn.split(/[/:]/).pop() ?? "");
+          // A stopped task of a destroyed cluster stays listed for about an hour (no cost).
+          const stoppedTask = (arn: string) => { const m = /^(arn:aws:ecs:[a-z0-9-]+:\d{12}:)task\/([A-Za-z0-9_-]+)\/[a-f0-9]{32}$/.exec(arn); return !!m && destroyedArns.includes(`${m[1]}cluster/${m[2]}`); };
+          const gone = (arn: string) => destroyedArns.includes(arn) || destroyedIds.includes(arn.split(/[/:]/).pop() ?? "") || stoppedTask(arn);
           const list = ((field(left, "ResourceTagMappingList") as unknown[] | undefined) ?? []).map(r => String(field(r, "ResourceARN"))).filter(arn => !gone(arn));
           // The resource types (service:type, never ids) say what to look for.
           const types = [...new Set(list.map(arn => { const [, , service, , , rest] = arn.split(":"); return `${service}:${(rest ?? "").split("/")[0]}`; }))].filter(t => /^[a-z0-9-]{1,30}:[a-z0-9-]{0,40}$/.test(t)).sort();

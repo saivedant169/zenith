@@ -50,7 +50,7 @@ function harness(opts: { deployStatus?: string; leftAfterDestroy?: number; image
       case "deploy01-iam-trust-observe": trust.observe = String(i.PolicyDocument); return {};
       case "deploy01-iam-trust-deploy": trust.deploy = String(i.PolicyDocument); return {};
       case "deploy01-sts-assume": expect(i.ExternalId).toBe(NEW_EXT); return { Credentials: { AccessKeyId: "A", SecretAccessKey: "S", SessionToken: "T" } };
-      case "deploy01-tag-read": return { ResourceTagMappingList: destroyed ? [{ ResourceARN: CLUSTER }, ...new Array(opts.leftAfterDestroy ?? 0).fill({ ResourceARN: `arn:aws:elasticloadbalancing:${REGION}:${ACCOUNT}:loadbalancer/app/zenith-x/1` }), { ResourceARN: `arn:aws:ec2:${REGION}:${ACCOUNT}:natgateway/nat-0abc` }] : [] };
+      case "deploy01-tag-read": return { ResourceTagMappingList: destroyed ? [{ ResourceARN: CLUSTER }, ...new Array(opts.leftAfterDestroy ?? 0).fill({ ResourceARN: `arn:aws:elasticloadbalancing:${REGION}:${ACCOUNT}:loadbalancer/app/zenith-x/1` }), { ResourceARN: `arn:aws:ec2:${REGION}:${ACCOUNT}:natgateway/nat-0abc` }, { ResourceARN: `arn:aws:ecs:${REGION}:${ACCOUNT}:task/zenith-x-web/${"a".repeat(32)}` }] : [] };
       default: throw new Error(`unexpected ${c.id}`);
     }
   };

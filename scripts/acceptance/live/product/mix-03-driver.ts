@@ -112,6 +112,11 @@ const codeOf = (data: unknown): string | undefined => {
   return typeof code === "string" ? code : undefined;
 };
 const CHILD_STATUS: Record<string, string> = { pending: "pending", adopted: "pending", started: "running", succeeded: "succeeded", failed: "failed", uncertain: "uncertain", cancelled: "cancelled", blocked: "blocked" };
+/** Fixed categories of a child operation's halt message (src/lib/workflows/definitions/capability.ts, runtime.ts). */
+const HALTS: [RegExp, string][] = [
+  [/verification was inconclusive/, "verify_inconclusive"], [/verification failed/, "verify_failed"], [/did not succeed/, "apply_failed"],
+  [/Cancellation stopped/, "cancel_unconfirmed"], [/lease/i, "lease"], [/timed? ?out|deadline/i, "timeout"],
+];
 const SAFE_CODE = /^[a-z_]{1,40}$/, ID = /^[A-Za-z0-9_.:-]{1,128}$/, HEX64 = /^[a-f0-9]{64}$/;
 /** A partition id is "partition/<digest>"; this is the adoption route's own body shape. */
 const PARTITION = /^[A-Za-z0-9_.:/-]{1,200}$/;
@@ -316,17 +321,22 @@ export function browserMix03Product(env: EnvLike = process.env, seams: Mix03Driv
         const session = sessionOf(tenant);
         const plan = ok(await send(session, session.owner, `/api/platform/v1/mixed/plans/${planId}`, undefined, "GET")) as { children?: unknown; parentOperationId?: unknown };
         const rows = (Array.isArray(plan.children) ? plan.children : []) as {
-          dependsOn?: unknown[]; state?: string; childOperationId?: string | null; receipt?: { childOperationId?: string } | null;
+          dependsOn?: unknown[]; state?: string; childOperationId?: string | null; receipt?: { childOperationId?: string; childStatus?: unknown } | null;
         }[];
         const children: Mix03Child[] = [];
         for (const row of rows) {
           // The producer is the child nothing depends on; the consumer depends on it.
           const role = row.dependsOn?.length ? "consumer" : "producer";
-          let awaitingOperationId: string | undefined, operationStatus: string | undefined;
-          if (row.childOperationId && (row.state === "adopted" || row.state === "started")) {
-            const detail = ok(await send(session, session.owner, `/api/platform/v1/operations/${row.childOperationId}`, undefined, "GET")) as { operation?: { status?: string } };
+          let awaitingOperationId: string | undefined, operationStatus: string | undefined, halt: string | undefined;
+          const receiptStatus = row.receipt?.childStatus;
+          if (typeof receiptStatus === "string" && SAFE_CODE.test(receiptStatus)) operationStatus = receiptStatus;
+          else if (row.childOperationId && row.state !== "pending" && row.state !== "succeeded") {
+            const detail = ok(await send(session, session.owner, `/api/platform/v1/operations/${row.childOperationId}`, undefined, "GET")) as { operation?: { status?: string; error?: unknown } };
             if (detail.operation?.status === "awaiting_approval") awaitingOperationId = row.childOperationId;
             if (typeof detail.operation?.status === "string" && SAFE_CODE.test(detail.operation.status)) operationStatus = detail.operation.status;
+            // The error is free text: only a fixed category of it leaves the driver.
+            const error = detail.operation?.error;
+            if (typeof error === "string") halt = HALTS.find(([pattern]) => pattern.test(error))?.[1] ?? "other";
           }
           children.push({
             role, status: CHILD_STATUS[row.state ?? ""] ?? "unknown",
@@ -334,6 +344,7 @@ export function browserMix03Product(env: EnvLike = process.env, seams: Mix03Driv
             ...(row.receipt?.childOperationId ? { receiptOperationId: row.receipt.childOperationId } : {}),
             ...(awaitingOperationId ? { awaitingOperationId } : {}),
             ...(operationStatus ? { operationStatus } : {}),
+            ...(halt ? { halt } : {}),
           });
         }
         // The producer's real outputs change the consumer's input, so the parent workflow opens a review operation of the new

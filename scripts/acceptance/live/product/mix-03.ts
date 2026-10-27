@@ -27,7 +27,7 @@ type Invoke = (call: Call, values?: Values, extra?: Record<string, Json>) => Pro
 
 /** Opaque, non-secret product identifiers. The approver is an automated test approver created by CI (decision D1). */
 export interface Mix03Tenant { workspaceId: string; approverId: string }
-export interface Mix03Child { role: "producer" | "consumer"; status: string; childOperationId?: string; receiptOperationId?: string; awaitingOperationId?: string; operationStatus?: string }
+export interface Mix03Child { role: "producer" | "consumer"; status: string; childOperationId?: string; receiptOperationId?: string; awaitingOperationId?: string; operationStatus?: string; halt?: string }
 /** The consumer's Lambda package in S3: the object version and both immutable digests the function source must carry. */
 export interface Mix03Artifact { bucket: string; key: string; versionId: string; sha256: string; sourceDigest: string }
 export interface Mix03Product {
@@ -97,7 +97,7 @@ const STATE_WORD = /^[a-z_]{1,40}$/;
 /** "producer running/queued": the plan child's state and, when read, its operation's status. Fixed words only. */
 const childState = (child: Mix03Child): string => {
   const word = (value: string | undefined) => (value && STATE_WORD.test(value) ? value : "unknown");
-  return `${child.role} ${word(child.status)}${child.operationStatus ? `/${word(child.operationStatus)}` : ""}`;
+  return `${child.role} ${word(child.status)}${child.operationStatus ? `/${word(child.operationStatus)}` : ""}${child.halt ? `:${word(child.halt)}` : ""}`;
 };
 
 /** The sandbox trust document exactly as deploy/aws/zenith-connection.cfn.yaml renders it (AssumeRole mode, no OIDC). */
@@ -232,14 +232,18 @@ async function teardown(run: RunState, plan: Plan, invoke: Invoke, planned: (id:
   const bucketPattern = /^arn:aws:s3:::(zenith-[a-z0-9.-]{3,58})$/;
   const rolePattern = new RegExp(`^arn:aws:iam::${account}:role/(zenith-[A-Za-z0-9+=,.@_-]{1,63})$`);
   const policyPattern = new RegExp(`^arn:aws:iam::${account}:policy/zenith-[A-Za-z0-9+=,.@_-]{1,120}$`);
+  const logGroupPattern = new RegExp(`^arn:aws:logs:${region}:${account}:log-group:(/aws/lambda/zenith-[A-Za-z0-9_-]{1,64})(?::\\*)?$`);
+  // The Lambda driver names its role's one inline policy "logs" (src/lib/providers/aws/drivers/compute/lambda-function.ts).
+  const inlinePolicyName = /^(?:logs|zenith-[A-Za-z0-9+=,.@_-]{1,120})$/;
   const scan = () => inventoryOf(invoke, planned("mix03-tag-read"), envIds);
   let mappings: Mapping[];
   try { mappings = await scan(); } catch { leaks.push("tag inventory failed; resources may remain"); return leaks; }
-  const functions: { name: string; arn: string }[] = [], buckets: { name: string; arn: string }[] = [];
+  const functions: { name: string; arn: string }[] = [], buckets: { name: string; arn: string }[] = [], logGroups = new Set<string>();
   for (const mapping of mappings) {
-    const fn = fnPattern.exec(mapping.arn), bucket = bucketPattern.exec(mapping.arn);
+    const fn = fnPattern.exec(mapping.arn), bucket = bucketPattern.exec(mapping.arn), logGroup = logGroupPattern.exec(mapping.arn);
     if (fn && owned(mapping.tags, envIds)) functions.push({ name: fn[1]!, arn: mapping.arn });
     else if (bucket && owned(mapping.tags, envIds)) buckets.push({ name: bucket[1]!, arn: mapping.arn });
+    else if (logGroup && owned(mapping.tags, envIds)) logGroups.add(logGroup[1]!);
     else leaks.push("a tagged resource outside the exact patterns or without the run's ownership tags was not deleted");
   }
   for (const fn of functions) {
@@ -248,6 +252,7 @@ async function teardown(run: RunState, plan: Plan, invoke: Invoke, planned: (id:
     const roleMatch = typeof roleArn === "string" ? rolePattern.exec(roleArn) : null;
     const deleted = await attempt("deleting the consumer function", () => invoke(planned("mix03-lambda-delete"), { functionName: fn.name }));
     await attempt("deleting the function log group", () => invoke(planned("mix03-logs-delete"), { logGroupName: `/aws/lambda/${fn.name}` }), ["ResourceNotFoundException"]);
+    logGroups.delete(`/aws/lambda/${fn.name}`);
     if (!deleted || !roleMatch) { if (!roleMatch) leaks.push("the function's role does not match the exact pattern; role not deleted"); continue; }
     const roleName = roleMatch[1]!;
     const role = await invoke(planned("mix03-role-read"), { roleName }).catch(() => undefined);
@@ -262,11 +267,13 @@ async function teardown(run: RunState, plan: Plan, invoke: Invoke, planned: (id:
     }
     const inline = await invoke(planned("mix03-role-inline-list"), { roleName }).catch(() => undefined);
     for (const name of (Array.isArray(field(inline, "PolicyNames")) ? (field(inline, "PolicyNames") as unknown[]) : [])) {
-      if (typeof name !== "string" || !/^zenith-[A-Za-z0-9+=,.@_-]{1,120}$/.test(name)) { roleReady = false; leaks.push("an inline role policy outside the exact pattern; role not deleted"); break; }
+      if (typeof name !== "string" || !inlinePolicyName.test(name)) { roleReady = false; leaks.push("an inline role policy outside the exact pattern; role not deleted"); break; }
       roleReady = await attempt("deleting an inline role policy", () => invoke(planned("mix03-role-inline-delete"), { roleName, policyName: name })) && roleReady;
     }
     if (roleReady) await attempt("deleting the function role", () => invoke(planned("mix03-role-delete"), { roleName }));
   }
+  // A log group whose function is already gone (or never came up) is deleted on its own.
+  for (const logGroupName of logGroups) await attempt("deleting a function log group", () => invoke(planned("mix03-logs-delete"), { logGroupName }), ["ResourceNotFoundException"]);
   for (const bucket of buckets) await attempt("deleting the producer bucket", () => invoke(planned("mix03-bucket-delete"), { bucketName: bucket.name }), ["NoSuchBucket"]);
   try {
     const remaining = await scan();
@@ -345,7 +352,8 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
           consumer = children.find(child => child.role === "consumer");
           if (!producer || !consumer) refuse("the plan does not have one producer and one consumer child");
           if (producer.status !== "succeeded" && (consumer.status === "running" || consumer.status === "succeeded")) refuse("the consumer started before the producer receipt");
-          if (producer.status === "failed" || consumer.status === "failed") refuse("a child operation failed");
+          // A child that ended any other way than success will not succeed later: stop now and name how it ended.
+          if ([producer, consumer].some(child => ["failed", "uncertain", "cancelled", "blocked"].includes(child.status))) refuse(`a child operation did not succeed (${[producer, consumer].map(childState).join(", ")})`);
           for (const child of children) if (child.awaitingOperationId) await product.approve(tenant, child.awaitingOperationId);
           if (producer.status === "succeeded" && consumer.status === "succeeded") break;
           if (poll >= polls.attempts || now() >= pollDeadline) refuse(`the child operations did not finish within the bound (${[producer, consumer].map(childState).join(", ")})`);

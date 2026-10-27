@@ -25,7 +25,7 @@ const COMMIT = "a".repeat(40);
 const fast = { upload: async () => VERSION, sleep: async () => undefined, propagation: { attempts: 3, intervalMs: 0 }, polls: { attempts: 3, intervalMs: 0 } };
 
 /** The AWS side: the sandbox trust documents, the tagged product resources and what has been deleted. */
-interface World { trustDocs: Record<"observe" | "deploy", string>; deleted: Set<string>; extra: { ResourceARN: string; Tags: { Key: string; Value: string }[] }[]; failDelete: boolean; envArn?: string }
+interface World { trustDocs: Record<"observe" | "deploy", string>; deleted: Set<string>; extra: { ResourceARN: string; Tags: { Key: string; Value: string }[] }[]; failDelete: boolean; envArn?: string; inline?: string[] }
 function world(): World {
   return {
     trustDocs: { observe: trustDocument(PRINCIPAL, OLD_EXT), deploy: trustDocument(PRINCIPAL, OLD_EXT) },
@@ -51,10 +51,11 @@ function respond(state: World, c: Call, input: Record<string, Json>): Record<str
     case "mix03-bucket-head": return {};
     case "mix03-bucket-tags": return { TagSet: OWNED };
     case "mix03-lambda-delete": if (state.failDelete) throw Object.assign(new Error("denied"), { name: "AccessDenied" }); state.deleted.add(`arn:aws:lambda:${REGION}:${ACCOUNT}:function:${FN}`); return {};
-    case "mix03-logs-delete": return {};
+    case "mix03-logs-delete": for (const suffix of ["", ":*"]) state.deleted.add(`arn:aws:logs:${REGION}:${ACCOUNT}:log-group:${String(input.logGroupName)}${suffix}`); return {};
     case "mix03-role-read": return { Role: { Tags: OWNED } };
     case "mix03-role-attached-list": return { AttachedPolicies: [] };
-    case "mix03-role-inline-list": return { PolicyNames: [] };
+    case "mix03-role-inline-list": return { PolicyNames: state.inline ?? [] };
+    case "mix03-role-inline-delete": return {};
     case "mix03-role-delete": return {};
     case "mix03-bucket-delete": state.deleted.add(`arn:aws:s3:::${BUCKET}`); return {};
     default: throw new Error(`unexpected planned call in the fake: ${c.id}`);
@@ -322,6 +323,41 @@ describe("PROD-MIX-03 cleanup", () => {
     expect(state.deleted.has("arn:aws:s3:::zenith-envlive1-stray")).toBe(false);
     expect(result.leaks?.some(l => l.includes("outside the exact patterns"))).toBe(true);
     expect(result.leaks?.some(l => l.includes("still present after cleanup"))).toBe(true);
+  });
+
+  it("deletes the Lambda role's \"logs\" inline policy, the role and the tagged log group, with no leak", async () => {
+    const state = world();
+    state.inline = ["logs"];
+    state.extra.push(
+      { ResourceARN: `arn:aws:logs:${REGION}:${ACCOUNT}:log-group:/aws/lambda/${FN}`, Tags: OWNED },
+      { ResourceARN: `arn:aws:logs:${REGION}:${ACCOUNT}:log-group:/aws/lambda/zenith-envlive1-orphan:*`, Tags: OWNED },
+    );
+    const { run, sent } = harness(state, happy());
+    const result = await run();
+    expect(result.leaks ?? []).toEqual([]);
+    expect(sent.filter(s => s.id === "mix03-role-inline-delete").map(s => s.input.PolicyName)).toEqual(["logs"]);
+    expect(sent.some(s => s.id === "mix03-role-delete")).toBe(true);
+    expect(sent.filter(s => s.id === "mix03-logs-delete").map(s => s.input.logGroupName)).toEqual([`/aws/lambda/${FN}`, "/aws/lambda/zenith-envlive1-orphan"]);
+  });
+
+  it("keeps the role when an inline policy is neither \"logs\" nor zenith-*", async () => {
+    const state = world();
+    state.inline = ["admin"];
+    const { run, sent } = harness(state, happy());
+    const result = await run();
+    expect(result.leaks).toContain("an inline role policy outside the exact pattern; role not deleted");
+    expect(sent.some(s => s.id === "mix03-role-delete")).toBe(false);
+  });
+
+  it("stops at once when a child ends uncertain, names how, and still tears down", async () => {
+    const state = world();
+    const { run, sent } = harness(state, happy({ children: async () => [
+      { role: "producer", status: "succeeded", childOperationId: "op-p", receiptOperationId: "op-p", operationStatus: "succeeded" },
+      { role: "consumer", status: "uncertain", childOperationId: "op-c", operationStatus: "uncertain", halt: "verify_inconclusive" },
+    ] }), { polls: { attempts: 120, intervalMs: 0 } });
+    const result = await run();
+    expect(result.reason).toContain("a child operation did not succeed (producer succeeded/succeeded, consumer uncertain/uncertain:verify_inconclusive)");
+    expect(sent.filter(s => s.id === "mix03-lambda-delete")).toHaveLength(1);
   });
 
   it("a failed delete is a leak, not a pass", async () => {

@@ -327,6 +327,24 @@ describe("mixed start: adoption of both children, then the start", () => {
     ]);
   });
 
+  it("children names how a child ended: the receipt status, or a fixed category of the operation's halt, never its text", async () => {
+    const t = transport((sent) => {
+      if (sent.endpoint === "/api/platform/v1/mixed/plans/plan-1") return ok({ children: [
+        { partitionId: P_PRODUCER, dependsOn: [], state: "uncertain", childOperationId: "op-p", receipt: { childOperationId: "op-p", childStatus: "succeeded_without_reviewed_semantics" } },
+        { partitionId: P_CONSUMER, dependsOn: [P_PRODUCER], state: "uncertain", childOperationId: "op-c", receipt: null },
+      ] });
+      if (sent.endpoint === "/api/platform/v1/operations/op-c") return ok({ operation: { id: "op-c", status: "uncertain", error: "The deploy was applied (secret-ish summary) but verification was inconclusive; its result is unknown." } });
+      throw new Error(`unexpected ${sent.endpoint}`);
+    });
+    const product = await driverWithTenant({ request: t.request });
+    const children = await product.children(TENANT, "plan-1");
+    expect(children).toEqual([
+      { role: "producer", status: "uncertain", childOperationId: "op-p", receiptOperationId: "op-p", operationStatus: "succeeded_without_reviewed_semantics" },
+      { role: "consumer", status: "uncertain", childOperationId: "op-c", operationStatus: "uncertain", halt: "verify_inconclusive" },
+    ]);
+    expect(JSON.stringify(children)).not.toContain("secret-ish");
+  });
+
   it("children names the open review of the changed parent digest as the consumer's awaiting approval", async () => {
     const t = transport((sent) => {
       if (sent.endpoint === "/api/platform/v1/mixed/plans/plan-1") return ok({ parentOperationId: "op-parent", children: [

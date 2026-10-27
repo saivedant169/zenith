@@ -8251,6 +8251,16 @@
           "result": "D-4 export passed all 17 checks with a matched current-source receipt on zod 4.6.7 source: PostgreSQL, MySQL over TLS and object-store data roundtrips through browser-approved data.export/data.import with tenant scoping; LocalStack revision export, file readback, credential absence, browser-approved teardown, portable OpenTofu plan and apply readback; owned cleanup. arm64 runs on b249d7d9 and 51aa67b7 passed every functional check but failed owned cleanup at agent-link revoke (identity provider refusal mapped to 400; fixed in 623e7df6). No promotion.",
           "artifact": "docs/build/production/evidence/PROD-LIFE-11/2026-10-24-hosted-d4-51aa67b7/drivers-d4-export-amd64-run40038487612.json",
           "logs": "https://github.com/saivedant169/zenith/actions/runs/40038487612"
+        },
+        {
+          "level": "live_sandbox",
+          "commit": "f436e3dbeda2f40007301bd05d23048b10ec70b0",
+          "runId": 40460096635,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/40460096635",
+          "command": "GitHub Actions live-acceptance.yml, workflow_dispatch with scenario deploy-01 and run_id zlive-202610270616-201f (scripts/acceptance/live/product/deploy-01.ts); plan sha256 8fb3cbd12211343c034beb6e7b65fb2aff1c3d481efcd7203e1266331f9eca48; permission sha256 f7aa1dbda38ca781f62b7a0a39de1bb4c2696b6ece7b8b49e8f2360fa99b86c1",
+          "environment": "Disposable AWS sandbox account 361646636162, region ap-south-1; GitHub environment live-sandbox (owner-delegated automated envelope, approvedBy automation delegated by Saivedant Hava 2026-10-26); hosted runner with the disposable Zenith stack; connection stack zenith-connection-live (NameSuffix -live); estimated cap USD 2.20 (provisional, billing not measured); 40 minute window",
+          "logs": "docs/build/production/evidence/PROD-REL-01/2026-10-27-live-aws-40460096635/",
+          "result": "DEPLOY-01 passed on the live AWS sandbox with cleanup complete: the product connected to the sandbox roles, deployed public.ecr.aws/nginx/nginx@sha256:df80ece7... to ECS Fargate behind an ALB with two-person approval and served HTTP 200; updated to @sha256:4aad0a9f... and rolled back to @sha256:df80ece7..., each read back from the recorded OpenTofu state and over HTTP; the harness then destroyed the environment's recorded state and found no tagged leftovers (stale tagging-index entries excused only for ARNs the destroy removed, and for subnets once their VPC was destroyed). Covers only the clean-install/plan-approval/update-rollback/teardown slice of PROD-REL-01 for one ECS service; DNS-TLS, stateful traffic, schedules, drift repair, revocation, key rotation, upgrade, restore, two tenants and export remain pending; operational_rehearsal not done; not a promotion."
         }
       ],
       "requiredEvidence": [

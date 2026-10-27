@@ -70,6 +70,7 @@ function proposeRoute(options: { deployStatuses?: string[]; planStatus?: number;
       const environmentId = String(inputOf(sent).environmentId);
       return action({ ok: true, data: environmentId === "env-parent" ? { deploymentId: "dep-parent" } : { deploymentId: "dep-child", operationId: `op-${environmentId}` } });
     }
+    if (endpoint === "/api/platform/v1/environments/env-parent/autonomy") return ok({ level: 3 });
     if (endpoint === "/api/environments/env-parent/deployments?limit=1") return ok({ deployments: [{ status: statuses.length > 1 ? statuses.shift() : statuses[0] }] });
     if (endpoint === "/api/platform/v1/mixed/plans") {
       return options.planStatus ? { status: options.planStatus, data: { error: { code: options.planCode ?? "plan_refused" } } }
@@ -207,6 +208,15 @@ describe("mixed proposal: the sandbox parent, two AWS children and the plan", ()
     } });
     const order = t.sent.map(c => c.endpoint);
     expect(order.indexOf("/api/environments/env-parent/deployments?limit=1")).toBeLessThan(order.indexOf("/api/platform/v1/mixed/plans"));
+  });
+
+  it("lowers the parent's autonomy below deployment.deploy's default before the plan, so the parent operation waits for a person", async () => {
+    const t = transport(proposeRoute());
+    await (await driverWithTenant({ request: t.request })).proposeMixed(TENANT, { connectionId: "conn-1", accountId: "123456789012", region: "ap-south-1", artifact: ARTIFACT });
+    const autonomy = "/api/platform/v1/environments/env-parent/autonomy";
+    expect(t.sent.find(c => c.endpoint === autonomy)).toMatchObject({ page: OWNER, method: "PUT", workspaceId: "ws-1", body: { level: 3 } });
+    const order = t.sent.map(c => c.endpoint);
+    expect(order.indexOf(autonomy)).toBeLessThan(order.indexOf("/api/platform/v1/mixed/plans"));
   });
 
   it("waits on a running parent deployment and succeeds when it finishes", async () => {

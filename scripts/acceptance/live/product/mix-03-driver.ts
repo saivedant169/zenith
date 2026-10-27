@@ -115,6 +115,8 @@ const CHILD_STATUS: Record<string, string> = { pending: "pending", adopted: "pen
 const SAFE_CODE = /^[a-z_]{1,40}$/, ID = /^[A-Za-z0-9_.:-]{1,128}$/, HEX64 = /^[a-f0-9]{64}$/;
 /** A partition id is "partition/<digest>"; this is the adoption route's own body shape. */
 const PARTITION = /^[A-Za-z0-9_.:/-]{1,200}$/;
+/** Below deployment.deploy's catalog defaultAutonomy (4), so the mixed parent operation needs a person's approval. */
+export const PARENT_AUTONOMY = 3;
 /** Deployment readback bound: 60 polls, 5 seconds apart. */
 const DEPLOY_POLLS = { attempts: 60, intervalMs: 5_000 };
 /** One use, fifteen minutes: enough for one consumer materialization and short enough to lapse on its own. */
@@ -162,7 +164,7 @@ const reasonCode = (data: unknown): string => {
 export function browserMix03Product(env: EnvLike = process.env, seams: Mix03DriverSeams = {}): Mix03Product & { close(): Promise<void> } {
   const request: ProductRequest = seams.request ?? browserRequest;
   const stepUp = seams.stepUp ?? stepUpWithAuthenticator;
-  const approve = seams.approve ?? ((session: TenantSession, operationId: string) => approveOperation({ stack: session.stack }, session, operationId));
+  const approve = seams.approve ?? ((session: TenantSession, operationId: string) => approveOperation({ stack: session.stack }, session, operationId, { separationOfDuties: false }));
   const openSession = seams.session ?? (() => openRealSession(env));
   const sleep = seams.sleep ?? ((ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms)));
   const sessions = new Map<string, TenantSession>();
@@ -253,6 +255,9 @@ export function browserMix03Product(env: EnvLike = process.env, seams: Mix03Driv
         await must(session, "project.updateManifest", { projectId, manifest: graph }, scope);
         const parent = idOf((await must(session, "env.create", { projectId, name: "parent", class: "sandbox", approvalRequired: false }, scope)).environmentId, "the parent environment");
         await deployAndWait(session, projectId, parent);
+        // A sandbox environment's default autonomy (4) lets policy run deployment.deploy unattended. Below it, the parent
+        // operation waits for a person, which PROD-MIX-03 requires. The admin sets it through the product's own route.
+        ok(await send(session, session.owner, `/api/platform/v1/environments/${parent}/autonomy`, { level: PARENT_AUTONOMY }, "PUT"));
         const create = async (name: string) => idOf((await must(session, "env.create", {
           projectId, name, class: "sandbox", connectionId: input.connectionId, region: input.region, approvalRequired: true,
         }, scope)).environmentId, `the ${name} environment`);

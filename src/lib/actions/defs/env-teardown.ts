@@ -3,7 +3,7 @@ import { z } from "zod";
 import { defineAction } from "@/lib/actions/core";
 import { proposeTeardown, teardownPlan } from "@/lib/bridge/destroy";
 import { requireEnvironment } from "./_shared";
-import { environmentBusy, activityUnavailableMessage } from "./env";
+import { environmentBusy, activityUnavailableMessage, teardownSettling } from "./env";
 import { principalFromAction } from "@/lib/capabilities/action-bridge";
 import { platformBroker } from "@/lib/capabilities/platform";
 import { getDestroyReview, requestDestroyReview } from "@/lib/capabilities/destroy-review";
@@ -38,12 +38,15 @@ defineAction<z.infer<typeof Input>>({
     const plan = await teardownPlan(ctx, env);
     const busy = await environmentBusy(ctx, env.id);
     if (busy) plan.blocked = busy.status === "authority_unavailable" ? activityUnavailableMessage : "Wait for the environment's active deployment to finish before proposing teardown.";
+    else { const settling = await teardownSettling(ctx, env); if (settling) plan.blocked = settling; }
     return plan;
   },
   async execute(ctx, input) {
     const env = requireEnvironment(ctx, input.environmentId);
     const busy = await environmentBusy(ctx, env.id);
     if (busy) return { ok: false, summary: "Teardown refused.", error: busy.status === "authority_unavailable" ? activityUnavailableMessage : "Wait for the environment's active deployment to finish." };
+    const settling = await teardownSettling(ctx, env);
+    if (settling) return { ok: false, summary: "Teardown refused.", error: settling };
     const broker = await bridgeDeps().broker();
     const existing = await getDestroyReview(broker, { workspaceId: ctx.workspaceId, projectId: env.projectId, environmentId: env.id }, principalFromAction(ctx));
     if (existing.review && ["approved", "queued", "running", "uncertain"].includes(existing.review.status)) {

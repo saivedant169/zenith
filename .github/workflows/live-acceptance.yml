@@ -114,17 +114,26 @@ on:
           - mix-03
           - deploy-01
           - teardown-01
+      lane:
+        description: 'Sandbox lane: live (connection stack zenith-connection-live) or live2 (zenith-connection-live2; product scenarios only). Bound into the signed envelope.'
+        required: false
+        default: live
+        type: choice
+        options:
+          - live
+          - live2
 
 # Source read only at the workflow level; the one job that needs more asks for
 # it below.
 permissions:
   contents: read
 
-# One live run at a time. Two runs would create and destroy resources in the
-# same sandbox account at once, and a cancelled run would leave its resources
-# behind - so never cancel one in progress.
+# One live run at a time per lane. Each lane has its own connection stack (roles whose trust a run
+# rewrites), its own permission variables and its own group; the second lane runs only product
+# scenarios, which create nothing the other lane's leak preflight counts. A cancelled run would leave
+# its resources behind - so never cancel one in progress.
 concurrency:
-  group: live-acceptance
+  group: live-acceptance-${{ inputs.lane || 'live' }}
   cancel-in-progress: false
 
 jobs:
@@ -159,6 +168,8 @@ jobs:
       ZENITH_LIVE_AWS_DB_SECURITY_GROUP: ${{ vars.LIVE_SANDBOX_AWS_DB_SECURITY_GROUP }}
       # Read by the envelope preflight (it binds the scenario) and by the harness.
       ZENITH_LIVE_AWS_SCENARIO: ${{ inputs.scenario }}
+      # Read by the envelope preflight (it binds the lane) and by the harness.
+      ZENITH_LIVE_AWS_LANE: ${{ inputs.lane || 'live' }}
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -180,7 +191,7 @@ jobs:
         run: |
           set -euo pipefail
           {
-            # shortcut: hosted runners keep no state, so this ledger only covers one run; the per-run envelope, root per-run cap and the AWS budget alarm bound spend. Upgrade to a persisted ledger before running several live jobs in parallel.
+            # shortcut: hosted runners keep no state, so this ledger only covers one run; the per-run envelope, root per-run cap and the AWS budget spend stop bound spend, also across the two lanes. Upgrade to a persisted ledger before adding a third lane.
             echo "ZENITH_LIVE_BUDGET_FILE=$RUNNER_TEMP/zenith-live-budget/ledger.json"
             echo "ZENITH_LIVE_AWS_PERMISSIONS=$RUNNER_TEMP/zenith-aws-permissions.json"
             echo "ZENITH_LIVE_SCOPE_FILE=$RUNNER_TEMP/zenith-live-scope.json"
@@ -252,8 +263,9 @@ jobs:
       - name: Validate the approved permission envelope before OIDC
         if: hashFiles('scripts/acceptance/aws-live.ts') != ''
         env:
-          PERMISSIONS_JSON: ${{ vars.LIVE_SANDBOX_AWS_PERMISSIONS_JSON }}
-          SCOPE_JSON: ${{ vars.LIVE_SANDBOX_SCOPE_JSON }}
+          # Each lane uploads its own envelope, so two lanes never overwrite each other's.
+          PERMISSIONS_JSON: ${{ inputs.lane == 'live2' && vars.LIVE_SANDBOX_AWS_PERMISSIONS_JSON_LIVE2 || vars.LIVE_SANDBOX_AWS_PERMISSIONS_JSON }}
+          SCOPE_JSON: ${{ inputs.lane == 'live2' && vars.LIVE_SANDBOX_SCOPE_JSON_LIVE2 || vars.LIVE_SANDBOX_SCOPE_JSON }}
         shell: bash
         run: |
           set -euo pipefail

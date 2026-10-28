@@ -11,7 +11,7 @@
 import http from "node:http";
 import type { EnvLike } from "../../config";
 import type { Call, Json, ProductScenarioPort } from "../contracts";
-import { MIX03_ROLE_NAMES } from "../plan";
+import { laneSuffix, liveRoleNames } from "../plan";
 import type { Deploy01Product } from "./deploy-01-driver";
 import { fill, parsePolicy, refuse, Refusal, templateExternalId, trustDocument } from "./mix-03";
 import { destroyFromState, readState, stateAttribute, type SessionCredentials, type StateDestroyInput } from "./state-destroy";
@@ -63,11 +63,11 @@ export function deploy01Port(env: EnvLike = process.env, seams: Deploy01Seams = 
       const invoke: Invoke = (c, values = {}, extra = {}) => call(c, { ...fill(c.input, values), ...extra });
       const planned = (id: string): Call => plan.productCalls?.find(c => c.id === id) ?? refuse(`the plan has no call ${id}`);
       const account = plan.settings.accountId, region = plan.settings.region, runId = plan.settings.runId;
-      const principal = `arn:aws:iam::${account}:role/${MIX03_ROLE_NAMES.principal}`;
-      const roleArns = { observe: `arn:aws:iam::${account}:role/${MIX03_ROLE_NAMES.observe}`, deploy: `arn:aws:iam::${account}:role/${MIX03_ROLE_NAMES.deploy}` };
-      // The sandbox connection stack is installed with NameSuffix "-live": its roles, boundaries and state bucket all carry it.
-      const bootstrapNameSuffix = "-live";
+      // The lane's connection stack (NameSuffix "-live" or "-live2"): its roles, boundaries and state bucket all carry the suffix.
+      const bootstrapNameSuffix = laneSuffix(plan.settings), names = liveRoleNames(bootstrapNameSuffix);
       const stateBucket = `zenith-state-${account}-${region}${bootstrapNameSuffix}`;
+      const principal = `arn:aws:iam::${account}:role/${names.principal}`;
+      const roleArns = { observe: `arn:aws:iam::${account}:role/${names.observe}`, deploy: `arn:aws:iam::${account}:role/${names.deploy}` };
       const host = `web-${runId.slice(-8).toLowerCase()}.example.com`;
       const tofu = env.ZENITH_TOFU_BIN?.trim() || "tofu";
       const trust: { role: "observe" | "deploy"; original: string; write: Call }[] = [];

@@ -13,7 +13,7 @@
  */
 import type { EnvLike } from "../../config";
 import type { Call, Json, ProductScenarioPort } from "../contracts";
-import { MIX03_ROLE_NAMES } from "../plan";
+import { laneSuffix, liveRoleNames } from "../plan";
 import type { Deploy01Product } from "./deploy-01-driver";
 import { fill, parsePolicy, refuse, Refusal, templateExternalId, trustDocument } from "./mix-03";
 import { refreshSandboxSession } from "./session-refresh";
@@ -65,10 +65,11 @@ export function teardown01Port(env: EnvLike = process.env, seams: Teardown01Seam
       const invoke: Invoke = (c, values = {}, extra = {}) => call(c, { ...fill(c.input, values), ...extra });
       const planned = (id: string): Call => plan.productCalls?.find(c => c.id === id) ?? refuse(`the plan has no call ${id}`);
       const account = plan.settings.accountId, region = plan.settings.region, runId = plan.settings.runId;
-      const principal = `arn:aws:iam::${account}:role/${MIX03_ROLE_NAMES.principal}`;
-      const roleArns = { observe: `arn:aws:iam::${account}:role/${MIX03_ROLE_NAMES.observe}`, deploy: `arn:aws:iam::${account}:role/${MIX03_ROLE_NAMES.deploy}` };
-      const bootstrapNameSuffix = "-live";
+      // The lane's connection stack (NameSuffix "-live" or "-live2"): its roles, boundaries and state bucket all carry the suffix.
+      const bootstrapNameSuffix = laneSuffix(plan.settings), names = liveRoleNames(bootstrapNameSuffix);
       const stateBucket = `zenith-state-${account}-${region}${bootstrapNameSuffix}`;
+      const principal = `arn:aws:iam::${account}:role/${names.principal}`;
+      const roleArns = { observe: `arn:aws:iam::${account}:role/${names.observe}`, deploy: `arn:aws:iam::${account}:role/${names.deploy}` };
       const tofu = env.ZENITH_TOFU_BIN?.trim() || "tofu";
       const trust: { role: "observe" | "deploy"; original: string; write: Call }[] = [];
       let externalId: string | undefined, workspaceId: string | undefined, environmentId: string | undefined;

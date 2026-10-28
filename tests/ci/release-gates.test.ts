@@ -1403,8 +1403,10 @@ describe("the live acceptance workflow", () => {
       }
   });
 
-  it("never runs two live suites at once, and never cancels one half way", () => {
-    expect(liveAcceptance.concurrency).toEqual({ group: "live-acceptance", "cancel-in-progress": false });
+  it("never runs two live suites at once in one lane, and never cancels one half way", () => {
+    // One run at a time per sandbox lane (live, live2); each lane has its own connection roles and envelope variables.
+    expect(liveAcceptance.concurrency).toEqual({ group: "live-acceptance-${{ inputs.lane || 'live' }}", "cancel-in-progress": false });
+    expect((liveAcceptance.on as { workflow_dispatch: { inputs: Record<string, unknown> } }).workflow_dispatch.inputs.lane).toMatchObject({ default: "live", type: "choice", options: ["live", "live2"] });
     expect(typeof live()["timeout-minutes"]).toBe("number");
     // Owner-approved raise from 60 (AWS-PRODUCT-HOOK-DESIGN section 1): the stack starts before the one-hour OIDC session.
     // Raised again to 130 for deploy-01 (delegated by the owner, 2026-10-26): up to 60 minutes of deploy, update and rollback

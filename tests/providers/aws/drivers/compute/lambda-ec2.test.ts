@@ -3,7 +3,7 @@
  * Expansion does not produce these kinds yet; the tests use hand-built nodes.
  */
 import { DescribeInstanceStatusCommand, DescribeInstancesCommand, EC2Client } from "@aws-sdk/client-ec2";
-import { GetFunctionCommand, InvokeCommand, LambdaClient, ListFunctionsCommand, TagResourceCommand } from "@aws-sdk/client-lambda";
+import { GetFunctionCommand, GetFunctionConfigurationCommand, InvokeCommand, LambdaClient, ListFunctionsCommand, ListTagsCommand, TagResourceCommand } from "@aws-sdk/client-lambda";
 import { DescribeInstanceInformationCommand, SSMClient } from "@aws-sdk/client-ssm";
 import { GetResourcesCommand, ResourceGroupsTaggingAPIClient } from "@aws-sdk/client-resource-groups-tagging-api";
 import { mockClient } from "aws-sdk-client-mock";
@@ -101,9 +101,14 @@ const fnNode = fx.fn;
 const fnCfg = (over: Body = {}) => ({ Version: "1", CodeSha256: Buffer.from("a".repeat(64), "hex").toString("base64"), FunctionName: "zn-acme-resize", FunctionArn: FN_ARN, Runtime: "nodejs22.x" as const, Handler: "index.handler", MemorySize: 512, Timeout: 20, Architectures: ["x86_64" as const], State: "Active" as const, LastUpdateStatus: "Successful" as const, Role: "arn:aws:iam::123456789012:role/zn-acme-resize-fn", LoggingConfig: { LogGroup: "/aws/lambda/zn-acme-resize" }, ...over });
 const fnGet = (cfg: Body = {}, tags: Record<string, string> = zenithTagMap("function/resize")) => ({ Configuration: fnCfg(cfg), Tags: tags });
 
+const readMock = (cfg: Body = {}, tags: Record<string, string> = zenithTagMap("function/resize")) => {
+  lambdaMock.on(GetFunctionConfigurationCommand).resolves(fnCfg(cfg));
+  lambdaMock.on(ListTagsCommand).resolves({ Tags: tags });
+};
+
 describe("aws:lambda_function read side", () => {
   it("observes configuration by ARN, then verifies it is Active", async () => {
-    lambdaMock.on(GetFunctionCommand).resolves(fnGet());
+    readMock();
     const obs = await lambda.observe!(mkDriverContext(), fnNode, FN_ARN);
     expect(obs).toMatchObject({ presence: "present", externalId: FN_ARN });
     expect(Object.fromEntries(Object.entries(obs.attributes).map(([k, v]) => [k, (v as { value: unknown }).value]))).toEqual({ runtime: "nodejs22.x", handler: "index.handler", memoryMb: 512, timeoutSec: 20, architecture: "x86_64", codeSha256: Buffer.from("a".repeat(64), "hex").toString("base64") });
@@ -112,21 +117,23 @@ describe("aws:lambda_function read side", () => {
     const v = await lambda.verify!(mkDriverContext(), fnNode, obs);
     expect(v.status).toBe("passed");
     expect(v.checks.at(-1)).toMatchObject({ id: "active", passed: true });
+    // The observe role allows GetFunctionConfiguration and ListTags, not GetFunction.
+    expect(lambdaMock.commandCalls(GetFunctionCommand)).toHaveLength(0);
   });
 
   it("finds the function by tags; missing / inaccessible / unknown are classified", async () => {
     tagging.on(GetResourcesCommand).resolves({ ResourceTagMappingList: [{ ResourceARN: FN_ARN, Tags: zenithTagList("function/resize") }] });
-    lambdaMock.on(GetFunctionCommand).resolves(fnGet());
+    readMock();
     expect((await lambda.observe!(mkDriverContext(), fnNode)).presence).toBe("present");
     expect(tagging.commandCalls(GetResourcesCommand)[0].args[0].input.ResourceTypeFilters).toEqual(["lambda:function"]);
     lambdaMock.reset();
-    lambdaMock.on(GetFunctionCommand).rejects(Object.assign(new Error("nf"), { name: "ResourceNotFoundException" }));
+    lambdaMock.on(GetFunctionConfigurationCommand).rejects(Object.assign(new Error("nf"), { name: "ResourceNotFoundException" }));
     expect((await lambda.observe!(mkDriverContext(), fnNode, FN_ARN)).presence).toBe("missing");
     lambdaMock.reset();
-    lambdaMock.on(GetFunctionCommand).rejects(Object.assign(new Error("denied"), { name: "AccessDeniedException" }));
+    lambdaMock.on(GetFunctionConfigurationCommand).rejects(Object.assign(new Error("denied"), { name: "AccessDeniedException" }));
     expect((await lambda.observe!(mkDriverContext(), fnNode, FN_ARN)).presence).toBe("inaccessible");
     lambdaMock.reset();
-    lambdaMock.on(GetFunctionCommand).rejects(Object.assign(new Error("slow"), { name: "TooManyRequestsException" }));
+    lambdaMock.on(GetFunctionConfigurationCommand).rejects(Object.assign(new Error("slow"), { name: "TooManyRequestsException" }));
     expect((await lambda.observe!(mkDriverContext(), fnNode, FN_ARN)).presence).toBe("unknown");
     expect((await lambda.observe!(mkDriverContext(), fnNode, "zn-acme-resize")).presence).toBe("unknown");
     tagging.reset();
@@ -135,7 +142,7 @@ describe("aws:lambda_function read side", () => {
   });
 
   it("reports drift: different memory and runtime fail verification", async () => {
-    lambdaMock.on(GetFunctionCommand).resolves(fnGet({ MemorySize: 128, Runtime: "nodejs20.x" }));
+    readMock({ MemorySize: 128, Runtime: "nodejs20.x" });
     const obs = await lambda.observe!(mkDriverContext(), fnNode, FN_ARN);
     const v = await lambda.verify!(mkDriverContext(), fnNode, obs);
     expect(v.status).toBe("failed");
@@ -143,19 +150,19 @@ describe("aws:lambda_function read side", () => {
   });
 
   it("runtime: Active is healthy, Failed/Pending are not, with bounded signals", async () => {
-    lambdaMock.on(GetFunctionCommand).resolves(fnGet());
+    readMock();
     expect(await lambda.runtime!(mkDriverContext(), fnNode, FN_ARN)).toMatchObject({ health: "healthy", signals: ["state:Active"] });
-    lambdaMock.on(GetFunctionCommand).resolves(fnGet({ State: "Failed", StateReasonCode: "InsufficientRolePermissions", LastUpdateStatus: "Failed" }));
+    readMock({ State: "Failed", StateReasonCode: "InsufficientRolePermissions", LastUpdateStatus: "Failed" });
     expect(await lambda.runtime!(mkDriverContext(), fnNode, FN_ARN)).toMatchObject({ health: "unhealthy", signals: ["state:Failed", "last_update:Failed", "state_reason:InsufficientRolePermissions"] });
-    lambdaMock.on(GetFunctionCommand).resolves(fnGet({ State: "Pending" }));
+    readMock({ State: "Pending" });
     expect((await lambda.runtime!(mkDriverContext(), fnNode, FN_ARN)).health).toBe("degraded");
-    lambdaMock.on(GetFunctionCommand).rejects(Object.assign(new Error("nf"), { name: "ResourceNotFoundException" }));
+    lambdaMock.on(GetFunctionConfigurationCommand).rejects(Object.assign(new Error("nf"), { name: "ResourceNotFoundException" }));
     expect(await lambda.runtime!(mkDriverContext(), fnNode, FN_ARN)).toMatchObject({ health: "unhealthy", signals: ["function_missing"] });
   });
 
   it("discovers functions, tagging those Zenith created", async () => {
     lambdaMock.on(ListFunctionsCommand).resolves({ Functions: [fnCfg(), fnCfg({ FunctionName: "legacy", FunctionArn: `${FN_ARN}-legacy` })] });
-    lambdaMock.on(GetFunctionCommand).callsFake((i: { FunctionName: string }) => (i.FunctionName === FN_ARN ? fnGet() : { Configuration: fnCfg(), Tags: { team: "x" } }));
+    lambdaMock.on(ListTagsCommand).callsFake((i: { Resource: string }) => ({ Tags: i.Resource === FN_ARN ? zenithTagMap("function/resize") : { team: "x" } }));
     const found = await lambda.discover!(mkDriverContext());
     expect(found.map((f) => [f.name, f.zenithTagged]).sort()).toEqual([["legacy", false], ["zn-acme-resize", true]]);
   });

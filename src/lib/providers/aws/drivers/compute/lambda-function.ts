@@ -24,7 +24,7 @@
  * reports `alreadyInvoked` instead of invoking again; a crash between the
  * invocation and that tag write can still invoke twice.
  */
-import { GetFunctionCommand, InvokeCommand, LambdaClient, ListFunctionsCommand, TagResourceCommand, type FunctionConfiguration } from "@aws-sdk/client-lambda";
+import { GetFunctionCommand, GetFunctionConfigurationCommand, InvokeCommand, LambdaClient, ListFunctionsCommand, ListTagsCommand, TagResourceCommand, type FunctionConfiguration } from "@aws-sdk/client-lambda";
 import type { AwsSession } from "@/lib/credentials/types";
 import type { CompileContext, DiscoveredResource, NativeOperation, ResourceDriver } from "@/lib/drivers/types";
 import type { HealthState, Observation, ResourceNode, RuntimeState } from "@/lib/resources/types";
@@ -156,13 +156,17 @@ const observe: NonNullable<ResourceDriver<AwsSession>["observe"]> = async (ctx, 
   let cfg: FunctionConfiguration | undefined;
   let tags: Record<string, string> | undefined;
   try {
-    const res = await lambda.send(new GetFunctionCommand({ FunctionName: located.arn }), { abortSignal: ctx.signal });
-    cfg = res.Configuration;
-    tags = res.Tags;
+    // Observe reads stay within the observe role (lambda:GetFunctionConfiguration + lambda:ListTags), not GetFunction.
+    const [config, tagged] = await Promise.all([
+      lambda.send(new GetFunctionConfigurationCommand({ FunctionName: located.arn }), { abortSignal: ctx.signal }),
+      lambda.send(new ListTagsCommand({ Resource: located.arn }), { abortSignal: ctx.signal }),
+    ]);
+    cfg = config;
+    tags = tagged.Tags;
   } catch (e) {
     return failedObservation(ctx, node, ID, names, failureOf(ctx, e), located.arn);
   }
-  if (!cfg) return failedObservation(ctx, node, ID, names, { kind: "missing", code: "FunctionNotFound", summary: "GetFunction returned no configuration." }, located.arn);
+  if (!cfg) return failedObservation(ctx, node, ID, names, { kind: "missing", code: "FunctionNotFound", summary: "GetFunctionConfiguration returned no configuration." }, located.arn);
   const attributes = attributesOf(ctx, names, {
     ...(cfg.CodeSha256 ? { codeSha256: cfg.CodeSha256 } : {}),
     ...(cfg.Runtime ? { runtime: cfg.Runtime } : {}),
@@ -192,8 +196,7 @@ const runtime: NonNullable<ResourceDriver<AwsSession>["runtime"]> = async (ctx, 
   }
   if (!located.arn) return runtimeState(ctx, node, ID, located.failure?.kind === "missing" ? "unhealthy" : "unknown", {}, [located.failure?.kind === "missing" ? "function_missing" : `read_failed:${located.failure?.code}`]);
   try {
-    const res = await ctx.session.client(LambdaClient).send(new GetFunctionCommand({ FunctionName: located.arn }), { abortSignal: ctx.signal });
-    const c = res.Configuration;
+    const c = await ctx.session.client(LambdaClient).send(new GetFunctionConfigurationCommand({ FunctionName: located.arn }), { abortSignal: ctx.signal });
     const signals: string[] = [];
     if (c?.State) signals.push(`state:${c.State}`);
     if (c?.LastUpdateStatus && c.LastUpdateStatus !== "Successful") signals.push(`last_update:${c.LastUpdateStatus}`);
@@ -220,7 +223,7 @@ const discover: NonNullable<ResourceDriver<AwsSession>["discover"]> = async (ctx
     if (!f.FunctionArn || !f.FunctionName) continue;
     let tags: Record<string, string> = {};
     try {
-      tags = (await lambda.send(new GetFunctionCommand({ FunctionName: f.FunctionArn }), { abortSignal: ctx.signal })).Tags ?? {};
+      tags = (await lambda.send(new ListTagsCommand({ Resource: f.FunctionArn }), { abortSignal: ctx.signal })).Tags ?? {};
     } catch (e) {
       failureOf(ctx, e);
     }

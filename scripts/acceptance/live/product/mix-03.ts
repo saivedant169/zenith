@@ -93,7 +93,7 @@ const EXTERNAL_ID_TEMPLATE = /^[A-Za-z0-9+=,.@:/_-]{2,1224}$/;
 const FIXED_TEXT = /^[A-Za-z0-9 ,.'()-]{1,200}$/;
 /** Teardown makes about twenty planned calls; five minutes covers them and the tagging index re-list. */
 export const TEARDOWN_RESERVE_MS = 5 * 60_000;
-const STATE_WORD = /^[a-z_]{1,40}$/, HALT_WORD = /^[a-z0-9_]{1,60}$/;
+const STATE_WORD = /^[a-z_]{1,40}$/, HALT_WORD = /^[a-z0-9_]{1,80}$/;
 /** "producer running/queued": the plan child's state and, when read, its operation's status. Fixed words only. */
 const childState = (child: Mix03Child): string => {
   const word = (value: string | undefined) => (value && STATE_WORD.test(value) ? value : "unknown");

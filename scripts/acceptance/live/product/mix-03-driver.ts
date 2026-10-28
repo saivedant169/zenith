@@ -120,6 +120,8 @@ const CHILD_STATUS: Record<string, string> = { pending: "pending", adopted: "pen
 const HALTS: [RegExp, string][] = [
   [/^The environment lease was lost while OpenTofu was applying/, "lease_lost_tofu_apply"],
   [/^OpenTofu ([a-z]+) did not finish \(([a-z_]+)\)/, "tofu_$1_$2"],
+  // An OpenTofu failure behind the plan dispatch wrapper (src/lib/platform/plan-artifacts.ts): its code and fixed cause (src/lib/tofu/failure-code.ts).
+  [/; cause TofuCommandError\/tofu_([a-z_]+)(?:\/([a-z-]+):([A-Za-z0-9_]+))?/, "tofu_$1_$2_$3"],
   [/^The apply ended with an unclassified error \(([A-Za-z0-9_]+)[:)].*; cause ([A-Za-z0-9_]+)(?:\/([a-z_]+))?/, "unclassified_$1_$2_$3"],
   [/^The apply ended with an unclassified error \(([A-Za-z0-9_]+)[:)]/, "unclassified_$1"],
   [/^An owning runner or machine job expired/, "job_expired"],
@@ -132,12 +134,12 @@ const haltOf = (error: string): string => {
   for (const [pattern, code] of HALTS) {
     const match = pattern.exec(error);
     if (!match) continue;
-    const named = code.replace(/\$(\d)/g, (_, i: string) => match[Number(i)] ?? "").replace(/_+$/, "").toLowerCase();
+    const named = code.replace(/\$(\d)/g, (_, i: string) => match[Number(i)] ?? "").toLowerCase().replace(/[^a-z0-9_]/g, "_").replace(/_+$/, "");
     return HALT_CODE.test(named) ? named : "other";
   }
   return "other";
 };
-const HALT_CODE = /^[a-z0-9_]{1,60}$/;
+const HALT_CODE = /^[a-z0-9_]{1,80}$/;
 const SAFE_CODE = /^[a-z_]{1,40}$/, ID = /^[A-Za-z0-9_.:-]{1,128}$/, HEX64 = /^[a-f0-9]{64}$/;
 /** A partition id is "partition/<digest>"; this is the adoption route's own body shape. */
 const PARTITION = /^[A-Za-z0-9_.:/-]{1,200}$/;

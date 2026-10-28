@@ -1754,6 +1754,8 @@ Resources:
               - lambda:InvokeFunction
               - lambda:GetFunction
               - lambda:GetPolicy
+              # The AWS provider reads it after every create and refresh of a Zip function (internal/service/lambda/function.go).
+              - lambda:GetFunctionCodeSigningConfig
             Resource:
               - !Sub "arn:${AWS::Partition}:lambda:*:${AWS::AccountId}:function:zenith-*"
               - !Sub "arn:${AWS::Partition}:lambda:*:${AWS::AccountId}:function:zenith-*:*"

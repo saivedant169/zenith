@@ -165,8 +165,9 @@ it("adds the exact bootstrap version read statement and preserves the reviewed r
   // Incoming bootstrap changes include suffix-scoped image pointers and bounded flow-log/IAM policies, and EC2 child
   // creation authorized against tagged parents plus tagged security-group rules, then flow-log tag-on-create, the
   // ELB-forwarded ec2:GetSecurityGroupsForVpc read, role instance-profile listing and EIP disassociation for destroy
-  // (DEPLOY-01 live denials, 2026-10-26).
-  expect(createHash("sha256").update(JSON.stringify(resources)).digest("hex")).toBe("e4f1dd00149fe6f03b7caa932240a2ed82494516da72904dee302423c5f72bbd");
+  // (DEPLOY-01 live denials, 2026-10-26), then lambda:GetFunctionCodeSigningConfig, which the AWS provider reads after every
+  // Zip function create and refresh (MIX-03 live denial, 2026-10-28).
+  expect(createHash("sha256").update(JSON.stringify(resources)).digest("hex")).toBe("a5fc6b11c9c88f35b09d09528512f6ba5cdfcfea2851ef8e0db292d214e2c553");
 });
 
 describe.each(["aws", "aws-cn", "aws-us-gov"])("exact bootstrap boundary reads in %s", (partition) => {

@@ -849,16 +849,18 @@ describe("control-store repositories: workspace scoping is present in every func
     const sf = ts.createSourceFile("cleanup-writer-barriers.ts", text, ts.ScriptTarget.Latest, true);
     const pinned = new Map<string, string>();
     const visit = (node: ts.Node): void => {
-      if (ts.isFunctionDeclaration(node) && node.name && ["inventoryWithSettlements", "verifiedDeliverySettlements"].includes(node.name.text)) pinned.set(node.name.text, node.getText(sf));
+      if (ts.isFunctionDeclaration(node) && node.name && ["inventoryWithSettlements", "verifiedDeliverySettlements", "writeDeliverySettlements"].includes(node.name.text)) pinned.set(node.name.text, node.getText(sf));
       ts.forEachChild(node, visit);
     };
     visit(sf);
     const hash = (value: string) => createHash("sha256").update(value).digest("hex");
-    expect([...pinned.keys()].sort()).toEqual(["inventoryWithSettlements", "verifiedDeliverySettlements"]);
-    expect(hash(pinned.get("inventoryWithSettlements")!)).toBe("1860121eec664912d020b21b5bf0c742ea71ce3ba79905efffafb6eb6fce1d44");
+    expect([...pinned.keys()].sort()).toEqual(["inventoryWithSettlements", "verifiedDeliverySettlements", "writeDeliverySettlements"]);
+    expect(hash(pinned.get("inventoryWithSettlements")!)).toBe("b638adcec7da5a47ce7f3187cf200610ec599cd69e6c0b39736b8349385cf3bd");
     expect(hash(pinned.get("verifiedDeliverySettlements")!)).toBe("34293625e6284e94b7d8f4919fd9e304126fe5f2fdfab869cdafdf3a4e9ceb85");
-    // Six counted families each exclude a delivery only through the settlement predicate; no other settlement reader exists.
-    expect(pinned.get("inventoryWithSettlements")!.match(/platform\.cleanup_delivery_settled\(/g)).toHaveLength(6);
+    // WP3 (schema 63): the writer's text is pinned too; it inserts only through the guarded settlement table.
+    expect(hash(pinned.get("writeDeliverySettlements")!)).toBe("d703bad9d320a346ec9a24757417b0232dca59fc13e180123a57a2383e5bae20");
+    // Seven counted families (schema 63 adds plan uses) each exclude a delivery only through the settlement predicate.
+    expect(pinned.get("inventoryWithSettlements")!.match(/platform\.cleanup_delivery_settled\(/g)).toHaveLength(7);
     for (const body of pinned.values()) expect(/\$\{/.test(body), "inventory SQL must not interpolate").toBe(false);
   });
 });

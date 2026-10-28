@@ -179,7 +179,7 @@ describe("plan retention explicit configuration and timer [models]", () => {
   it("runs existing logical expiry without querying preview when configuration is absent", async () => {
     const expire = vi.spyOn(repos.planArtifacts, "expire").mockResolvedValue(3), preview = vi.spyOn(repos.planArtifacts, "previewRetention");
     const report = vi.fn(), janitor = startPlanArtifactJanitor(db, report);
-    try { await janitor.stop(); expect(expire).toHaveBeenCalledOnce(); expect(preview).not.toHaveBeenCalled(); expect(report).toHaveBeenCalledExactlyOnceWith({ expired: 3 }); }
+    try { await janitor.stop(); expect(expire).toHaveBeenCalledOnce(); expect(preview).not.toHaveBeenCalled(); expect(report).toHaveBeenCalledExactlyOnceWith({ expired: 3, settled: expect.objectContaining({ written: 0 }) }); }
     finally { expire.mockRestore(); preview.mockRestore(); }
   });
   it("integrates read-only counts after unchanged logical expiry and keeps timer single-flight with awaited shutdown", async () => {
@@ -193,7 +193,7 @@ describe("plan retention explicit configuration and timer [models]", () => {
       await entered.promise; await vi.advanceTimersByTimeAsync(PLAN_JANITOR_INTERVAL_MS * 2); expect(preview).toHaveBeenCalledOnce();
       let stopped = false; const stopping = janitor.stop().then(() => { stopped = true; }); await Promise.resolve(); expect(stopped).toBe(false);
       resume.resolve(); await stopping; expect(stopped).toBe(true); expect(order).toEqual(["expiry", "preview"]);
-      expect(preview).toHaveBeenCalledExactlyOnceWith(db, policy); expect(report).toHaveBeenCalledExactlyOnceWith({ expired: 2, retention: result });
+      expect(preview).toHaveBeenCalledExactlyOnceWith(db, policy); expect(report).toHaveBeenCalledExactlyOnceWith({ expired: 2, settled: expect.objectContaining({ written: 0 }), retention: result });
       await vi.advanceTimersByTimeAsync(PLAN_JANITOR_INTERVAL_MS); expect(preview).toHaveBeenCalledOnce();
     } finally { resume.resolve(); await janitor.stop(); expire.mockRestore(); preview.mockRestore(); }
   });
@@ -221,6 +221,6 @@ describe("plan retention explicit configuration and timer [models]", () => {
     const parse = worker.indexOf("? undefined : planArtifactRetentionPreviewFromEnv()");
     expect(parse).toBeGreaterThan(0); for (const effect of ["const dataConverter = temporalDataConverterFromEnv()", "await startHealthServer(", "await openExecutionStore(", "await Worker.create("])
       expect(parse).toBeLessThan(worker.indexOf(effect));
-    expect(worker).toContain("}, { retentionPreview });"); expect(worker).toContain("startPlanArtifactJanitor(db");
+    expect(worker).toContain("}, { retentionPreview, settlement: { startClosure: "); expect(worker).toContain("startPlanArtifactJanitor(db");
   });
 });

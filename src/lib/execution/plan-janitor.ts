@@ -14,6 +14,7 @@ import { textArray } from "@/lib/controlplane/db/sql";
 import { LeaseUnavailableError, withLease } from "@/lib/controlplane/leases";
 import { TERMINAL_OPERATION_STATUSES, type Sql } from "@/lib/controlplane/types";
 import type { PlanArtifactRetentionPreviewInput, PlanArtifactRetentionPreview } from "@/lib/controlplane/db/repos/plan-artifacts";
+import { writeDeliverySettlements, type DeliverySettlementPorts } from "@/lib/controlplane/db/repos/cleanup-writer-barriers";
 
 export const PLAN_MAX_AGE_MS = 24 * 3600_000;
 export const PLAN_JANITOR_INTERVAL_MS = 5 * 60_000;
@@ -188,12 +189,12 @@ export function startPlanJanitor(db: Sql, options: PlanJanitorOptions, report: (
   return { async stop() { clearInterval(timer); await active; await closeCursor(cursor); } };
 }
 
-export interface PlanArtifactJanitorResult { expired: number; retention?: PlanArtifactRetentionPreview }
+export interface PlanArtifactJanitorResult { expired: number; settled?: { written: number; skipped: number; failed?: true }; retention?: PlanArtifactRetentionPreview }
 /** Durable expiry is unchanged. Optional copy-review counts never remove content or retain execution authority. */
 export function startPlanArtifactJanitor(
   db: Sql,
   report: (result?: PlanArtifactJanitorResult) => void,
-  options: { retentionPreview?: PlanArtifactRetentionPreviewInput } = {},
+  options: { retentionPreview?: PlanArtifactRetentionPreviewInput; settlement?: DeliverySettlementPorts } = {},
 ): { stop(): Promise<void> } {
   let active: Promise<void> | undefined;
   const preview = options.retentionPreview;
@@ -202,9 +203,12 @@ export function startPlanArtifactJanitor(
     active = (async (): Promise<PlanArtifactJanitorResult> => {
       const expired = await repos.planArtifacts.expire(db);
       await repos.planArtifacts.releaseDrainedHolds(db);
-      if (!preview) return { expired };
+      // Teardown WP3. Runs after hold release so a slow or failing pass never blocks it; a hold drained by these settlements
+      // is released on the next tick.
+      const settled = await writeDeliverySettlements(db, options.settlement ?? {}).catch(() => ({ written: 0, skipped: 0, failed: true as const }));
+      if (!preview) return { expired, settled };
       const retention = await repos.planArtifacts.previewRetention(db, preview);
-      return { expired, retention };
+      return { expired, settled, retention };
     })().then(result => { try { report(result); } catch {} }, () => { try { report(); } catch {} })
       .finally(() => { active=undefined; });
   };

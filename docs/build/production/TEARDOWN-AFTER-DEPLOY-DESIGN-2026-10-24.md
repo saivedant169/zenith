@@ -190,6 +190,32 @@ WP1 is in this change: schema 60, expand-only. It adds the hold generation order
 
 Settlement families. The design table above lists five delivery rows. `runner` covers runner jobs and machine requests, so `cleanup_writer_settlements` records six `delivery_source` values under five `family` values. The writer's referential check against the possible-delivery ledger belongs to WP3.
 
+### WP3 status (2026-10-28)
+
+Built: the sealing writer (`writeDeliverySettlements` in `cleanup-writer-barriers.ts`), run by the execution worker's plan janitor before it releases drained holds, and schema 63, which adds the non-builtin plan-use rule. Settled families:
+
+- **Grants.** After expiry plus 3,900 s.
+- **Workflow starts.** When an authenticated Describe in the bound namespace reports the run closed, or NotFound past the database horizon. A continued-as-new run counts as open.
+- **Build launches.** Once terminal.
+- **Non-builtin plan uses.** All of the following must hold:
+  - the operation is terminal;
+  - the operation's latest grant horizon has passed;
+  - the environment's recorded platform connection is AWS `aws_assume_role` or `oidc_web_identity`;
+  - that connection was created no later than the operation.
+
+Not settled: runner and machine jobs (they need a verified signed runner result), static or customer-held credentials, and other providers.
+
+Independent review (2026-10-28) led to three changes:
+
+- **Static connections.** A plan use never settles while the workspace held any non-short-lived AWS connection when its operation was created. Without this, a repointed environment could settle a static-key apply by time.
+- **Temporal endpoint.** A workflow start settles only when the worker's Temporal endpoint digest equals the one the start recorded.
+- **Janitor order.** The janitor releases drained holds before the settlement pass, so a failing pass cannot block release.
+
+Open items:
+
+- **Row limit.** The settlement rows are immutable, and the verified loader refuses more than 4,096 in one environment. That is several hundred deploys. Past it, nothing verifies and teardown is refused, which fails closed. Per-delivery verification is needed before that limit matters.
+- **Managed sessions.** They run on the platform cluster credential, which a grant does not bound. Managed environments have no destroy origin until WP4, which must exclude or separately settle them.
+
 ### Private beta interim
 
 Until this lands, teardown after deploy stays a documented limitation. The customer uses provider tooling, and Zenith verifies absence. `docs/LIMITATIONS.md` (Teardown after deploy) states it.

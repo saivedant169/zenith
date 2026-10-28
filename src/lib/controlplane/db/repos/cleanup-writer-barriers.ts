@@ -111,7 +111,7 @@ async function inventoryWithSettlements(sql:Sql,workspaceId:string,projectId:str
           and receipt.auth_tag=settled->'receipt'->'sealed'->>'authTag' and receipt.ciphertext=settled->'receipt'->'sealed'->>'ciphertext'))
       and not platform.cleanup_delivery_settled(d.workspace_id,case when d.family='machine' then 'runner' else d.family end,
         case d.family when 'workflow' then 'workflow_start_intents' when 'grant' then 'capability_grants' when 'build' then 'build_launches'
-          when 'runner' then 'runner_jobs' when 'machine' then 'machine_requests' end,d.identity,$10::text::jsonb)
+          when 'runner' then 'runner_jobs' when 'machine' then 'machine_requests' when 'plan' then 'plan_artifact_uses' end,d.identity,$10::text::jsonb)
       and not (d.operation_id is not distinct from $4::text and
         ((d.family='workflow' and d.identity is not distinct from $8::text)
         or (d.family='grant' and d.identity is not distinct from $7::text and d.attempt_id is not distinct from $5::text)
@@ -134,6 +134,7 @@ async function inventoryWithSettlements(sql:Sql,workspaceId:string,projectId:str
           and u.phase='succeeded' and receipt.settlement_digest=settled->'receipt'->>'settlementDigest'
           and receipt.iv=settled->'receipt'->'sealed'->>'iv' and receipt.auth_tag=settled->'receipt'->'sealed'->>'authTag'
           and receipt.ciphertext=settled->'receipt'->'sealed'->>'ciphertext')
+      and not platform.cleanup_delivery_settled(u.workspace_id,'plan','plan_artifact_uses',u.operation_id||':'||u.attempt_id,$10::text::jsonb)
       and not (u.operation_id is not distinct from $4::text and u.attempt_id is not distinct from $5::text))
     + (select count(*) from platform.runner_jobs j join platform.operations o on o.workspace_id=j.workspace_id and o.id=j.operation_id
       where j.workspace_id=$1 and (j.started_at is not null or j.status in ('claimed','running','uncertain'))
@@ -170,4 +171,78 @@ export async function reserveOwnerGrant(sql: Sql, origin: unknown, jti: string):
 /** Signing is local. The fresh native authorization and actual grant INSERT commit together. */
 export async function insertOwnerGrant(sql: Sql, origin: unknown, input: InsertGrantInput): Promise<void> {
   await (await import("./plan-artifacts")).insertCleanupOwnerGrant(sql,origin,input);
+}
+
+/* --------------------------- settlement writer (WP3) --------------------------- */
+
+export type DeliveryStartClosure = "closed" | "not_found" | "open" | "unknown";
+export interface DeliverySettlementPorts {
+  /** Authenticated Temporal Describe of a recorded start. Absent: workflow starts are never settled by this pass. */
+  readonly startClosure?: (binding: { namespace: string; workflowId: string; endpointDigest: string }, runId: string | null) => Promise<DeliveryStartClosure>;
+}
+export interface DeliverySettlementPass { readonly written: number; readonly skipped: number }
+interface SettlementCandidate {
+  ws: string; project: string | null; environment: string | null; op: string; family: string; source: string; identity: string;
+  binding: { namespace?: unknown; workflowId?: unknown; endpointDigest?: unknown } | null; run: string | null;
+}
+const SETTLEMENT_PASS_LIMIT = 200;
+/**
+ * Worker-only pass: seal and insert a settlement for each possible delivery whose database-clock horizon has passed. The
+ * database computes every horizon (platform.cleanup_delivery_source) and its insert trigger refuses anything early, so this
+ * pass decides nothing about time. It adds the two checks the database cannot make: a workflow start settles only when an
+ * authenticated Describe reports it closed (or NotFound past the horizon), and nothing is written without the platform key.
+ * Runner and machine jobs need a verified signed runner result and are not settled here. Cross-workspace by design: it is
+ * the janitor's scan, and each row it writes is bound to its own workspace, operation and scope by the trigger.
+ */
+export async function writeDeliverySettlements(sql: Sql, ports: DeliverySettlementPorts = {},
+  options: { cipher?: VaultCipher; limit?: number } = {}): Promise<DeliverySettlementPass> {
+  const cipher = options.cipher ?? await platformCipher(), limit = options.limit ?? SETTLEMENT_PASS_LIMIT;
+  if (!cipher) return Object.freeze({ written: 0, skipped: 0 });
+  // shortcut: one random bounded page per tick over all candidates; a backlog drains over several ticks, upgrade to a cursor if it grows.
+  const candidates = await sql.query<SettlementCandidate>(`select c.* from (
+      select g.workspace_id as ws, o.project_id as project, o.environment_id as environment, g.operation_id as op,
+        'grant' as family, 'capability_grants' as source, g.jti as identity, null::jsonb as binding, null::text as run
+      from platform.capability_grants g join platform.operations o on o.workspace_id=g.workspace_id and o.id=g.operation_id
+      where g.expires_at + interval '3900 seconds' <= clock_timestamp()
+      union all
+      select w.workspace_id, o.project_id, o.environment_id, w.operation_id, 'workflow', 'workflow_start_intents',
+        w.operation_id || ':' || w.attempt_id, w.binding, w.run_id
+      from platform.workflow_start_intents w join platform.operations o on o.workspace_id=w.workspace_id and o.id=w.operation_id
+      where w.phase in ('attempted','acknowledged') and w.attempt_id is not null and w.attempted_at is not null
+      union all
+      select b.workspace_id, o.project_id, o.environment_id, b.operation_id, 'build', 'build_launches',
+        b.operation_id || ':' || b.service_address || ':' || b.attempt_id, null::jsonb, null::text
+      from platform.build_launches b join platform.operations o on o.workspace_id=b.workspace_id and o.id=b.operation_id
+      where b.phase='terminal' and b.provider_finished_at is not null
+      union all
+      select u.workspace_id, o.project_id, o.environment_id, u.operation_id, 'plan', 'plan_artifact_uses',
+        u.operation_id || ':' || u.attempt_id, null::jsonb, null::text
+      from platform.plan_artifact_uses u join platform.operations o on o.workspace_id=u.workspace_id and o.id=u.operation_id
+      where u.phase in ('dispatched','succeeded','uncertain') and u.attempt_id is not null
+    ) c cross join lateral platform.cleanup_delivery_source(c.ws, c.source, c.identity) s
+    where s.src_operation_id=c.op and s.src_settles_at is not null and s.src_settles_at <= clock_timestamp()
+      and not exists(select 1 from platform.cleanup_writer_settlements r where r.workspace_id=c.ws and r.family=c.family
+        and r.delivery_source=c.source and r.delivery_identity=c.identity)
+    order by random() limit $1`, [limit]);
+  let written = 0, skipped = 0;
+  for (const c of candidates) {
+    if (c.family === "workflow") {
+      const namespace = c.binding?.namespace, workflowId = c.binding?.workflowId, endpointDigest = c.binding?.endpointDigest;
+      const closure = ports.startClosure && typeof namespace === "string" && typeof workflowId === "string" && typeof endpointDigest === "string"
+        ? await ports.startClosure({ namespace, workflowId, endpointDigest }, c.run).catch((): DeliveryStartClosure => "unknown") : "unknown";
+      if (closure !== "closed" && closure !== "not_found") { skipped++; continue; }
+    }
+    const sealed = sealDeliverySettlement(cipher, { workspaceId: c.ws, family: c.family, source: c.source, identity: c.identity, operationId: c.op });
+    try {
+      const rows = await sql.query(`insert into platform.cleanup_writer_settlements(workspace_id,project_id,environment_id,operation_id,family,
+        delivery_source,delivery_identity,horizon_at,sealed) values($1,$2,$3,$4,$5,$6,$7,clock_timestamp(),$8::text::jsonb)
+        on conflict (workspace_id,family,delivery_source,delivery_identity) do nothing returning 1 as ok`,
+        [c.ws, c.project, c.environment, c.op, c.family, c.source, c.identity, JSON.stringify(sealed)]);
+      if (rows.length === 1) written++; else skipped++;
+    } catch {
+      // The trigger refused it (horizon moved, scope changed): nothing is written, a later pass reads it again.
+      skipped++;
+    }
+  }
+  return Object.freeze({ written, skipped });
 }

@@ -5742,6 +5742,36 @@ export const CLEANUP_WRITER_BARRIER_POSTGRES_REQUIREMENTS = [
     "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
     "test": "a verified workflow settlement removes its start from the counted inventory only past the recovery horizon",
     "backend": "postgres"
+  },
+  {
+    "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
+    "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
+    "test": "a non-builtin plan use settles only on a terminal operation past its latest grant horizon on a short-lived AWS connection",
+    "backend": "postgres"
+  },
+  {
+    "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
+    "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
+    "test": "a plan use on a static or runner connection, a connection newer than the operation, or no grant never settles",
+    "backend": "postgres"
+  },
+  {
+    "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
+    "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
+    "test": "a plan use never settles by time while the workspace held a static AWS connection when the operation was created",
+    "backend": "postgres"
+  },
+  {
+    "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
+    "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
+    "test": "the writer seals grants and plan uses past their horizons, and the counted inventory drains to zero",
+    "backend": "postgres"
+  },
+  {
+    "file": "tests/controlplane/cleanup-writer-barriers.test.ts",
+    "suite": "native cleanup writer barrier [postgres; modeled hosted association and policy]",
+    "test": "the writer settles a workflow start only when an authenticated Describe reports it closed or not found",
+    "backend": "postgres"
   }
 ];
 

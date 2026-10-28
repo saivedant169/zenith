@@ -41,6 +41,15 @@ variable "connection_name_suffix" {
     error_message = "Must match the connection template NameSuffix pattern: empty, or a hyphen then 1-19 of [a-z0-9-]."
   }
 }
+variable "connection_lane_suffixes" {
+  description = "NameSuffix of every installed sandbox lane connection stack: zenith-connection-live, and zenith-connection-live2 for the second lane."
+  type        = list(string)
+  default     = ["-live"]
+  validation {
+    condition     = length(var.connection_lane_suffixes) > 0 && alltrue([for s in var.connection_lane_suffixes : startswith(s, var.connection_name_suffix) && can(regex("^-[a-z0-9-]{1,19}$", s))])
+    error_message = "Each lane suffix starts with connection_name_suffix and matches the connection template NameSuffix pattern."
+  }
+}
 variable "dec_cloud_approved" {
   type    = bool
   default = false
@@ -78,11 +87,9 @@ locals {
   tags                 = { "zenith:bootstrap" = "live-sandbox" }
   workload_role        = "${local.iam}:role/zenith-zlive-*-lambda"
   boundary             = "${local.iam}:policy/ZenithLiveWorkloadBoundary"
-  observe_role         = "ZenithObserveRole${var.connection_name_suffix}"
-  deploy_role          = "ZenithDeployRole${var.connection_name_suffix}"
-  observe_role_arn     = "${local.iam}:role/${local.observe_role}"
-  deploy_role_arn      = "${local.iam}:role/${local.deploy_role}"
-  connection_role_arns = [local.observe_role_arn, local.deploy_role_arn]
+  # One pattern per role covers every lane (-live, -live2): the inline policy is capped at 10240 characters.
+  connection_role_arns = ["${local.iam}:role/ZenithObserveRole${var.connection_name_suffix}*", "${local.iam}:role/ZenithDeployRole${var.connection_name_suffix}*"]
+  lane_roles           = flatten([for s in var.connection_lane_suffixes : ["ZenithObserveRole${s}", "ZenithDeployRole${s}"]])
   owned_tags = {
     StringEquals = { "aws:ResourceTag/zenith:purpose" = "live-acceptance", "aws:ResourceTag/zenith:managed" = "true" }
   }
@@ -94,10 +101,10 @@ locals {
   zenith_role_glob = "${local.iam}:role/zenith-*"
   # Connection stack names (deploy/aws/zenith-connection.cfn.yaml) with the connection suffix. zenith-codebuild is lower-case,
   # so it matches zenith-* and is denied explicitly. The other roles are capitalised and do not match.
-  connection_protected_roles = concat(local.connection_role_arns, ["${local.iam}:role/ZenithSecretWriterRole${var.connection_name_suffix}", "${local.iam}:role/zenith-codebuild${var.connection_name_suffix}"])
+  connection_protected_roles = concat(local.connection_role_arns, ["${local.iam}:role/ZenithSecretWriterRole${var.connection_name_suffix}*", "${local.iam}:role/zenith-codebuild${var.connection_name_suffix}*"])
   # One pattern, not 15 ARNs: the inline policy is capped at 10240 characters. Matches the 15 connection managed policies
   # (Zenith*-live); the bootstrap policies do not end in the suffix.
-  connection_protected_policies = ["${local.iam}:policy/Zenith*${var.connection_name_suffix}"]
+  connection_protected_policies = ["${local.iam}:policy/Zenith*${var.connection_name_suffix}*"]
 }
 resource "aws_iam_openid_connect_provider" "github" {
   count          = var.github_oidc_provider_arn == "" ? 1 : 0
@@ -259,7 +266,7 @@ resource "aws_iam_role_policy" "spend_stop" {
   role = aws_iam_role.spend_stop.id
   policy = jsonencode({ Version = "2012-10-17", Statement = [{
     Effect    = "Allow", Action = ["iam:AttachRolePolicy", "iam:DetachRolePolicy"]
-    Resource  = [aws_iam_role.acceptance.arn, local.deploy_role_arn, local.observe_role_arn]
+    Resource  = concat([aws_iam_role.acceptance.arn], [for r in local.lane_roles : "${local.iam}:role/${r}"])
     Condition = { ArnEquals = { "iam:PolicyARN" = aws_iam_policy.spend_stop_deny_all.arn } }
   }] })
 }
@@ -277,7 +284,7 @@ resource "aws_budgets_budget_action" "spend_stop" {
   definition {
     iam_action_definition {
       policy_arn = aws_iam_policy.spend_stop_deny_all.arn
-      roles      = [aws_iam_role.acceptance.name, local.deploy_role, local.observe_role]
+      roles      = concat([aws_iam_role.acceptance.name], local.lane_roles)
     }
   }
   subscriber {

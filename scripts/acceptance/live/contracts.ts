@@ -34,6 +34,8 @@ export interface Settings {
   workloadBoundaryArn: string;
   /** Absent means "fixtures", so existing fixtures digests stay byte-identical. */
   scenario?: Scenario;
+  /** Absent means the "-live" sandbox lane, so existing digests stay byte-identical. "live2" uses the -live2 connection stack. */
+  lane?: "live2";
 }
 export interface Plan {
   schema: 1;

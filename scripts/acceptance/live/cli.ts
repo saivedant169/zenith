@@ -5,7 +5,7 @@ import path from "node:path";
 import { parseArgs } from "../args";
 import { newRunId } from "../safety";
 import { redactAcceptance } from "../redact";
-import { buildPlan, parseScenario, scopedRequirementIds } from "./plan";
+import { buildPlan, parseLane, parseScenario, scopedRequirementIds } from "./plan";
 import { grantsFor, Guard, readPermission } from "./guard";
 import { execute, newJournal } from "./execute";
 import { evidencePacket } from "./evidence";
@@ -85,6 +85,7 @@ export async function runProductionCli(argv: readonly string[], env: EnvLike = p
       dbSecurityGroup: value("db-security-group", "ZENITH_LIVE_AWS_DB_SECURITY_GROUP", "sg-00000000"),
       workloadBoundaryArn: `arn:aws:iam::${value("account", "ZENITH_LIVE_AWS_ACCOUNT_ID", "000000000000")}:policy/ZenithLiveWorkloadBoundary`,
       scenario: parseScenario(value("scenario", "ZENITH_LIVE_AWS_SCENARIO", "fixtures")),
+      lane: parseLane(value("lane", "ZENITH_LIVE_AWS_LANE", "live")),
     });
     if (args.flags.has("plan")) {
       const proposal = { scenario: plan.settings.scenario ?? "fixtures", scope: scopedRequirementIds(plan.settings, plan.requirements.map(r => r.id)), plan, permissionsProposal: { awsLive: { schema: 1, decision: "DEC-CLOUD", approvedBy: null, approvedAt: null, expiresAt: null, sourceCommit: null, accountId: plan.settings.accountId, region: plan.settings.region, runId: plan.settings.runId, planSha256: plan.sha256, maxUsd: plan.estimate.usd, maxMinutes: plan.settings.durationMinutes, grants: grantsFor(plan) } }, statement: "PLAN ONLY: no credentials read, no calls made, no live evidence. Estimated cost is provisional. Owner approval required." };

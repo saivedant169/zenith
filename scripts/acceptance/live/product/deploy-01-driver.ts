@@ -203,8 +203,12 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
         const response = await send(session, session.owner, "/api/actions/env.reviewTeardown",
           { mode: "plan", input: { environmentId, idempotencyKey: nonce() }, scope: { projectId: tenant.projectId, environmentId } });
         if (response.status < 200 || response.status >= 300) refuse(`env.reviewTeardown plan was refused by the product (HTTP ${response.status})`);
-        const blocked = (response.data as { plan?: { blocked?: unknown } } | undefined)?.plan?.blocked;
-        return sanitizedError(blocked);
+        const plan = (response.data as { plan?: unknown } | undefined)?.plan;
+        // Only a plan object without a refusal means the review may start; anything else is not a readable answer.
+        if (!plan || typeof plan !== "object") refuse("env.reviewTeardown plan returned no plan");
+        const blocked = (plan as { blocked?: unknown }).blocked;
+        if (blocked !== undefined && typeof blocked !== "string") refuse("env.reviewTeardown plan returned an unreadable refusal");
+        return sanitizedError(blocked) ?? (blocked === undefined ? undefined : "refused");
       });
     },
     async teardown(tenant, environmentId) {

@@ -20,7 +20,7 @@ const COMMIT = "a".repeat(40);
 const BUCKET = "arn:aws:s3:::zenith-life07-bucket";
 const SETTLING_SENTENCE = `${SETTLING} Teardown can start once every earlier deploy credential and workflow has provably stopped.`;
 
-function harness(opts: { settlePolls?: number; firstRefusal?: string | null; teardownStatus?: string; leftInState?: number; leftTagged?: number; afterSettle?: string } = {}) {
+function harness(opts: { refreshFailures?: number; settlePolls?: number; firstRefusal?: string | null; teardownStatus?: string; leftInState?: number; leftTagged?: number; afterSettle?: string } = {}) {
   const trust = { observe: trustDocument(PRINCIPAL, OLD_EXT), deploy: trustDocument(PRINCIPAL, OLD_EXT) };
   const events: string[] = [];
   let clock = 0, polls = 0, tornDown = false, destroyed = false;
@@ -63,8 +63,8 @@ function harness(opts: { settlePolls?: number; firstRefusal?: string | null; tea
     destroy: async (input: { stateKey: string }) => { expect(input.stateKey).toBe("zenith/ws1/env1/terraform.tfstate"); events.push("state-destroy"); destroyed = true; return { destroyed: 1 }; },
   };
   const port = teardown01Port(env, {
-    product, state, propagation: { attempts: 2, intervalMs: 0 }, settle: { intervalMs: 120_000, boundMs: 110 * 60_000 },
-    sleep: async ms => { clock += ms; }, now: () => clock, refresh: async () => { events.push("refresh"); },
+    product, state, propagation: { attempts: 2, intervalMs: 0 }, settle: { intervalMs: 120_000, boundMs: 100 * 60_000 },
+    sleep: async ms => { clock += ms; }, now: () => clock, refresh: async () => { events.push("refresh"); if ((opts.refreshFailures ?? 0) > 0) { opts.refreshFailures!--; throw new Error("refresh failed"); } }, 
   });
   return { trust, events, run: () => port.verify(requirement, { plan, commit: COMMIT, call }) };
 }
@@ -93,10 +93,20 @@ describe("TEARDOWN-01 port", () => {
     const h = harness({ settlePolls: 1000 });
     const result = await h.run();
     expect(result.complete).toBe(false);
-    expect(result.reason).toContain("did not settle within 110 minutes");
+    expect(result.reason).toContain("did not settle within 100 minutes");
     expect(h.events.filter(e => e === "refresh")).toHaveLength(1);
     expect(h.events).toContain("state-destroy");
     expect(h.events).not.toContain("teardown");
+    expect(h.trust.deploy).toBe(trustDocument(PRINCIPAL, OLD_EXT));
+  });
+
+  it("retries a refresh that failed before the teardown once in cleanup, then destroys from the recorded state", async () => {
+    const h = harness({ refreshFailures: 1 });
+    const result = await h.run();
+    expect(result.complete).toBe(false);
+    expect(result.reason).toContain("at session refresh");
+    expect(h.events.filter(e => e === "refresh")).toHaveLength(2);
+    expect(h.events).toContain("state-destroy");
     expect(h.trust.deploy).toBe(trustDocument(PRINCIPAL, OLD_EXT));
   });
 
@@ -126,7 +136,8 @@ describe("TEARDOWN-01 port", () => {
   it("plans the duration up to 150 minutes and only the six product calls", () => {
     expect(buildPlan({ ...settings, durationMinutes: 150 }).productCalls!.map(c => c.id)).toEqual([
       "teardown01-iam-read-observe", "teardown01-iam-read-deploy", "teardown01-iam-trust-observe", "teardown01-iam-trust-deploy", "teardown01-sts-assume", "teardown01-tag-read"]);
-    expect(() => buildPlan({ ...settings, durationMinutes: 151 })).toThrow("5..150");
+    expect(() => buildPlan({ ...settings, durationMinutes: 151 })).toThrow("120..150");
+    expect(() => buildPlan({ ...settings, durationMinutes: 119 })).toThrow("120..150");
     expect(() => buildPlan({ ...settings, scenario: "deploy-01", durationMinutes: 61 })).toThrow("5..60");
   });
 });
@@ -134,6 +145,12 @@ describe("TEARDOWN-01 port", () => {
 describe("TEARDOWN-01 driver teardown", () => {
   const tenantSession = { workspaceId: "ws1", projectId: "p1", owner: {} as never, approver: {} as never, stack: {}, ownerSecret: "o", approverSecret: "a" };
   const session = async () => ({ tenant: tenantSession as never, close: async () => undefined });
+
+  it("refuses a plan answer without a plan object instead of reading it as settled", async () => {
+    const request = async () => ({ status: 200, data: {} });
+    const product = browserDeploy01Product({}, { request: request as never, session, sleep: async () => undefined });
+    await expect(product.teardownBlocked!(await product.createTenant(), "env1")).rejects.toThrow("returned no plan");
+  });
 
   it("reads the review's plan refusal in plan mode", async () => {
     const seen: unknown[] = [];

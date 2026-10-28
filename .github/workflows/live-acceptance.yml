@@ -98,7 +98,7 @@ on:
         required: true
         type: string
       minutes:
-        description: 'Run time limit in minutes, an integer from 5 to 20 (5 to 60 for deploy-01, 5 to 150 for teardown-01; default 15). Bound into the signed envelope: it must match the plan the owner approved.'
+        description: 'Run time limit in minutes, an integer from 5 to 20 (5 to 60 for deploy-01, 120 to 150 for teardown-01; default 15). Bound into the signed envelope: it must match the plan the owner approved.'
         required: false
         default: '15'
         type: string
@@ -213,8 +213,8 @@ jobs:
           # teardown-01 deploys, waits about 80 minutes for the deploy to settle, then tears down: it may take up to 150.
           elif [ "$ZENITH_LIVE_AWS_SCENARIO" = "teardown-01" ]; then
             case "$ZENITH_LIVE_AWS_MINUTES" in
-              [5-9]|[1-9][0-9]|1[0-4][0-9]|150) ;;
-              *) echo "::error::minutes must be an integer from 5 to 150 for teardown-01."; exit 1 ;;
+              1[2-4][0-9]|150) ;;
+              *) echo "::error::minutes must be an integer from 120 to 150 for teardown-01."; exit 1 ;;
             esac
           else
             case "$ZENITH_LIVE_AWS_MINUTES" in
@@ -390,6 +390,7 @@ jobs:
         env:
           ZENITH_LIVE_OIDC_ROLE_ARN: ${{ vars.LIVE_SANDBOX_AWS_ROLE_ARN }}
           ZENITH_LIVE_AWS_SHARED_DIR: ${{ runner.temp }}/zenith-aws
+          ZENITH_LIVE_STACK_STATE: ${{ runner.temp }}/zenith/stack/state.json
         run: npx tsx scripts/acceptance/aws-live.ts
 
       # teardown-01 only: the session above has expired by now; recovery below needs a live one.
@@ -496,6 +497,8 @@ jobs:
           else
             echo "::warning::Zenith stack teardown failed. Owned containers, network or volumes may remain on this runner. The acceptance outcome is unchanged."
           fi
+          # The sandbox session the stack read (written after OIDC and by the teardown-01 refresh) never outlives the job's steps.
+          rm -rf -- "$RUNNER_TEMP/zenith-aws"
 
       - name: Require complete acceptance and successful cleanup
         if: hashFiles('scripts/acceptance/aws-live.ts') != ''

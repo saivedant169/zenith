@@ -145,7 +145,9 @@ export function buildPlan(input: Settings): Plan {
   // DEPLOY-01 deploys, updates and rolls back a Fargate service behind an ALB on a fresh VPC: allow up to 60 minutes.
   // TEARDOWN-01 waits about 80 minutes after its deploy for the earlier writers to settle (WP3), then tears down: up to 150.
   const maxMinutes = scenario === "deploy-01" ? 60 : scenario === "teardown-01" ? 150 : 20;
-  if (!Number.isInteger(settings.durationMinutes) || settings.durationMinutes < 5 || settings.durationMinutes > maxMinutes) throw new Error(`Duration must be 5..${maxMinutes} minutes (25 minutes reserved for cleanup)`);
+  // A shorter TEARDOWN-01 run ends at its envelope before the settlement wait can finish: refuse it before anything is deployed.
+  const minMinutes = scenario === "teardown-01" ? 120 : 5;
+  if (!Number.isInteger(settings.durationMinutes) || settings.durationMinutes < minMinutes || settings.durationMinutes > maxMinutes) throw new Error(`Duration must be ${minMinutes}..${maxMinutes} minutes (25 minutes reserved for cleanup)`);
   const { accountId: account, region, runId } = settings;
   const prefix = `zenith-${runId}`;
   if (!/^zenith-live-[a-z0-9-]+$/.test(settings.dbSubnetGroup) || !/^sg-[a-f0-9]{8,17}$/.test(settings.dbSecurityGroup)) throw new Error("Owned bootstrap DB network required");

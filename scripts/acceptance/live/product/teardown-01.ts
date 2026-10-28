@@ -34,7 +34,11 @@ export interface Teardown01Seams {
   sleep?: (ms: number) => Promise<void>;
   now?: () => number;
   propagation?: { attempts: number; intervalMs: number };
-  /** Settlement wait: poll interval and bound. Default every 2 minutes for up to 110 minutes after the deploy. */
+  /**
+   * Settlement wait: poll interval and bound. Default every 2 minutes for up to 100 minutes after the deploy (expected about 85:
+   * 900 s grant + 3,900 s horizon + the janitor's 5-minute tick). Product calls stop at the run's duration envelope, so the
+   * bound keeps the teardown, readback and trust restore inside a 150-minute run.
+   */
   settle?: { intervalMs: number; boundMs: number };
   refresh?: (env: EnvLike) => Promise<void>;
   state?: { read: (input: StateDestroyInput) => Promise<unknown>; destroy: (input: StateDestroyInput) => Promise<{ destroyed: number; destroyedArns?: string[]; destroyedIds?: string[] }> };
@@ -52,11 +56,11 @@ export function teardown01Port(env: EnvLike = process.env, seams: Teardown01Seam
   const sleep = seams.sleep ?? ((ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms)));
   const now = seams.now ?? Date.now;
   const propagation = seams.propagation ?? { attempts: 12, intervalMs: 15_000 };
-  const settle = seams.settle ?? { intervalMs: 120_000, boundMs: 110 * 60_000 };
+  const settle = seams.settle ?? { intervalMs: 120_000, boundMs: 100 * 60_000 };
   const refresh = seams.refresh ?? refreshSandboxSession;
   const state = seams.state ?? { read: readState, destroy: destroyFromState };
   return {
-    async verify(requirement, { plan, call }) {
+    async verify(requirement, { plan, call, beginCleanup }) {
       if (requirement.id !== "PROD-MIX-04") return { complete: false, reason: `${requirement.id}: not implemented by this port` };
       const invoke: Invoke = (c, values = {}, extra = {}) => call(c, { ...fill(c.input, values), ...extra });
       const planned = (id: string): Call => plan.productCalls?.find(c => c.id === id) ?? refuse(`the plan has no call ${id}`);
@@ -83,7 +87,8 @@ export function teardown01Port(env: EnvLike = process.env, seams: Teardown01Seam
         const out = await invoke(planned("teardown01-tag-read"), { environmentId: environmentId! });
         return ((field(out, "ResourceTagMappingList") as unknown[] | undefined) ?? []).map(r => String(field(r, "ResourceARN")));
       };
-      const refreshOnce = async () => { if (!refreshed) { refreshed = true; await refresh(env); } };
+      // The flag is set only after a successful refresh, so cleanup retries one that failed before the teardown.
+      const refreshOnce = async () => { if (!refreshed) { await refresh(env); refreshed = true; } };
       let step = "preconditions";
       let outcome: { complete: boolean; reason: string };
       try {
@@ -154,6 +159,8 @@ export function teardown01Port(env: EnvLike = process.env, seams: Teardown01Seam
           : { complete: false, reason: `TEARDOWN-01 not proven at ${step}: unexpected failure (details withheld; no completion claim)` };
       }
       const leaks: string[] = [];
+      // From here on the run's duration envelope no longer applies; the harness bounds cleanup on its own clock.
+      beginCleanup?.();
       // Cleanup needs a live session: refresh once if the run did not already.
       try { await refreshOnce(); } catch (error) { leaks.push(error instanceof Refusal ? `session refresh before cleanup failed: ${error.message}` : "session refresh before cleanup failed"); }
       if (environmentId && externalId && !tornDown) {

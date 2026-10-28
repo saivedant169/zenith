@@ -93,5 +93,7 @@ export interface ProductScenarioPort {
   verify(requirement: Plan["requirements"][number], context: {
     /** `input` (optional) is the resolved request for a planned call whose template holds `$runtime` markers; the planned call itself is still the digest the guard checks. */
     plan: Plan; commit: string; call: (call: Call, input?: Record<string, Json>) => Promise<Record<string, unknown>>;
+    /** The port starts its cleanup: later calls are exempt from the duration envelope and bounded by a 25-minute cleanup clock. */
+    beginCleanup?: () => void;
   }): Promise<{ complete: boolean; reason: string; /** Cleanup leaks: each one is a failed check, never a pass. */ leaks?: string[] }>;
 }

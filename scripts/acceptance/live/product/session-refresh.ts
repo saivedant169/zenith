@@ -7,7 +7,7 @@
  * No value is logged, returned or passed on a command line. It lives in memory and in the stack's existing credentials file.
  */
 import { execFile } from "node:child_process";
-import { rename, writeFile } from "node:fs/promises";
+import { readFile, rename, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
 import type { EnvLike } from "../../config";
@@ -20,12 +20,14 @@ export interface SessionRefreshSeams {
   assume?: (input: { region: string; roleArn: string; sessionName: string; token: string }) => Promise<RefreshedSession>;
   write?: (file: string, contents: string) => Promise<void>;
   docker?: (args: string[]) => Promise<string>;
+  installation?: () => Promise<string>;
   replace?: (session: RefreshedSession) => void;
   sleep?: (ms: number) => Promise<void>;
 }
 
 const ROLE_ARN = /^arn:aws:iam::(\d{12}):role\/[\w+=,.@-]{1,64}$/;
-const SERVICES = ["api", "api-peer", "execution-worker"];
+/** Required exactly once; the peers of the default profile, when present, at most once. */
+const SERVICES = { api: true, "execution-worker": true, "api-peer": false, "execution-worker-peer": false } as const;
 
 async function githubToken(url: string, bearer: string): Promise<string> {
   const target = new URL(url);
@@ -53,8 +55,8 @@ const docker = async (args: string[]) => (await run("docker", args, { timeout: 1
 /** Atomic replace in the stack's directory, readable by the containers' non-root users as the workflow wrote it. */
 async function writeShared(file: string, contents: string): Promise<void> {
   const temporary = `${file}.${process.pid}.tmp`;
-  await writeFile(temporary, contents, { mode: 0o644 });
-  await rename(temporary, file);
+  try { await writeFile(temporary, contents, { mode: 0o644 }); await rename(temporary, file); }
+  catch (error) { await unlink(temporary).catch(() => undefined); throw error; }
 }
 
 export async function refreshSandboxSession(env: EnvLike, seams: SessionRefreshSeams = {}): Promise<void> {
@@ -63,6 +65,13 @@ export async function refreshSandboxSession(env: EnvLike, seams: SessionRefreshS
   if (!url || !bearer) refuse("no GitHub OIDC token request is available to refresh the sandbox session");
   if (ROLE_ARN.exec(roleArn)?.[1] !== account) refuse("the session refresh role is not in the declared sandbox account");
   if (!/^[a-z]{2}(-[a-z]+)+-\d$/.test(region) || !path.isAbsolute(dir)) refuse("the session refresh has no region or shared credentials directory");
+  // This stack's own installation id (default-stack/up.mjs state), so no other installation's container is ever touched.
+  const installation = await (seams.installation ?? (async () => {
+    const file = env.ZENITH_LIVE_STACK_STATE?.trim() ?? "";
+    if (!path.isAbsolute(file)) refuse("the session refresh has no stack state file");
+    return String((JSON.parse(await readFile(file, "utf8")) as { installationId?: unknown }).installationId ?? "");
+  }))();
+  if (!/^[0-9a-f]{24}$/.test(installation)) refuse("the stack state has no installation id");
   const token = await (seams.token ?? githubToken)(url!, bearer!);
   const sessionName = `zenith-live-acceptance-${/^\d{1,20}$/.test(env.GITHUB_RUN_ID ?? "") ? env.GITHUB_RUN_ID : "run"}-refresh`.slice(0, 64);
   const session = await (seams.assume ?? assumeWithWebIdentity)({ region, roleArn, sessionName, token });
@@ -74,9 +83,9 @@ export async function refreshSandboxSession(env: EnvLike, seams: SessionRefreshS
   // Only this installation's API and worker containers, found by their compose service and installation labels.
   const exec = seams.docker ?? docker, sleep = seams.sleep ?? ((ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms)));
   const ids: string[] = [];
-  for (const service of SERVICES) {
-    const found = (await exec(["ps", "-q", "--filter", "label=io.zenith.installation", "--filter", `label=com.docker.compose.service=${service}`])).split(/\s+/).filter(id => /^[0-9a-f]{12,64}$/.test(id));
-    if (service !== "api-peer" && found.length !== 1) refuse(`expected one running ${service} container to restart, found ${found.length}`);
+  for (const [service, required] of Object.entries(SERVICES)) {
+    const found = (await exec(["ps", "-q", "--filter", `label=io.zenith.installation=${installation}`, "--filter", `label=com.docker.compose.service=${service}`])).split(/\s+/).filter(id => /^[0-9a-f]{12,64}$/.test(id));
+    if (found.length > 1 || (required && found.length !== 1)) refuse(`expected ${required ? "one" : "at most one"} running ${service} container to restart, found ${found.length}`);
     ids.push(...found);
   }
   await exec(["restart", "--time", "30", ...ids]);

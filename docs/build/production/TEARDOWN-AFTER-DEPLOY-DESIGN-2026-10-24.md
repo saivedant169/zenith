@@ -232,7 +232,7 @@ Scenario `teardown-01` (`scripts/acceptance/live/product/teardown-01.ts`, scope 
 
 1. Zenith deploys one managed S3 bucket into a fresh AWS environment, with two-person browser approval. The harness reads it back from the recorded state and from the tagging inventory.
 2. Right after the deploy, the teardown review's plan must be refused with the WP6 settling sentence.
-3. The harness polls that plan every 2 minutes, for up to 110 minutes. The settling refusal must clear, and no other refusal may replace it.
+3. The harness polls that plan every 2 minutes, for up to 100 minutes. Product calls stop at the duration envelope, so this bound keeps the teardown, readback and trust restore inside a 150-minute run. The settling refusal must clear, and no other refusal may replace it.
 4. The run refreshes its session.
 5. Zenith tears down through `env.reviewTeardown` and every browser approval of the destroy proposal.
 6. The recorded state must be empty, and no resource tagged with the environment may remain.

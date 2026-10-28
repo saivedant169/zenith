@@ -802,3 +802,24 @@ describe("AWS CLI resume command, next-command.txt and checkpoint (G1/G2, offlin
     expect(checkpoint.unattendedClaims).toBe(false);
   });
 });
+
+describe("product cleanup clock (TEARDOWN-01)", () => {
+  it("exempts product cleanup calls from the duration envelope after beginCleanup, then bounds them by 25 minutes", async () => {
+    const p = buildPlan({ ...settings, scenario: "teardown-01", durationMinutes: 120 }), guard = new Guard(p, { ...permission(p), maxMinutes: 120 }, 10, now), model = modeled(p);
+    const journal = newJournal(p, guard, "a".repeat(40), now());
+    let clock = now().getTime();
+    const outcomes: string[] = [];
+    const product = { async verify(requirement: Plan["requirements"][number], ctx: { plan: Plan; call: (c: Call) => Promise<Record<string, unknown>>; beginCleanup?: () => void }) {
+      if (requirement.id !== "PROD-MIX-04") return { complete: false, reason: "not this port" };
+      const tag = ctx.plan.productCalls!.find(c => c.id === "teardown01-tag-read")!;
+      const attempt = async (label: string) => { try { await ctx.call(tag); outcomes.push(`${label}:ok`); } catch (e) { outcomes.push(`${label}:${(e as Error).message}`); } };
+      await attempt("inside");
+      clock += 121 * 60_000; await attempt("after-envelope");
+      ctx.beginCleanup!(); await attempt("cleanup");
+      clock += 26 * 60_000; await attempt("after-cleanup-clock");
+      return { complete: false, reason: "modeled" };
+    } };
+    await execute(p, guard, model.transport, journal, { now: () => new Date(clock), sleep: async () => undefined, save: async () => undefined }, { product });
+    expect(outcomes).toEqual(["inside:ok", "after-envelope:Live run cancelled or duration envelope exhausted", "cleanup:ok", "after-cleanup-clock:Product cleanup deadline reached; owner recovery required"]);
+  });
+});

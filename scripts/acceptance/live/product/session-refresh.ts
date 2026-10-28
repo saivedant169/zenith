@@ -59,6 +59,11 @@ async function writeShared(file: string, contents: string): Promise<void> {
   catch (error) { await unlink(temporary).catch(() => undefined); throw error; }
 }
 
+/** The API and worker containers carry the application installation id (up.mjs), not the stack's Supabase-side `installationId`. */
+export function stackApplicationInstallation(stateJson: string): string {
+  return String((JSON.parse(stateJson) as { applicationInstallationId?: unknown }).applicationInstallationId ?? "");
+}
+
 export async function refreshSandboxSession(env: EnvLike, seams: SessionRefreshSeams = {}): Promise<void> {
   const url = env.ACTIONS_ID_TOKEN_REQUEST_URL, bearer = env.ACTIONS_ID_TOKEN_REQUEST_TOKEN, roleArn = env.ZENITH_LIVE_OIDC_ROLE_ARN?.trim() ?? "";
   const region = env.ZENITH_LIVE_REGION?.trim() ?? "", account = env.ZENITH_LIVE_AWS_ACCOUNT_ID?.trim() ?? "", dir = env.ZENITH_LIVE_AWS_SHARED_DIR?.trim() ?? "";
@@ -69,7 +74,7 @@ export async function refreshSandboxSession(env: EnvLike, seams: SessionRefreshS
   const installation = await (seams.installation ?? (async () => {
     const file = env.ZENITH_LIVE_STACK_STATE?.trim() ?? "";
     if (!path.isAbsolute(file)) refuse("the session refresh has no stack state file");
-    return String((JSON.parse(await readFile(file, "utf8")) as { installationId?: unknown }).installationId ?? "");
+    return stackApplicationInstallation(await readFile(file, "utf8"));
   }))();
   if (!/^[0-9a-f]{24}$/.test(installation)) refuse("the stack state has no installation id");
   const token = await (seams.token ?? githubToken)(url!, bearer!);

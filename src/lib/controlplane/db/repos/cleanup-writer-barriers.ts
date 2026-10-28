@@ -19,8 +19,9 @@ export function sealDeliverySettlement(cipher: VaultCipher, plain: DeliverySettl
   return cipher.seal(plain.workspaceId, deliverySettlementRef(plain.family, plain.source, plain.identity),
     JSON.stringify({ format: DELIVERY_SETTLEMENT_FORMAT, ...plain }));
 }
+// The vault key, not the plan-artifact key: the API verifies settlements (teardown review) and holds only ZENITH_SECRET_KEY.
 async function platformCipher(): Promise<VaultCipher | undefined> {
-  try { return (await import("@/lib/platform/plan-artifacts")).planArtifactCipherFromEnv(); } catch { return undefined; }
+  try { return (await import("@/lib/secrets")).vaultCipherFromEnv(); } catch { return undefined; }
 }
 /** Only rows that open under the platform key, for their own delivery, count. Others never settle anything. */
 async function verifiedDeliverySettlements(sql: Sql, workspaceId: string, projectId: string, environmentId: string): Promise<readonly VerifiedDeliverySettlement[]> {

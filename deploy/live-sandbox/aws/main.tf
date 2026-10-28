@@ -88,7 +88,8 @@ locals {
   workload_role        = "${local.iam}:role/zenith-zlive-*-lambda"
   boundary             = "${local.iam}:policy/ZenithLiveWorkloadBoundary"
   # One pattern per role covers every lane (-live, -live2): the inline policy is capped at 10240 characters.
-  connection_role_arns = ["${local.iam}:role/ZenithObserveRole${var.connection_name_suffix}*", "${local.iam}:role/ZenithDeployRole${var.connection_name_suffix}*"]
+  # The secret writer role is here because the product writes service secrets only through it (PROD-OPS-06).
+  connection_role_arns = ["${local.iam}:role/ZenithObserveRole${var.connection_name_suffix}*", "${local.iam}:role/ZenithDeployRole${var.connection_name_suffix}*", "${local.iam}:role/ZenithSecretWriterRole${var.connection_name_suffix}*"]
   lane_roles           = flatten([for s in var.connection_lane_suffixes : ["ZenithObserveRole${s}", "ZenithDeployRole${s}"]])
   owned_tags = {
     StringEquals = { "aws:ResourceTag/zenith:purpose" = "live-acceptance", "aws:ResourceTag/zenith:managed" = "true" }
@@ -101,7 +102,7 @@ locals {
   zenith_role_glob = "${local.iam}:role/zenith-*"
   # Connection stack names (deploy/aws/zenith-connection.cfn.yaml) with the connection suffix. zenith-codebuild is lower-case,
   # so it matches zenith-* and is denied explicitly. The other roles are capitalised and do not match.
-  connection_protected_roles = concat(local.connection_role_arns, ["${local.iam}:role/ZenithSecretWriterRole${var.connection_name_suffix}*", "${local.iam}:role/zenith-codebuild${var.connection_name_suffix}*"])
+  connection_protected_roles = concat(local.connection_role_arns, ["${local.iam}:role/zenith-codebuild${var.connection_name_suffix}*"])
   # One pattern, not 15 ARNs: the inline policy is capped at 10240 characters. Matches the 15 connection managed policies
   # (Zenith*-live); the bootstrap policies do not end in the suffix.
   connection_protected_policies = ["${local.iam}:policy/Zenith*${var.connection_name_suffix}*"]

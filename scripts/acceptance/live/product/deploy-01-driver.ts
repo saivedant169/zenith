@@ -17,10 +17,12 @@ import { approveOperation } from "../../../release/drivers/operated";
 export interface Deploy01Tenant { workspaceId: string; projectId: string }
 export interface Deploy01Product {
   createTenant(): Promise<Deploy01Tenant>;
-  createAwsConnection(tenant: Deploy01Tenant, input: { accountId: string; region: string; observeRoleArn: string; deployRoleArn: string; stateBucket: string; bootstrapNameSuffix: string }): Promise<{ connectionId: string; externalId: string }>;
+  createAwsConnection(tenant: Deploy01Tenant, input: { accountId: string; region: string; observeRoleArn: string; deployRoleArn: string; stateBucket: string; bootstrapNameSuffix: string; secretWriterRoleArn?: string }): Promise<{ connectionId: string; externalId: string }>;
   verifyAws(tenant: Deploy01Tenant, connectionId: string): Promise<{ ok: boolean }>;
   createEnvironment(tenant: Deploy01Tenant, input: { connectionId: string; region: string; name: string }): Promise<{ environmentId: string }>;
   setManifest(tenant: Deploy01Tenant, manifest: Record<string, unknown>): Promise<void>;
+  /** OPS-06: system.setSecret on one service env key. The value goes only into the request body (field secretValue). */
+  setSecret?(tenant: Deploy01Tenant, input: { serviceId: string; key: string; secretValue: string }): Promise<void>;
   /** deploy.apply (or deploy.rollback) through every approval, until the operation is terminal. */
   deploy(tenant: Deploy01Tenant, environmentId: string, kind: "apply" | "rollback"): Promise<{ operationId: string; status: string; detail?: string }>;
   /** TEARDOWN-01: the refusal the teardown review's plan shows now, if any (env.reviewTeardown in plan mode, as the web app asks). */
@@ -140,6 +142,7 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
         const result = await runAction(session, session.owner, "connection.createAws", {
           label: "DEPLOY-01 live", region: input.region, accountId: input.accountId, observeRoleArn: input.observeRoleArn,
           deployRoleArn: input.deployRoleArn, stateBucket: input.stateBucket, bootstrapNameSuffix: input.bootstrapNameSuffix, mode: "aws_assume_role",
+          ...(input.secretWriterRoleArn ? { secretWriterRoleArn: input.secretWriterRoleArn } : {}),
         });
         if (!result.ok || typeof result.data.connectionId !== "string" || typeof result.data.externalId !== "string") refuse("connection.createAws was refused by the product");
         return { connectionId: result.data.connectionId as string, externalId: result.data.externalId as string };
@@ -166,6 +169,13 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
         const session = sessionOf(tenant);
         const result = await runAction(session, session.owner, "project.updateManifest", { projectId: tenant.projectId, manifest }, { projectId: tenant.projectId });
         if (!result.ok) refuse("project.updateManifest was refused by the product");
+      });
+    },
+    async setSecret(tenant, input) {
+      return step("secret", async () => {
+        const session = sessionOf(tenant);
+        const result = await runAction(session, session.owner, "system.setSecret", { projectId: tenant.projectId, ...input }, { projectId: tenant.projectId });
+        if (!result.ok) refuse("system.setSecret was refused by the product");
       });
     },
     async deploy(tenant, environmentId, kind) {

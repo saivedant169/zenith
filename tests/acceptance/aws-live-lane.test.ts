@@ -27,6 +27,6 @@ describe("sandbox lanes", () => {
     expect(() => parseLane("live3")).toThrow("Unknown sandbox lane");
     expect([parseLane(undefined), parseLane("live"), parseLane("live2")]).toEqual([undefined, undefined, "live2"]);
     expect([laneSuffix({}), laneSuffix({ lane: "live2" })]).toEqual(["-live", "-live2"]);
-    expect(liveRoleNames("-live2")).toEqual({ observe: "ZenithObserveRole-live2", deploy: "ZenithDeployRole-live2", principal: "ZenithLiveAcceptance" });
+    expect(liveRoleNames("-live2")).toEqual({ observe: "ZenithObserveRole-live2", deploy: "ZenithDeployRole-live2", writer: "ZenithSecretWriterRole-live2", principal: "ZenithLiveAcceptance" });
   });
 });

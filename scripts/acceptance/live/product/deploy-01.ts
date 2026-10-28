@@ -8,13 +8,16 @@
  * role (planned STS call) and probes the load balancer over HTTP, and (c) cleans up. The product refuses teardown after a
  * deploy (docs/LIMITATIONS.md), so cleanup destroys exactly the recorded state (state-destroy.ts) and re-lists by tag.
  */
+import { randomBytes } from "node:crypto";
 import http from "node:http";
+import path from "node:path";
 import type { EnvLike } from "../../config";
 import type { Call, Json, ProductScenarioPort } from "../contracts";
 import { laneSuffix, liveRoleNames } from "../plan";
 import type { Deploy01Product } from "./deploy-01-driver";
 import { fill, parsePolicy, refuse, Refusal, templateExternalId, trustDocument } from "./mix-03";
 import { destroyFromState, readState, stateAttribute, type SessionCredentials, type StateDestroyInput } from "./state-destroy";
+import { scanForCanary, type CanaryScan } from "./canary-scan";
 
 type Invoke = (call: Call, values?: Record<string, string>, extra?: Record<string, Json>) => Promise<Record<string, unknown>>;
 // The product deploys only digest-pinned images (release-safety.ts). Multi-arch index digests of ECR Public nginx 1.27 and 1.26.
@@ -41,6 +44,20 @@ export interface Deploy01Seams {
   /** HTTP probe of the load balancer with the route's Host header; resolves the status code. */
   probe?: (dnsName: string, host: string) => Promise<number>;
   state?: { read: (input: StateDestroyInput) => Promise<unknown>; destroy: (input: StateDestroyInput) => Promise<{ destroyed: number; destroyedArns?: string[]; destroyedIds?: string[] }> };
+  /** OPS-06: the canary value (default: random) and the runner persistence scan (default: canary-scan.ts over the env roots). */
+  canary?: () => string;
+  scan?: (canary: string) => Promise<CanaryScan>;
+}
+/** The OPS-06 service env key that reads the canary from Zenith's secret store. */
+export const OPS06_SECRET_KEY = "ZENITH_OPS06_CANARY";
+/** The recorded task definition reads the key from a Zenith Secrets Manager secret and holds no plaintext copy. */
+export function ops06DefinitionReadsSecret(definitions: unknown, canary: string, account: string, region: string): boolean {
+  if (typeof definitions !== "string" || definitions.includes(canary)) return false;
+  let parsed: unknown;
+  try { parsed = JSON.parse(definitions); } catch { return false; }
+  const arn = new RegExp(`^arn:aws:secretsmanager:${region}:${account}:secret:zenith/[A-Za-z0-9/_+=.@-]+$`);
+  return Array.isArray(parsed) && parsed.some(c => Array.isArray(field(c, "secrets")) && (field(c, "secrets") as unknown[]).some(s => field(s, "name") === OPS06_SECRET_KEY && typeof field(s, "valueFrom") === "string" && arn.test(field(s, "valueFrom") as string))
+    && !((field(c, "environment") as unknown[] | undefined) ?? []).some(e => field(e, "name") === OPS06_SECRET_KEY));
 }
 
 const field = (value: unknown, key: string): unknown => value && typeof value === "object" ? (value as Record<string, unknown>)[key] : undefined;
@@ -57,9 +74,15 @@ export function deploy01Port(env: EnvLike = process.env, seams: Deploy01Seams = 
   const propagation = seams.propagation ?? { attempts: 12, intervalMs: 15_000 };
   const probe = seams.probe ?? defaultProbe;
   const state = seams.state ?? { read: readState, destroy: destroyFromState };
+  const canaryOf = seams.canary ?? (() => `zops06${randomBytes(16).toString("hex")}`);
+  // Docker's data root, the runner temp (stack data, this harness's output) and the checkout.
+  const roots = ["/var/lib/docker", env.RUNNER_TEMP, env.GITHUB_WORKSPACE].filter((r): r is string => !!r);
+  const scan = seams.scan ?? ((canary: string) => scanForCanary(canary, { roots, controlDir: path.join(env.RUNNER_TEMP ?? "/nonexistent", "zenith-ops06-control") }));
   return {
     async verify(requirement, { plan, call }) {
-      if (requirement.id !== "PROD-REL-01") return { complete: false, reason: `${requirement.id}: not implemented by this port` };
+      const ops06 = plan.settings.scenario === "ops-06";
+      if (requirement.id !== (ops06 ? "PROD-OPS-06" : "PROD-REL-01")) return { complete: false, reason: `${requirement.id}: not implemented by this port` };
+      const label = ops06 ? "OPS-06" : "DEPLOY-01";
       const invoke: Invoke = (c, values = {}, extra = {}) => call(c, { ...fill(c.input, values), ...extra });
       const planned = (id: string): Call => plan.productCalls?.find(c => c.id === id) ?? refuse(`the plan has no call ${id}`);
       const account = plan.settings.accountId, region = plan.settings.region, runId = plan.settings.runId;
@@ -67,10 +90,10 @@ export function deploy01Port(env: EnvLike = process.env, seams: Deploy01Seams = 
       const bootstrapNameSuffix = laneSuffix(plan.settings), names = liveRoleNames(bootstrapNameSuffix);
       const stateBucket = `zenith-state-${account}-${region}${bootstrapNameSuffix}`;
       const principal = `arn:aws:iam::${account}:role/${names.principal}`;
-      const roleArns = { observe: `arn:aws:iam::${account}:role/${names.observe}`, deploy: `arn:aws:iam::${account}:role/${names.deploy}` };
+      const roleArns = { observe: `arn:aws:iam::${account}:role/${names.observe}`, deploy: `arn:aws:iam::${account}:role/${names.deploy}`, writer: `arn:aws:iam::${account}:role/${names.writer}` };
       const host = `web-${runId.slice(-8).toLowerCase()}.example.com`;
       const tofu = env.ZENITH_TOFU_BIN?.trim() || "tofu";
-      const trust: { role: "observe" | "deploy"; original: string; write: Call }[] = [];
+      const trust: { role: "observe" | "deploy" | "writer"; original: string; write: Call }[] = [];
       let externalId: string | undefined, workspaceId: string | undefined, environmentId: string | undefined;
       const session = async (): Promise<SessionCredentials> => {
         const out = await invoke(planned("deploy01-sts-assume"), { externalId: externalId! });
@@ -98,15 +121,15 @@ export function deploy01Port(env: EnvLike = process.env, seams: Deploy01Seams = 
       let outcome: { complete: boolean; reason: string };
       try {
         if (env.ZENITH_LIVE_PRODUCT !== "1") refuse("ZENITH_LIVE_PRODUCT=1 is not set; no product scenario ran");
-        if (plan.settings.scenario !== "deploy-01" || !plan.productCalls?.length) refuse("the plan is not the deploy-01 scenario");
+        if ((plan.settings.scenario !== "deploy-01" && !ops06) || !plan.productCalls?.length) refuse("the plan is not the deploy-01 or ops-06 scenario");
         step = "tenant";
         const tenant = await product.createTenant();
         workspaceId = tenant.workspaceId;
         step = "connection";
-        const connection = await product.createAwsConnection(tenant, { accountId: account, region, observeRoleArn: roleArns.observe, deployRoleArn: roleArns.deploy, stateBucket, bootstrapNameSuffix });
+        const connection = await product.createAwsConnection(tenant, { accountId: account, region, observeRoleArn: roleArns.observe, deployRoleArn: roleArns.deploy, stateBucket, bootstrapNameSuffix, ...(ops06 ? { secretWriterRoleArn: roleArns.writer } : {}) });
         if (!EXTERNAL_ID_NEW.test(connection.externalId)) refuse("the generated ExternalId has an unexpected shape");
         step = "sandbox trust";
-        for (const role of ["observe", "deploy"] as const) {
+        for (const role of ops06 ? ["observe", "deploy", "writer"] as const : ["observe", "deploy"] as const) {
           const current = await invoke(planned(`deploy01-iam-read-${role}`));
           const original = templateExternalId(parsePolicy(field(field(current, "Role"), "AssumeRolePolicyDocument")), principal);
           const write = planned(`deploy01-iam-trust-${role}`);
@@ -122,6 +145,29 @@ export function deploy01Port(env: EnvLike = process.env, seams: Deploy01Seams = 
         }
         step = "environment";
         environmentId = (await product.createEnvironment(tenant, { connectionId: connection.connectionId, region, name: `live-${runId.slice(-8).toLowerCase()}` })).environmentId;
+        if (ops06) {
+          const canary = canaryOf();
+          step = "manifest";
+          await product.setManifest(tenant, deploy01Manifest(DEPLOY01_IMAGES.v1, host));
+          step = "secret";
+          if (!product.setSecret) refuse("the browser driver has no secret path");
+          await product.setSecret!(tenant, { serviceId: "web", key: OPS06_SECRET_KEY, secretValue: canary });
+          step = "deploy";
+          const result = await product.deploy(tenant, environmentId, "apply");
+          if (result.status !== "succeeded") refuse(`the deploy ended ${/^[a-z_]{1,20}$/.test(result.status) ? result.status : "unknown"}, not succeeded${result.detail ? ` (product: ${result.detail})` : ""}`);
+          step = "deploy readback";
+          await readback(DEPLOY01_IMAGES.v1);
+          step = "recorded state";
+          const recorded = await state.read(await stateInput());
+          if (JSON.stringify(recorded).includes(canary)) refuse("the recorded OpenTofu state holds the secret value");
+          if (!ops06DefinitionReadsSecret(stateAttribute(recorded, "aws_ecs_task_definition", "container_definitions"), canary, account, region)) refuse(`the recorded task definition does not read ${OPS06_SECRET_KEY} from a Zenith Secrets Manager secret`);
+          step = "persistence scan";
+          const found = await scan(canary);
+          if (!found.control) refuse("the persistence scan did not find its own control file; it proves nothing");
+          const places = Object.entries(found.leaks).map(([place, n]) => `${place}: ${n}`).sort();
+          if (places.length) refuse(`the secret value was found in runner persistence (${places.join(", ")})`);
+          outcome = { complete: true, reason: `OPS-06 proven on AWS: ${OPS06_SECRET_KEY} was set through system.setSecret and deployed to ECS Fargate behind an ALB with two-person approval, served HTTP 200; the recorded OpenTofu state holds only the Secrets Manager reference and no copy of the value; a raw-byte scan of Docker's data root (container logs, volumes, written files), the runner temp and the checkout found the value only in its own control file` };
+        } else {
         for (const [label, image, kind] of [["first deploy", DEPLOY01_IMAGES.v1, "apply"], ["update", DEPLOY01_IMAGES.v2, "apply"], ["rollback", DEPLOY01_IMAGES.v1, "rollback"]] as const) {
           step = label;
           if (kind === "apply") await product.setManifest(tenant, deploy01Manifest(image, host));
@@ -131,10 +177,11 @@ export function deploy01Port(env: EnvLike = process.env, seams: Deploy01Seams = 
           await readback(image);
         }
         outcome = { complete: true, reason: `DEPLOY-01 proven: connection verified on the sandbox roles; ${DEPLOY01_IMAGES.v1} deployed to ECS Fargate behind an ALB with two-person approval and served HTTP 200; updated to ${DEPLOY01_IMAGES.v2} and rolled back to ${DEPLOY01_IMAGES.v1}, each read back from the recorded state and over HTTP` };
+        }
       } catch (error) {
         outcome = error instanceof Refusal
-          ? { complete: false, reason: `DEPLOY-01 not proven at ${step}: ${error.message}` }
-          : { complete: false, reason: `DEPLOY-01 not proven at ${step}: unexpected failure (details withheld; no completion claim)` };
+          ? { complete: false, reason: `${label} not proven at ${step}: ${error.message}` }
+          : { complete: false, reason: `${label} not proven at ${step}: unexpected failure (details withheld; no completion claim)` };
       }
       const leaks: string[] = [];
       if (environmentId && externalId) {

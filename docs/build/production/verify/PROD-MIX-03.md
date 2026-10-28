@@ -106,3 +106,25 @@ Each entry carries the reference id, producer and consumer partition ids, produc
 Serializer: `src/lib/execution/mixed/readback.ts` (pure; used by both routes). Tests: `tests/execution/mixed/reference-readback.test.ts` (shape, digest equal to the recomputed contract digest, digests and types only, legacy nulls, empty inventory). No preauthorization or review behaviour changed.
 
 Verification scope: offline contract tests only. Status is unchanged: `implementation_complete_verification_pending`.
+
+## MIX-03 on the live AWS sandbox (2026-10-28)
+
+Run [40635277474](https://github.com/saivedant169/zenith/actions/runs/40635277474), run id `zlive-202610280458-5e03`, source `619071fe5a3bc0aa0dc9f66147ca8695e05c73c5`. Sandbox account 361646636162 in ap-south-1. Plan `c249d8f5…bd9161ef9d5bf`, cap USD 0.90 (provisional, billing not measured), 20 minutes. Verdict incomplete (1 pending), cleanup complete. Files: `evidence/PROD-MIX-03/2026-10-28-live-aws-40635277474/`.
+
+What it proved:
+
+- The trust change touched only the ExternalId of both sandbox roles, and it was restored. `connection.verifyAws` passed.
+- The producer (S3 bucket) finished before the consumer (Lambda function) started.
+- Both mixed-run receipts link their child operations.
+- The consumer's deployed `PRODUCER_BUCKET_ARN` equals the producer bucket ARN, by independent readback.
+- Approvals were made by an automated test approver through the browser path.
+
+How we got here (runs on 2026-10-27 and 2026-10-28):
+
+- Teardown matches the Lambda driver's `logs` inline policy and orphan log groups (#74).
+- The driver reads the detail of every unsuccessful child and reports a fixed halt category (#75, #76, #77).
+- Dispatch-wrapped OpenTofu failures carry a fixed cause code (`src/lib/tofu/failure-code.ts`, #78).
+- The deploy role gained `lambda:GetFunctionCodeSigningConfig`, which the AWS provider reads after every create and refresh of a Zip function (#79). The `zenith-connection-live` stack was updated from CloudShell.
+- The Lambda driver's observe, runtime and discover reads use `GetFunctionConfiguration` and `ListTags`, which the observe role allows, instead of `GetFunction`, which it does not (#80).
+
+Limits: still pending are the producer-change review and the one-use preauthorization refusal, which no product route can trigger yet. Secret references, operational rehearsal and the owner decisions above are also still pending. Status stays `implementation_complete_verification_pending`. Not a promotion.

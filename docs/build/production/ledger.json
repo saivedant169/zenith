@@ -4349,7 +4349,18 @@
       ],
       "implementationStatus": "implementation_complete_verification_pending",
       "implementationNote": "L3 gated observation/cleanup/inventory harness built; live and operational evidence plus owner fixtures/decisions pending. No verification claimed.",
-      "evidence": [],
+      "evidence": [
+        {
+          "level": "live_sandbox",
+          "commit": "619071fe5a3bc0aa0dc9f66147ca8695e05c73c5",
+          "runId": 40635277474,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/40635277474",
+          "command": "GitHub Actions live-acceptance.yml, workflow_dispatch with scenario mix-03 and run_id zlive-202610280458-5e03 (scripts/acceptance/live/product/mix-03.ts); plan sha256 c249d8f5f0fac2e9dc321c9841110e101f98ff14bda27c0bb61bd9161ef9d5bf; permission sha256 998354429805426fa8b714afd37053961ab8c8266a6044c90efddf48f67d3a48",
+          "environment": "Disposable AWS sandbox account 361646636162, region ap-south-1; GitHub environment live-sandbox (owner-delegated automated envelope, approvedBy automation delegated by Saivedant Hava 2026-10-26); hosted runner with the disposable Zenith stack; connection stack zenith-connection-live (NameSuffix -live) updated 2026-10-28 to the template of PR #79; estimated cap USD 0.90 (provisional, billing not measured); 20 minute window",
+          "logs": "docs/build/production/evidence/PROD-MIX-03/2026-10-28-live-aws-40635277474/",
+          "result": "MIX-03 partly proven on the live AWS sandbox with cleanup complete: the trust change touched only the ExternalId of both sandbox roles and was restored; connection.verifyAws passed; the producer (S3 bucket) finished before the consumer (Lambda function) started; both mixed-run receipts link their child operations; the consumer's deployed PRODUCER_BUCKET_ARN equals the producer bucket ARN by independent readback. Approvals were made by an automated test approver through the browser path. Pending: the producer-change review and the one-use preauthorization refusal, which no product route can trigger yet. Verdict incomplete (1 pending); operational_rehearsal not done; not a promotion."
+        }
+      ],
       "requiredEvidence": [
         "contract",
         "local_engine",

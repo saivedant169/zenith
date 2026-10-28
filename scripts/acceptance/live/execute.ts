@@ -53,13 +53,15 @@ export async function execute(plan: Plan, guard: Guard, transport: Transport, jo
   let cleanup = false;
   let cleanupStarted = 0;
   let productLeak = false;
+  let productCleanupStarted = 0;
   const add = (check: Check) => journal.checks.push(check);
   const started = io.now().getTime();
   const save = async () => { journal.counts = { ...guard.counts }; await io.save(journal); };
   // `override` is the resolved request of a planned template (mix-03 runtime values); the guard still checks the planned call.
   const call = async (c: Call, repair = false, override?: Record<string, Json>) => {
     if (cleanupStarted && io.now().getTime() - cleanupStarted >= 25 * 60_000) throw new Error("Cleanup observation deadline reached; owner recovery required");
-    if (!cleanup && (options.signal?.aborted || io.now().getTime() - started >= plan.settings.durationMinutes * 60_000)) throw new Error("Live run cancelled or duration envelope exhausted");
+    if (productCleanupStarted && io.now().getTime() - productCleanupStarted >= 25 * 60_000) throw new Error("Product cleanup deadline reached; owner recovery required");
+    if (!cleanup && !productCleanupStarted && (options.signal?.aborted || io.now().getTime() - started >= plan.settings.durationMinutes * 60_000)) throw new Error("Live run cancelled or duration envelope exhausted");
     guard.consume(c, cleanup, repair);
     // Intent markers persist BEFORE the request: a crash mid-request must still let recovery prove this run's create or put.
     if (c.id === "s3-create") journal.responses[c.id] = { Bucket: String(c.input.Bucket) };
@@ -197,7 +199,7 @@ export async function execute(plan: Plan, guard: Guard, transport: Transport, jo
       const scope = new Set(scopedRequirementIds(plan.settings, plan.requirements.map(r => r.id)));
       for (const requirement of plan.requirements.filter(r => scope.has(r.id))) {
         const result: { complete: boolean; reason: string; leaks?: string[] } = options.product
-          ? await options.product.verify(requirement, { plan, commit: journal.commit, call: (c, input) => call(c, false, input) })
+          ? await options.product.verify(requirement, { plan, commit: journal.commit, call: (c, input) => call(c, false, input), beginCleanup: () => { productCleanupStarted ||= io.now().getTime(); } })
           : { complete: false, reason: requirement.join };
         add({ id: requirement.id, status: result.complete ? "passed" : "pending", scope: "product_requirement", reason: result.reason });
         // A cleanup leak is a failed check and keeps the journal open for owner recovery.

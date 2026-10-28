@@ -40,6 +40,14 @@ export function nonceZip(): Uint8Array {
   return Buffer.concat([local, name, data, central, name, end]);
 }
 
+type SessionCredentials = Awaited<ReturnType<typeof sessionCredentials>>;
+const rebuilds = new Set<(credentials: SessionCredentials) => void>();
+/** A long scenario (teardown-01) refreshes its one-hour OIDC session mid-run: every live transport rebuilds its clients on the new session. */
+export function replaceSessionCredentials(credentials: SessionCredentials): void {
+  if (!credentials.accessKeyId || !credentials.secretAccessKey || !credentials.sessionToken) throw new Error("Short-lived session credentials required");
+  for (const rebuild of rebuilds) rebuild({ accessKeyId: credentials.accessKeyId, secretAccessKey: credentials.secretAccessKey, sessionToken: credentials.sessionToken });
+}
+
 export async function sdkTransport(region: string, env: EnvLike): Promise<Transport> {
   const credentials = await sessionCredentials(env);
   const [s3, iam, lambda, ecs, rds, route53, sts, ssm, ec2, tag, secrets, logs] = await Promise.all([
@@ -48,10 +56,14 @@ export async function sdkTransport(region: string, env: EnvLike): Promise<Transp
   type Client = { send(command: unknown, options: { abortSignal: AbortSignal }): Promise<Record<string, unknown>> };
   type Constructor = new (input: unknown) => unknown;
   const modules: Record<string, { module: Record<string, unknown>; client: Client }> = {};
-  const options = { region, credentials, maxAttempts: 1, useFipsEndpoint: false, useDualstackEndpoint: false, ignoreConfiguredEndpointUrls: true };
-  for (const [service, module, ClientCtor] of [
-    ["s3", s3, s3.S3Client], ["iam", iam, iam.IAMClient], ["lambda", lambda, lambda.LambdaClient], ["ecs", ecs, ecs.ECSClient], ["rds", rds, rds.RDSClient], ["route53", route53, route53.Route53Client], ["sts", sts, sts.STSClient], ["ssm", ssm, ssm.SSMClient], ["ec2", ec2, ec2.EC2Client], ["tag", tag, tag.ResourceGroupsTaggingAPIClient], ["secretsmanager", secrets, secrets.SecretsManagerClient], ["logs", logs, logs.CloudWatchLogsClient],
-  ] as const) modules[service] = { module, client: new ClientCtor(options) as unknown as Client };
+  const build = (credentials: SessionCredentials) => {
+    const options = { region, credentials, maxAttempts: 1, useFipsEndpoint: false, useDualstackEndpoint: false, ignoreConfiguredEndpointUrls: true };
+    for (const [service, module, ClientCtor] of [
+      ["s3", s3, s3.S3Client], ["iam", iam, iam.IAMClient], ["lambda", lambda, lambda.LambdaClient], ["ecs", ecs, ecs.ECSClient], ["rds", rds, rds.RDSClient], ["route53", route53, route53.Route53Client], ["sts", sts, sts.STSClient], ["ssm", ssm, ssm.SSMClient], ["ec2", ec2, ec2.EC2Client], ["tag", tag, tag.ResourceGroupsTaggingAPIClient], ["secretsmanager", secrets, secrets.SecretsManagerClient], ["logs", logs, logs.CloudWatchLogsClient],
+    ] as const) modules[service] = { module, client: new ClientCtor(options) as unknown as Client };
+  };
+  build(credentials);
+  rebuilds.add(build);
   const transport: Transport = {
     async send(call, input, signal) {
       const entry = modules[call.service];

@@ -17,14 +17,16 @@ defineAction<z.infer<typeof ReviewInput>>({
   async plan(ctx, input) {
     const env = requireEnvironment(ctx, input.environmentId);
     const busy = await environmentBusy(ctx, env.id);
+    const blocked = busy ? (busy.status === "authority_unavailable" ? activityUnavailableMessage : "Wait for the environment's active deployment to finish.") : await teardownSettling(ctx, env);
     return { summary: `Review teardown of "${env.name}".`, details: ["Run a read-only destroy plan under observe credentials and record a proposal for separate human approval."],
-      costDeltaUsd: 0, risk: "low", warnings: [], requiresApproval: false,
-      ...(busy ? { blocked: busy.status === "authority_unavailable" ? activityUnavailableMessage : "Wait for the environment's active deployment to finish." } : {}) };
+      costDeltaUsd: 0, risk: "low", warnings: [], requiresApproval: false, ...(blocked ? { blocked } : {}) };
   },
   async execute(ctx, input) {
     const env = requireEnvironment(ctx, input.environmentId);
     const busy = await environmentBusy(ctx, env.id);
     if (busy) return { ok: false, summary: "Teardown review refused.", error: busy.status === "authority_unavailable" ? activityUnavailableMessage : "Wait for the environment's active deployment to finish." };
+    const settling = await teardownSettling(ctx, env);
+    if (settling) return { ok: false, summary: "Teardown review refused.", error: settling };
     const data = await requestDestroyReview(await platformBroker(), { workspaceId: ctx.workspaceId, projectId: env.projectId, environmentId: env.id },
       principalFromAction(ctx), { idempotencyKey: input.idempotencyKey, refresh: input.refresh }, "ui");
     return { ok: true, summary: "Read-only teardown review requested. Nothing was applied.", data };

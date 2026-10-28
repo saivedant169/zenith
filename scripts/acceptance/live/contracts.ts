@@ -2,7 +2,7 @@
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 export type Family = "s3" | "iam" | "lambda" | "ecs" | "rds" | "dns";
 /** Scenario-specific plans (owner decision D3). "fixtures" is the full plan and the default. */
-export const SCENARIOS = ["fixtures", "retention-s3", "rel-04", "mix-03", "deploy-01"] as const;
+export const SCENARIOS = ["fixtures", "retention-s3", "rel-04", "mix-03", "deploy-01", "teardown-01"] as const;
 export type Scenario = (typeof SCENARIOS)[number];
 export interface Call {
   id: string;
@@ -93,5 +93,7 @@ export interface ProductScenarioPort {
   verify(requirement: Plan["requirements"][number], context: {
     /** `input` (optional) is the resolved request for a planned call whose template holds `$runtime` markers; the planned call itself is still the digest the guard checks. */
     plan: Plan; commit: string; call: (call: Call, input?: Record<string, Json>) => Promise<Record<string, unknown>>;
+    /** The port starts its cleanup: later calls are exempt from the duration envelope and bounded by a 25-minute cleanup clock. */
+    beginCleanup?: () => void;
   }): Promise<{ complete: boolean; reason: string; /** Cleanup leaks: each one is a failed check, never a pass. */ leaks?: string[] }>;
 }

@@ -223,3 +223,27 @@ Until this lands, teardown after deploy stays a documented limitation. The custo
 ### WP6 status (2026-10-28)
 
 Built: `env.teardown` reads the tenant-scoped cleanup inventory (`cleanupWriterBarriers.preview`) before proposing. A nonzero count refuses in plan and execute with the same sentence, so the confirm button is disabled before anyone approves. Untracked (pre-epoch) history gets its own sentence, because it never settles. An unreadable inventory refuses as unavailable. The worker barrier remains the authority; this is display only. Not built: an earliest-start time. It needs the per-delivery horizon exposed through a reviewed read, and is left until a customer asks for it.
+
+### WP7 status (2026-10-28)
+
+The live proof is one run, not two. The Zenith stack lives on the runner, so two runs would need a control plane that persists across them; this design does not add one.
+
+Scenario `teardown-01` (`scripts/acceptance/live/product/teardown-01.ts`, scope PROD-MIX-04) runs these steps:
+
+1. Zenith deploys one managed S3 bucket into a fresh AWS environment, with two-person browser approval. The harness reads it back from the recorded state and from the tagging inventory.
+2. Right after the deploy, the teardown review's plan must be refused with the WP6 settling sentence.
+3. The harness polls that plan every 2 minutes, for up to 100 minutes. Product calls stop at the duration envelope, so this bound keeps the teardown, readback and trust restore inside a 150-minute run. The settling refusal must clear, and no other refusal may replace it.
+4. The run refreshes its session.
+5. Zenith tears down through `env.reviewTeardown` and every browser approval of the destroy proposal.
+6. The recorded state must be empty, and no resource tagged with the environment may remain.
+
+If the product teardown does not finish, the harness destroys the environment from its recorded state, as DEPLOY-01 does.
+
+The write grant lives at most 900 s, and settlement adds 3,900 s. So the wait is about 80 minutes, and the run's duration envelope is up to 150 minutes. The job timeout is 200 minutes.
+
+The OIDC session lasts one hour, so the run must refresh it. `session-refresh.ts` requests a new GitHub OIDC token for the same role and calls AssumeRoleWithWebIdentity. It checks the account, then rebuilds the harness clients (`replaceSessionCredentials`). It rewrites the stack's shared credentials file and restarts only this installation's `api` and `execution-worker` containers. Their SDK caches that file once per process. It then waits for both to report healthy.
+
+No credential value is logged or placed on a command line. A second `configure-aws-credentials` step refreshes the session again before journal recovery.
+
+This change also guards the review path (`env.reviewTeardown`, plan and execute), which WP6 had missed: the teardown screen uses it.
+

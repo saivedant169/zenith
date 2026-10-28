@@ -1100,7 +1100,8 @@ describe.skipIf(!PG_URL)("native cleanup writer barrier [postgres; modeled hoste
   it("a plan use, a mismatched family or source, an unknown delivery and a foreign scope never settle anything",async()=>{
     const s=await settlementScope(), other=await settlementScope();
     const jti=await settlementGrant(s,"-2 hours");
-    await expect(settlementRow(s,"plan","plan_artifact_uses",`${s.id}:${randomUUID()}`)).rejects.toThrow(/does not settle this delivery source/);
+    await expect(settlementRow(s,"plan","plan_artifact_uses",`${s.id}:${randomUUID()}`)).rejects.toThrow(/refused before its horizon or for an unmatched delivery/);
+    await expect(settlementRow(s,"plan","capability_grants",jti)).rejects.toThrow(/does not settle this delivery source/);
     await expect(settlementRow(s,"grant","runner_jobs",jti)).rejects.toThrow(/does not settle this delivery source/);
     await expect(settlementRow(s,"grant","capability_grants",randomUUID())).rejects.toThrow(/refused before its horizon or for an unmatched delivery/);
     await expect(settlementRow(other,"grant","capability_grants",jti)).rejects.toThrow(/refused before its horizon or for an unmatched delivery/);
@@ -1135,5 +1136,75 @@ describe.skipIf(!PG_URL)("native cleanup writer barrier [postgres; modeled hoste
     expect(await cleanup.inventory(db,s.ws,s.project,s.environment)).toMatchObject({handoffs:2});
     await settlementRow(s,"workflow","workflow_start_intents",attempted);
     expect(await cleanup.inventory(db,s.ws,s.project,s.environment)).toMatchObject({handoffs:0});
+  });
+  // WP3: non-builtin plan uses (schema 63) and the sealing writer. A plan use settles only on a short-lived AWS connection
+  // recorded for its environment before the operation, after the operation is terminal and past its latest grant horizon.
+  async function planUse(s: SettlementScope, mode = "aws_assume_role", connectionAge = "-1 day"): Promise<string> {
+    const attempt = randomUUID(), connection = `conn_${randomUUID()}`;
+    await peer.query(`insert into platform.provider_connections(id,workspace_id,provider,mode,config,status,created_by,created_at)
+      values($1,$2,'aws',$3,'{}'::jsonb,'verified','fixture',clock_timestamp()+$4::interval)`, [connection, s.ws, mode, connectionAge]);
+    await peer.query(`insert into platform.reconcile_state(environment_id,workspace_id,project_id,env_class,provider,region,connection_id,next_run_at,registered_at,updated_at)
+      values($1,$2,$3,'sandbox','aws','ap-south-1',$4,clock_timestamp(),clock_timestamp(),clock_timestamp())
+      on conflict (environment_id) do update set connection_id=excluded.connection_id`, [s.environment, s.ws, s.project, connection]);
+    await peer.query("insert into platform.plan_artifact_uses(workspace_id,operation_id,phase,attempt_id) values($1,$2,'succeeded',$3)", [s.ws, s.id, attempt]);
+    return `${s.id}:${attempt}`;
+  }
+  it("a non-builtin plan use settles only on a terminal operation past its latest grant horizon on a short-lived AWS connection",async()=>{
+    const open=await settlementScope(), recent=await settlementScope(true), done=await settlementScope(true);
+    const openUse=await planUse(open), recentUse=await planUse(recent), doneUse=await planUse(done);
+    await settlementGrant(open,"-2 hours");
+    await settlementGrant(recent,"-2 hours"); await settlementGrant(recent,"-60 minutes");
+    await settlementGrant(done,"-2 hours"); await settlementGrant(done,"-66 minutes");
+    await expect(settlementRow(open,"plan","plan_artifact_uses",openUse)).rejects.toThrow(/refused before its horizon/);
+    // The latest grant decides: one grant past its horizon does not settle a use whose other grant is still inside it.
+    await expect(settlementRow(recent,"plan","plan_artifact_uses",recentUse)).rejects.toThrow(/refused before its horizon/);
+    await settlementRow(done,"plan","plan_artifact_uses",doneUse);
+  });
+  it("a plan use on a static or runner connection, a connection newer than the operation, or no grant never settles",async()=>{
+    const staticKeys=await settlementScope(true), runner=await settlementScope(true), newer=await settlementScope(true), ungranted=await settlementScope(true);
+    const a=await planUse(staticKeys,"static_dev"), b=await planUse(runner,"runner"), c=await planUse(newer,"aws_assume_role","1 minute"), d=await planUse(ungranted);
+    for (const s of [staticKeys,runner,newer]) await settlementGrant(s,"-2 hours");
+    await expect(settlementRow(staticKeys,"plan","plan_artifact_uses",a)).rejects.toThrow(/refused before its horizon/);
+    await expect(settlementRow(runner,"plan","plan_artifact_uses",b)).rejects.toThrow(/refused before its horizon/);
+    await expect(settlementRow(newer,"plan","plan_artifact_uses",c)).rejects.toThrow(/refused before its horizon/);
+    await expect(settlementRow(ungranted,"plan","plan_artifact_uses",d)).rejects.toThrow(/refused before its horizon/);
+  });
+  it("a plan use never settles by time while the workspace held a static AWS connection when the operation was created",async()=>{
+    const s=await settlementScope(true);
+    const use=await planUse(s); await settlementGrant(s,"-2 hours");
+    await peer.query(`insert into platform.provider_connections(id,workspace_id,provider,mode,config,status,created_by,created_at)
+      values($1,$2,'aws','static_dev','{}'::jsonb,'revoked','fixture',clock_timestamp()-interval '2 days')`, [`conn_${randomUUID()}`, s.ws]);
+    await expect(settlementRow(s,"plan","plan_artifact_uses",use)).rejects.toThrow(/refused before its horizon/);
+  });
+  it("the writer seals grants and plan uses past their horizons, and the counted inventory drains to zero",async()=>{
+    const s=await settlementScope(true);
+    await planUse(s); const jti=await settlementGrant(s,"-2 hours");
+    vi.stubEnv("ZENITH_PLAN_ARTIFACT_KEY",settlementKey);
+    const before=await cleanup.inventory(db,s.ws,s.project,s.environment);
+    expect(before.grants).toBe(1); expect(before.handoffs).toBeGreaterThan(0);
+    // Without the platform key nothing is written.
+    expect(await cleanup.writeDeliverySettlements(peer,{},{cipher:undefined,limit:10000})).toBeDefined();
+    let pass;
+    do pass=await cleanup.writeDeliverySettlements(peer,{},{cipher:settlementCipher(),limit:10000}); while(pass.written>0);
+    const rows=await observer.query<{family:string}>("select family from platform.cleanup_writer_settlements where workspace_id=$1 order by family",[s.ws]);
+    expect(rows.map(r=>r.family)).toEqual(expect.arrayContaining(["grant","plan"]));
+    expect(await cleanup.inventory(db,s.ws,s.project,s.environment)).toMatchObject({grants:0,handoffs:0});
+    expect(rows.some(r=>r.family==="grant")).toBe(true); expect(jti).toBeTruthy();
+  });
+  it("the writer settles a workflow start only when an authenticated Describe reports it closed or not found",async()=>{
+    const closed=await settlementScope(true), missing=await settlementScope(true), running=await settlementScope(true), unread=await settlementScope(true), unported=await settlementScope(true);
+    const ids=new Map<string,string>();
+    for (const [name,s] of Object.entries({closed,missing,running,unread,unported})) { ids.set(`fixture:${s.id}`,name); await settlementIntent(s,"-2 hours"); }
+    const answer:Record<string,"closed"|"not_found"|"open"|"unknown">={closed:"closed",missing:"not_found",running:"open",unread:"unknown"};
+    const startClosure=async(binding:{namespace:string;workflowId:string})=>{
+      const name=ids.get(binding.workflowId); if(name==="unported")throw new Error("Describe unavailable."); return name?answer[name]:"unknown";};
+    let pass; do pass=await cleanup.writeDeliverySettlements(peer,{startClosure},{cipher:settlementCipher(),limit:10000}); while(pass.written>0);
+    const settledOps=new Set((await observer.query<{op:string}>("select operation_id as op from platform.cleanup_writer_settlements where family='workflow' and operation_id in (select jsonb_array_elements_text($1::text::jsonb))",
+      [JSON.stringify([closed,missing,running,unread,unported].map(s=>s.id))])).map(r=>r.op));
+    expect([...settledOps].sort()).toEqual([closed.id,missing.id].sort());
+    // No Describe port at all: a workflow start is never settled.
+    const bare=await settlementScope(true); await settlementIntent(bare,"-2 hours");
+    do pass=await cleanup.writeDeliverySettlements(peer,{},{cipher:settlementCipher(),limit:10000}); while(pass.written>0);
+    expect(await observer.query("select count(*)::integer as n from platform.cleanup_writer_settlements where operation_id=$1",[bare.id])).toEqual([{n:0}]);
   });
 });

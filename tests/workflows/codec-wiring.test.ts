@@ -289,7 +289,7 @@ describe("execution worker process codec wiring", () => {
     expect(intercepted.workerRun.mock.invocationCallOrder[0]).toBeLessThan(intercepted.openReconcileClient.mock.invocationCallOrder[0]);
     expect(intercepted.awaitPollers.mock.invocationCallOrder[0]).toBeLessThan(intercepted.prepareSchedule.mock.invocationCallOrder[0]);
     expect(intercepted.prepareSchedule.mock.invocationCallOrder[0]).toBeLessThan(intercepted.artifactJanitor.mock.invocationCallOrder[0]);
-    expect(intercepted.artifactJanitor).toHaveBeenCalledExactlyOnceWith(intercepted.store, expect.any(Function), { retentionPreview: undefined });
+    expect(intercepted.artifactJanitor).toHaveBeenCalledExactlyOnceWith(intercepted.store, expect.any(Function), { retentionPreview: undefined, settlement: { startClosure: expect.any(Function) } });
     expect(intercepted.createWorker.mock.invocationCallOrder[0]).toBeLessThan(intercepted.artifactJanitor.mock.invocationCallOrder[0]);
     expect(intercepted.closeStore).toHaveBeenCalledExactlyOnceWith(intercepted.store);
     expect(intercepted.store.close).toHaveBeenCalledOnce();

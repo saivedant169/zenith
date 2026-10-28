@@ -196,6 +196,7 @@ const EXEMPT: Record<string, string> = {
   "cleanupWriterBarriers.CleanupWriterBarrierError": "pure fixed error class; no tenant query or authority and excluded from bindRepos",
   "cleanupWriterBarriers.deliverySettlementRef": "pure AAD reference formatter (schema 62); no tenant query, no authority and excluded from bindRepos",
   "cleanupWriterBarriers.sealDeliverySettlement": "pure platform-key seal of one delivery settlement (schema 62 writer seam); it runs no SQL and grants no authority, and is excluded from bindRepos",
+  "cleanupWriterBarriers.writeDeliverySettlements": "worker janitor settlement pass (schema 63): a deliberate cross-workspace scan, but every row it inserts is bound to its own workspace, operation and scope by the cleanup_writer_settlement_guard trigger; it is excluded from bindRepos",
   "mixedChildIntents.MixedChildAdmissionError": "pure fixed-category error class, contains no SQL or tenant data; excluded from bindRepos",
   "buildLaunches.assertIsolatedBuildTestAdmission": "zero-argument NODE_ENV admission guard; reads no SQL or tenant data, cannot supply approval authority, and is excluded from bindRepos",
   "workflowStartIntents.WorkflowStartIntentError": "pure error class, contains no SQL or tenant data",

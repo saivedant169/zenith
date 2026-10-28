@@ -371,9 +371,9 @@ describe("platform suite coverage", () => {
     const cleanupFile = "tests/controlplane/cleanup-writer-barriers.test.ts";
     const cleanupSuite = "native cleanup writer barrier [postgres; modeled hosted association and policy]";
     const cleanupCases = [...CLEANUP_WRITER_BARRIER_POSTGRES_REQUIREMENTS, ...SAVED_PLAN_SETTLEMENT_POSTGRES_REQUIREMENTS];
-    expect(CLEANUP_WRITER_BARRIER_POSTGRES_REQUIREMENTS).toHaveLength(63);
+    expect(CLEANUP_WRITER_BARRIER_POSTGRES_REQUIREMENTS).toHaveLength(68);
     expect(SAVED_PLAN_SETTLEMENT_POSTGRES_REQUIREMENTS).toHaveLength(54);
-    expect(new Set(cleanupCases.map(item => requirementId("platform-postgres", item))).size).toBe(117);
+    expect(new Set(cleanupCases.map(item => requirementId("platform-postgres", item))).size).toBe(122);
     const cleanupNetwork = platformManifest.requirements.filter(item => item.file === cleanupFile);
     expect(cleanupNetwork).toEqual([
       { file: cleanupFile, suite: cleanupSuite, backend: "postgres", id: requirementId("platform-postgres", { file: cleanupFile, suite: cleanupSuite, backend: "postgres" }) },
@@ -867,14 +867,14 @@ describe("saved builtin settlement mandatory CI admission", () => {
     const manifest = manifestFor("platform-postgres", root);
     const added = currentSuccessorPlatformCohort.map(item => ({ ...item, id: requirementId("platform-postgres", item) }));
     expect(manifest.requirements.filter(item => added.some(value => value.id === item.id)).sort((a, b) => a.id.localeCompare(b.id))).toEqual(added.sort((a, b) => a.id.localeCompare(b.id)));
-    expect(manifest.requirements).toHaveLength(1179);
-    expect(new Set(manifest.requirements.map(item => item.id)).size).toBe(1179);
+    expect(manifest.requirements).toHaveLength(1184);
+    expect(new Set(manifest.requirements.map(item => item.id)).size).toBe(1184);
     const mixedStore = manifest.requirements.filter(item => item.file === "tests/execution/mixed-run-store.test.ts");
     expect(mixedStore).toHaveLength(5);
     expect(mixedStore.every(item => item.postgres && item.suite === "mixed run store validation [postgres]" && item.test)).toBe(true);
     const beforeMixedStore = manifest.requirements.filter(item => !mixedStore.some(addition => addition.id === item.id));
-    expect(beforeMixedStore).toHaveLength(1174);
-    expect(beforeMixedStore.filter(item => !wave5PlatformIds.has(item.id))).toHaveLength(1171);
+    expect(beforeMixedStore).toHaveLength(1179);
+    expect(beforeMixedStore.filter(item => !wave5PlatformIds.has(item.id))).toHaveLength(1176);
     const prior = priorOwnershipSnapshotRequirements(manifest.requirements);
     expect(prior).toHaveLength(1149);
     expect(createHash("sha256").update(JSON.stringify(prior.map(item => item.id).sort())).digest("hex"))
@@ -915,18 +915,18 @@ describe("saved builtin settlement mandatory CI admission", () => {
     gate("platform-postgres", "node scripts/ci/run-gate.mjs platform-postgres --validate .data-ci-lane/platform-lane.json --require-execution", "always()");
   });
 
-  it("retains all 117 literal cleanup and settlement network requirements after source deletion", () => {
+  it("retains all 122 literal cleanup and settlement network requirements after source deletion", () => {
     const sourceRoot = modelRoot(path.join(os.tmpdir(), "zenith-cleanup-coverage-"));
     try {
       fs.cpSync(path.join(root, "tests"), path.join(sourceRoot, "tests"), { recursive: true });
       const required = [...CLEANUP_WRITER_BARRIER_POSTGRES_REQUIREMENTS, ...SAVED_PLAN_SETTLEMENT_POSTGRES_REQUIREMENTS];
       const ids = new Set(required.map(item => requirementId("platform-postgres", item)));
       const expected = required.map(item => ({ ...item, id: requirementId("platform-postgres", item) }));
-      expect(ids.size).toBe(117);
+      expect(ids.size).toBe(122);
       expect(requirementsFor("platform-postgres", sourceRoot).filter(item => ids.has(item.id))).toEqual(expected);
       fs.unlinkSync(path.join(sourceRoot, "tests/controlplane/cleanup-writer-barriers.test.ts"));
       expect(requirementsFor("platform-postgres", sourceRoot).filter(item => ids.has(item.id))).toEqual(expected);
-      expect(reportFailures(expected, { success: true, testResults: [] }, root)).toHaveLength(117);
+      expect(reportFailures(expected, { success: true, testResults: [] }, root)).toHaveLength(122);
     } finally { fs.rmSync(sourceRoot, { recursive: true, force: true }); }
   });
 

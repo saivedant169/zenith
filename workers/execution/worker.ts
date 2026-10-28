@@ -40,6 +40,7 @@ import { startWorkerOpsSampler } from "@/lib/ops/sampler";
 import { ensureTelemetryExport } from "@/lib/ops/telemetry/otlp";
 import { connectionOptionsFor, describeTemporalConfig } from "@/lib/workflows/config";
 import { describeWorkerVersioning } from "@/lib/workflows/versioning";
+import { startClosure, startEndpointDigest } from "@/lib/workflows/start-closure";
 import { temporalDataConverterFromEnv } from "@/lib/workflows/codec";
 import { executionWorkerConfigFromEnv } from "./config";
 import { installShutdownHandlers } from "./lifecycle";
@@ -156,10 +157,11 @@ async function main(): Promise<void> {
       void criticalJobHealth(db!).then(h => log(h.healthy ? "info" : "warn", "critical job health", { jobs: h.jobs.map(j => ({ job: j.job, state: j.state, durable: j.durable, ageMs: j.lastSuccessAgeMs, failures: j.consecutiveFailures })) }), () => log("warn", "critical job health unavailable; check control store"));
     }, 30_000);
     reconcileLog.unref();
+    const temporal = reconcileClient.client, temporalEndpoint = startEndpointDigest(config.temporal);
     janitor = startPlanArtifactJanitor(db, (result) => {
       if (result) log("info", "plan maintenance", { ...result });
       else log("warn", "plan maintenance unavailable; check plan directory and control store");
-    }, { retentionPreview });
+    }, { retentionPreview, settlement: { startClosure: (binding, runId) => startClosure(temporal, temporalEndpoint, binding, runId) } });
 
     const startedAt = Date.now();
     log("info", "execution worker polling", {

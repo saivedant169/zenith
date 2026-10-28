@@ -98,7 +98,7 @@ on:
         required: true
         type: string
       minutes:
-        description: 'Run time limit in minutes, an integer from 5 to 20 (5 to 60 for deploy-01; default 15). Bound into the signed envelope: it must match the plan the owner approved.'
+        description: 'Run time limit in minutes, an integer from 5 to 20 (5 to 60 for deploy-01, 5 to 150 for teardown-01; default 15). Bound into the signed envelope: it must match the plan the owner approved.'
         required: false
         default: '15'
         type: string
@@ -113,6 +113,7 @@ on:
           - rel-04
           - mix-03
           - deploy-01
+          - teardown-01
 
 # Source read only at the workflow level; the one job that needs more asks for
 # it below.
@@ -131,7 +132,9 @@ jobs:
     runs-on: ubuntu-24.04
     # Owner-approved 90 minutes (docs/build/production/AWS-PRODUCT-HOOK-DESIGN-2026-10-25.md,
     # section 1): a scenario run starts the Zenith stack before the one-hour OIDC session.
-    timeout-minutes: 130
+    # Raised to 200 for teardown-01 (delegated by the owner, 2026-10-28): up to 150 minutes of deploy, the roughly
+    # 80-minute settlement wait and teardown, after the stack starts. Its harness refreshes the OIDC session itself.
+    timeout-minutes: 200
     # Pauses here for the environment's reviewers, and scopes `vars` to it.
     environment: live-sandbox
 
@@ -207,6 +210,12 @@ jobs:
               [5-9]|[1-5][0-9]|60) ;;
               *) echo "::error::minutes must be an integer from 5 to 60 for deploy-01."; exit 1 ;;
             esac
+          # teardown-01 deploys, waits about 80 minutes for the deploy to settle, then tears down: it may take up to 150.
+          elif [ "$ZENITH_LIVE_AWS_SCENARIO" = "teardown-01" ]; then
+            case "$ZENITH_LIVE_AWS_MINUTES" in
+              [5-9]|[1-9][0-9]|1[0-4][0-9]|150) ;;
+              *) echo "::error::minutes must be an integer from 5 to 150 for teardown-01."; exit 1 ;;
+            esac
           else
             case "$ZENITH_LIVE_AWS_MINUTES" in
               [5-9]|1[0-9]|20) ;;
@@ -259,7 +268,7 @@ jobs:
       # deploy-01 only: the harness reads back and destroys the environment's recorded state with the same pinned
       # OpenTofu as ci.yml (the product's own runs happen inside the worker image).
       - name: Install pinned OpenTofu
-        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario == 'deploy-01'
+        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && contains(fromJSON('["deploy-01","teardown-01"]'), inputs.scenario)
         shell: bash
         run: |
           set -euo pipefail
@@ -274,13 +283,13 @@ jobs:
       # Scenario runs only. The Zenith stack starts on this runner BEFORE the OIDC
       # step, so no AWS credential exists while it is installed and started.
       - name: Free runner disk for the Zenith stack
-        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && contains(fromJSON('["retention-s3","mix-03","deploy-01"]'), inputs.scenario)
+        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && contains(fromJSON('["retention-s3","mix-03","deploy-01","teardown-01"]'), inputs.scenario)
         run: |
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup
           df -h /
 
       - name: Install the pinned Supabase CLI
-        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && contains(fromJSON('["retention-s3","mix-03","deploy-01"]'), inputs.scenario)
+        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && contains(fromJSON('["retention-s3","mix-03","deploy-01","teardown-01"]'), inputs.scenario)
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/bin"
@@ -293,7 +302,7 @@ jobs:
 
       - name: Start the Zenith stack and verify readiness before OIDC
         # Same lean profile and host environment as operated-gate-linux.yml.
-        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && contains(fromJSON('["retention-s3","mix-03","deploy-01"]'), inputs.scenario)
+        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && contains(fromJSON('["retention-s3","mix-03","deploy-01","teardown-01"]'), inputs.scenario)
         env:
           REGISTRY_IMAGE: registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373
           SUPABASE_INTERNAL_IMAGE_REGISTRY: docker.io
@@ -305,7 +314,7 @@ jobs:
           mkdir -m 700 "$RUNNER_TEMP/zenith" "$RUNNER_TEMP/zenith/tmp"
           # Browser scenarios: an EMPTY directory for Zenith's own AWS default credential chain (aws_assume_role connections).
           # The sandbox session is written into it only after the OIDC step below; nothing is in it while the stack starts.
-          if [ "$ZENITH_LIVE_AWS_SCENARIO" = mix-03 ] || [ "$ZENITH_LIVE_AWS_SCENARIO" = deploy-01 ]; then
+          if [ "$ZENITH_LIVE_AWS_SCENARIO" = mix-03 ] || [ "$ZENITH_LIVE_AWS_SCENARIO" = deploy-01 ] || [ "$ZENITH_LIVE_AWS_SCENARIO" = teardown-01 ]; then
             mkdir -m 755 "$RUNNER_TEMP/zenith-aws"
             export ZENITH_DEFAULT_STACK_AWS_SHARED_DIR="$RUNNER_TEMP/zenith-aws"
           fi
@@ -331,7 +340,7 @@ jobs:
       # Browser scenarios only: the drivers sign the owner and the approver in through headless Chromium with no
       # certificate bypass, as the operated gate does, so the stack's disposable CA is trusted in Chromium's NSS database.
       - name: Install Chromium and trust the stack CA for the browser drivers
-        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && contains(fromJSON('["mix-03","deploy-01"]'), inputs.scenario)
+        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && contains(fromJSON('["mix-03","deploy-01","teardown-01"]'), inputs.scenario)
         run: |
           set -euo pipefail
           npx playwright install --with-deps chromium
@@ -358,7 +367,7 @@ jobs:
       # connection stack's ZenithPrincipalArn), through their default credential chain. The file is readable by the
       # containers' non-root users; the runner VM is ephemeral and the session expires with the OIDC session.
       - name: Hand the sandbox session to the Zenith stack
-        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && contains(fromJSON('["mix-03","deploy-01"]'), inputs.scenario)
+        if: hashFiles('scripts/acceptance/aws-live.ts') != '' && contains(fromJSON('["mix-03","deploy-01","teardown-01"]'), inputs.scenario)
         run: |
           set -euo pipefail
           umask 022
@@ -376,7 +385,23 @@ jobs:
         continue-on-error: true
         # The harness journals intents/counters, finalizes and attempts owned
         # teardown. Recovery below cannot erase a failed original acceptance.
+        # teardown-01 outlives the one-hour session: before its teardown the harness requests a new GitHub OIDC token for
+        # the same role (the job's id-token permission), rewrites the stack's credentials file and restarts the API and worker.
+        env:
+          ZENITH_LIVE_OIDC_ROLE_ARN: ${{ vars.LIVE_SANDBOX_AWS_ROLE_ARN }}
+          ZENITH_LIVE_AWS_SHARED_DIR: ${{ runner.temp }}/zenith-aws
         run: npx tsx scripts/acceptance/aws-live.ts
+
+      # teardown-01 only: the session above has expired by now; recovery below needs a live one.
+      - name: Refresh the sandbox session after a long scenario
+        if: always() && hashFiles('scripts/acceptance/aws-live.ts') != '' && inputs.scenario == 'teardown-01'
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.LIVE_SANDBOX_AWS_ROLE_ARN }}
+          aws-region: ${{ vars.LIVE_SANDBOX_AWS_REGION || 'ap-south-1' }}
+          allowed-account-ids: ${{ vars.LIVE_SANDBOX_AWS_ACCOUNT_ID }}
+          role-session-name: zenith-live-acceptance-${{ github.run_id }}-recovery
+          role-duration-seconds: 3600
 
       - name: Recover an incomplete owned journal
         id: recovery
@@ -458,7 +483,7 @@ jobs:
       - name: Tear down the Zenith stack
         # Runs after success and failure alike. A failure here is a visible warning
         # and never changes the acceptance outcome the final gate reads.
-        if: always() && hashFiles('scripts/acceptance/aws-live.ts') != '' && contains(fromJSON('["retention-s3","mix-03","deploy-01"]'), inputs.scenario)
+        if: always() && hashFiles('scripts/acceptance/aws-live.ts') != '' && contains(fromJSON('["retention-s3","mix-03","deploy-01","teardown-01"]'), inputs.scenario)
         run: |
           set -uo pipefail
           stack="$RUNNER_TEMP/zenith/stack"

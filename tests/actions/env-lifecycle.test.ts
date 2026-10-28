@@ -111,15 +111,17 @@ describe("environment mutation authority", () => {
     ["unsettled earlier deliveries", { unknownHistory: 0, grants: 1, handoffs: 0, reservations: 0 }, "Earlier deploy activity has not settled yet."],
     ["untracked history", { unknownHistory: 1, grants: 0, handoffs: 0, reservations: 0 }, "from before Zenith tracked deploy writers"],
     ["an unreadable inventory", undefined, "cannot check current deployment activity"],
-  ] as const)("teardown with %s is refused before approval with the same sentence in plan and execute", async (_case, inventory, sentence) => {
+  ] as const)("teardown and its review with %s are refused before approval with the same sentence in plan and execute", async (_case, inventory, sentence) => {
     await authority(false);
     const repos = await import("@/lib/controlplane/db/repos");
     const preview = vi.spyOn(repos.cleanupWriterBarriers, "preview");
     if (inventory) preview.mockResolvedValue(inventory); else preview.mockRejectedValue(new Error("inventory unavailable fixture"));
     const before = JSON.stringify(db());
-    const proposed = await plan("env.teardown", { environmentId: envId }), result = await exec("env.teardown", { environmentId: envId });
-    expect(proposed.blocked).toContain(sentence);
-    expect(result).toMatchObject({ ok: false, error: proposed.blocked });
+    for (const [id, input] of [["env.teardown", { environmentId: envId }], ["env.reviewTeardown", { environmentId: envId, idempotencyKey: "settling-review-01" }]] as const) {
+      const proposed = await plan(id, input), result = await exec(id, input);
+      expect(proposed.blocked).toContain(sentence);
+      expect(result).toMatchObject({ ok: false, error: proposed.blocked });
+    }
     expect(preview).toHaveBeenCalledWith(expect.anything(), ctx.workspaceId, projectId, envId);
     expect(JSON.stringify(db())).toBe(before);
   });

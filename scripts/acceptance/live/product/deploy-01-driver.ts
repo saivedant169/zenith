@@ -23,6 +23,10 @@ export interface Deploy01Product {
   setManifest(tenant: Deploy01Tenant, manifest: Record<string, unknown>): Promise<void>;
   /** deploy.apply (or deploy.rollback) through every approval, until the operation is terminal. */
   deploy(tenant: Deploy01Tenant, environmentId: string, kind: "apply" | "rollback"): Promise<{ operationId: string; status: string; detail?: string }>;
+  /** TEARDOWN-01: the refusal the teardown review's plan shows now, if any (env.reviewTeardown in plan mode, as the web app asks). */
+  teardownBlocked?(tenant: Deploy01Tenant, environmentId: string): Promise<string | undefined>;
+  /** TEARDOWN-01: env.reviewTeardown, then every approval round of the destroy proposal it opens, until the destroy is terminal. */
+  teardown?(tenant: Deploy01Tenant, environmentId: string): Promise<{ operationId: string; status: string; detail?: string }>;
   close?(): Promise<void>;
 }
 export interface Deploy01DriverSeams {
@@ -37,7 +41,7 @@ export interface Deploy01DriverSeams {
   failedChecks?: (workspaceId: string, operationId: string) => Promise<string[]>;
 }
 
-const TERMINAL = ["succeeded", "failed", "uncertain", "denied", "expired", "cancelled"];
+const TERMINAL = ["succeeded", "failed", "uncertain", "denied", "expired", "cancelled", "rejected"];
 const CHECK_REF = /^[a-z_]{1,40}\/[A-Za-z0-9_.-]{1,80}:[a-z0-9_]{1,60}$/;
 /** Failed check references from the operation's verification evidence: node addresses and fixed check ids only. */
 export function failedCheckRefs(summary: unknown): string[] {
@@ -191,6 +195,42 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
           if (refs.length) detail += ` [failed checks: ${refs.join(", ")}]`;
         }
         return { operationId: operationId as string, status: terminal.status, ...(detail ? { detail } : {}) };
+      });
+    },
+    async teardownBlocked(tenant, environmentId) {
+      return step("teardown readiness", async () => {
+        const session = sessionOf(tenant);
+        const response = await send(session, session.owner, "/api/actions/env.reviewTeardown",
+          { mode: "plan", input: { environmentId, idempotencyKey: nonce() }, scope: { projectId: tenant.projectId, environmentId } });
+        if (response.status < 200 || response.status >= 300) refuse(`env.reviewTeardown plan was refused by the product (HTTP ${response.status})`);
+        const blocked = (response.data as { plan?: { blocked?: unknown } } | undefined)?.plan?.blocked;
+        return sanitizedError(blocked);
+      });
+    },
+    async teardown(tenant, environmentId) {
+      return step("teardown", async () => {
+        const session = sessionOf(tenant);
+        const scope = { projectId: tenant.projectId, environmentId };
+        const requested = await runAction(session, session.owner, "env.reviewTeardown", { environmentId, idempotencyKey: nonce() }, scope);
+        const reviewId = requested.data.reviewOperationId;
+        if (!requested.ok || typeof reviewId !== "string" || !/^[A-Za-z0-9_-]{1,200}$/.test(reviewId)) refuse("env.reviewTeardown did not record a review operation");
+        const path = `/api/platform/v1/environments/${encodeURIComponent(environmentId)}/teardown-review?reviewId=${encodeURIComponent(reviewId as string)}`;
+        let operationId: string | undefined;
+        for (const deadline = Date.now() + 15 * 60_000; !operationId;) {
+          const review = ((await send(session, session.owner, path, undefined, "GET")).data as { review?: { operationId?: unknown; status?: unknown } | null } | undefined)?.review;
+          if (typeof review?.operationId === "string") operationId = review.operationId;
+          else if (typeof review?.status === "string" && TERMINAL.includes(review.status)) refuse(`the teardown review ended ${review.status} without a destroy proposal`);
+          else if (Date.now() >= deadline) refuse("the teardown review did not open a destroy proposal within 15 minutes");
+          else await sleep(10_000);
+        }
+        // Approve every round the destroy operation asks for (proposal, then the plan review before apply), as the web app does.
+        for (let round = 0; round < 3; round++) {
+          const view = await waitFor(session, operationId, op => op.status === "awaiting_approval" || TERMINAL.includes(op.status), 15 * 60_000, "the destroy approval");
+          if (TERMINAL.includes(view.status)) break;
+          await approve(session, operationId);
+        }
+        const terminal = await waitFor(session, operationId, op => TERMINAL.includes(op.status), deployTimeoutMs, "the teardown");
+        return { operationId, status: terminal.status, ...(terminal.status === "succeeded" ? {} : { detail: sanitizedError(terminal.error) }) };
       });
     },
     async close() {

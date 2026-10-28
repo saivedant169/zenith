@@ -135,7 +135,7 @@ describe("worker health lifecycle wiring", () => {
     expect(fake.policy.mock.invocationCallOrder[0]).toBeLessThan(fake.composeSweep.mock.invocationCallOrder[0]);
     expect(fake.composeSweep).toHaveBeenCalledExactlyOnceWith(fake.store); expect(fake.sweepReady).toHaveBeenCalledOnce();
     expect(fake.composeSweep.mock.invocationCallOrder[0]).toBeLessThan(fake.createWorker.mock.invocationCallOrder[0]);
-    expect(fake.artifactJanitor).toHaveBeenCalledExactlyOnceWith(fake.store, expect.any(Function), { retentionPreview: undefined });
+    expect(fake.artifactJanitor).toHaveBeenCalledExactlyOnceWith(fake.store, expect.any(Function), { retentionPreview: undefined, settlement: { startClosure: expect.any(Function) } });
     expect(fake.createWorker.mock.invocationCallOrder[0]).toBeLessThan(fake.run.mock.invocationCallOrder[0]);
     expect(fake.run.mock.invocationCallOrder[0]).toBeLessThan(fake.openReconcileClient.mock.invocationCallOrder[0]);
     expect(fake.openReconcileClient.mock.invocationCallOrder[0]).toBeLessThan(fake.awaitPollers.mock.invocationCallOrder[0]);

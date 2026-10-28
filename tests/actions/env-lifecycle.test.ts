@@ -107,6 +107,31 @@ describe("environment mutation authority", () => {
     expect(JSON.stringify(db())).toBe(before);
   });
 
+  it.each([
+    ["unsettled earlier deliveries", { unknownHistory: 0, grants: 1, handoffs: 0, reservations: 0 }, "Earlier deploy activity has not settled yet."],
+    ["untracked history", { unknownHistory: 1, grants: 0, handoffs: 0, reservations: 0 }, "from before Zenith tracked deploy writers"],
+    ["an unreadable inventory", undefined, "cannot check current deployment activity"],
+  ] as const)("teardown with %s is refused before approval with the same sentence in plan and execute", async (_case, inventory, sentence) => {
+    await authority(false);
+    const repos = await import("@/lib/controlplane/db/repos");
+    const preview = vi.spyOn(repos.cleanupWriterBarriers, "preview");
+    if (inventory) preview.mockResolvedValue(inventory); else preview.mockRejectedValue(new Error("inventory unavailable fixture"));
+    const before = JSON.stringify(db());
+    const proposed = await plan("env.teardown", { environmentId: envId }), result = await exec("env.teardown", { environmentId: envId });
+    expect(proposed.blocked).toContain(sentence);
+    expect(result).toMatchObject({ ok: false, error: proposed.blocked });
+    expect(preview).toHaveBeenCalledWith(expect.anything(), ctx.workspaceId, projectId, envId);
+    expect(JSON.stringify(db())).toBe(before);
+  });
+
+  it("a drained inventory adds no teardown refusal", async () => {
+    await authority(false);
+    const repos = await import("@/lib/controlplane/db/repos");
+    vi.spyOn(repos.cleanupWriterBarriers, "preview").mockResolvedValue({ unknownHistory: 0, grants: 0, handoffs: 0, reservations: 0 });
+    const { teardownSettling } = await import("@/lib/actions/defs/env");
+    await expect(teardownSettling(ctx, { id: envId, projectId })).resolves.toBeUndefined();
+  });
+
   it("active authoritative work blocks mutation without a deployment projection", async () => {
     await authority(true);
     const before = q.environment(envId)!.name;

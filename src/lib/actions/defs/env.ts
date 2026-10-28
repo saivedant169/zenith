@@ -103,6 +103,23 @@ export async function environmentBusy(ctx: { workspaceId: string }, environmentI
 }
 
 export const activityUnavailableMessage = "Zenith cannot check current deployment activity. Try again when the deployment service is available.";
+export const teardownSettlingMessage = "Earlier deploy activity has not settled yet. Teardown can start once every earlier deploy credential and workflow has provably stopped: about 80 minutes after an AWS deploy's last credential expires. Activity through static credentials, runners or other providers does not settle on its own.";
+export const teardownUntrackedMessage = "This environment has deploy history from before Zenith tracked deploy writers, so Zenith cannot tear it down. Remove its resources with provider tooling; Zenith then verifies absence.";
+
+/** The cleanup barrier's earlier-delivery inventory, read up front so a teardown is refused before approval instead of after. */
+export async function teardownSettling(ctx: { workspaceId: string }, env: { id: string; projectId: string }): Promise<string | undefined> {
+  try {
+    const { isMemoryStoreEnabled } = await import("@/lib/capabilities/platform");
+    if (isMemoryStoreEnabled()) return undefined;
+    const [{ platformDb }, { cleanupWriterBarriers }] = await Promise.all([import("@/lib/controlplane/db"), import("@/lib/controlplane/db/repos")]);
+    const inventory = await cleanupWriterBarriers.preview(await platformDb(), ctx.workspaceId, env.projectId, env.id);
+    if (inventory.unknownHistory) return teardownUntrackedMessage;
+    return inventory.grants || inventory.handoffs || inventory.reservations ? teardownSettlingMessage : undefined;
+  } catch {
+    // The worker barrier stays the authority; an unreadable inventory cannot be shown as drained.
+    return activityUnavailableMessage;
+  }
+}
 
 /** "revision 4" when an environment is running one, else undefined. */
 export function liveRevision(env: Environment): string | undefined {

@@ -219,3 +219,7 @@ Open items:
 ### Private beta interim
 
 Until this lands, teardown after deploy stays a documented limitation. The customer uses provider tooling, and Zenith verifies absence. `docs/LIMITATIONS.md` (Teardown after deploy) states it.
+
+### WP6 status (2026-10-28)
+
+Built: `env.teardown` reads the tenant-scoped cleanup inventory (`cleanupWriterBarriers.preview`) before proposing. A nonzero count refuses in plan and execute with the same sentence, so the confirm button is disabled before anyone approves. Untracked (pre-epoch) history gets its own sentence, because it never settles. An unreadable inventory refuses as unavailable. The worker barrier remains the authority; this is display only. Not built: an earliest-start time. It needs the per-delivery horizon exposed through a reviewed read, and is left until a customer asks for it.

@@ -14,6 +14,7 @@ import { planEvidence } from "@/lib/execution/plan-evidence";
 import { bridgeDeps, setBridgeDepsForTests } from "@/lib/bridge/deps";
 import { deliverPlanApproval } from "@/lib/bridge/lifecycle";
 import { checkActionThroughBroker } from "@/lib/capabilities/action-bridge";
+import { cleanupWriterBarriers } from "@/lib/controlplane/db/repos";
 
 tempDataDir("zenith-teardown-", { fast: true });
 const { runAction } = await import("@/lib/actions/core");
@@ -25,6 +26,8 @@ const signalApproval = vi.fn(async () => ({ delivered: true as const }));
 const input = { environmentId: ctx.environmentId! };
 beforeEach(async () => {
   seed(); startDestroy.mockReset(); signalApproval.mockClear();
+  // The earlier-delivery refusal has its own cases in env-lifecycle; these cover the broker flow on a drained environment.
+  vi.spyOn(cleanupWriterBarriers, "preview").mockResolvedValue({ unknownHistory: 0, grants: 0, handoffs: 0, reservations: 0 });
   const store = new MemoryBrokerStore();
   broker = createBroker({ store, scopes: productScopeResolver(), roles: productRoleResolver(), clock: systemClock,
     policy: async () => scriptedEngine("allow", () => allowDecision()), signer: { ready: async () => undefined, sign: async () => "fake-grant-never-returned" } });

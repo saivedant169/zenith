@@ -1,6 +1,6 @@
 /** TEARDOWN-01 mid-run session refresh, offline: fake OIDC token, STS exchange, file writes and docker. */
 import { describe, expect, it } from "vitest";
-import { refreshSandboxSession, type RefreshedSession } from "../../scripts/acceptance/live/product/session-refresh";
+import { refreshSandboxSession, stackApplicationInstallation, type RefreshedSession } from "../../scripts/acceptance/live/product/session-refresh";
 
 const ACCOUNT = "123456789012";
 const env = {
@@ -63,6 +63,11 @@ describe("TEARDOWN-01 session refresh", () => {
       await expect(refreshSandboxSession({ ...env, ...bad }, s.seams)).rejects.toThrow();
       expect(s.writes).toEqual({});
     }
+  });
+
+  it("reads the application installation id that labels the API and worker containers, not the stack's own id", () => {
+    expect(stackApplicationInstallation(JSON.stringify({ installationId: "a".repeat(24), applicationInstallationId: INSTALLATION }))).toBe(INSTALLATION);
+    expect(stackApplicationInstallation(JSON.stringify({ installationId: "a".repeat(24) }))).toBe("");
   });
 
   it("refuses when the API or worker container is not found, and bounds the health wait", async () => {

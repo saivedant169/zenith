@@ -23,7 +23,7 @@ import { platformBroker,resetPlatformBrokerForTests,isDefaultPlatformBrokerFor }
 import { generateSigningJwk,serializePrivateJwk } from "@/lib/credentials";
 import { CredentialGrantSigner } from "@/lib/capabilities/credential-signer";
 import { planArtifactCipherFromEnv,createPlanArtifactRuntime,createIsolatedPlanArtifactRuntimeForTests,readNativeCleanupOwnerGrantOrigin } from "@/lib/platform/plan-artifacts";
-import type { Sealed } from "@/lib/secrets";
+import { vaultCipherFromEnv, type Sealed } from "@/lib/secrets";
 import * as artifacts from "@/lib/controlplane/db/repos/plan-artifacts";
 import * as cleanup from "@/lib/controlplane/db/repos/cleanup-writer-barriers";
 import * as connections from "@/lib/controlplane/db/repos/connections";
@@ -988,7 +988,7 @@ describe.skipIf(!PG_URL)("native cleanup writer barrier [postgres; modeled hoste
   // WP2 settlement rules. The fixture writes settlement rows directly because the sealing writer is WP3.
   // Every horizon is read on the database clock, and the insert trigger is what refuses an early row.
   const settlementKey = randomBytes(32).toString("hex");
-  const settlementCipher = () => planArtifactCipherFromEnv({ ZENITH_PLAN_ARTIFACT_KEY: settlementKey });
+  const settlementCipher = () => vaultCipherFromEnv({ ZENITH_SECRET_KEY: settlementKey });
   type SettlementScope = { ws: string; id: string; project: string; environment: string };
   async function settlementScope(terminal = false): Promise<SettlementScope> {
     const seeded = await seedApprovedOperation(db);
@@ -1063,7 +1063,7 @@ describe.skipIf(!PG_URL)("native cleanup writer barrier [postgres; modeled hoste
     // The same revocation with the envelope and its session long past: both timestamps move into the past.
     await peer.query(`insert into platform.runner_jobs(id,runner_id,workspace_id,operation_id,kind,capability,envelope,status,expires_at,started_at,settled_at)
       values($1,$2,$3,$4,'diagnostic','infrastructure.apply','synthetic-no-authority','cancelled',clock_timestamp()-interval '3 hours',clock_timestamp()-interval '4 hours',clock_timestamp()-interval '2 hours')`,[old,target,s.ws,s.id]);
-    vi.stubEnv("ZENITH_PLAN_ARTIFACT_KEY",settlementKey);
+    vi.stubEnv("ZENITH_SECRET_KEY",settlementKey);
     expect(await cleanup.inventory(db,s.ws,s.project,s.environment)).toMatchObject({handoffs:2});
     await expect(settlementRow(s,"runner","runner_jobs",old)).resolves.toBeDefined();
     expect(await cleanup.inventory(db,s.ws,s.project,s.environment)).toMatchObject({handoffs:1});
@@ -1078,7 +1078,7 @@ describe.skipIf(!PG_URL)("native cleanup writer barrier [postgres; modeled hoste
     await expect(settlementRow(s,"runner","machine_requests",live)).rejects.toThrow(/refused before its horizon/);
     await peer.query(`insert into platform.machine_requests(id,machine_id,workspace_id,operation_id,operation,capability,envelope,status,expires_at,started_at,settled_at)
       values($1,$2,$3,$4,'diagnostic','infrastructure.apply','synthetic-no-authority','cancelled',clock_timestamp()-interval '3 hours',clock_timestamp()-interval '4 hours',clock_timestamp()-interval '2 hours')`,[old,target,s.ws,s.id]);
-    vi.stubEnv("ZENITH_PLAN_ARTIFACT_KEY",settlementKey);
+    vi.stubEnv("ZENITH_SECRET_KEY",settlementKey);
     expect(await cleanup.inventory(db,s.ws,s.project,s.environment)).toMatchObject({handoffs:2});
     await settlementRow(s,"runner","machine_requests",old);
     expect(await cleanup.inventory(db,s.ws,s.project,s.environment)).toMatchObject({handoffs:1});
@@ -1118,21 +1118,21 @@ describe.skipIf(!PG_URL)("native cleanup writer barrier [postgres; modeled hoste
     const s=await settlementScope();
     const settled=await settlementGrant(s,"-2 hours"), forged=await settlementGrant(s,"-2 hours"), replayed=await settlementGrant(s,"-2 hours");
     // Sealed under another key: the row exists and is past its horizon, but it does not authenticate.
-    const foreignKey=planArtifactCipherFromEnv({ ZENITH_PLAN_ARTIFACT_KEY: randomBytes(32).toString("hex") });
+    const foreignKey=vaultCipherFromEnv({ ZENITH_SECRET_KEY: randomBytes(32).toString("hex") });
     await settlementRow(s,"grant","capability_grants",forged,cleanup.sealDeliverySettlement(foreignKey,{workspaceId:s.ws,family:"grant",source:"capability_grants",identity:forged,operationId:s.id}));
     // A payload authenticated for one grant, copied onto another row, fails the per-delivery AAD ref.
     await settlementRow(s,"grant","capability_grants",replayed,cleanup.sealDeliverySettlement(settlementCipher(),{workspaceId:s.ws,family:"grant",source:"capability_grants",identity:settled,operationId:s.id}));
-    vi.stubEnv("ZENITH_PLAN_ARTIFACT_KEY",settlementKey);
+    vi.stubEnv("ZENITH_PLAN_ARTIFACT_KEY",""); vi.stubEnv("ZENITH_SECRET_KEY",settlementKey); // the API holds only the vault key
     expect(await cleanup.inventory(db,s.ws,s.project,s.environment)).toMatchObject({grants:3,handoffs:3});
     await settlementRow(s,"grant","capability_grants",settled);
     expect(await cleanup.inventory(db,s.ws,s.project,s.environment)).toMatchObject({grants:2,handoffs:2});
-    vi.stubEnv("ZENITH_PLAN_ARTIFACT_KEY","");
+    vi.stubEnv("ZENITH_SECRET_KEY","");
     expect(await cleanup.inventory(db,s.ws,s.project,s.environment)).toMatchObject({grants:3,handoffs:3});
   });
   it("a verified workflow settlement removes its start from the counted inventory only past the recovery horizon",async()=>{
     const s=await settlementScope(true);
     const attempted=await settlementIntent(s,"-2 hours");
-    vi.stubEnv("ZENITH_PLAN_ARTIFACT_KEY",settlementKey);
+    vi.stubEnv("ZENITH_SECRET_KEY",settlementKey);
     expect(await cleanup.inventory(db,s.ws,s.project,s.environment)).toMatchObject({handoffs:2});
     await settlementRow(s,"workflow","workflow_start_intents",attempted);
     expect(await cleanup.inventory(db,s.ws,s.project,s.environment)).toMatchObject({handoffs:0});
@@ -1179,7 +1179,7 @@ describe.skipIf(!PG_URL)("native cleanup writer barrier [postgres; modeled hoste
   it("the writer seals grants and plan uses past their horizons, and the counted inventory drains to zero",async()=>{
     const s=await settlementScope(true);
     await planUse(s); const jti=await settlementGrant(s,"-2 hours");
-    vi.stubEnv("ZENITH_PLAN_ARTIFACT_KEY",settlementKey);
+    vi.stubEnv("ZENITH_SECRET_KEY",settlementKey);
     const before=await cleanup.inventory(db,s.ws,s.project,s.environment);
     expect(before.grants).toBe(1); expect(before.handoffs).toBeGreaterThan(0);
     // Without the platform key nothing is written.

@@ -223,7 +223,11 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
         for (const deadline = Date.now() + 15 * 60_000; !operationId;) {
           const review = ((await send(session, session.owner, path, undefined, "GET")).data as { review?: { operationId?: unknown; status?: unknown } | null } | undefined)?.review;
           if (typeof review?.operationId === "string") operationId = review.operationId;
-          else if (typeof review?.status === "string" && TERMINAL.includes(review.status)) refuse(`the teardown review ended ${review.status} without a destroy proposal`);
+          else if (typeof review?.status === "string" && TERMINAL.includes(review.status)) {
+            // The review route returns only the status; the review operation carries the product's reason.
+            const why = sanitizedError((await operation(session, reviewId as string).catch(() => undefined))?.error);
+            refuse(`the teardown review ended ${review.status} without a destroy proposal${why ? ` (product: ${why})` : ""}`);
+          }
           else if (Date.now() >= deadline) refuse("the teardown review did not open a destroy proposal within 15 minutes");
           else await sleep(10_000);
         }

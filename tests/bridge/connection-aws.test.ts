@@ -36,6 +36,8 @@ describe("strict validation", () => {
     { bootstrapNameSuffix: "team-a" }, { bootstrapNameSuffix: "-" }, { bootstrapNameSuffix: "-Team-a" }, { bootstrapNameSuffix: "-team/a" }, { bootstrapNameSuffix: "-team-a\n" }, { bootstrapNameSuffix: `-${"a".repeat(20)}` },
     { observeRoleArn: "arn:aws-cn:iam::123456789012:role/Observe" }, { deployRoleArn: "arn:aws-us-gov:iam::123456789012:role/Deploy" },
     { codeBuildRoleArn: "arn:aws-cn:iam::123456789012:role/build" }, { codeBuildRoleArn: "arn:aws:iam::210987654321:role/build" },
+    { secretWriterRoleArn: "not-an-arn" }, { secretWriterRoleArn: "arn:aws:iam::210987654321:role/ZenithSecretWriterRole" },
+    { secretWriterRoleArn: "arn:aws:iam::123456789012:role/ZenithDeploy" }, { secretWriterRoleArn: "arn:aws:iam::123456789012:role/ZenithObserve" },
     { stateKmsKeyArn: "arn:aws-cn:kms:cn-north-1:123456789012:key/abcd" }, { stateKmsKeyArn: "arn:aws-us-gov:kms:us-gov-west-1:123456789012:key/abcd" },
     { stateKmsKeyArn: "arn:aws:kms:us-east-1:210987654321:key/abcd" }, { stateKmsKeyArn: "arn:aws:kms:us-west-2:123456789012:key/abcd" },
   ])("rejects invalid input %j before any write", async (bad) => {
@@ -53,6 +55,13 @@ it("creates linked records with exactly the same id, pending verification and re
   expect(conn).toMatchObject({ provider: "aws", status: "connecting", platformConnectionId: data.connectionId });
   expect(platform).toMatchObject({ id: data.connectionId, legacyConnectionId: data.connectionId, status: "pending_verification", config: { mode: "oidc_web_identity", accountId: input.accountId, bootstrapNameSuffix: "" } });
   expect(data.subject).toBe(`zenith:ws:${ctx.workspaceId}:conn:${data.connectionId}`); expect(verify).not.toHaveBeenCalled();
+});
+it("saves the bootstrap's distinct secret writer role on the connection", async () => {
+  const secretWriterRoleArn = "arn:aws:iam::123456789012:role/ZenithSecretWriterRole";
+  const result = await exec("connection.createAws", { ...input, secretWriterRoleArn });
+  expect(result.ok).toBe(true);
+  const { connectionId } = result.data as { connectionId: string };
+  expect((await repos.connections.get(sql, ctx.workspaceId, connectionId))?.config).toMatchObject({ secretWriterRoleArn });
 });
 it.each(["-team-a", `-${"a".repeat(19)}`])("round trips bootstrap suffix %j through the saved connection", async (bootstrapNameSuffix) => {
   const result = await exec("connection.createAws", { ...input, bootstrapNameSuffix });

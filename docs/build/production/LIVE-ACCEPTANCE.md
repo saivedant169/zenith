@@ -199,6 +199,21 @@ The stack holds IAM roles and policies and an empty state bucket, so it costs no
 
 **To undo.** Set `connection_lane_suffixes = ["-live"]`, apply, then delete the stack. Its state bucket has `DeletionPolicy: Retain`; empty and delete it yourself.
 
+## OPS-06 secret persistence run (2026-10-29)
+
+Scenario `ops-06` (either lane, 5 to 60 minutes) proves PROD-OPS-06 on AWS. It reuses the DEPLOY-01 sandbox calls and adds the lane's `ZenithSecretWriterRole`. The product writes service secrets to Secrets Manager only through that role, so the run points its trust at the run's ExternalId and restores it afterwards, as it does for the observe and deploy roles.
+
+1. Create the connection with `secretWriterRoleArn` (accepted by `connection.createAws` since this change).
+2. Set `ZENITH_OPS06_CANARY` on the `web` service through `system.setSecret`, with a random canary that exists only in the harness's memory.
+3. Deploy once, then read back the ALB over HTTP.
+4. Check the recorded OpenTofu state: the task definition must read the key from a `zenith/` Secrets Manager secret, and no copy of the value may appear anywhere in the state.
+5. Scan the runner for the raw canary bytes with `sudo grep`: Docker's data root (container logs, volumes including PostgreSQL files and WAL, container writes), the runner temp and the checkout. A control file must be found; any other hit fails the run.
+6. Destroy the recorded state.
+
+The scan does not cover process memory, the browser profile, or AWS-side copies (CloudWatch, CloudTrail).
+
+**IAM.** `main.tf` adds `ZenithSecretWriterRole-live*` to the connection role patterns: the inline policy goes from 9957 to 10081 of 10240 characters. Apply as before; the plan is 0 to add, 1 to change, 0 to destroy (`aws_iam_role_policy.runner`).
+
 ## Budget, cleanup and evidence limits
 
 The hard admission ceiling reserves the canonical fixed topology, maximum attempts, a 5..20 minute execution window and a 2USD cleanup reserve before **any** AWS call. It refuses an altered self-consistent cost/topology as well as unknown/unplanned calls, changed inputs, missing per-call permission, exhausted attempt counts and expired mutation permission. Before billable creation it atomically claims `/zenith/live-runs/<runId>` using Standard-tier PutParameter with Overwrite=false and independently reads it. This account-side receipt prevents replay from a new directory or another machine. The execution role cannot overwrite/delete the receipt. The bootstrap uses the documented StringEquals condition for ssm:Overwrite; see [AWS Parameter Store condition guidance](https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-policy-conditions.html). Non-billing receipts are intentionally retained for replay prevention, tagged with purpose live-acceptance-receipt, and excluded from workload leak discovery; deletion requires a separate accountable retention decision. Cleanup is limited to already approved teardown/read inventory, can use the original approval after its expiry, and has a 25-minute observation deadline. It cannot create new resources or claim another run in recovery mode. SDK retries are disabled; every attempt is counted and journaled before dispatch.

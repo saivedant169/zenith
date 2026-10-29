@@ -15,14 +15,16 @@ const scenarios: Record<Scenario, { families: Family[]; scope?: string[] }> = {
   "deploy-01": { families: [], scope: ["PROD-REL-01"] },
   // No harness fixtures: Zenith deploys one bucket and tears it down after its deploy settles; the recorded state is the fallback.
   "teardown-01": { families: [], scope: ["PROD-MIX-04"] },
+  // No harness fixtures: Zenith deploys one Fargate service whose env reads a canary secret; the recorded state is the cleanup.
+  "ops-06": { families: [], scope: ["PROD-OPS-06"] },
 };
 /** Scenarios that create nothing tagged zenith:purpose=live-acceptance, so a second lane cannot trip the other's leak preflight. */
-export const LANE_SCENARIOS: readonly Scenario[] = ["mix-03", "deploy-01", "teardown-01"];
+export const LANE_SCENARIOS: readonly Scenario[] = ["mix-03", "deploy-01", "teardown-01", "ops-06"];
 /** The connection stack NameSuffix of a sandbox lane (deploy/aws/zenith-connection.cfn.yaml): zenith-connection-live or -live2. */
 export function laneSuffix(settings: Pick<Settings, "lane">): string { return settings.lane ? `-${settings.lane}` : "-live"; }
 /** Sandbox IAM names installed by deploy/aws/zenith-connection.cfn.yaml with the lane's NameSuffix (verify before a live run). */
 export function liveRoleNames(suffix = "-live") {
-  return { observe: `ZenithObserveRole${suffix}`, deploy: `ZenithDeployRole${suffix}`, principal: "ZenithLiveAcceptance" } as const;
+  return { observe: `ZenithObserveRole${suffix}`, deploy: `ZenithDeployRole${suffix}`, writer: `ZenithSecretWriterRole${suffix}`, principal: "ZenithLiveAcceptance" } as const;
 }
 export const MIX03_ROLE_NAMES = liveRoleNames();
 export function parseLane(raw: string | undefined): Settings["lane"] {
@@ -71,7 +73,7 @@ export function mix03ProductCalls(account: string, region: string, runId: string
  * state readback and cleanup, and the tag re-list. Everything Zenith deploys is created and destroyed by OpenTofu with the
  * connection's own deploy role, never by these calls.
  */
-export function deploy01ProductCalls(account: string, runId: string, names: ReturnType<typeof liveRoleNames> = MIX03_ROLE_NAMES): Call[] {
+export function deploy01ProductCalls(account: string, runId: string, names: ReturnType<typeof liveRoleNames> = MIX03_ROLE_NAMES, writer = false): Call[] {
   const roleArn = (name: string) => `arn:aws:iam::${account}:role/${name}`;
   const runtime = (name: string): Json => ({ $runtime: name });
   const role = { observe: roleArn(names.observe), deploy: roleArn(names.deploy) };
@@ -81,6 +83,11 @@ export function deploy01ProductCalls(account: string, runId: string, names: Retu
     c("deploy01-iam-read-deploy", "iam", "GetRole", "iam:GetRole", role.deploy, { RoleName: names.deploy }, 3),
     c("deploy01-iam-trust-observe", "iam", "UpdateAssumeRolePolicy", "iam:UpdateAssumeRolePolicy", role.observe, { RoleName: names.observe, PolicyDocument: runtime("trustDocument") }, 3),
     c("deploy01-iam-trust-deploy", "iam", "UpdateAssumeRolePolicy", "iam:UpdateAssumeRolePolicy", role.deploy, { RoleName: names.deploy, PolicyDocument: runtime("trustDocument") }, 3),
+    // OPS-06: the product writes service secrets only through the connection's distinct secret writer role.
+    ...(writer ? [
+      c("deploy01-iam-read-writer", "iam", "GetRole", "iam:GetRole", roleArn(names.writer), { RoleName: names.writer }, 3),
+      c("deploy01-iam-trust-writer", "iam", "UpdateAssumeRolePolicy", "iam:UpdateAssumeRolePolicy", roleArn(names.writer), { RoleName: names.writer, PolicyDocument: runtime("trustDocument") }, 3),
+    ] : []),
     c("deploy01-sts-assume", "sts", "AssumeRole", "sts:AssumeRole", role.deploy, { RoleArn: role.deploy, RoleSessionName: `zenith-${runId}`.slice(0, 64), ExternalId: runtime("externalId"), DurationSeconds: 3600 }, 8),
     c("deploy01-tag-read", "tag", "GetResources", "tag:GetResources", "*", { TagFilters: [{ Key: "zenith:environment", Values: [runtime("environmentId")] }], ResourcesPerPage: 100 }, 4),
   ];
@@ -153,13 +160,13 @@ export function buildPlan(input: Settings): Plan {
   const { lane, ...base } = rest;
   // Canonical settings omit the default lane too.
   const settings: Settings = { ...(scenario === "fixtures" ? base : { ...base, scenario }), ...(lane ? { lane: parseLane(lane) } : {}) };
-  if (settings.lane && !LANE_SCENARIOS.includes(scenario)) throw new Error("The second sandbox lane runs only product scenarios (mix-03, deploy-01, teardown-01)");
+  if (settings.lane && !LANE_SCENARIOS.includes(scenario)) throw new Error("The second sandbox lane runs only product scenarios (mix-03, deploy-01, teardown-01, ops-06)");
   assertRunId(settings.runId);
   if (!/^\d{12}$/.test(settings.accountId)) throw new Error("Explicit 12-digit sandbox account required");
   if (!/^(us|eu|ap|ca|sa|me|af|il|mx)-(central|north|south|east|west|northeast|northwest|southeast|southwest)-\d$/.test(settings.region)) throw new Error("Commercial AWS region required");
   // DEPLOY-01 deploys, updates and rolls back a Fargate service behind an ALB on a fresh VPC: allow up to 60 minutes.
   // TEARDOWN-01 waits about 80 minutes after its deploy for the earlier writers to settle (WP3), then tears down: up to 150.
-  const maxMinutes = scenario === "deploy-01" ? 60 : scenario === "teardown-01" ? 150 : 20;
+  const maxMinutes = scenario === "deploy-01" || scenario === "ops-06" ? 60 : scenario === "teardown-01" ? 150 : 20;
   // A shorter TEARDOWN-01 run ends at its envelope before the settlement wait can finish: refuse it before anything is deployed.
   const minMinutes = scenario === "teardown-01" ? 120 : 5;
   if (!Number.isInteger(settings.durationMinutes) || settings.durationMinutes < minMinutes || settings.durationMinutes > maxMinutes) throw new Error(`Duration must be ${minMinutes}..${maxMinutes} minutes (25 minutes reserved for cleanup)`);
@@ -262,14 +269,15 @@ export function buildPlan(input: Settings): Plan {
   // TEARDOWN-01: one empty S3 bucket for about two hours and a few dozen requests: far below a cent. The 0.50 base and
   // 0.005/minute are generous ceilings; the 0.25 reserve covers the fallback destroy from the recorded state.
   const estimate: Plan["estimate"] = scenario === "teardown-01" ? { usd: 0.5 + settings.durationMinutes * 0.005, cleanupReserveUsd: 0.25, provisional: true, basis: "Conservative provisional USD ceiling for TEARDOWN-01: one empty managed S3 bucket deployed and torn down by Zenith, a few dozen planned control-plane calls and the fallback destroy from the recorded state." }
-    : scenario === "deploy-01" ? { usd: 1 + settings.durationMinutes * 0.03, cleanupReserveUsd: 0.5, provisional: true, basis: "Conservative provisional USD ceiling for DEPLOY-01: one VPC with a single NAT gateway, one ALB and one 0.25 vCPU Fargate task for the run, destroyed from the recorded state." }
+    : scenario === "deploy-01" || scenario === "ops-06" ? { usd: 1 + settings.durationMinutes * 0.03, cleanupReserveUsd: 0.5, provisional: true, basis: "Conservative provisional USD ceiling for DEPLOY-01: one VPC with a single NAT gateway, one ALB and one 0.25 vCPU Fargate task for the run, destroyed from the recorded state." }
     : scenario === "mix-03" ? { usd: 0.5 + settings.durationMinutes * 0.02, cleanupReserveUsd: 0.25, provisional: true, basis: "Conservative provisional USD ceiling for PROD-MIX-03: one owned S3 bucket with no objects, one 128MiB Lambda function with no invocation, one CloudWatch log group, IAM roles (no charge) and a few dozen planned control-plane calls; includes 0.25USD cleanup reserve. A rename of the producer bucket doubles the bucket count for its window. Owner must validate regional rates." } : scenario === "retention-s3" ? { usd: 0.25 + settings.durationMinutes * 0.01, cleanupReserveUsd: 0.25, provisional: true, basis: "Conservative provisional USD ceiling for one owned S3 bucket, a few sealed objects under retention/, a bounded list/delete drain and a few dozen planned S3 requests; includes 0.25USD cleanup reserve. No RDS, ECS, DNS, IAM or Lambda cost. Owner must validate regional S3 rates." }
     : scenario === "rel-04" ? { usd: 0.25 + settings.durationMinutes * 0.01, cleanupReserveUsd: 0.25, provisional: true, basis: "Conservative provisional USD ceiling for the PROD-REL-04 drill: one owned S3 bucket with one probe object, a SIGKILL and journal-only resume, a refused replay claim and two read-only readbacks; same S3 envelope as retention-s3, includes 0.25USD cleanup reserve. No RDS, ECS, DNS, IAM or Lambda cost. Owner must validate regional S3 rates." } : { usd: 6 + settings.durationMinutes * 0.03, cleanupReserveUsd: 2, provisional: true, basis: "Conservative provisional USD ceiling: one private 20GiB db.t4g.micro <=45min including cleanup, one 128MiB Lambda invocation, one empty ECS cluster, <=1KiB S3, one disposable hosted zone, managed DB secret; includes 2USD cleanup reserve. Owner must validate regional rates; delayed deletion can exceed estimate." };
   const body: Omit<Plan, "sha256"> = {
     schema: 1, settings, tags, fixtures, preflight, estimate,
     // Only the mix-03 body carries productCalls, so every other scenario's digest is unchanged.
     ...(scenario === "mix-03" ? { productCalls: mix03ProductCalls(account, region, runId, liveRoleNames(laneSuffix(settings))) } : {}),
-    ...(scenario === "deploy-01" ? { productCalls: deploy01ProductCalls(account, runId, liveRoleNames(laneSuffix(settings))) } : {}),
+    // OPS-06 makes the same sandbox calls as DEPLOY-01 (trust, deploy-role session, tag re-list).
+    ...(scenario === "deploy-01" || scenario === "ops-06" ? { productCalls: deploy01ProductCalls(account, runId, liveRoleNames(laneSuffix(settings)), scenario === "ops-06") } : {}),
     ...(scenario === "teardown-01" ? { productCalls: teardown01ProductCalls(account, runId, liveRoleNames(laneSuffix(settings))) } : {}),
     requirements: ledger.requirements.filter(r => r.requiredEvidence.includes("live_sandbox")).map(r => ({ id: r.id, acceptance: r.acceptance, fixtures: requirements[r.id] ?? [], join: "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement." })),
   };

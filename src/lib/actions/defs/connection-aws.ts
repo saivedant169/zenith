@@ -38,9 +38,12 @@ const Input = z.object({
   stateKmsKeyArn: z.string().regex(/^arn:(aws|aws-cn|aws-us-gov):kms:[a-z0-9-]+:\d{12}:key\/[A-Za-z0-9-]+$/, "Use a KMS key ARN.").optional(),
   permissionsBoundaryArn: z.string().max(2048).regex(/^arn:(aws|aws-cn|aws-us-gov):iam::\d{12}:policy\/[A-Za-z0-9+=,.@_/-]+$/, "Use an IAM policy ARN.").optional(),
   codeBuildRoleArn: role.optional(),
+  /** The bootstrap's SecretWriterRoleArn output: service secrets reach AWS Secrets Manager only through this distinct role. */
+  secretWriterRoleArn: role.optional(),
   sessionDurationSec: z.number().int().min(900).max(3600).optional(),
 }).strict().superRefine((input, ctx) => {
-  for (const key of ["observeRoleArn", "deployRoleArn", "codeBuildRoleArn"] as const) {
+  if (input.secretWriterRoleArn && [input.observeRoleArn, input.deployRoleArn].includes(input.secretWriterRoleArn)) ctx.addIssue({ code: "custom", path: ["secretWriterRoleArn"], message: "Use the bootstrap's distinct secret writer role, not the observe or deploy role." });
+  for (const key of ["observeRoleArn", "deployRoleArn", "codeBuildRoleArn", "secretWriterRoleArn"] as const) {
     if (input[key] && parseRoleArn(input[key])?.accountId !== input.accountId) ctx.addIssue({ code: "custom", path: [key], message: "Role account must match accountId." });
     if (input[key] && parseRoleArn(input[key])?.partition !== "aws") ctx.addIssue({ code: "custom", path: [key], message: "Choose a role in the supported commercial AWS partition." });
   }

@@ -32,7 +32,7 @@ import { planCustody, type Runtime } from "./runtime";
 import { assertApprovedSemantics, recordReviewedSemantics } from "./semantics/dispatch";
 import { SemanticsChangedError } from "./semantics/errors";
 import { driverContext, LONG_SESSION_SEC, OBSERVE_CAPABILITY, PLAN_CAPABILITY, withProviderSession } from "./session";
-import { safeText } from "./text";
+import { errorText, safeText } from "./text";
 import { buildDesiredState } from "./graph";
 import { z } from "zod";
 import { platformBroker, type Broker } from "@/lib/capabilities/platform";
@@ -502,7 +502,8 @@ export function createDestroyActivities(rt: Runtime, ports: DestroyProviderPorts
         if (effects && effect) await uncertainCleanupEffect(effects, effect, "Teardown did not complete; resource absence is unconfirmed.");
         if (started) await rt.d.ops.markUncertain({ workspaceId: ec.workspaceId, operationId, reason: "Teardown did not complete; resource absence is unconfirmed." }).catch(() => undefined);
         if (err instanceof LeaseLostError) throw err;
-        if (!started) throw new StepFailedError("Teardown did not start; nothing was applied.");
+        // The operation keeps the scrubbed cause, as the apply path does, so a person (and the live harness) can see why.
+        if (!started) throw new StepFailedError(`Teardown did not start; nothing was applied: ${errorText(err, 200)}`);
         if (err instanceof TofuCommandError && err.code === "tofu_command_failed") throw new StepFailedError("OpenTofu teardown failed; partial deletion is possible. Reconcile must observe the environment.");
         throw new Error("Teardown ended without a confirmed outcome; partial deletion is possible.");
       }

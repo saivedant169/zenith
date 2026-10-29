@@ -55,7 +55,7 @@ function harness(opts: Opts = {}) {
   const at = (s: number) => new Date(Date.parse("2026-10-29T10:00:00Z") + s * 1000).toISOString();
   const report = {
     format: "zenith.recovery-report.v1", runId: "r", backupId: "b", manifestDigest: "d", ok: opts.restoreOk ?? true, epoch: 7, counts: null, replayed: false, continuation: null, needsPerson: [],
-    steps: [{ id: "verify", status: opts.restoreOk === false ? "refused" : "ok" }],
+    steps: [{ id: "verify", status: opts.restoreOk === false ? "refused" : "ok", detail: opts.restoreOk === false ? "pg_restore failed (exit 1): schema \"auth\" does not exist at /home/runner/x/y" : "" }],
     measurement: { backupSnapshotAt: at(0), backupFinishedAt: at(30), restoreStartedAt: at(400), restoreFinishedAt: at(600), incidentAt: null, applicationHealthyAt: null, rpoSeconds: null, backupAgeAtRestoreStartSeconds: 400, restoreDurationSeconds: 200, rtoSeconds: null, targets: { rpoSeconds: null, rtoSeconds: null, status: "unset" }, verdict: "no_targets", caveats: [] },
   } as unknown as RestoreReport;
   let switched = false, closed = false;
@@ -135,7 +135,7 @@ describe("OPS-04 port", () => {
       [{ restoredStatus: "uncertain" }, "not a fenced plan review (operation uncertain)"],
       [{ extraBucket: true }, "the resumed deploy changed AWS"],
       [{ staleStatus: 200 }, "stale recovery binding was not refused"],
-      [{ restoreOk: false }, "the restore did not complete (step verify)"],
+      [{ restoreOk: false }, "the restore did not complete (step verify: pg_restore failed (exit 1): schema \"auth\" does not exist at …path)"],
       [{ healthyAfterSeconds: 300 + 14_401 }, "not within the approved targets"],
       [{ resumedStatus: "failed" }, "the resumed deploy ended failed"],
     ] as [Opts, string][]) {

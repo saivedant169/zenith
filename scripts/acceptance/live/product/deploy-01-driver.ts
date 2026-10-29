@@ -38,6 +38,8 @@ export interface Deploy01Product {
   /** OPS-04: pending recovery items (GET /api/platform/v1/recovery?state=pending) and one decision. */
   recoveryItems?(tenant: Deploy01Tenant): Promise<{ epoch: number | null; items: { id: string; kind: string; ref: string; allowed: string[]; bindingDigest: string }[] }>;
   decideRecovery?(tenant: Deploy01Tenant, itemId: string, input: { decision: string; bindingDigest: string; reason: string }): Promise<{ status: number; state?: string }>;
+  /** OPS-04: one approval attempt; a product refusal is returned (its fixed message), never thrown. */
+  tryApprove?(tenant: Deploy01Tenant, operationId: string): Promise<{ ok: boolean; refusal?: string }>;
   close?(): Promise<void>;
 }
 export interface Deploy01DriverSeams {
@@ -253,6 +255,11 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
         const state = (response.data as { item?: { state?: unknown } } | undefined)?.item?.state;
         return { status: response.status, ...(typeof state === "string" ? { state } : {}) };
       });
+    },
+    async tryApprove(tenant, operationId) {
+      const session = sessionOf(tenant);
+      try { await approve(session, operationId); return { ok: true }; }
+      catch (error) { return { ok: false, refusal: error instanceof Error ? sanitizedError(error.message) ?? "refused" : "refused" }; }
     },
     async deploy(tenant, environmentId, kind) {
       return step(kind === "apply" ? "deploy" : "rollback", async () => {

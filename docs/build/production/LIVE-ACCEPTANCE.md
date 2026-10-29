@@ -219,11 +219,11 @@ The scan does not cover process memory, the browser profile, or AWS-side copies 
 Scenario `ops-04` (either lane, 5 to 60 minutes) proves PROD-OPS-04, and measures RPO and RTO for PROD-OPS-01, with real AWS customer state. It uses the TEARDOWN-01 sandbox calls; Zenith deploys at most two S3 buckets.
 
 1. Deploy one bucket.
-2. Stop the execution worker. Propose and approve a second bucket, so the deploy waits approved.
+2. Propose a second bucket and let the worker plan it, so the deploy waits for its apply approval. Then stop the worker. A deploy that is already dispatched (`running`) restores `uncertain` and can never be resumed, so the plan review is the one resumable point.
 3. Back up with the product's recovery library. The backup must include every component and verify.
-4. Start the worker. The second bucket is applied, so AWS and the recorded state now hold work the backup does not know about.
+4. Start the worker, then approve and apply. AWS and the recorded state now hold the second bucket, which the backup does not know about.
 5. Loss: stop the API and worker. Restore the backup into a new database in the stack's PostgreSQL, terminating open Temporal workflows. The report must be `ok` with a higher recovery epoch.
-6. Check the fence: the restored approval is unconsumed and stamped with the old epoch. Recreate the API and worker against the restored database.
+6. Check the fence: the restored deploy waits at its plan review, stamped with the old epoch. Recreate the API against the restored database; an approval of that deploy must be refused. Then start the worker.
 7. For 2 minutes the operation must not run on its own, and AWS and the recorded state must stay the same.
 8. The recovery API must list the operation as resumable. A stale binding must be refused with 409; the right binding resumes it into a fresh approval.
 9. Approve again. The apply must leave AWS unchanged: the same buckets and the same number of recorded resources.

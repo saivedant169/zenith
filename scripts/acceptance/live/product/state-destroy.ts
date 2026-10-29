@@ -12,10 +12,11 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { backendFile } from "@/lib/tofu/backend-config";
+import { tofuOutputCause } from "@/lib/tofu/failure-code";
 import type { BackendConfig } from "@/lib/tofu/backend-config";
 
 export interface SessionCredentials { accessKeyId: string; secretAccessKey: string; sessionToken: string }
-export type Exec = (file: string, args: string[], options: { cwd: string; env: Record<string, string | undefined>; timeoutMs: number }) => Promise<{ code: number; stdout: string }>;
+export type Exec = (file: string, args: string[], options: { cwd: string; env: Record<string, string | undefined>; timeoutMs: number }) => Promise<{ code: number; stdout: string; stderr?: string }>;
 export interface StateDestroyInput {
   tofu: string;
   region: string;
@@ -29,9 +30,9 @@ const REGION = /^[a-z]{2}(-[a-z]+)+-\d$/;
 const AWS_PROVIDER = /^provider\["registry\.opentofu\.org\/hashicorp\/aws"\](?:\.([a-z0-9_]{1,40}))?$/;
 
 const defaultExec: Exec = (file, args, options) => new Promise(resolve => {
-  execFile(file, args, { cwd: options.cwd, env: options.env as NodeJS.ProcessEnv, timeout: options.timeoutMs, maxBuffer: 64 * 1024 * 1024 }, (error, stdout) => {
+  execFile(file, args, { cwd: options.cwd, env: options.env as NodeJS.ProcessEnv, timeout: options.timeoutMs, maxBuffer: 64 * 1024 * 1024 }, (error, stdout, stderr) => {
     const code = error ? (typeof (error as { code?: unknown }).code === "number" ? (error as { code: number }).code : 1) : 0;
-    resolve({ code, stdout: String(stdout ?? "") });
+    resolve({ code, stdout: String(stdout ?? ""), stderr: String(stderr ?? "") });
   });
 });
 
@@ -67,7 +68,8 @@ async function withState<T>(input: StateDestroyInput, work: (tofu: { run: (args:
   };
   const run = async (args: string[], what: string, timeoutMs = 10 * 60_000) => {
     const result = await exec(input.tofu, [...args, "-no-color"], { cwd: dir, env, timeoutMs });
-    if (result.code !== 0) throw new Error(`OpenTofu ${what} failed during cleanup; resources may remain.`);
+    // Only the fixed cause name (src/lib/tofu/failure-code.ts) leaves this function, never OpenTofu's output.
+    if (result.code !== 0) throw new Error(`OpenTofu ${what} failed during cleanup (${tofuOutputCause(`${result.stdout}\n${result.stderr ?? ""}`)}); resources may remain.`);
     return result.stdout;
   };
   const write = (providers: Record<string, unknown>[]) => writeFileSync(path.join(dir, "main.tf.json"),

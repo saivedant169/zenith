@@ -152,13 +152,15 @@ describe("manifest integrity", () => {
 });
 
 describe("restore into a new database", () => {
-  it("skips CREATE SCHEMA for dumped schemas the target already has (public), restoring everything else", async () => {
+  it("skips CREATE SCHEMA the target already has (public) and other roles' default privileges, restoring everything else", async () => {
     await writeBackup({ components: (files) => COMPONENT_IDS.map((id) => id === "platform"
       ? component("platform", { status: "captured", method: "pg_dump", note: "", files, facts: { schemas: "platform,public" } })
       : id === "customer_state" ? component(id, { status: "referenced", note: "customer's bucket" })
       : component(id, id === "keys" ? { status: "captured", method: "key_registry", note: "" } : {})) });
     const toc = ["; Archive", "6; 2615 25092 SCHEMA - platform postgres", "4; 2615 2200 SCHEMA - public pg_database_owner",
-      "3413; 0 0 COMMENT - SCHEMA public pg_database_owner", "220; 1259 25093 TABLE public t postgres"].join("\n");
+      "3413; 0 0 COMMENT - SCHEMA public pg_database_owner", "220; 1259 25093 TABLE public t postgres",
+      "3024; 826 16453 DEFAULT ACL public DEFAULT PRIVILEGES FOR SEQUENCES postgres", "2998; 826 16454 DEFAULT ACL public DEFAULT PRIVILEGES FOR SEQUENCES supabase_admin",
+      "5001; 0 0 ACL public TABLE t postgres"].join("\n");
     let used: { list: string; args: readonly string[]; file: string } | undefined;
     const run: CommandRunner = async (_file, args) => {
       if (args[0] === "--list") return { code: 0, stdout: toc, stderr: "" };
@@ -166,11 +168,12 @@ describe("restore into a new database", () => {
       used = { list: await readFile(file, "utf8"), args, file };
       return { code: 1, stdout: "", stderr: "stop here" };
     };
-    const target = { query: async (sql: string) => sql.includes("pg_namespace") ? [{ n: "public" }] : [], close: async () => undefined };
+    const target = { query: async (sql: string) => sql.includes("pg_namespace") ? [{ n: "public" }] : sql.includes("pg_roles") ? [{ n: "supabase_admin" }] : [], close: async () => undefined };
     const report = await runRestore({ run, tools: toolsFromEnv({}), openTarget: async () => target as never }, {
       backupDir: dir, targetUrl: "postgres://u:pw@127.0.0.1:5432/target", runId: "restore-list-1", actor: "operator:a", reason: "list test",
       confirmCustomerState: true, keysAvailable: [], reportFile: path.join(dir, "out", "report.json") });
-    expect(used?.list.split("\n")).toEqual(["; Archive", "6; 2615 25092 SCHEMA - platform postgres", "3413; 0 0 COMMENT - SCHEMA public pg_database_owner", "220; 1259 25093 TABLE public t postgres"]);
+    expect(used?.list.split("\n")).toEqual(["; Archive", "6; 2615 25092 SCHEMA - platform postgres", "3413; 0 0 COMMENT - SCHEMA public pg_database_owner", "220; 1259 25093 TABLE public t postgres",
+      "3024; 826 16453 DEFAULT ACL public DEFAULT PRIVILEGES FOR SEQUENCES postgres", "5001; 0 0 ACL public TABLE t postgres"]);
     expect(used?.args.at(-1)).toBe(path.join(dir, "database.dump"));
     await expect(readFile(used!.file)).rejects.toThrow();
     expect(report.steps.at(-1)).toMatchObject({ id: "after_empty", status: "refused" });

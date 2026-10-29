@@ -226,22 +226,23 @@ export async function runRestore(deps: RestoreDeps, options: RestoreOptions): Pr
       step("empty", "ok", `The target holds none of: ${stores.join(", ")}.`);
       // 5. restore
       const dump = platform.files[0], dumpFile = path.join(options.backupDir, dump.path);
-      // A new database already has some dumped schemas (always public): restore every entry except their CREATE SCHEMA.
+      // The dump is restored from its own list, minus what a new database cannot take: CREATE SCHEMA for schemas it
+      // already has (always public), and default privileges of roles the restoring user is not a member of (on a hosted
+      // database, the provider's own admin role). Grants on the restored objects themselves are kept.
       const existing = new Set((await target.query<{ n: string }>("select nspname as n from pg_namespace where nspname = any($1::text[])", [`{${schemas.join(",")}}`])).map((r) => r.n));
-      const listDir = existing.size ? await mkdtemp(path.join(os.tmpdir(), "zenith-restore-")) : undefined;
+      const foreign = new Set((await target.query<{ n: string }>("select rolname as n from pg_roles where not pg_has_role(current_user, oid, 'MEMBER')")).map((r) => r.n));
+      const listDir = await mkdtemp(path.join(os.tmpdir(), "zenith-restore-"));
       try {
-        let useList: string[] = [];
-        if (listDir) {
-          const toc = (await mustRun(deps.run, "pg_restore", deps.tools.pgRestore, ["--list", dumpFile])).stdout.split("\n");
-          const kept = toc.filter((line) => !existing.has(/^\d+; \d+ \d+ SCHEMA - (\S+) /.exec(line)?.[1] ?? ""));
-          if (!kept.some((line) => /^\d+;/.test(line))) throw new RecoveryToolError("tool_failed", "pg_restore listed no restorable entries in the dump.");
-          await writeFile(path.join(listDir, "restore.list"), kept.join("\n"), { mode: 0o600 });
-          useList = ["--use-list", path.join(listDir, "restore.list")];
-        }
+        const toc = (await mustRun(deps.run, "pg_restore", deps.tools.pgRestore, ["--list", dumpFile])).stdout.split("\n");
+        const kept = toc.filter((line) => !existing.has(/^\d+; \d+ \d+ SCHEMA - (\S+) /.exec(line)?.[1] ?? "")
+          && !foreign.has(/^\d+; \d+ \d+ DEFAULT ACL .* (\S+)$/.exec(line.trimEnd())?.[1] ?? ""));
+        if (!kept.some((line) => /^\d+;/.test(line))) throw new RecoveryToolError("tool_failed", "pg_restore listed no restorable entries in the dump.");
+        await writeFile(path.join(listDir, "restore.list"), kept.join("\n"), { mode: 0o600 });
         await mustRun(deps.run, "pg_restore", deps.tools.pgRestore, [
-          ...conn.args, "--no-owner", ...(options.noPrivileges ? ["--no-privileges"] : []), "--exit-on-error", "--single-transaction", ...useList, dumpFile,
+          ...conn.args, "--no-owner", ...(options.noPrivileges ? ["--no-privileges"] : []), "--exit-on-error", "--single-transaction",
+          "--use-list", path.join(listDir, "restore.list"), dumpFile,
         ], { env: conn.env });
-      } finally { if (listDir) await rm(listDir, { recursive: true, force: true }); }
+      } finally { await rm(listDir, { recursive: true, force: true }); }
       step("restore", "ok", `Restored ${schemas.join(", ")} atomically from ${dump.path}.`);
     }
     await target.close();

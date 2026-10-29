@@ -190,6 +190,22 @@ describe("TEARDOWN-01 driver teardown", () => {
     await expect(product.teardown!(t, "env1")).rejects.toThrow("ended failed without a destroy proposal");
   });
 
+  it("names the review's last status and its operation when no destroy proposal opens in time", async () => {
+    let clock = 0;
+    const realNow = Date.now;
+    Date.now = () => clock;
+    try {
+      const request = async (_p: unknown, endpoint: string) => endpoint === "/api/actions/env.reviewTeardown"
+        ? { status: 200, data: { result: { ok: true, data: { reviewOperationId: "rev1" } } } }
+        : endpoint === "/api/platform/v1/operations/rev1"
+          ? { status: 200, data: { operation: { status: "queued" } } }
+          : { status: 200, data: { review: { status: "queued" } } };
+      const product = browserDeploy01Product({}, { request: request as never, session, sleep: async () => { clock += 10 * 60_000; } });
+      const t = await product.createTenant();
+      await expect(product.teardown!(t, "env1")).rejects.toThrow("within 36 minutes (review queued, operation queued)");
+    } finally { Date.now = realNow; }
+  });
+
   it("names the review operation's sanitized reason when the review fails", async () => {
     const request = async (_p: unknown, endpoint: string) => endpoint === "/api/actions/env.reviewTeardown"
       ? { status: 200, data: { result: { ok: true, data: { reviewOperationId: "rev1" } } } }

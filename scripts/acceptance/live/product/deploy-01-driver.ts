@@ -289,16 +289,21 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
         const reviewId = requested.data.reviewOperationId;
         if (!requested.ok || typeof reviewId !== "string" || !/^[A-Za-z0-9_-]{1,200}$/.test(reviewId)) refuse("env.reviewTeardown did not record a review operation");
         const path = `/api/platform/v1/environments/${encodeURIComponent(environmentId)}/teardown-review?reviewId=${encodeURIComponent(reviewId as string)}`;
-        let operationId: string | undefined;
-        for (const deadline = Date.now() + 15 * 60_000; !operationId;) {
+        let operationId: string | undefined, last = "none";
+        // The product bounds the review activity at 35 minutes (destroy-review workflow scheduleToClose).
+        for (const deadline = Date.now() + 36 * 60_000; !operationId;) {
           const review = ((await send(session, session.owner, path, undefined, "GET")).data as { review?: { operationId?: unknown; status?: unknown } | null } | undefined)?.review;
+          if (typeof review?.status === "string" && /^[a-z_]{1,20}$/.test(review.status)) last = review.status;
           if (typeof review?.operationId === "string") operationId = review.operationId;
           else if (typeof review?.status === "string" && TERMINAL.includes(review.status)) {
             // The review route returns only the status; the review operation carries the product's reason.
             const why = sanitizedError((await operation(session, reviewId as string).catch(() => undefined))?.error);
             refuse(`the teardown review ended ${review.status} without a destroy proposal${why ? ` (product: ${why})` : ""}`);
           }
-          else if (Date.now() >= deadline) refuse("the teardown review did not open a destroy proposal within 15 minutes");
+          else if (Date.now() >= deadline) {
+            const op = await operation(session, reviewId as string).catch(() => undefined), why = sanitizedError(op?.error);
+            refuse(`the teardown review did not open a destroy proposal within 36 minutes (review ${last}, operation ${op && /^[a-z_]{1,20}$/.test(op.status) ? op.status : "unreadable"}${why ? `; product: ${why}` : ""})`);
+          }
           else await sleep(10_000);
         }
         // Approve every round the destroy operation asks for (proposal, then the plan review before apply), as the web app does.

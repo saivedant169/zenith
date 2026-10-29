@@ -63,3 +63,19 @@ node scripts/ci/wave6-gates.mjs --requirement PROD-OPS-06 --print > /tmp/zenith-
 ```
 
 This prints the exact argv for each contract batch and required engine case, its gate names, private prerequisites, and its strict report-validation command. Set only the gates for the selected lane after preparing its owned fixture; a skip cannot satisfy that lane. Run each `argv` sequentially and then its `verify` argv. [Final integration setup and results](FINAL-INTEGRATION.md), [canonical inventory](../../../../scripts/ci/wave6-gates.json), [owner live runbook](../LIVE-ACCEPTANCE.md).
+
+## OPS-06 on the live AWS sandbox (2026-10-29)
+
+Run [40878106025](https://github.com/saivedant169/zenith/actions/runs/40878106025), run id `zlive-202610291300-ec69`, workflow `live-acceptance.yml`, scenario `ops-06`, lane `live2`. Source `ffdcfef1b30328ed1022c3452986a6cb62f7239a`. Sandbox account `361646636162` in ap-south-1. Plan digest `0498a4d976e60dac19c1412eac40eac2051c97b055b6bcc87f01f58104b55531`; permission digest `10bf994cb6ad63ff1f5133bb795785460edd756a9515a04f01a260fd9f46296e`.
+
+Verdict `passed`: 1 passed, 0 failed, 0 pending. Cleanup complete. Estimated cap USD 2.5 (provisional, billing not measured), 50 minute window. Files: `evidence/PROD-OPS-06/2026-10-29-live-aws-40878106025/`.
+
+What it proved:
+
+- `ZENITH_OPS06_CANARY` was set through `system.setSecret`, and deployed to ECS Fargate behind an ALB with two-person approval. The service served HTTP 200.
+- The recorded OpenTofu state holds only the Secrets Manager reference, not the value.
+- A raw-byte scan of Docker's data root (container logs, volumes, written files), the runner temp and the checkout found the value only in its own control file.
+
+Onboarding note: the AWS provider reads `secretsmanager:GetResourcePolicy` for every managed secret on create, refresh and destroy. PR #95 (merged 2026-10-29) added that permission to the bootstrap templates. Existing customer connection stacks must be re-applied to get it.
+
+Limits: `operational_rehearsal` is not done, and the requirement lists it as required. This is a canary secret through the ECS path only, not every secret path. `evidence.json` is not a `zenith.release-evidence.v1` receipt, and its `releaseStatus` flags are all false. Status stays `in_progress` and `implementationStatus` is unchanged. Not a promotion.

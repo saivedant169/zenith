@@ -92,6 +92,18 @@ describe("DEPLOY-01 driver deploy approval", () => {
     await expect(product.deploy(t, "env1", "apply")).resolves.toEqual({ operationId: "op1", status: "succeeded" });
     expect(conflicts).toBe(-1);
   });
+
+  it("names the product's sanitized reason when deploy.approve is refused", async () => {
+    const tenant = { workspaceId: "ws1", projectId: "p1", owner: {}, approver: {}, stack: {}, ownerSecret: "o", approverSecret: "a" };
+    const request = async (_page: unknown, endpoint: string) => {
+      if (endpoint === "/api/actions/deploy.apply") return { status: 200, data: { result: { ok: true, data: { operationId: "op1", deploymentId: "d1" } } } };
+      if (endpoint === "/api/actions/deploy.approve") return { status: 200, data: { result: { ok: false, error: "Approval is not open for this deployment at https://x.example/y" } } };
+      throw new Error(endpoint);
+    };
+    const product = browserDeploy01Product({}, { request: request as never, approve: async () => undefined, session: async () => ({ tenant: tenant as never, close: async () => undefined }), sleep: async () => undefined });
+    const t = await product.createTenant();
+    await expect(product.deploy(t, "env1", "apply")).rejects.toThrow("deploy.approve was refused by the product (Approval is not open for this deployment at …url)");
+  });
 });
 
 describe("DEPLOY-01 failed infrastructure checks", () => {

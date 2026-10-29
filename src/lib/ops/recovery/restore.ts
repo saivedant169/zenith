@@ -18,7 +18,8 @@
  * Nothing destructive happens by default: the runbook only ever writes into an empty target. The one terminating
  * action (Temporal) requires `--terminate-temporal` and an address.
  */
-import { copyFile, mkdir, readdir, readFile, stat } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import type { PlatformDb } from "@/lib/controlplane/types";
 import { bumpRecoveryEpoch, type BumpResult } from "@/lib/controlplane/recovery";
@@ -224,10 +225,23 @@ export async function runRestore(deps: RestoreDeps, options: RestoreOptions): Pr
     } else {
       step("empty", "ok", `The target holds none of: ${stores.join(", ")}.`);
       // 5. restore
-      const dump = platform.files[0];
-      await mustRun(deps.run, "pg_restore", deps.tools.pgRestore, [
-        ...conn.args, "--no-owner", ...(options.noPrivileges ? ["--no-privileges"] : []), "--exit-on-error", "--single-transaction", path.join(options.backupDir, dump.path),
-      ], { env: conn.env });
+      const dump = platform.files[0], dumpFile = path.join(options.backupDir, dump.path);
+      // A new database already has some dumped schemas (always public): restore every entry except their CREATE SCHEMA.
+      const existing = new Set((await target.query<{ n: string }>("select nspname as n from pg_namespace where nspname = any($1::text[])", [`{${schemas.join(",")}}`])).map((r) => r.n));
+      const listDir = existing.size ? await mkdtemp(path.join(os.tmpdir(), "zenith-restore-")) : undefined;
+      try {
+        let useList: string[] = [];
+        if (listDir) {
+          const toc = (await mustRun(deps.run, "pg_restore", deps.tools.pgRestore, ["--list", dumpFile])).stdout.split("\n");
+          const kept = toc.filter((line) => !existing.has(/^\d+; \d+ \d+ SCHEMA - (\S+) /.exec(line)?.[1] ?? ""));
+          if (!kept.some((line) => /^\d+;/.test(line))) throw new RecoveryToolError("tool_failed", "pg_restore listed no restorable entries in the dump.");
+          await writeFile(path.join(listDir, "restore.list"), kept.join("\n"), { mode: 0o600 });
+          useList = ["--use-list", path.join(listDir, "restore.list")];
+        }
+        await mustRun(deps.run, "pg_restore", deps.tools.pgRestore, [
+          ...conn.args, "--no-owner", ...(options.noPrivileges ? ["--no-privileges"] : []), "--exit-on-error", "--single-transaction", ...useList, dumpFile,
+        ], { env: conn.env });
+      } finally { if (listDir) await rm(listDir, { recursive: true, force: true }); }
       step("restore", "ok", `Restored ${schemas.join(", ")} atomically from ${dump.path}.`);
     }
     await target.close();

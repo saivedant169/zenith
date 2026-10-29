@@ -151,6 +151,32 @@ describe("manifest integrity", () => {
   });
 });
 
+describe("restore into a new database", () => {
+  it("skips CREATE SCHEMA for dumped schemas the target already has (public), restoring everything else", async () => {
+    await writeBackup({ components: (files) => COMPONENT_IDS.map((id) => id === "platform"
+      ? component("platform", { status: "captured", method: "pg_dump", note: "", files, facts: { schemas: "platform,public" } })
+      : id === "customer_state" ? component(id, { status: "referenced", note: "customer's bucket" })
+      : component(id, id === "keys" ? { status: "captured", method: "key_registry", note: "" } : {})) });
+    const toc = ["; Archive", "6; 2615 25092 SCHEMA - platform postgres", "4; 2615 2200 SCHEMA - public pg_database_owner",
+      "3413; 0 0 COMMENT - SCHEMA public pg_database_owner", "220; 1259 25093 TABLE public t postgres"].join("\n");
+    let used: { list: string; args: readonly string[]; file: string } | undefined;
+    const run: CommandRunner = async (_file, args) => {
+      if (args[0] === "--list") return { code: 0, stdout: toc, stderr: "" };
+      const file = args[args.indexOf("--use-list") + 1];
+      used = { list: await readFile(file, "utf8"), args, file };
+      return { code: 1, stdout: "", stderr: "stop here" };
+    };
+    const target = { query: async (sql: string) => sql.includes("pg_namespace") ? [{ n: "public" }] : [], close: async () => undefined };
+    const report = await runRestore({ run, tools: toolsFromEnv({}), openTarget: async () => target as never }, {
+      backupDir: dir, targetUrl: "postgres://u:pw@127.0.0.1:5432/target", runId: "restore-list-1", actor: "operator:a", reason: "list test",
+      confirmCustomerState: true, keysAvailable: [], reportFile: path.join(dir, "out", "report.json") });
+    expect(used?.list.split("\n")).toEqual(["; Archive", "6; 2615 25092 SCHEMA - platform postgres", "3413; 0 0 COMMENT - SCHEMA public pg_database_owner", "220; 1259 25093 TABLE public t postgres"]);
+    expect(used?.args.at(-1)).toBe(path.join(dir, "database.dump"));
+    await expect(readFile(used!.file)).rejects.toThrow();
+    expect(report.steps.at(-1)).toMatchObject({ id: "after_empty", status: "refused" });
+  });
+});
+
 describe("restore gates (all fire before any database is opened)", () => {
   const neverOpen = (): Promise<never> => { throw new Error("the target database must not be opened"); };
   const noRun: CommandRunner = async () => { throw new Error("no tool must run"); };

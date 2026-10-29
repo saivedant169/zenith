@@ -15,7 +15,8 @@ export function hostTemporalTls(directory) {
 /** Export the actual prepared stack for host-side J2/J4/J15 commands. Never print secrets. */
 export function hostEnvironment(state) {
   const config = readPrepared(path.join(state.directory, 'installation'));
-  const environment = { ...config.environment, NODE_EXTRA_CA_CERTS: path.join(state.directory, 'tls/ca.crt') };
+  // Node and libpq clients (pg_dump, pg_restore) trust the same disposable stack CA.
+  const environment = { ...config.environment, NODE_EXTRA_CA_CERTS: path.join(state.directory, 'tls/ca.crt'), PGSSLROOTCERT: path.join(state.directory, 'tls/ca.crt') };
   const pooler = new URL(config.environment.SUPABASE_DB_URL);
   // The certificate has localhost in its SAN and J4 admits literal loopback hosts.
   pooler.hostname = 'localhost'; pooler.port = String(ports.pooler);

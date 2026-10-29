@@ -40,7 +40,7 @@ export interface PgConnection {
 }
 
 /** Split a postgres URL into arguments and a child environment. Throws a message that never contains the URL. */
-export function pgArgs(url: string): PgConnection {
+export function pgArgs(url: string, parent: Readonly<Record<string, string | undefined>> = process.env): PgConnection {
   let u: URL;
   try { u = new URL(url); } catch { throw new RecoveryToolError("invalid_input", "The database URL is not a valid postgres URL."); }
   if (u.protocol !== "postgres:" && u.protocol !== "postgresql:") throw new RecoveryToolError("invalid_input", "The database URL must be a postgres:// URL.");
@@ -51,6 +51,12 @@ export function pgArgs(url: string): PgConnection {
   if (u.password) env.PGPASSWORD = decodeURIComponent(u.password);
   const sslmode = u.searchParams.get("sslmode");
   if (sslmode && /^[a-z-]{1,20}$/.test(sslmode)) env.PGSSLMODE = sslmode;
+  // The tool's child sees only PATH and HOME, so a private CA for verify-full reaches libpq only through this standard variable.
+  const rootCert = parent.PGSSLROOTCERT?.trim();
+  if (rootCert) {
+    if (!path.isAbsolute(rootCert)) throw new RecoveryToolError("invalid_input", "PGSSLROOTCERT must be an absolute path.");
+    env.PGSSLROOTCERT = rootCert;
+  }
   const args = ["--host", u.hostname, "--port", port, ...(u.username ? ["--username", decodeURIComponent(u.username)] : []), "--dbname", database];
   return { args, env, label: `${u.hostname}:${port}/${database}` };
 }

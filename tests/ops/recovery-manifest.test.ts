@@ -229,6 +229,13 @@ describe("tool hygiene", () => {
     expect(conn.args).toEqual(["--host", "db.example.com", "--port", "6543", "--username", "user", "--dbname", "zenith"]);
   });
 
+  it("hands libpq the operator's PGSSLROOTCERT, since the child sees no other environment", () => {
+    const url = "postgres://u:pw@localhost:6543/zenith?sslmode=verify-full";
+    expect(pgArgs(url, { PGSSLROOTCERT: "/stack/tls/ca.crt" }).env).toMatchObject({ PGSSLMODE: "verify-full", PGSSLROOTCERT: "/stack/tls/ca.crt" });
+    expect(pgArgs(url, {}).env).not.toHaveProperty("PGSSLROOTCERT");
+    expect(() => pgArgs(url, { PGSSLROOTCERT: "ca.crt" })).toThrow(/PGSSLROOTCERT must be an absolute path/);
+  });
+
   it("refuses a non-postgres or database-less URL without echoing it", () => {
     for (const bad of ["mysql://u:pw@h/db", "postgres://u:pw@h", "not a url"]) {
       try { pgArgs(bad); throw new Error("accepted"); } catch (e) {

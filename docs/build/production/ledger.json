@@ -7577,6 +7577,16 @@
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
           "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
           "result": "Wave6 local lanes 2026-10-20: 19 passed / 0 failed / 0 not run of the requirement's 19 non-live wave6 cases. Same lanes as OPS-02. Not promoted: local-engine slice only; acceptance judged separately."
+        },
+        {
+          "level": "live_sandbox",
+          "commit": "ffdcfef1b30328ed1022c3452986a6cb62f7239a",
+          "runId": 40878106025,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/40878106025",
+          "command": "GitHub Actions live-acceptance.yml, workflow_dispatch with scenario ops-06 and run_id zlive-202610291300-ec69 (lane live2); plan sha256 0498a4d976e60dac19c1412eac40eac2051c97b055b6bcc87f01f58104b55531; permission sha256 10bf994cb6ad63ff1f5133bb795785460edd756a9515a04f01a260fd9f46296e",
+          "environment": "Disposable AWS sandbox account 361646636162, region ap-south-1; approvals awsLive zenith-aws-permissions.json and root zenith-live-scope.json, approvedBy automation (delegated by Saivedant Hava on 2026-10-26); estimated cap USD 2.5 (provisional, billing not measured); 50 minute window (plan)",
+          "logs": "docs/build/production/evidence/PROD-OPS-06/2026-10-29-live-aws-40878106025/",
+          "result": "OPS-06 partly proven on the live AWS sandbox with cleanup complete: ZENITH_OPS06_CANARY was set through system.setSecret and deployed to ECS Fargate behind an ALB with two-person approval, served HTTP 200; the recorded OpenTofu state holds only the Secrets Manager reference and no copy of the value; a raw-byte scan of Docker's data root (container logs, volumes, written files), the runner temp and the checkout found the value only in its own control file. Verdict passed (1 passed / 0 failed / 0 pending). Pending: operational_rehearsal, which is not done. Not a promotion; state and implementationStatus unchanged."
         }
       ],
       "requiredEvidence": [

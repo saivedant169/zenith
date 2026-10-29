@@ -185,9 +185,9 @@ describe("TEARDOWN-01 driver teardown", () => {
     const request = async (_p: unknown, endpoint: string) => endpoint === "/api/actions/env.reviewTeardown"
       ? { status: 200, data: { result: { ok: true, data: { reviewOperationId: "rev1" } } } }
       : { status: 200, data: { review: { status: "failed" } } };
-    const product = browserDeploy01Product({}, { request: request as never, session, sleep: async () => undefined });
+    const product = browserDeploy01Product({}, { request: request as never, session, sleep: async () => undefined, reviewWorkflow: async () => "workflow not found" });
     const t = await product.createTenant();
-    await expect(product.teardown!(t, "env1")).rejects.toThrow("ended failed without a destroy proposal");
+    await expect(product.teardown!(t, "env1")).rejects.toThrow("ended failed without a destroy proposal [workflow not found]");
   });
 
   it("names the review's last status and its operation when no destroy proposal opens in time", async () => {
@@ -200,9 +200,10 @@ describe("TEARDOWN-01 driver teardown", () => {
         : endpoint === "/api/platform/v1/operations/rev1"
           ? { status: 200, data: { operation: { status: "queued" } } }
           : { status: 200, data: { review: { status: "queued" } } };
-      const product = browserDeploy01Product({}, { request: request as never, session, sleep: async () => { clock += 10 * 60_000; } });
+      const product = browserDeploy01Product({}, { request: request as never, session, sleep: async () => { clock += 10 * 60_000; },
+        reviewWorkflow: async (id) => `workflow failed for ${id}` });
       const t = await product.createTenant();
-      await expect(product.teardown!(t, "env1")).rejects.toThrow("within 36 minutes (review queued, operation queued)");
+      await expect(product.teardown!(t, "env1")).rejects.toThrow("within 36 minutes (review queued, operation queued) [workflow failed for rev1]");
     } finally { Date.now = realNow; }
   });
 

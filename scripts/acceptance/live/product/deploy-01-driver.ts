@@ -52,6 +52,30 @@ export interface Deploy01DriverSeams {
   deployTimeoutMs?: number;
   /** The failed infrastructure checks of an operation as `address:checkId` (default: the product store, when configured). */
   failedChecks?: (workspaceId: string, operationId: string) => Promise<string[]>;
+  /** The teardown review's Temporal workflow state, for a review that never proposed (default: the stack's own Temporal). */
+  reviewWorkflow?: (reviewOperationId: string) => Promise<string>;
+}
+
+/** Status, pending attempt and last failure of the review workflow; fixed words and sanitized messages only. */
+export async function reviewWorkflowState(reviewOperationId: string): Promise<string> {
+  try {
+    const { workflowClient } = await import("@/lib/workflows/client");
+    const handle = (await workflowClient()).workflow.getHandle(`teardown-review-${reviewOperationId}`);
+    const described = await handle.describe();
+    const pending = described.raw.pendingActivities?.[0];
+    let failure = pending?.lastFailure?.message ?? undefined;
+    if (!failure && described.status.name !== "RUNNING" && described.status.name !== "COMPLETED") {
+      for (const event of (await handle.fetchHistory()).events ?? []) {
+        const f = event.activityTaskFailedEventAttributes?.failure ?? event.activityTaskTimedOutEventAttributes?.failure ?? event.workflowExecutionFailedEventAttributes?.failure;
+        if (f?.message) failure = f.cause?.message ? `${f.message}: ${f.cause.message}` : f.message;
+      }
+    }
+    const why = sanitizedError(failure ?? undefined);
+    return `workflow ${described.status.name.toLowerCase()}${pending ? `, activity attempt ${pending.attempt ?? 0}` : ""}${why ? `: ${why}` : ""}`;
+  } catch (error) {
+    const name = error instanceof Error && /^[A-Za-z]{1,40}$/.test(error.name) ? error.name : "Error";
+    return name === "WorkflowNotFoundError" ? "workflow not found" : `workflow unreadable (${name})`;
+  }
 }
 
 const TERMINAL = ["succeeded", "failed", "uncertain", "denied", "expired", "cancelled", "rejected"];
@@ -93,6 +117,9 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
   const sleep = seams.sleep ?? ((ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms)));
   const deployTimeoutMs = seams.deployTimeoutMs ?? 40 * 60_000;
   const failedChecks = seams.failedChecks ?? ((ws: string, op: string) => storeFailedChecks(env, ws, op));
+  // Diagnostics never hold the refusal: an unreachable Temporal answers "unreadable" within 30 seconds.
+  const reviewWorkflow = seams.reviewWorkflow ?? ((id: string) => Promise.race([reviewWorkflowState(id),
+    new Promise<string>(resolve => setTimeout(() => resolve("workflow unreadable (timeout)"), 30_000).unref())]));
   const sessions = new Map<string, TenantSession>();
   const closers: (() => Promise<void>)[] = [];
 
@@ -298,11 +325,11 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
           else if (typeof review?.status === "string" && TERMINAL.includes(review.status)) {
             // The review route returns only the status; the review operation carries the product's reason.
             const why = sanitizedError((await operation(session, reviewId as string).catch(() => undefined))?.error);
-            refuse(`the teardown review ended ${review.status} without a destroy proposal${why ? ` (product: ${why})` : ""}`);
+            refuse(`the teardown review ended ${review.status} without a destroy proposal${why ? ` (product: ${why})` : ""} [${await reviewWorkflow(reviewId as string)}]`);
           }
           else if (Date.now() >= deadline) {
             const op = await operation(session, reviewId as string).catch(() => undefined), why = sanitizedError(op?.error);
-            refuse(`the teardown review did not open a destroy proposal within 36 minutes (review ${last}, operation ${op && /^[a-z_]{1,20}$/.test(op.status) ? op.status : "unreadable"}${why ? `; product: ${why}` : ""})`);
+            refuse(`the teardown review did not open a destroy proposal within 36 minutes (review ${last}, operation ${op && /^[a-z_]{1,20}$/.test(op.status) ? op.status : "unreadable"}${why ? `; product: ${why}` : ""}) [${await reviewWorkflow(reviewId as string)}]`);
           }
           else await sleep(10_000);
         }

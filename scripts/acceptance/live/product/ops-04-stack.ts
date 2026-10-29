@@ -18,7 +18,18 @@ import { runRestore, type RestoreReport } from "@/lib/ops/recovery/restore";
 import { execRunner, temporalTlsFromEnv, toolsFromEnv } from "@/lib/ops/recovery/process";
 import { compose, docker, readState } from "../../default-stack/runtime.mjs";
 import { readPrepared } from "../../../deploy/installation.mjs";
-import { refuse } from "./mix-03";
+import { refuse, Refusal, sanitizedError } from "./mix-03";
+
+/** The recovery library's own failure, as a fixed refusal: its code and its scrubbed, elided message (never a URL or path). */
+export async function named<T>(what: string, work: () => Promise<T>): Promise<T> {
+  try { return await work(); }
+  catch (error) {
+    if (error instanceof Refusal) throw error;
+    const code = (error as { code?: unknown } | null)?.code, name = error instanceof Error ? error.name : "Error";
+    const kind = typeof code === "string" && /^[a-z_]{1,40}$/.test(code) ? code : /^[A-Za-z]{1,40}$/.test(name) ? name : "Error";
+    refuse(`${what} failed (${kind}${error instanceof Error && sanitizedError(error.message) ? `: ${sanitizedError(error.message)}` : ""})`);
+  }
+}
 
 export interface Ops04Readback { status: string; consumed: boolean; epoch: number; current: number }
 export interface Ops04Stack {
@@ -64,9 +75,9 @@ export function runnerOps04Stack(env: EnvLike, runId: string): Ops04Stack {
     refuse(`the ${service} container was not healthy within 6 minutes`);
   };
   return {
-    async stop(services) { await compose(active, ["stop", ...services]); },
-    async start(service) { await compose(active, ["up", "-d", "--no-deps", service]); await healthy(service); },
-    async backup() {
+    stop: (services) => named(`stopping ${services.join(" and ")}`, async () => { await compose(active, ["stop", ...services]); }),
+    start: (service) => named(`starting ${service}`, async () => { await compose(active, ["up", "-d", "--no-deps", service]); await healthy(service); }),
+    backup: () => named("the backup", async () => {
       if (existsSync(backupDir)) refuse("the backup directory already exists");
       mkdirSync(root, { recursive: true, mode: 0o700 });
       const manifest = await captureBackup({ db: await live(), run: execRunner, tools: toolsFromEnv(env) }, {
@@ -75,8 +86,8 @@ export function runnerOps04Stack(env: EnvLike, runId: string): Ops04Stack {
       if (manifest.components.some(c => c.status === "skipped") || !(await verifyBackupDirectory(backupDir)).ok) refuse("the backup is incomplete or does not verify");
       manifestEpoch = manifest.platform.recoveryEpoch;
       return { snapshotAt: manifest.platform.snapshotAt, epoch: manifest.platform.recoveryEpoch };
-    },
-    async restore(incidentAt) {
+    }),
+    restore: (incidentAt) => named("the restore", async () => {
       const source = await live();
       if ((await source.query("select datname from pg_database where datname=$1", [database])).length) refuse("the restore database already exists");
       await source.query(`create database "${database}" template template0`);
@@ -85,15 +96,15 @@ export function runnerOps04Stack(env: EnvLike, runId: string): Ops04Stack {
         reportFile, confirmCustomerState: true, incidentAt, keysAvailable: keys(), observedEpoch: manifestEpoch,
         temporal: { ...temporal(), terminate: true },
       });
-    },
-    async readback(workspaceId, operationId) {
+    }),
+    readback: (workspaceId, operationId) => named("the restored readback", async () => {
       restored ??= await openPlatformDb({ kind: "postgres", url: target(), max: 2, migrate: false });
       const rows = await restored.query<{ epoch: number; current: number; status: string; consumed: boolean }>(
         "select o.recovery_epoch as epoch, platform.current_recovery_epoch() as current, o.status, exists(select 1 from platform.approvals a where a.operation_id=o.id and a.workspace_id=o.workspace_id and a.consumed_at is not null) as consumed from platform.operations o where o.workspace_id=$1 and o.id=$2",
         [workspaceId, operationId]);
       if (rows.length !== 1) refuse("the restored database does not hold the operation");
       return { status: rows[0]!.status, consumed: rows[0]!.consumed, epoch: Number(rows[0]!.epoch), current: Number(rows[0]!.current) };
-    },
+    }),
     async switchToRestored() {
       if (createHash("sha256").update(readFileSync(composition)).digest("hex") !== original.compositionSha256) refuse("the stack composition drifted");
       const document = JSON.parse(readFileSync(composition, "utf8")) as { services: Record<string, { environment: Record<string, string> }> };

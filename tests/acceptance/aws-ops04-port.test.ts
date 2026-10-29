@@ -148,3 +148,13 @@ describe("OPS-04 port", () => {
     }
   });
 });
+
+describe("OPS-04 recovery failures", () => {
+  it("names the recovery library's code and scrubbed message, never a URL or path", async () => {
+    const { named } = await import("../../scripts/acceptance/live/product/ops-04-stack");
+    const { RecoveryToolError } = await import("@/lib/ops/recovery/process");
+    const failing = named("the backup", async () => { throw new RecoveryToolError("tool_failed", "pg_dump failed (exit 1): connection to postgres://[redacted] at /home/runner/x/y refused"); });
+    await expect(failing).rejects.toThrow("the backup failed (tool_failed: pg_dump failed (exit 1): connection to …url at …path refused)");
+    await expect(named("the restore", async () => { throw new TypeError("x".repeat(30)); })).rejects.toThrow("the restore failed (TypeError: …)");
+  });
+});

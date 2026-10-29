@@ -22,6 +22,14 @@ describe("validateAwsForm", () => {
     expect(validateAwsForm(GOOD)).toEqual({ errors: {}, valid: true, warnings: [] });
   });
 
+  it("accepts an optional distinct secret writer role and refuses a foreign or reused one", () => {
+    expect(validateAwsForm({ ...GOOD, secretWriterRoleArn: "" }).valid).toBe(true);
+    expect(validateAwsForm({ ...GOOD, secretWriterRoleArn: "arn:aws:iam::123456789012:role/ZenithSecretWriterRole" }).valid).toBe(true);
+    expect(validateAwsForm({ ...GOOD, secretWriterRoleArn: GOOD.deployRoleArn }).errors.secretWriterRoleArn).toContain("separate SecretWriterRoleArn");
+    expect(validateAwsForm({ ...GOOD, secretWriterRoleArn: "arn:aws:iam::210987654321:role/ZenithSecretWriterRole" }).errors.secretWriterRoleArn).toContain("account 210987654321");
+    expect(validateAwsForm({ ...GOOD, secretWriterRoleArn: "AKIAABCDEFGHIJKLMNOP" }).errors.secretWriterRoleArn).toContain("access key");
+  });
+
   it("names the template the customer deploys", () => {
     expect(CFN_TEMPLATE_PATH).toBe("deploy/aws/zenith-connection.cfn.yaml");
   });

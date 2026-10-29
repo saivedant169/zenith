@@ -16,7 +16,7 @@ import { browserMutation, mutationError } from "../../_lib/browser-api";
 
 const Created = z.object({ connectionId: z.string().regex(/^[A-Za-z0-9_-]{1,200}$/), subject: z.string().max(300), issuerHost: z.string().max(300).optional(), externalId: z.string().max(100).optional() });
 const roleArn = /^arn:(aws|aws-cn|aws-us-gov):iam::\d{12}:role\/[A-Za-z0-9+=,.@_/-]+$/;
-const sameConfig = (a: AwsConnectionInput, b: AwsConnectionInput) => a.accountId === b.accountId && a.region === b.region && a.observeRoleArn === b.observeRoleArn && a.deployRoleArn === b.deployRoleArn && (a.bootstrapNameSuffix ?? "") === (b.bootstrapNameSuffix ?? "");
+const sameConfig = (a: AwsConnectionInput, b: AwsConnectionInput) => a.accountId === b.accountId && a.region === b.region && a.observeRoleArn === b.observeRoleArn && a.deployRoleArn === b.deployRoleArn && a.secretWriterRoleArn === b.secretWriterRoleArn && (a.bootstrapNameSuffix ?? "") === (b.bootstrapNameSuffix ?? "");
 
 export function AwsConnectionFlow({ workspaceId, viewerRole }: { workspaceId: string; viewerRole: RoleName }) {
   const [mode, setMode] = useState<"oidc_web_identity" | "aws_assume_role">("oidc_web_identity");
@@ -45,7 +45,7 @@ function ConnectionSetup({ workspaceId, viewerRole, mode, principalArn }: { work
     try {
       const response = await browserMutation<{ result: ActionResult }>(workspaceId, "/platform/connections/aws/action", {
         actionId: "connection.createAws", idempotencyKey: key.current,
-        input: { accountId: draft.accountId, region: draft.region, observeRoleArn: draft.observeRoleArn, deployRoleArn: draft.deployRoleArn, bootstrapNameSuffix: draft.bootstrapNameSuffix ?? "", mode },
+        input: { accountId: draft.accountId, region: draft.region, observeRoleArn: draft.observeRoleArn, deployRoleArn: draft.deployRoleArn, ...(draft.secretWriterRoleArn ? { secretWriterRoleArn: draft.secretWriterRoleArn } : {}), bootstrapNameSuffix: draft.bootstrapNameSuffix ?? "", mode },
       });
       if (!response.result.ok) throw new Error("Creation refused");
       const created = Created.parse(response.result.data);

@@ -36,6 +36,8 @@ export interface AwsFormValues {
   region: string;
   observeRoleArn: string;
   deployRoleArn: string;
+  /** Optional: the stack's SecretWriterRoleArn output. Without it, service secrets cannot reach AWS Secrets Manager. */
+  secretWriterRoleArn?: string;
 }
 
 export type AwsFieldErrors = Partial<Record<keyof AwsFormValues, string>>;
@@ -70,7 +72,8 @@ export function validateAwsForm(values: AwsFormValues): AwsValidation {
   else if (!REGION_RE.test(region)) errors.region = "That does not look like an AWS region. Use a name like us-east-1 or ap-south-1.";
   else if (!isSupportedAwsConnectionRegion(region)) errors.region = "Choose a supported AWS connection region, such as us-east-1 or ap-south-1.";
 
-  const roleError = (value: string, which: "observe" | "deploy"): string | undefined => {
+  const writer = (values.secretWriterRoleArn ?? "").trim();
+  const roleError = (value: string, which: "observe" | "deploy" | "secret writer"): string | undefined => {
     if (looksLikeAccessKey(value)) return KEY_MESSAGE;
     if (!value) return `Paste the ${which} role ARN from the stack outputs.`;
     const m = ROLE_ARN_RE.exec(value);
@@ -85,6 +88,10 @@ export function validateAwsForm(values: AwsFormValues): AwsValidation {
   if (oe) errors.observeRoleArn = oe;
   const de = roleError(deploy, "deploy");
   if (de) errors.deployRoleArn = de;
+
+  const we = writer ? roleError(writer, "secret writer") : undefined;
+  if (we) errors.secretWriterRoleArn = we;
+  else if (writer && (writer === observe || writer === deploy)) errors.secretWriterRoleArn = "Use the stack's separate SecretWriterRoleArn output, not the observe or deploy role.";
 
   if (!errors.observeRoleArn && !errors.deployRoleArn && observe === deploy) {
     warnings.push(

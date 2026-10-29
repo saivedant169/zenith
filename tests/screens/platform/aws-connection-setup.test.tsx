@@ -94,13 +94,15 @@ describe("<AwsConnectionSetup> instructions", () => {
     const el = mount(<AwsConnectionSetup trust={OIDC} onVerify={vi.fn()} />);
     expect(text(el)).toContain("never asks for access keys or secrets");
     const inputs = [...el.querySelectorAll("input")];
-    expect(inputs).toHaveLength(5);
+    expect(inputs).toHaveLength(6);
+    // The secret writer role is a role ARN (stack output SecretWriterRoleArn), never a secret value: only that name is allowed.
+    const role = (v: string) => v.replace(/SecretWriterRole(Arn)?|Secret writer role ARN/g, "");
     for (const i of inputs) {
       expect(i.type).not.toBe("password");
-      expect(`${i.name}${i.id}${i.placeholder}`).not.toMatch(/secret|access.?key|token/i);
+      expect(role(`${i.name}${i.id}${i.placeholder}`)).not.toMatch(/secret|access.?key|token/i);
     }
     const labels = [...el.querySelectorAll("label")].map(text).join(" ");
-    expect(labels).not.toMatch(/access key|secret|password|token/i);
+    expect(role(labels)).not.toMatch(/access key|secret|password|token/i);
   });
 
   it("keeps heading order", () => {

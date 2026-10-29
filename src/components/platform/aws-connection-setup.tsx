@@ -55,7 +55,7 @@ export type AwsTrust =
       externalId: string;
     };
 
-export type AwsConnectionInput = Pick<AwsConnectionConfig, "provider" | "accountId" | "observeRoleArn" | "deployRoleArn" | "region" | "bootstrapNameSuffix"> & {
+export type AwsConnectionInput = Pick<AwsConnectionConfig, "provider" | "accountId" | "observeRoleArn" | "deployRoleArn" | "secretWriterRoleArn" | "region" | "bootstrapNameSuffix"> & {
   mode: "oidc_web_identity" | "aws_assume_role";
   externalId?: string;
 };
@@ -194,6 +194,7 @@ export function AwsConnectionSetup({
     region: initialValues?.region ?? "",
     observeRoleArn: initialValues?.observeRoleArn ?? "",
     deployRoleArn: initialValues?.deployRoleArn ?? "",
+    secretWriterRoleArn: initialValues?.secretWriterRoleArn ?? "",
     bootstrapNameSuffix: initialValues?.bootstrapNameSuffix ?? "",
   });
   const [touched, setTouched] = useState<Partial<Record<keyof AwsFormValues, boolean>>>({});
@@ -210,6 +211,7 @@ export function AwsConnectionSetup({
     region: v.region.trim(),
     observeRoleArn: v.observeRoleArn.trim(),
     deployRoleArn: v.deployRoleArn.trim(),
+    ...(v.secretWriterRoleArn?.trim() ? { secretWriterRoleArn: v.secretWriterRoleArn.trim() } : {}),
     bootstrapNameSuffix: v.bootstrapNameSuffix ?? "",
     ...(trust?.mode === "aws_assume_role" ? { externalId: trust.externalId } : {}),
   });
@@ -261,8 +263,8 @@ export function AwsConnectionSetup({
             </p>
             <ParameterTable trust={trust} bootstrapNameSuffix={trust?.bootstrapNameSuffix ?? (validation.errors.bootstrapNameSuffix ? "" : values.bootstrapNameSuffix ?? "")} />
             <p className="text-[12.5px] text-ink-mute">
-              When the stack finishes, copy the <code className="font-mono">ObserveRoleArn</code> and <code className="font-mono">DeployRoleArn</code> outputs into
-              step 3. Deleting the stack revokes Zenith&apos;s access.
+              When the stack finishes, copy the <code className="font-mono">ObserveRoleArn</code>, <code className="font-mono">DeployRoleArn</code> and{" "}
+              <code className="font-mono">SecretWriterRoleArn</code> outputs into step 3. Deleting the stack revokes Zenith&apos;s access.
             </p>
           </section>
 
@@ -346,6 +348,22 @@ export function AwsConnectionSetup({
                   value={values.deployRoleArn}
                   onChange={(e) => change("deployRoleArn", e.target.value)}
                   onBlur={() => blur("deployRoleArn")}
+                />
+              </Field>
+              <Field
+                label="Secret writer role ARN"
+                help="The SecretWriterRoleArn output of the stack. Needed for services that read secrets from Zenith."
+                error={shown("secretWriterRoleArn")}
+                className="md:col-span-2"
+              >
+                <Input
+                  mono
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder="arn:aws:iam::123456789012:role/ZenithSecretWriterRole"
+                  value={values.secretWriterRoleArn ?? ""}
+                  onChange={(e) => change("secretWriterRoleArn", e.target.value)}
+                  onBlur={() => blur("secretWriterRoleArn")}
                 />
               </Field>
             </div>

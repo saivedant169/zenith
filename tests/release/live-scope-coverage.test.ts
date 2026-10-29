@@ -47,9 +47,12 @@ const COVERED_BY: Record<string, string> = {
   "tests/acceptance/aws-deploy01-port.test.ts": "scripts/acceptance/live/scope.ts",
   // TEARDOWN-01 runs only behind the production CLI, as DEPLOY-01; the session refresh is called only from its port.
   "scripts/acceptance/live/product/teardown-01.ts": "scripts/acceptance/live/cli.ts",
+  // OPS-04 runs only behind the production CLI, as DEPLOY-01 and TEARDOWN-01.
+  "scripts/acceptance/live/product/ops-04.ts": "scripts/acceptance/live/cli.ts",
   "scripts/acceptance/live/product/session-refresh.ts": "scripts/acceptance/live/cli.ts",
   "tests/acceptance/aws-teardown01-port.test.ts": "scripts/acceptance/live/scope.ts",
   "tests/acceptance/aws-ops06-port.test.ts": "scripts/acceptance/live/scope.ts",
+  "tests/acceptance/aws-ops04-port.test.ts": "scripts/acceptance/live/scope.ts",
   "tests/acceptance/aws-session-refresh.test.ts": "scripts/acceptance/live/scope.ts",
   // The PROD-REL-04 drill only spawns the production CLI (which loads and enforces the root and envelope scope) and reads the journals it writes.
   "scripts/acceptance/live/drill/rel-04.ts": "scripts/acceptance/live/cli.ts",

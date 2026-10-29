@@ -30,6 +30,7 @@ import { browserMix03Product } from "./live/product/mix-03-driver";
 import { deploy01Port } from "./live/product/deploy-01";
 import { browserDeploy01Product } from "./live/product/deploy-01-driver";
 import { teardown01Port } from "./live/product/teardown-01";
+import { ops04Port } from "./live/product/ops-04";
 
 export const LIVE_USAGE = `Usage: npx tsx scripts/acceptance/aws-live.ts --scenario A[,B,...] [options]
   --dry-run                 Print actions/prerequisites; no cloud calls
@@ -93,6 +94,7 @@ export async function runLiveCli(argv: readonly string[], env: EnvLike = process
       : selected === "mix-03" ? mix03Port(env, { product: browserMix03Product(env) })
       : selected === "deploy-01" || selected === "ops-06" ? deploy01Port(env, { product: browserDeploy01Product(env) })
       : selected === "teardown-01" ? teardown01Port(env, { product: browserDeploy01Product(env) })
+      : selected === "ops-04" ? ops04Port(env, { product: browserDeploy01Product(env) })
       : undefined;
     return runProductionCli(argv, env, io, { product });
   }

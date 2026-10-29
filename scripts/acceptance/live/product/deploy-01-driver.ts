@@ -29,6 +29,15 @@ export interface Deploy01Product {
   teardownBlocked?(tenant: Deploy01Tenant, environmentId: string): Promise<string | undefined>;
   /** TEARDOWN-01: env.reviewTeardown, then every approval round of the destroy proposal it opens, until the destroy is terminal. */
   teardown?(tenant: Deploy01Tenant, environmentId: string): Promise<{ operationId: string; status: string; detail?: string }>;
+  /** OPS-04: deploy.apply and its proposal approvals only, so the operation waits approved for the worker. */
+  proposeDeploy?(tenant: Deploy01Tenant, environmentId: string): Promise<{ operationId: string }>;
+  /** OPS-04: approve every round the operation asks for until it is terminal (the second half of deploy). */
+  finishDeploy?(tenant: Deploy01Tenant, operationId: string): Promise<{ operationId: string; status: string; detail?: string }>;
+  /** OPS-04: the operation's status, approval round and recovery epoch as the API reports them. */
+  operationStatus?(tenant: Deploy01Tenant, operationId: string): Promise<{ status: string; round: number }>;
+  /** OPS-04: pending recovery items (GET /api/platform/v1/recovery?state=pending) and one decision. */
+  recoveryItems?(tenant: Deploy01Tenant): Promise<{ epoch: number | null; items: { id: string; kind: string; ref: string; allowed: string[]; bindingDigest: string }[] }>;
+  decideRecovery?(tenant: Deploy01Tenant, itemId: string, input: { decision: string; bindingDigest: string; reason: string }): Promise<{ status: number; state?: string }>;
   close?(): Promise<void>;
 }
 export interface Deploy01DriverSeams {
@@ -116,6 +125,42 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
       await sleep(10_000);
     }
   };
+  const propose = async (session: TenantSession, tenant: Deploy01Tenant, environmentId: string, kind: "apply" | "rollback") => {
+    const scope = { projectId: tenant.projectId, environmentId };
+    const started = await runAction(session, session.owner, kind === "apply" ? "deploy.apply" : "deploy.rollback", { environmentId }, scope);
+    const operationId = started.data.operationId, deploymentId = started.data.deploymentId;
+    if (!started.ok || typeof operationId !== "string" || typeof deploymentId !== "string") refuse(`deploy.${kind} did not propose a workflow operation`);
+    await approve(session, operationId as string);
+    // A 409 right after the proposal approval is the operation still changing state; retry it for up to a minute.
+    let approved: Awaited<ReturnType<typeof runAction>> | undefined;
+    for (let attempt = 1; !approved; attempt++) {
+      try { approved = await runAction(session, session.approver, "deploy.approve", { deploymentId }, scope); }
+      catch (error) {
+        if (!(error instanceof Refusal && /\(HTTP 409\b/.test(error.message)) || attempt >= 6) throw error;
+        await sleep(10_000);
+      }
+    }
+    if (!approved.ok) refuse("deploy.approve was refused by the product");
+    return { operationId: operationId as string };
+  };
+  const finish = async (session: TenantSession, operationId: string) => {
+    // Approve every round the operation asks for (the plan review, or a fresh round after a recovery resume), then wait.
+    // Each round is approved once: a round seen again (the approval still settling) is never approved twice.
+    let approvedRound = 0;
+    for (let rounds = 0; rounds < 3; rounds++) {
+      const view = await waitFor(session, operationId, op => TERMINAL.includes(op.status) || (op.status === "awaiting_approval" && op.round > approvedRound), rounds === 0 ? 15 * 60_000 : deployTimeoutMs, rounds === 0 ? "the plan review" : "the deployment");
+      if (TERMINAL.includes(view.status)) break;
+      await approve(session, operationId);
+      approvedRound = view.round;
+    }
+    const terminal = await waitFor(session, operationId, op => TERMINAL.includes(op.status), deployTimeoutMs, "the deployment");
+    let detail = terminal.status === "succeeded" ? undefined : sanitizedError(terminal.error);
+    if (detail?.startsWith("Infrastructure verification failed")) {
+      const refs = await failedChecks(session.workspaceId, operationId).catch(() => []);
+      if (refs.length) detail += ` [failed checks: ${refs.join(", ")}]`;
+    }
+    return { operationId, status: terminal.status, ...(detail ? { detail } : {}) };
+  };
   const step = async <T>(name: string, work: () => Promise<T>): Promise<T> => {
     try { return await work(); }
     catch (error) {
@@ -178,33 +223,41 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
         if (!result.ok) refuse("system.setSecret was refused by the product");
       });
     },
+    async proposeDeploy(tenant, environmentId) {
+      return step("deploy proposal", async () => ({ operationId: (await propose(sessionOf(tenant), tenant, environmentId, "apply")).operationId }));
+    },
+    async finishDeploy(tenant, operationId) {
+      return step("deploy", async () => finish(sessionOf(tenant), operationId));
+    },
+    async operationStatus(tenant, operationId) {
+      return step("operation readback", async () => { const op = await operation(sessionOf(tenant), operationId); return { status: op.status, round: op.round }; });
+    },
+    async recoveryItems(tenant) {
+      return step("recovery items", async () => {
+        const session = sessionOf(tenant);
+        const response = await send(session, session.owner, "/api/platform/v1/recovery?state=pending", undefined, "GET");
+        if (response.status !== 200) refuse(`the recovery list was refused by the product (HTTP ${response.status})`);
+        const body = response.data as { status?: { epoch?: unknown }; items?: unknown[] } | undefined;
+        const items = (Array.isArray(body?.items) ? body!.items : []).map(raw => {
+          const i = raw as { id?: unknown; kind?: unknown; ref?: unknown; allowed?: unknown; bindingDigest?: unknown };
+          return { id: String(i.id ?? ""), kind: String(i.kind ?? ""), ref: String(i.ref ?? ""), allowed: Array.isArray(i.allowed) ? i.allowed.map(String) : [], bindingDigest: String(i.bindingDigest ?? "") };
+        });
+        return { epoch: typeof body?.status?.epoch === "number" ? body.status.epoch : null, items };
+      });
+    },
+    async decideRecovery(tenant, itemId, input) {
+      return step("recovery decision", async () => {
+        const session = sessionOf(tenant);
+        if (!/^[A-Za-z0-9_-]{1,200}$/.test(itemId)) refuse("the recovery item id has an unexpected shape");
+        const response = await send(session, session.owner, `/api/platform/v1/recovery/items/${itemId}/decide`, input, "POST");
+        const state = (response.data as { item?: { state?: unknown } } | undefined)?.item?.state;
+        return { status: response.status, ...(typeof state === "string" ? { state } : {}) };
+      });
+    },
     async deploy(tenant, environmentId, kind) {
       return step(kind === "apply" ? "deploy" : "rollback", async () => {
         const session = sessionOf(tenant);
-        const scope = { projectId: tenant.projectId, environmentId };
-        const started = await runAction(session, session.owner, kind === "apply" ? "deploy.apply" : "deploy.rollback", { environmentId }, scope);
-        const operationId = started.data.operationId, deploymentId = started.data.deploymentId;
-        if (!started.ok || typeof operationId !== "string" || typeof deploymentId !== "string") refuse(`deploy.${kind} did not propose a workflow operation`);
-        await approve(session, operationId as string);
-        // A 409 right after the proposal approval is the operation still changing state; retry it for up to a minute.
-        let approved: Awaited<ReturnType<typeof runAction>> | undefined;
-        for (let attempt = 1; !approved; attempt++) {
-          try { approved = await runAction(session, session.approver, "deploy.approve", { deploymentId }, scope); }
-          catch (error) {
-            if (!(error instanceof Refusal && /\(HTTP 409\b/.test(error.message)) || attempt >= 6) throw error;
-            await sleep(10_000);
-          }
-        }
-        if (!approved.ok) refuse("deploy.approve was refused by the product");
-        const reviewed = await waitFor(session, operationId as string, op => TERMINAL.includes(op.status) || (op.status === "awaiting_approval" && op.round > 0), 15 * 60_000, "the plan review");
-        if (!TERMINAL.includes(reviewed.status)) await approve(session, operationId as string);
-        const terminal = await waitFor(session, operationId as string, op => TERMINAL.includes(op.status), deployTimeoutMs, "the deployment");
-        let detail = terminal.status === "succeeded" ? undefined : sanitizedError(terminal.error);
-        if (detail?.startsWith("Infrastructure verification failed")) {
-          const refs = await failedChecks(session.workspaceId, operationId as string).catch(() => []);
-          if (refs.length) detail += ` [failed checks: ${refs.join(", ")}]`;
-        }
-        return { operationId: operationId as string, status: terminal.status, ...(detail ? { detail } : {}) };
+        return finish(session, (await propose(session, tenant, environmentId, kind)).operationId);
       });
     },
     async teardownBlocked(tenant, environmentId) {

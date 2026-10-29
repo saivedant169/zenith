@@ -214,6 +214,25 @@ The scan does not cover process memory, the browser profile, or AWS-side copies 
 
 **IAM.** `main.tf` adds `ZenithSecretWriterRole-live*` to the connection role patterns: the inline policy goes from 9957 to 10081 of 10240 characters. Apply as before; the plan is 0 to add, 1 to change, 0 to destroy (`aws_iam_role_policy.runner`).
 
+## OPS-04 control-plane restore run (2026-10-29)
+
+Scenario `ops-04` (either lane, 5 to 60 minutes) proves PROD-OPS-04, and measures RPO and RTO for PROD-OPS-01, with real AWS customer state. It uses the TEARDOWN-01 sandbox calls; Zenith deploys at most two S3 buckets.
+
+1. Deploy one bucket.
+2. Stop the execution worker. Propose and approve a second bucket, so the deploy waits approved.
+3. Back up with the product's recovery library. The backup must include every component and verify.
+4. Start the worker. The second bucket is applied, so AWS and the recorded state now hold work the backup does not know about.
+5. Loss: stop the API and worker. Restore the backup into a new database in the stack's PostgreSQL, terminating open Temporal workflows. The report must be `ok` with a higher recovery epoch.
+6. Check the fence: the restored approval is unconsumed and stamped with the old epoch. Recreate the API and worker against the restored database.
+7. For 2 minutes the operation must not run on its own, and AWS and the recorded state must stay the same.
+8. The recovery API must list the operation as resumable. A stale binding must be refused with 409; the right binding resumes it into a fresh approval.
+9. Approve again. The apply must leave AWS unchanged: the same buckets and the same number of recorded resources.
+10. Measure RPO and RTO against the approved targets: 900 s and 14400 s (`deploy/slo/slo-definitions.json`).
+
+Runner tools: the workflow installs `postgresql-client-17` and the pinned Temporal CLI 1.9.1 for this scenario only.
+
+**Not covered (named residuals).** The restore target is a new database on the same stack host, so the keys are already present. A restore onto a different host needs the keys from the operator's secret manager. `up.mjs` cannot take an escrowed keyring yet. The backup does not include Supabase `auth` (user accounts); in production that store is the Supabase project's own backup.
+
 ## Budget, cleanup and evidence limits
 
 The hard admission ceiling reserves the canonical fixed topology, maximum attempts, a 5..20 minute execution window and a 2USD cleanup reserve before **any** AWS call. It refuses an altered self-consistent cost/topology as well as unknown/unplanned calls, changed inputs, missing per-call permission, exhausted attempt counts and expired mutation permission. Before billable creation it atomically claims `/zenith/live-runs/<runId>` using Standard-tier PutParameter with Overwrite=false and independently reads it. This account-side receipt prevents replay from a new directory or another machine. The execution role cannot overwrite/delete the receipt. The bootstrap uses the documented StringEquals condition for ssm:Overwrite; see [AWS Parameter Store condition guidance](https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-policy-conditions.html). Non-billing receipts are intentionally retained for replay prevention, tagged with purpose live-acceptance-receipt, and excluded from workload leak discovery; deletion requires a separate accountable retention decision. Cleanup is limited to already approved teardown/read inventory, can use the original approval after its expiry, and has a 25-minute observation deadline. It cannot create new resources or claim another run in recovery mode. SDK retries are disabled; every attempt is counted and journaled before dispatch.

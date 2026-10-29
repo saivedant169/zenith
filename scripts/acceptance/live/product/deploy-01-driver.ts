@@ -37,7 +37,7 @@ export interface Deploy01Product {
   operationStatus?(tenant: Deploy01Tenant, operationId: string): Promise<{ status: string; round: number }>;
   /** OPS-04: pending recovery items (GET /api/platform/v1/recovery?state=pending) and one decision. */
   recoveryItems?(tenant: Deploy01Tenant): Promise<{ epoch: number | null; items: { id: string; kind: string; ref: string; allowed: string[]; bindingDigest: string }[] }>;
-  decideRecovery?(tenant: Deploy01Tenant, itemId: string, input: { decision: string; bindingDigest: string; reason: string }): Promise<{ status: number; state?: string }>;
+  decideRecovery?(tenant: Deploy01Tenant, itemId: string, input: { decision: string; bindingDigest: string; reason: string }): Promise<{ status: number; state?: string; why?: string }>;
   /** OPS-04: one approval attempt; a product refusal is returned (its fixed message), never thrown. */
   tryApprove?(tenant: Deploy01Tenant, operationId: string): Promise<{ ok: boolean; refusal?: string }>;
   close?(): Promise<void>;
@@ -282,7 +282,10 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
         if (!/^[A-Za-z0-9_-]{1,200}$/.test(itemId)) refuse("the recovery item id has an unexpected shape");
         const response = await send(session, session.owner, `/api/platform/v1/recovery/items/${itemId}/decide`, input, "POST");
         const state = (response.data as { item?: { state?: unknown } } | undefined)?.item?.state;
-        return { status: response.status, ...(typeof state === "string" ? { state } : {}) };
+        // A refusal names its fixed code and the product's sanitized sentence.
+        const code = codeOf(response.data), message = sanitizedError((response.data as { error?: { message?: unknown } } | undefined)?.error?.message);
+        const why = [code && /^[a-z_]{1,40}$/.test(code) ? code : undefined, message].filter(Boolean).join(": ");
+        return { status: response.status, ...(typeof state === "string" ? { state } : {}), ...(why ? { why } : {}) };
       });
     },
     async tryApprove(tenant, operationId) {

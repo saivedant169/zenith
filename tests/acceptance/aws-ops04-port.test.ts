@@ -21,7 +21,7 @@ const COMMIT = "a".repeat(40);
 const BINDING = "b".repeat(64);
 const bucket = (n: number) => `arn:aws:s3:::ops04-0000ab04-${n}`;
 
-interface Opts { quietStatus?: string; extraBucket?: boolean; staleStatus?: number; restoreOk?: boolean; healthyAfterSeconds?: number; resumedStatus?: string; fencedApprovalOk?: boolean; restoredStatus?: string }
+interface Opts { resumeRefused?: boolean; quietStatus?: string; extraBucket?: boolean; staleStatus?: number; restoreOk?: boolean; healthyAfterSeconds?: number; resumedStatus?: string; fencedApprovalOk?: boolean; restoredStatus?: string }
 
 function harness(opts: Opts = {}) {
   const trust = { observe: trustDocument(PRINCIPAL, OLD_EXT), deploy: trustDocument(PRINCIPAL, OLD_EXT) };
@@ -49,6 +49,7 @@ function harness(opts: Opts = {}) {
     recoveryItems: async () => ({ epoch: 7, items: [{ id: "item1", kind: "operation", ref: "op2", allowed: ["resume", "abandon"], bindingDigest: BINDING }] }),
     decideRecovery: async (_t, _id, input) => {
       if (input.bindingDigest !== BINDING) return { status: opts.staleStatus ?? 409 };
+      if (opts.resumeRefused) return { status: 409, why: "conflict: The operation changed since it was reviewed" };
       resumed = true; op.status = "awaiting_approval"; return { status: 200, state: "resumed" };
     },
   };
@@ -135,6 +136,7 @@ describe("OPS-04 port", () => {
       [{ restoredStatus: "uncertain" }, "not a fenced plan review (operation uncertain)"],
       [{ extraBucket: true }, "the resumed deploy changed AWS"],
       [{ staleStatus: 200 }, "stale recovery binding was not refused"],
+      [{ resumeRefused: true }, "the recovery resume was not accepted (HTTP 409; product: conflict: The operation changed since it was reviewed)"],
       [{ restoreOk: false }, "the restore did not complete (step verify: pg_restore failed (exit 1): schema \"auth\" does not exist at …path)"],
       [{ healthyAfterSeconds: 300 + 14_401 }, "not within the approved targets"],
       [{ resumedStatus: "failed" }, "the resumed deploy ended failed"],

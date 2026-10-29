@@ -172,7 +172,7 @@ export function ops04Port(env: EnvLike = process.env, seams: Ops04Seams = {}): P
         const wrong = (item.bindingDigest[0] === "0" ? "1" : "0") + item.bindingDigest.slice(1);
         if ((await product.decideRecovery!(tenant, item.id, { decision: "resume", bindingDigest: wrong, reason: "OPS-04 stale binding refusal" })).status !== 409) refuse("a stale recovery binding was not refused");
         const decided = await product.decideRecovery!(tenant, item.id, { decision: "resume", bindingDigest: item.bindingDigest, reason: "Reviewed the AWS state independently" });
-        if (decided.status !== 200 || decided.state !== "resumed") refuse("the recovery resume was not accepted");
+        if (decided.status !== 200 || decided.state !== "resumed") refuse(`the recovery resume was not accepted (HTTP ${decided.status}${decided.state && /^[a-z_]{1,20}$/.test(decided.state) ? `, item ${decided.state}` : ""}${decided.why ? `; product: ${decided.why}` : ""})`);
         const reviewed = await product.operationStatus!(tenant, operationId);
         if (reviewed.status !== "awaiting_approval") refuse(`the resumed operation does not wait for a fresh approval (operation ${reviewed.status})`);
         step = "fresh approval";

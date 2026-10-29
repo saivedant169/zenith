@@ -188,4 +188,16 @@ describe("TEARDOWN-01 driver teardown", () => {
     const t = await product.createTenant();
     await expect(product.teardown!(t, "env1")).rejects.toThrow("ended failed without a destroy proposal");
   });
+
+  it("names the review operation's sanitized reason when the review fails", async () => {
+    const request = async (_p: unknown, endpoint: string) => endpoint === "/api/actions/env.reviewTeardown"
+      ? { status: 200, data: { result: { ok: true, data: { reviewOperationId: "rev1" } } } }
+      : endpoint === "/api/platform/v1/operations/rev1"
+        ? { status: 200, data: { operation: { status: "failed", error: "The destroy PlanView is unavailable. Nothing was applied. arn:aws:s3:::secret-bucket" } } }
+        : { status: 200, data: { review: { status: "failed" } } };
+    const product = browserDeploy01Product({}, { request: request as never, session, sleep: async () => undefined });
+    const t = await product.createTenant();
+    const failure = product.teardown!(t, "env1");
+    await expect(failure).rejects.toThrow("ended failed without a destroy proposal (product: The destroy PlanView is unavailable. Nothing was applied. …arn)");
+  });
 });

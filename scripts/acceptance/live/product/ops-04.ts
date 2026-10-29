@@ -16,7 +16,7 @@ import type { EnvLike } from "../../config";
 import type { Call, Json, ProductScenarioPort } from "../contracts";
 import { laneSuffix, liveRoleNames } from "../plan";
 import type { Deploy01Product } from "./deploy-01-driver";
-import { fill, parsePolicy, refuse, Refusal, templateExternalId, trustDocument } from "./mix-03";
+import { fill, parsePolicy, refuse, Refusal, sanitizedError, templateExternalId, trustDocument } from "./mix-03";
 import { runnerOps04Stack, type Ops04Stack } from "./ops-04-stack";
 import { destroyFromState, readState, type SessionCredentials, type StateDestroyInput } from "./state-destroy";
 import { stateResources } from "./teardown-01";
@@ -144,7 +144,11 @@ export function ops04Port(env: EnvLike = process.env, seams: Ops04Seams = {}): P
         step = "restore";
         const report = await stack.restore(incidentAt);
         const failedStep = report.steps.find(s => s.status !== "ok");
-        if (!report.ok || !report.epoch || report.epoch <= snapshot.epoch) refuse(`the restore did not complete (step ${failedStep?.id ?? "unknown"})`);
+        if (!report.ok || !report.epoch || report.epoch <= snapshot.epoch) {
+          // The runbook's own step detail, scrubbed and elided (never a URL or path), names why the restore stopped.
+          const why = sanitizedError(failedStep?.detail);
+          refuse(`the restore did not complete (step ${failedStep?.id ?? "unknown"}${why ? `: ${why}` : ""})`);
+        }
         step = "restored fence";
         const fenced = await stack.readback(workspaceId, operationId);
         if (fenced.epoch >= fenced.current || fenced.current !== report.epoch || fenced.status !== "awaiting_approval") refuse(`the restored deploy is not a fenced plan review (operation ${/^[a-z_]{1,20}$/.test(fenced.status) ? fenced.status : "unknown"})`);

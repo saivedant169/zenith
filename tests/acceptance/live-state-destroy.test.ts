@@ -43,6 +43,11 @@ describe("live state-destroy cleanup", () => {
     // An absent state (empty pull output) before and after is an empty, successful cleanup.
     await expect(destroyFromState({ tofu: "tofu", region: "ap-south-1", backend, stateKey: "zenith/ws/env/terraform.tfstate", credentials, exec: async () => ({ code: 0, stdout: "" }) })).resolves.toEqual({ destroyed: 0, destroyedArns: [], destroyedIds: [] });
     await expect(destroyFromState({ tofu: "tofu", region: "ap-south-1", backend, stateKey: "zenith/ws/env/terraform.tfstate", credentials, exec: failing })).rejects.toThrow(/^OpenTofu destroy failed during cleanup/);
+    // The fixed cause from stderr names the failure; the output itself never leaves.
+    const denied: Exec = async (_file, args) => ({ code: args[0] === "apply" ? 1 : 0, stdout: args[1] === "pull" ? state([AWS]) : "", stderr: args[0] === "apply" ? "Error: deleting secret: api error AccessDeniedException: secret-value" : "" });
+    const refusal = destroyFromState({ tofu: "tofu", region: "ap-south-1", backend, stateKey: "zenith/ws/env/terraform.tfstate", credentials, exec: denied });
+    await expect(refusal).rejects.toThrow("OpenTofu destroy failed during cleanup (api_AccessDeniedException); resources may remain.");
+    await expect(refusal).rejects.not.toThrow(/secret-value/);
   });
   it("configures region-named aliases and refuses any other alias or provider form", () => {
     expect(providerBlocks(JSON.parse(state([AWS, `${AWS}.us_east_1`])), "ap-south-1")).toEqual([{ region: "ap-south-1" }, { alias: "us_east_1", region: "us-east-1" }]);

@@ -68,7 +68,8 @@ export interface Mix03Seams {
 export function sanitizedError(raw: unknown): string | undefined {
   if (typeof raw !== "string" || !raw.trim()) return undefined;
   // The product's own fixed cause code ("; cause <class>/<code>") is kept verbatim; only its exact safe shape passes.
-  const cause = /; cause ([A-Za-z0-9_.:-]{1,64}(?:\/[A-Za-z0-9_.:-]{1,64})?)\)/.exec(raw)?.[1];
+  // Up to three segments: class, code and the OpenTofu failure code (src/lib/execution/apply.ts).
+  const cause = /; cause ([A-Za-z0-9_.:-]{1,64}(?:\/[A-Za-z0-9_.:-]{1,64}){0,2})\)/.exec(raw)?.[1];
   return elide(cause ? raw.replace(`; cause ${cause}`, "") : raw) + (cause ? ` [cause ${cause}]` : "");
 }
 function elide(raw: string): string {

@@ -70,6 +70,8 @@ describe("DEPLOY-01 driver error detail", () => {
     expect(sanitizedError("AccessDenied for arn:aws:iam::123456789012:role/x when key=secret at https://x.example/a in /tmp/a/b token AKIAABCDEFGHIJKLMNOPQRSTUV")).toBe("AccessDenied for …arn when …=… at …url in …path token …");
     expect(sanitizedError("x".repeat(500))!.length).toBeLessThanOrEqual(240);
     expect(sanitizedError(undefined)).toBeUndefined();
+    // The apply's full cause: class, code and the OpenTofu failure code (src/lib/execution/apply.ts).
+    expect(sanitizedError("The apply ended with an unclassified error (Error: Original plan dispatch outcome is unconfirmed; inspect this operation before another write.; cause TofuCommandError/tofu_failed/apply:api_AccessDeniedException).")).toBe("The apply ended with an unclassified error (Error: Original plan dispatch outcome is unconfirmed; inspect this operation before another write.). [cause TofuCommandError/tofu_failed/apply:api_AccessDeniedException]");
     expect(sanitizedError("The apply ended with an unclassified error (Error: Reviewed plan artifact is unavailable or changed; a new review is required.; cause Gate/requirement:plan-facts).")).toBe("The apply ended with an unclassified error (Error: Reviewed plan artifact is unavailable or changed; a new review is required.). [cause Gate/requirement:plan-facts]");
   });
 });

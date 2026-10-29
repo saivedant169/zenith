@@ -1,7 +1,7 @@
 /** tofuFailureCode: a fixed `<command>:<cause>` for a failed OpenTofu command, never its output text. */
 import { describe, expect, it } from "vitest";
 import { TofuCommandError } from "@/lib/tofu/runner";
-import { tofuFailureCode } from "@/lib/tofu/failure-code";
+import { tofuFailureCode, tofuOutputCause } from "@/lib/tofu/failure-code";
 
 const failed = (command: string, output: string) =>
   new TofuCommandError("tofu_command_failed", "failed", { command, exitCode: 1, output, truncated: false, durationMs: 1 } as unknown as ConstructorParameters<typeof TofuCommandError>[2]);
@@ -19,6 +19,12 @@ describe("tofuFailureCode", () => {
     const result = tofuFailureCode(failed(command, output));
     expect(result).toBe(code);
     expect(result).toMatch(/^[A-Za-z0-9_.:-]{1,64}$/);
+  });
+
+  it("names the fixed cause of raw output for the live harness's own OpenTofu runs", () => {
+    expect(tofuOutputCause("Error: creating Secrets Manager Secret: operation error: api error AccessDeniedException: User arn:aws:sts::1:x is not authorized")).toBe("api_AccessDeniedException");
+    expect(tofuOutputCause("Error: Error acquiring the state lock\nLock Info: ID 1")).toBe("state_lock");
+    expect(tofuOutputCause("some other failure /tmp/x")).toBe("unknown");
   });
 
   it("is undefined for anything that is not an OpenTofu command failure", () => {

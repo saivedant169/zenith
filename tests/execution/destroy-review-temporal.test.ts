@@ -59,6 +59,25 @@ async function setup(kind: "pglite" | "postgres" = "pglite") {
 
 
 describe.skipIf(!enabled)("Temporal read-only teardown review workflow", () => {
+  it("retries a review attempt that never reached the worker, so the queued review is not left to expire", async () => {
+    const { h, scope, activities, request } = await setup();
+    // A worker restart can leave a stale poller that takes the first attempt and never runs it.
+    let attempts = 0;
+    const reviewTeardown: typeof activities.reviewTeardown = async (input) => {
+      if (++attempts === 1) throw new Error("lost with a restarted worker");
+      return activities.reviewTeardown(input);
+    };
+    const worker = await Worker.create({ connection: server!.env.nativeConnection, taskQueue: TASK_QUEUE,
+      workflowBundle: { codePath: bundle }, activities: { ...activities, reviewTeardown } });
+    await worker.runUntil(async () => {
+      const queued = await request("destroy-intent-retry");
+      const result = await server!.env.client.workflow.getHandle(`teardown-review-${queued.reviewOperationId}`).result() as { operationId: string };
+      expect(attempts).toBe(2);
+      expect((await h.store.getOperation(scope.workspaceId, queued.reviewOperationId))?.status).toBe("succeeded");
+      expect((await h.store.getOperation(scope.workspaceId, result.operationId))?.status).toBe("awaiting_approval");
+    });
+  }, 60_000);
+
   it("records evidence and a pending proposal once, and preserves approval winning a refresh race without apply", async () => {
     const { h, w, scope, activities, request } = await setup();
     const worker = await Worker.create({ connection: server!.env.nativeConnection, taskQueue: TASK_QUEUE,

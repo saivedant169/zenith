@@ -35,16 +35,16 @@ function harness(opts: Opts = {}) {
     createEnvironment: async () => ({ environmentId: "env1" }),
     setManifest: async (_t, m) => { events.push(`manifest:${(m.resources as unknown[]).length}`); },
     deploy: async () => { aws = [bucket(1)]; events.push("deploy"); return { operationId: "op1", status: "succeeded" }; },
-    proposeDeploy: async () => { events.push(`propose:worker=${workerUp}`); op.status = "running"; return { operationId: "op2" }; },
-    finishDeploy: async () => {
-      events.push(`finish:resumed=${resumed}`);
+    proposeDeploy: async () => { events.push(`propose:worker=${workerUp}`); op.status = "proposed"; return { operationId: "op2", deploymentId: "dep2" }; },
+    finishDeploy: async (_t, environmentId, operationId, deploymentId) => {
+      events.push(`finish:resumed=${resumed}:${environmentId}:${operationId}:${deploymentId}`);
       if (resumed && opts.extraBucket) aws = [bucket(1), bucket(2), bucket(3)];
       else aws = [bucket(1), bucket(2)];
       op.status = resumed && opts.resumedStatus ? opts.resumedStatus : "succeeded";
       return { operationId: "op2", status: op.status };
     },
-    // The worker plans the dispatched deploy into its plan review.
-    operationStatus: async () => { if (op.status === "running" && workerUp && !resumed) { op.status = "awaiting_approval"; op.round = 1; } return { ...op }; },
+    // The proposal parks for its first approval; no workflow starts before it.
+    operationStatus: async () => { if (op.status === "proposed" && !resumed) op.status = "awaiting_approval"; return { ...op }; },
     tryApprove: async () => { events.push("try-approve"); return opts.fencedApprovalOk ? { ok: true } : { ok: false, refusal: "This approval belongs to an earlier recovery epoch." }; },
     recoveryItems: async () => ({ epoch: 7, items: [{ id: "item1", kind: "operation", ref: "op2", allowed: ["resume", "abandon"], bindingDigest: BINDING }] }),
     decideRecovery: async (_t, _id, input) => {
@@ -113,7 +113,7 @@ describe("OPS-04 plan", () => {
 });
 
 describe("OPS-04 port", () => {
-  it("holds a planned deploy across the backup, restores, fences its approval, resumes it and proves AWS unchanged", async () => {
+  it("holds a proposed deploy across the backup, restores, fences its approval, resumes it and proves AWS unchanged", async () => {
     const h = harness();
     const result = await h.run();
     expect(result.reason).toContain("OPS-04 restore proven on AWS");
@@ -121,8 +121,8 @@ describe("OPS-04 port", () => {
     expect(result.reason).toContain("RPO 300 s");
     expect(result.reason).toContain("RTO 400 s");
     expect(h.events).toEqual([
-      "manifest:1", "deploy", "manifest:2", "propose:worker=true", "stop:execution-worker", "backup", "start:execution-worker", "finish:resumed=false",
-      "stop:api+execution-worker", "restore", "switch", "start:api:restored", "try-approve", "start:execution-worker:restored", "finish:resumed=true",
+      "manifest:1", "deploy", "manifest:2", "propose:worker=true", "stop:execution-worker", "backup", "start:execution-worker", "finish:resumed=false:env1:op2:dep2",
+      "stop:api+execution-worker", "restore", "switch", "start:api:restored", "try-approve", "start:execution-worker:restored", "finish:resumed=true:env1:op2:dep2",
     ]);
     expect(h.destroyed()).toBe(true);
     expect(h.closed()).toBe(true);
@@ -133,7 +133,7 @@ describe("OPS-04 port", () => {
     for (const [opts, why] of [
       [{ quietStatus: "succeeded" }, "moved on its own (operation succeeded)"],
       [{ fencedApprovalOk: true }, "accepted before a recovery decision"],
-      [{ restoredStatus: "uncertain" }, "not a fenced plan review (operation uncertain)"],
+      [{ restoredStatus: "uncertain" }, "not a fenced proposal (operation uncertain)"],
       [{ extraBucket: true }, "the resumed deploy changed AWS"],
       [{ staleStatus: 200 }, "stale recovery binding was not refused"],
       [{ resumeRefused: true }, "the recovery resume was not accepted (HTTP 409; product: conflict: The operation changed since it was reviewed)"],

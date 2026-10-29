@@ -143,6 +143,15 @@ describe("approval and cancellation", () => {
     expect((await exec("deploy.approve", { deploymentId: d.id }, browserCtx)).ok).toBe(true);
     expect(gateway.signalApproval).toHaveBeenCalledExactlyOnceWith(d.operationId, ctx.workspaceId); expect(gateway.startDeploy).not.toHaveBeenCalled();
   });
+  it("a deploy reopened after a restore (fresh round, no plan yet) starts its workflow on approval instead of signalling", async () => {
+    h.setEngine(scriptedEngine("approval", () => requireApproval(1, "admin", true))); await exec("deploy.apply"); const d = latest();
+    // A recovery resume bumps the round of an operation that never started a workflow; it has no plan digest.
+    const real = broker.approve.bind(broker);
+    vi.spyOn(broker, "approve").mockImplementation(async (input) => { const r = await real(input); return { ...r, operation: { ...r.operation, approvalRound: 1 } }; });
+    browser();
+    expect((await exec("deploy.approve", { deploymentId: d.id }, browserCtx)).ok).toBe(true);
+    expect(gateway.startDeploy).toHaveBeenCalledTimes(1); expect(gateway.signalApproval).not.toHaveBeenCalled();
+  });
   it("multiple approvals do not start until the required count", async () => {
     h.setEngine(scriptedEngine("approval", () => requireApproval(2))); await exec("deploy.apply"); const id = latest().id; browser();
     expect((await exec("deploy.approve", { deploymentId: id }, browserCtx)).summary).toContain("1/2"); expect(gateway.startDeploy).not.toHaveBeenCalled();

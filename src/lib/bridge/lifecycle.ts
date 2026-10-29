@@ -170,7 +170,8 @@ export async function approveWorkflowDeployment(ctx: ActionContext, d: Deploymen
       if (!approved.finalized) return { ok: true, summary: `Approval recorded (${approved.approvals.have}/${approved.approvals.need}); waiting for other approvers.`, data: deploymentData(d, op) };
     }
     if (op.status !== "approved" && op.status !== "queued") return { ok: false, summary: "Approval refused.", error: `The platform operation is ${op.status}; review it in the web app.` };
-    if (!d.workflowStartedAt && approvalRoundOf(op) === 0) {
+    // No plan yet means no workflow gate: the first round, or a fresh round after a recovery resume (PROD-OPS-04).
+    if (!d.workflowStartedAt && (approvalRoundOf(op) === 0 || !op.planDigest)) {
       setProjectedStatus(d, "planning");
       return beginWorkflow(ctx, d);
     }

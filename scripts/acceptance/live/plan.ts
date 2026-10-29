@@ -16,28 +16,40 @@ const scenarios: Record<Scenario, { families: Family[]; scope?: string[] }> = {
   // No harness fixtures: Zenith deploys one bucket and tears it down after its deploy settles; the recorded state is the fallback.
   "teardown-01": { families: [], scope: ["PROD-MIX-04"] },
 };
-/** Sandbox IAM names installed by deploy/aws/zenith-connection.cfn.yaml with NameSuffix "-live" (verify before a live run). */
-export const MIX03_ROLE_NAMES = { observe: "ZenithObserveRole-live", deploy: "ZenithDeployRole-live", principal: "ZenithLiveAcceptance" } as const;
+/** Scenarios that create nothing tagged zenith:purpose=live-acceptance, so a second lane cannot trip the other's leak preflight. */
+export const LANE_SCENARIOS: readonly Scenario[] = ["mix-03", "deploy-01", "teardown-01"];
+/** The connection stack NameSuffix of a sandbox lane (deploy/aws/zenith-connection.cfn.yaml): zenith-connection-live or -live2. */
+export function laneSuffix(settings: Pick<Settings, "lane">): string { return settings.lane ? `-${settings.lane}` : "-live"; }
+/** Sandbox IAM names installed by deploy/aws/zenith-connection.cfn.yaml with the lane's NameSuffix (verify before a live run). */
+export function liveRoleNames(suffix = "-live") {
+  return { observe: `ZenithObserveRole${suffix}`, deploy: `ZenithDeployRole${suffix}`, principal: "ZenithLiveAcceptance" } as const;
+}
+export const MIX03_ROLE_NAMES = liveRoleNames();
+export function parseLane(raw: string | undefined): Settings["lane"] {
+  if (!raw || raw === "live") return undefined;
+  if (raw === "live2") return "live2";
+  throw new Error("Unknown sandbox lane (live or live2)");
+}
 /**
  * PROD-MIX-03 product-scope calls. Values that exist only at run time (environment id, ExternalId, discovered names) are
  * `{ "$runtime": "<name>" }` markers: the port fills them from its own readbacks and checks each against an exact pattern,
  * and the guard still admits only these planned templates. Resources are patterns because product-created names are not
  * known at plan time; the permission approves each exact action/resource pair (see the PR body for the list).
  */
-export function mix03ProductCalls(account: string, region: string, runId: string): Call[] {
+export function mix03ProductCalls(account: string, region: string, runId: string, names: ReturnType<typeof liveRoleNames> = MIX03_ROLE_NAMES): Call[] {
   const arn = (service: string, suffix: string) => `arn:aws:${service}:${region}:${account}:${suffix}`;
   const roleArn = (name: string) => `arn:aws:iam::${account}:role/${name}`;
   const runtime = (name: string): Json => ({ $runtime: name });
-  const role = { observe: roleArn(MIX03_ROLE_NAMES.observe), deploy: roleArn(MIX03_ROLE_NAMES.deploy) };
+  const role = { observe: roleArn(names.observe), deploy: roleArn(names.deploy) };
   const ownRoles = roleArn("zenith-*");
   const fn = arn("lambda", "function:zenith-*"), logs = arn("logs", "log-group:/aws/lambda/zenith-*"), bucket = "arn:aws:s3:::zenith-*";
   const c = (id: string, service: string, command: string, action: string, resource: string, input: Record<string, Json>, maximumCalls: number): Call => ({ id, service, command, action, resource, input, maximumCalls });
   return [
-    c("mix03-iam-read-observe", "iam", "GetRole", "iam:GetRole", role.observe, { RoleName: MIX03_ROLE_NAMES.observe }, 3),
-    c("mix03-iam-read-deploy", "iam", "GetRole", "iam:GetRole", role.deploy, { RoleName: MIX03_ROLE_NAMES.deploy }, 3),
+    c("mix03-iam-read-observe", "iam", "GetRole", "iam:GetRole", role.observe, { RoleName: names.observe }, 3),
+    c("mix03-iam-read-deploy", "iam", "GetRole", "iam:GetRole", role.deploy, { RoleName: names.deploy }, 3),
     // Each trust write is the template document with the ExternalId filled in; the same call restores the original value.
-    c("mix03-iam-trust-observe", "iam", "UpdateAssumeRolePolicy", "iam:UpdateAssumeRolePolicy", role.observe, { RoleName: MIX03_ROLE_NAMES.observe, PolicyDocument: runtime("trustDocument") }, 3),
-    c("mix03-iam-trust-deploy", "iam", "UpdateAssumeRolePolicy", "iam:UpdateAssumeRolePolicy", role.deploy, { RoleName: MIX03_ROLE_NAMES.deploy, PolicyDocument: runtime("trustDocument") }, 3),
+    c("mix03-iam-trust-observe", "iam", "UpdateAssumeRolePolicy", "iam:UpdateAssumeRolePolicy", role.observe, { RoleName: names.observe, PolicyDocument: runtime("trustDocument") }, 3),
+    c("mix03-iam-trust-deploy", "iam", "UpdateAssumeRolePolicy", "iam:UpdateAssumeRolePolicy", role.deploy, { RoleName: names.deploy, PolicyDocument: runtime("trustDocument") }, 3),
     // The consumer's Lambda package is uploaded to the connection's state bucket with the deploy role (its StateObjects grant).
     c("mix03-sts-assume", "sts", "AssumeRole", "sts:AssumeRole", role.deploy, { RoleArn: role.deploy, RoleSessionName: `zenith-${runId}`.slice(0, 64), ExternalId: runtime("externalId"), DurationSeconds: 3600 }, 2),
     c("mix03-tag-read", "tag", "GetResources", "tag:GetResources", "*", { TagFilters: [{ Key: "zenith:environment", Values: [runtime("environmentId")] }], ResourcesPerPage: 100 }, 24),
@@ -59,16 +71,16 @@ export function mix03ProductCalls(account: string, region: string, runId: string
  * state readback and cleanup, and the tag re-list. Everything Zenith deploys is created and destroyed by OpenTofu with the
  * connection's own deploy role, never by these calls.
  */
-export function deploy01ProductCalls(account: string, runId: string): Call[] {
+export function deploy01ProductCalls(account: string, runId: string, names: ReturnType<typeof liveRoleNames> = MIX03_ROLE_NAMES): Call[] {
   const roleArn = (name: string) => `arn:aws:iam::${account}:role/${name}`;
   const runtime = (name: string): Json => ({ $runtime: name });
-  const role = { observe: roleArn(MIX03_ROLE_NAMES.observe), deploy: roleArn(MIX03_ROLE_NAMES.deploy) };
+  const role = { observe: roleArn(names.observe), deploy: roleArn(names.deploy) };
   const c = (id: string, service: string, command: string, action: string, resource: string, input: Record<string, Json>, maximumCalls: number): Call => ({ id, service, command, action, resource, input, maximumCalls });
   return [
-    c("deploy01-iam-read-observe", "iam", "GetRole", "iam:GetRole", role.observe, { RoleName: MIX03_ROLE_NAMES.observe }, 3),
-    c("deploy01-iam-read-deploy", "iam", "GetRole", "iam:GetRole", role.deploy, { RoleName: MIX03_ROLE_NAMES.deploy }, 3),
-    c("deploy01-iam-trust-observe", "iam", "UpdateAssumeRolePolicy", "iam:UpdateAssumeRolePolicy", role.observe, { RoleName: MIX03_ROLE_NAMES.observe, PolicyDocument: runtime("trustDocument") }, 3),
-    c("deploy01-iam-trust-deploy", "iam", "UpdateAssumeRolePolicy", "iam:UpdateAssumeRolePolicy", role.deploy, { RoleName: MIX03_ROLE_NAMES.deploy, PolicyDocument: runtime("trustDocument") }, 3),
+    c("deploy01-iam-read-observe", "iam", "GetRole", "iam:GetRole", role.observe, { RoleName: names.observe }, 3),
+    c("deploy01-iam-read-deploy", "iam", "GetRole", "iam:GetRole", role.deploy, { RoleName: names.deploy }, 3),
+    c("deploy01-iam-trust-observe", "iam", "UpdateAssumeRolePolicy", "iam:UpdateAssumeRolePolicy", role.observe, { RoleName: names.observe, PolicyDocument: runtime("trustDocument") }, 3),
+    c("deploy01-iam-trust-deploy", "iam", "UpdateAssumeRolePolicy", "iam:UpdateAssumeRolePolicy", role.deploy, { RoleName: names.deploy, PolicyDocument: runtime("trustDocument") }, 3),
     c("deploy01-sts-assume", "sts", "AssumeRole", "sts:AssumeRole", role.deploy, { RoleArn: role.deploy, RoleSessionName: `zenith-${runId}`.slice(0, 64), ExternalId: runtime("externalId"), DurationSeconds: 3600 }, 8),
     c("deploy01-tag-read", "tag", "GetResources", "tag:GetResources", "*", { TagFilters: [{ Key: "zenith:environment", Values: [runtime("environmentId")] }], ResourcesPerPage: 100 }, 4),
   ];
@@ -77,16 +89,16 @@ export function deploy01ProductCalls(account: string, runId: string): Call[] {
  * TEARDOWN-01 product-scope calls: the same sandbox trust change and deploy-role session as DEPLOY-01, for the state readback
  * after the deploy and after the teardown (and the fallback cleanup), and the tag listing that proves the bucket is gone.
  */
-export function teardown01ProductCalls(account: string, runId: string): Call[] {
+export function teardown01ProductCalls(account: string, runId: string, names: ReturnType<typeof liveRoleNames> = MIX03_ROLE_NAMES): Call[] {
   const roleArn = (name: string) => `arn:aws:iam::${account}:role/${name}`;
   const runtime = (name: string): Json => ({ $runtime: name });
-  const role = { observe: roleArn(MIX03_ROLE_NAMES.observe), deploy: roleArn(MIX03_ROLE_NAMES.deploy) };
+  const role = { observe: roleArn(names.observe), deploy: roleArn(names.deploy) };
   const c = (id: string, service: string, command: string, action: string, resource: string, input: Record<string, Json>, maximumCalls: number): Call => ({ id, service, command, action, resource, input, maximumCalls });
   return [
-    c("teardown01-iam-read-observe", "iam", "GetRole", "iam:GetRole", role.observe, { RoleName: MIX03_ROLE_NAMES.observe }, 3),
-    c("teardown01-iam-read-deploy", "iam", "GetRole", "iam:GetRole", role.deploy, { RoleName: MIX03_ROLE_NAMES.deploy }, 3),
-    c("teardown01-iam-trust-observe", "iam", "UpdateAssumeRolePolicy", "iam:UpdateAssumeRolePolicy", role.observe, { RoleName: MIX03_ROLE_NAMES.observe, PolicyDocument: runtime("trustDocument") }, 3),
-    c("teardown01-iam-trust-deploy", "iam", "UpdateAssumeRolePolicy", "iam:UpdateAssumeRolePolicy", role.deploy, { RoleName: MIX03_ROLE_NAMES.deploy, PolicyDocument: runtime("trustDocument") }, 3),
+    c("teardown01-iam-read-observe", "iam", "GetRole", "iam:GetRole", role.observe, { RoleName: names.observe }, 3),
+    c("teardown01-iam-read-deploy", "iam", "GetRole", "iam:GetRole", role.deploy, { RoleName: names.deploy }, 3),
+    c("teardown01-iam-trust-observe", "iam", "UpdateAssumeRolePolicy", "iam:UpdateAssumeRolePolicy", role.observe, { RoleName: names.observe, PolicyDocument: runtime("trustDocument") }, 3),
+    c("teardown01-iam-trust-deploy", "iam", "UpdateAssumeRolePolicy", "iam:UpdateAssumeRolePolicy", role.deploy, { RoleName: names.deploy, PolicyDocument: runtime("trustDocument") }, 3),
     c("teardown01-sts-assume", "sts", "AssumeRole", "sts:AssumeRole", role.deploy, { RoleArn: role.deploy, RoleSessionName: `zenith-${runId}`.slice(0, 64), ExternalId: runtime("externalId"), DurationSeconds: 3600 }, 6),
     c("teardown01-tag-read", "tag", "GetResources", "tag:GetResources", "*", { TagFilters: [{ Key: "zenith:environment", Values: [runtime("environmentId")] }], ResourcesPerPage: 100 }, 12),
   ];
@@ -138,7 +150,10 @@ export function buildPlan(input: Settings): Plan {
   // Canonical settings omit the default scenario, so existing fixtures digests do not change.
   const { scenario = "fixtures", ...rest } = input;
   parseScenario(scenario);
-  const settings: Settings = scenario === "fixtures" ? rest : { ...rest, scenario };
+  const { lane, ...base } = rest;
+  // Canonical settings omit the default lane too.
+  const settings: Settings = { ...(scenario === "fixtures" ? base : { ...base, scenario }), ...(lane ? { lane: parseLane(lane) } : {}) };
+  if (settings.lane && !LANE_SCENARIOS.includes(scenario)) throw new Error("The second sandbox lane runs only product scenarios (mix-03, deploy-01, teardown-01)");
   assertRunId(settings.runId);
   if (!/^\d{12}$/.test(settings.accountId)) throw new Error("Explicit 12-digit sandbox account required");
   if (!/^(us|eu|ap|ca|sa|me|af|il|mx)-(central|north|south|east|west|northeast|northwest|southeast|southwest)-\d$/.test(settings.region)) throw new Error("Commercial AWS region required");
@@ -253,9 +268,9 @@ export function buildPlan(input: Settings): Plan {
   const body: Omit<Plan, "sha256"> = {
     schema: 1, settings, tags, fixtures, preflight, estimate,
     // Only the mix-03 body carries productCalls, so every other scenario's digest is unchanged.
-    ...(scenario === "mix-03" ? { productCalls: mix03ProductCalls(account, region, runId) } : {}),
-    ...(scenario === "deploy-01" ? { productCalls: deploy01ProductCalls(account, runId) } : {}),
-    ...(scenario === "teardown-01" ? { productCalls: teardown01ProductCalls(account, runId) } : {}),
+    ...(scenario === "mix-03" ? { productCalls: mix03ProductCalls(account, region, runId, liveRoleNames(laneSuffix(settings))) } : {}),
+    ...(scenario === "deploy-01" ? { productCalls: deploy01ProductCalls(account, runId, liveRoleNames(laneSuffix(settings))) } : {}),
+    ...(scenario === "teardown-01" ? { productCalls: teardown01ProductCalls(account, runId, liveRoleNames(laneSuffix(settings))) } : {}),
     requirements: ledger.requirements.filter(r => r.requiredEvidence.includes("live_sandbox")).map(r => ({ id: r.id, acceptance: r.acceptance, fixtures: requirements[r.id] ?? [], join: "Wave 5 release ProductScenarioPort: real approved product operations, independent traffic/readback, quiescence. AWS fixtures alone do not meet this requirement." })),
   };
   return { ...body, sha256: digest(body) };

@@ -19,7 +19,7 @@ import { crc32 } from "node:zlib";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import type { EnvLike } from "../../config";
 import type { Call, Json, Plan, ProductScenarioPort } from "../contracts";
-import { MIX03_ROLE_NAMES } from "../plan";
+import { laneSuffix, liveRoleNames } from "../plan";
 
 type Values = Record<string, string>;
 type Response = Record<string, unknown>;
@@ -309,12 +309,11 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
       const invoke: Invoke = (c, values = {}, extra = {}) => call(c, { ...fill(c.input, values), ...extra });
       const planned = (id: string): Call => plan.productCalls?.find(c => c.id === id) ?? refuse(`the plan has no call ${id}`);
       const account = plan.settings.accountId, region = plan.settings.region;
-      // The connection stack's state bucket: zenith-state-<account>-<region><NameSuffix>, NameSuffix "-live" (deploy/aws/zenith-connection.cfn.yaml).
-      // The sandbox connection stack is installed with NameSuffix "-live": its roles, boundaries and state bucket all carry it.
-      const bootstrapNameSuffix = "-live";
+      // The lane's connection stack (NameSuffix "-live" or "-live2"): its roles, boundaries and state bucket all carry the suffix.
+      const bootstrapNameSuffix = laneSuffix(plan.settings), names = liveRoleNames(bootstrapNameSuffix);
       const stateBucket = `zenith-state-${account}-${region}${bootstrapNameSuffix}`;
-      const principal = `arn:aws:iam::${account}:role/${MIX03_ROLE_NAMES.principal}`;
-      const roleArns = { observe: `arn:aws:iam::${account}:role/${MIX03_ROLE_NAMES.observe}`, deploy: `arn:aws:iam::${account}:role/${MIX03_ROLE_NAMES.deploy}` };
+      const principal = `arn:aws:iam::${account}:role/${names.principal}`;
+      const roleArns = { observe: `arn:aws:iam::${account}:role/${names.observe}`, deploy: `arn:aws:iam::${account}:role/${names.deploy}` };
       let step = "preconditions";
       let outcome: { complete: boolean; reason: string };
       try {

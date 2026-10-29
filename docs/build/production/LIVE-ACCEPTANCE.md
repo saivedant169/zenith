@@ -170,6 +170,35 @@ Sizes: the inline role policy is 9948 of 10240 characters (was 8078). The runner
 
 **Retention.** The stack's state bucket (`zenith-state-361646636162-ap-south-1-live`) has `DeletionPolicy: Retain`. Deleting `zenith-connection-live` leaves it in place; empty and delete it yourself when you no longer need it.
 
+## Second sandbox lane (2026-10-29)
+
+Owner decision 2026-10-29: two live runs may run at once, one per lane, so the AWS private-beta proofs finish faster.
+
+- **Lanes.** `live` uses connection stack `zenith-connection-live` (roles `ZenithObserveRole-live`, `ZenithDeployRole-live`, state bucket `zenith-state-361646636162-ap-south-1-live`). `live2` uses `zenith-connection-live2` with the same names ending in `-live2`. The plan binds the lane (`settings.lane`, absent for `live`, so earlier digests are unchanged).
+- **Isolation.** Each lane has its own concurrency group (`live-acceptance-<lane>`), its own envelope variables (`LIVE_SANDBOX_AWS_PERMISSIONS_JSON` and `LIVE_SANDBOX_SCOPE_JSON`, with suffix `_LIVE2` for `live2`), and its own connection roles, whose trust each run rewrites. Both lanes share the acceptance role, the spend stop, the DB network and the account.
+- **Product scenarios only on `live2`.** The plan refuses `fixtures`, `retention-s3` and `rel-04` on `live2`. Those create resources tagged `zenith:purpose=live-acceptance`, which the other lane's leak preflight would count as a prior leak.
+- **IAM.** `deploy/live-sandbox/aws/main.tf` matches the connection roles with one pattern per role (`ZenithObserveRole-live*`, `ZenithDeployRole-live*`, also in the delete denies). The inline policy limit is 10240 characters; it goes from 9948 to 9957. The spend stop names every lane role exactly (`connection_lane_suffixes`). Residual: the acceptance role may assume or rewrite the trust of any role whose name starts with `ZenithObserveRole-live` or `ZenithDeployRole-live`. Only the owner can create such roles.
+
+**One-time install (owner).** First, in CloudShell for account 361646636162, upload `deploy/aws/zenith-connection.cfn.yaml` (Actions > Upload file), then run:
+
+```bash
+aws s3 mb s3://zenith-cfn-stage-361646636162 --region ap-south-1
+aws s3 cp zenith-connection.cfn.yaml s3://zenith-cfn-stage-361646636162/zenith-connection.cfn.yaml
+aws cloudformation create-stack --region ap-south-1 --stack-name zenith-connection-live2 \
+  --template-url https://zenith-cfn-stage-361646636162.s3.ap-south-1.amazonaws.com/zenith-connection.cfn.yaml \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameters ParameterKey=NameSuffix,ParameterValue=-live2 \
+    ParameterKey=ZenithPrincipalArn,ParameterValue=arn:aws:iam::361646636162:role/ZenithLiveAcceptance \
+    ParameterKey=ExternalId,ParameterValue=placeholder-set-per-run \
+    ParameterKey=EnvironmentTagValue,ParameterValue='*'
+aws cloudformation wait stack-create-complete --region ap-south-1 --stack-name zenith-connection-live2
+aws s3 rb s3://zenith-cfn-stage-361646636162 --force
+```
+
+The stack holds IAM roles and policies and an empty state bucket, so it costs nothing at rest. Then apply `main.tf` where its state lives, with `connection_lane_suffixes = ["-live", "-live2"]`. The expected plan is 0 to add, 3 to change and 0 to destroy: `aws_iam_role_policy.runner`, `aws_iam_role_policy.spend_stop` and `aws_budgets_budget_action.spend_stop`. Install the stack first: the budget action names the `-live2` roles.
+
+**To undo.** Set `connection_lane_suffixes = ["-live"]`, apply, then delete the stack. Its state bucket has `DeletionPolicy: Retain`; empty and delete it yourself.
+
 ## Budget, cleanup and evidence limits
 
 The hard admission ceiling reserves the canonical fixed topology, maximum attempts, a 5..20 minute execution window and a 2USD cleanup reserve before **any** AWS call. It refuses an altered self-consistent cost/topology as well as unknown/unplanned calls, changed inputs, missing per-call permission, exhausted attempt counts and expired mutation permission. Before billable creation it atomically claims `/zenith/live-runs/<runId>` using Standard-tier PutParameter with Overwrite=false and independently reads it. This account-side receipt prevents replay from a new directory or another machine. The execution role cannot overwrite/delete the receipt. The bootstrap uses the documented StringEquals condition for ssm:Overwrite; see [AWS Parameter Store condition guidance](https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-policy-conditions.html). Non-billing receipts are intentionally retained for replay prevention, tagged with purpose live-acceptance-receipt, and excluded from workload leak discovery; deletion requires a separate accountable retention decision. Cleanup is limited to already approved teardown/read inventory, can use the original approval after its expiry, and has a 25-minute observation deadline. It cannot create new resources or claim another run in recovery mode. SDK retries are disabled; every attempt is counted and journaled before dispatch.

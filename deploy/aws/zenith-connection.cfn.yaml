@@ -1230,6 +1230,8 @@ Resources:
               - logs:ListTagsForResource
               - ssm:Describe*
               - secretsmanager:DescribeSecret
+              # Read by the AWS provider for every managed secret container (never the value).
+              - secretsmanager:GetResourcePolicy
               - secretsmanager:ListSecrets
               - codebuild:BatchGet*
               - codebuild:List*

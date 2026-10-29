@@ -166,8 +166,9 @@ it("adds the exact bootstrap version read statement and preserves the reviewed r
   // creation authorized against tagged parents plus tagged security-group rules, then flow-log tag-on-create, the
   // ELB-forwarded ec2:GetSecurityGroupsForVpc read, role instance-profile listing and EIP disassociation for destroy
   // (DEPLOY-01 live denials, 2026-10-26), then lambda:GetFunctionCodeSigningConfig, which the AWS provider reads after every
-  // Zip function create and refresh (MIX-03 live denial, 2026-10-28).
-  expect(createHash("sha256").update(JSON.stringify(resources)).digest("hex")).toBe("a5fc6b11c9c88f35b09d09528512f6ba5cdfcfea2851ef8e0db292d214e2c553");
+  // Zip function create and refresh (MIX-03 live denial, 2026-10-28), then secretsmanager:GetResourcePolicy (observe), which
+  // the AWS provider reads for every managed secret container on create, refresh and destroy (OPS-06 live denial, 2026-10-29).
+  expect(createHash("sha256").update(JSON.stringify(resources)).digest("hex")).toBe("17c3da155f32260f67535d71cd3d3dff2798b6549bc25303181066a011fb3f6e");
 });
 
 describe.each(["aws", "aws-cn", "aws-us-gov"])("exact bootstrap boundary reads in %s", (partition) => {
@@ -305,9 +306,9 @@ describe.each(Object.keys(SCENARIOS))("IAM policies (%s)", (scenario) => {
     const deny = statements.find((s) => s.Sid === "NeverReadSecretValues")!;
     expect(deny.Effect).toBe("Deny");
     expect(asList(deny.Action)).toEqual(expect.arrayContaining(["secretsmanager:GetSecretValue", "ssm:GetParameter", "ssm:GetParameters", "ssm:GetParametersByPath"]));
-    // secretsmanager: describe/list only
+    // secretsmanager: describe/list and the resource policy only (the AWS provider reads it for every managed secret); never a value
     const secrets = allows(statements).flatMap((s) => asList(s.Action)).filter((a) => a.startsWith("secretsmanager:"));
-    expect(secrets.sort()).toEqual(["secretsmanager:DescribeSecret", "secretsmanager:ListSecrets"]);
+    expect(secrets.sort()).toEqual(["secretsmanager:DescribeSecret", "secretsmanager:GetResourcePolicy", "secretsmanager:ListSecrets"]);
   });
 
   it("every mutating deploy-role permission is tag- or name-conditioned (documented exceptions only)", () => {

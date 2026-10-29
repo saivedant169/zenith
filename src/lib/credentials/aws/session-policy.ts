@@ -76,6 +76,7 @@ const READ_ACTIONS = [
   "logs:Describe*",
   "ssm:Describe*",
   "secretsmanager:DescribeSecret",
+  "secretsmanager:GetResourcePolicy",
   "secretsmanager:ListSecrets",
   "codebuild:BatchGet*",
   "lambda:GetFunctionConfiguration",

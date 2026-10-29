@@ -130,7 +130,8 @@ describe("TEARDOWN-01 port", () => {
   it("counts only managed resources with instances and deploys a bucket-only manifest", () => {
     expect(stateResources({ resources: [{ mode: "managed", instances: [{}] }, { mode: "data", instances: [{}] }, { mode: "managed", instances: [] }] })).toBe(1);
     expect(stateResources(undefined)).toBe(0);
-    expect(teardown01Manifest(RUN)).toMatchObject({ services: [], resources: [{ kind: "object_store", ownership: "managed", name: "teardown01-000-ab01" }] });
+    // Version 2 with an explicit deletion allow: the product refuses a stateful teardown otherwise.
+    expect(teardown01Manifest(RUN)).toMatchObject({ version: 2, policies: { deletion: "allow" }, services: [], resources: [{ kind: "object_store", ownership: "managed", name: "teardown01-000-ab01" }] });
   });
 
   it("plans the duration up to 150 minutes and only the six product calls", () => {

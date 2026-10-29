@@ -25,7 +25,9 @@ const EXTERNAL_ID_NEW = /^zenith-[0-9a-f]{32}$/;
 export const SETTLING = "Earlier deploy activity has not settled yet.";
 
 export function teardown01Manifest(runId: string): Record<string, unknown> {
-  return { version: 1, services: [], routes: [], bindings: [],
+  // A stateful delete needs an explicit deletion allow on its managed node (src/lib/tofu/plan.ts assertDeletionAllowed);
+  // only a version 2 manifest carries policies, and the default is "approval".
+  return { version: 2, policies: { deletion: "allow" }, services: [], routes: [], bindings: [],
     resources: [{ id: "assets", name: `teardown01-${runId.slice(-8).toLowerCase()}`, kind: "object_store", config: {}, size: "small", ownership: "managed" }] };
 }
 

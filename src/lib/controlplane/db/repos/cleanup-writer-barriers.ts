@@ -53,10 +53,6 @@ export class CleanupWriterBarrierError extends Error {
     super(`Cleanup writer authority or earlier delivery is unconfirmed; destruction was refused.${open ? ` (unsettled: ${open})` : ""}`);
   }
 }
-/** Refuses unless every counted delivery family is zero. */
-export function assertDrained(inventory: CleanupInventory): void {
-  if (Object.values(inventory).some(n => n !== 0)) throw new CleanupWriterBarrierError(inventory);
-}
 export interface CleanupHold {
   readonly workspaceId: string; readonly projectId: string; readonly environmentId: string;
   readonly operationId: string; readonly attemptId: string; readonly generation: string;

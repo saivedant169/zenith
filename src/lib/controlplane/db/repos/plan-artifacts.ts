@@ -449,7 +449,7 @@ async function assertHeldCleanup(sql:Sql,tx:Sql,origin:unknown,bound:NativeClean
     [c.workspaceId,c.projectId,c.environmentId,c.operationId,bound.attempt,h.generation,bound.manifestDigest,frame.authorityDigest,bound.access.lease.holder,bound.access.lease.fenceToken,bound.jti]);
   if(rows.length!==1)throw new cleanup.CleanupWriterBarrierError();
   const inventory=await cleanup.inventoryForNativeOrigin(sql,tx,origin);
-  if(Object.values(inventory).some(n=>n!==0))throw new cleanup.CleanupWriterBarrierError();
+  cleanup.assertDrained(inventory);
 }
 /** Releases the scope's newest hold only when its counted inventory is zero. The caller already holds the workspace coordinator. */
 async function releaseDrainedScopeHold(tx:Sql,workspaceId:string,projectId:string,environmentId:string,releasedBy:string):Promise<number> {
@@ -526,7 +526,7 @@ export async function reserveCleanupOwnerGrant(sql:Sql,origin:unknown,jti:string
     await lockCleanupCoordinator(tx,c.workspaceId);await assertNativeCleanupOriginCurrent(origin,sql);
     if(h.authorityDigest!==frame.authorityDigest)throw new cleanup.CleanupWriterBarrierError();
     const inventory=await cleanup.inventoryForNativeOrigin(sql,tx,origin);
-    if(Object.values(inventory).some(n=>n!==0))throw new cleanup.CleanupWriterBarrierError();
+    cleanup.assertDrained(inventory);
     await assertNativeCleanupOriginCurrent(origin,sql);
     const input=bound.access,sourceAuthority=frame.source,productAuthority=frame.product;
     // Inventory/history awaits finish before the same-statement current authority and reservation.

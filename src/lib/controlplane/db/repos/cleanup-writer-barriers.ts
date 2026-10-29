@@ -47,7 +47,15 @@ async function verifiedDeliverySettlements(sql: Sql, workspaceId: string, projec
 
 export class CleanupWriterBarrierError extends Error {
   readonly code = "cleanup_writer_unconfirmed";
-  constructor() { super("Cleanup writer authority or earlier delivery is unconfirmed; destruction was refused."); }
+  constructor(inventory?: CleanupInventory) {
+    // Counts only: they name which earlier delivery family blocks the teardown and carry no identifier.
+    const open = inventory ? Object.entries(inventory).filter(([, n]) => n !== 0).map(([k, n]) => `${k} ${n}`).join(", ") : "";
+    super(`Cleanup writer authority or earlier delivery is unconfirmed; destruction was refused.${open ? ` (unsettled: ${open})` : ""}`);
+  }
+}
+/** Refuses unless every counted delivery family is zero. */
+export function assertDrained(inventory: CleanupInventory): void {
+  if (Object.values(inventory).some(n => n !== 0)) throw new CleanupWriterBarrierError(inventory);
 }
 export interface CleanupHold {
   readonly workspaceId: string; readonly projectId: string; readonly environmentId: string;

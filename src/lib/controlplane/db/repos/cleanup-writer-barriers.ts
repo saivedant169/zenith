@@ -80,7 +80,8 @@ export async function inventoryForNativeOrigin(owning:Sql,tx:Sql,origin:unknown)
   if(holds.length!==1 || bound.hold && holds[0].generation!==bound.hold.generation)throw new CleanupWriterBarrierError();
   const w=await (await import("./workflow-start-intents")).get(tx,c.workspaceId,c.operationId);
   const op=await (await import("./operations")).get(tx,c.workspaceId,c.operationId);
-  const controlIdentity=w && op && w.phase==="acknowledged" && w.binding.kind==="destroy" && op.workflowId===w.binding.workflowId
+  // The destroy bridge starts its workflow without writing operations.workflow_id (as the start claim allows): a recorded id must match.
+  const controlIdentity=w && op && w.phase==="acknowledged" && w.binding.kind==="destroy" && (op.workflowId===undefined || op.workflowId===w.binding.workflowId)
     && w.binding.arguments.workspaceId===c.workspaceId && w.binding.arguments.operationId===c.operationId && w.binding.arguments.environmentId===c.environmentId
     && w.binding.proposalDigest===c.proposalDigest && w.binding.inputDigest===c.inputDigest ? c.operationId+":"+w.attempt_id : undefined;
   return inventoryWithSettlements(tx,c.workspaceId,c.projectId,c.environmentId,{operationId:c.operationId,attemptId:bound.attempt,

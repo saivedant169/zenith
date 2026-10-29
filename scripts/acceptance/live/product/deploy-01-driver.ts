@@ -137,8 +137,10 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
       const code = codeOf(response.data);
       refuse(`${id} was refused by the product (HTTP ${response.status}${code && /^[a-z_]{1,40}$/.test(code) ? `, ${code}` : ""})`);
     }
-    const body = response.data as { result?: { ok?: unknown; data?: unknown } } | undefined;
-    return { ok: body?.result?.ok === true, data: (body?.result?.data ?? {}) as Record<string, unknown> };
+    const body = response.data as { result?: { ok?: unknown; data?: unknown; error?: unknown } } | undefined;
+    // The product's own refusal reason, sanitized, for a refusal message ("" when it gave none).
+    const why = sanitizedError(body?.result?.error);
+    return { ok: body?.result?.ok === true, data: (body?.result?.data ?? {}) as Record<string, unknown>, why: why ? ` (${why})` : "" };
   };
   const operation = async (session: TenantSession, id: string) => {
     const response = await send(session, session.owner, `/api/platform/v1/operations/${id}`, undefined, "GET");
@@ -169,7 +171,7 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
         await sleep(10_000);
       }
     }
-    if (!approved.ok) refuse("deploy.approve was refused by the product");
+    if (!approved.ok) refuse(`deploy.approve was refused by the product${approved.why}`);
     return { operationId: operationId as string };
   };
   const finish = async (session: TenantSession, operationId: string) => {
@@ -218,7 +220,7 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
           deployRoleArn: input.deployRoleArn, stateBucket: input.stateBucket, bootstrapNameSuffix: input.bootstrapNameSuffix, mode: "aws_assume_role",
           ...(input.secretWriterRoleArn ? { secretWriterRoleArn: input.secretWriterRoleArn } : {}),
         });
-        if (!result.ok || typeof result.data.connectionId !== "string" || typeof result.data.externalId !== "string") refuse("connection.createAws was refused by the product");
+        if (!result.ok || typeof result.data.connectionId !== "string" || typeof result.data.externalId !== "string") refuse(`connection.createAws was refused by the product${result.why}`);
         return { connectionId: result.data.connectionId as string, externalId: result.data.externalId as string };
       });
     },
@@ -234,7 +236,7 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
         const result = await runAction(session, session.owner, "env.create", {
           projectId: tenant.projectId, name: input.name, class: "production", connectionId: input.connectionId, region: input.region, approvalRequired: true,
         }, { projectId: tenant.projectId });
-        if (!result.ok || typeof result.data.environmentId !== "string") refuse("env.create was refused by the product");
+        if (!result.ok || typeof result.data.environmentId !== "string") refuse(`env.create was refused by the product${result.why}`);
         return { environmentId: result.data.environmentId as string };
       });
     },
@@ -242,14 +244,14 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
       return step("manifest", async () => {
         const session = sessionOf(tenant);
         const result = await runAction(session, session.owner, "project.updateManifest", { projectId: tenant.projectId, manifest }, { projectId: tenant.projectId });
-        if (!result.ok) refuse("project.updateManifest was refused by the product");
+        if (!result.ok) refuse(`project.updateManifest was refused by the product${result.why}`);
       });
     },
     async setSecret(tenant, input) {
       return step("secret", async () => {
         const session = sessionOf(tenant);
         const result = await runAction(session, session.owner, "system.setSecret", { projectId: tenant.projectId, ...input }, { projectId: tenant.projectId });
-        if (!result.ok) refuse("system.setSecret was refused by the product");
+        if (!result.ok) refuse(`system.setSecret was refused by the product${result.why}`);
       });
     },
     async proposeDeploy(tenant, environmentId) {

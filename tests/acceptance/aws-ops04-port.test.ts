@@ -21,12 +21,12 @@ const COMMIT = "a".repeat(40);
 const BINDING = "b".repeat(64);
 const bucket = (n: number) => `arn:aws:s3:::ops04-0000ab04-${n}`;
 
-interface Opts { quietStatus?: string; extraBucket?: boolean; staleStatus?: number; restoreOk?: boolean; healthyAfterSeconds?: number; resumedStatus?: string }
+interface Opts { quietStatus?: string; extraBucket?: boolean; staleStatus?: number; restoreOk?: boolean; healthyAfterSeconds?: number; resumedStatus?: string; fencedApprovalOk?: boolean; restoredStatus?: string }
 
 function harness(opts: Opts = {}) {
   const trust = { observe: trustDocument(PRINCIPAL, OLD_EXT), deploy: trustDocument(PRINCIPAL, OLD_EXT) };
   const events: string[] = [];
-  let aws: string[] = [], destroyed = false, resumed = false, workerUp = true, clock = Date.parse("2026-10-29T10:00:00Z");
+  let aws: string[] = [], destroyed = false, resumed = false, workerUp = true;
   const op = { status: "succeeded", round: 0 };
   const product: Deploy01Product = {
     createTenant: async () => ({ workspaceId: "ws1", projectId: "p1" }),
@@ -35,7 +35,7 @@ function harness(opts: Opts = {}) {
     createEnvironment: async () => ({ environmentId: "env1" }),
     setManifest: async (_t, m) => { events.push(`manifest:${(m.resources as unknown[]).length}`); },
     deploy: async () => { aws = [bucket(1)]; events.push("deploy"); return { operationId: "op1", status: "succeeded" }; },
-    proposeDeploy: async () => { events.push(`propose:worker=${workerUp}`); op.status = "approved"; return { operationId: "op2" }; },
+    proposeDeploy: async () => { events.push(`propose:worker=${workerUp}`); op.status = "running"; return { operationId: "op2" }; },
     finishDeploy: async () => {
       events.push(`finish:resumed=${resumed}`);
       if (resumed && opts.extraBucket) aws = [bucket(1), bucket(2), bucket(3)];
@@ -43,7 +43,9 @@ function harness(opts: Opts = {}) {
       op.status = resumed && opts.resumedStatus ? opts.resumedStatus : "succeeded";
       return { operationId: "op2", status: op.status };
     },
-    operationStatus: async () => ({ ...op }),
+    // The worker plans the dispatched deploy into its plan review.
+    operationStatus: async () => { if (op.status === "running" && workerUp && !resumed) { op.status = "awaiting_approval"; op.round = 1; } return { ...op }; },
+    tryApprove: async () => { events.push("try-approve"); return opts.fencedApprovalOk ? { ok: true } : { ok: false, refusal: "This approval belongs to an earlier recovery epoch." }; },
     recoveryItems: async () => ({ epoch: 7, items: [{ id: "item1", kind: "operation", ref: "op2", allowed: ["resume", "abandon"], bindingDigest: BINDING }] }),
     decideRecovery: async (_t, _id, input) => {
       if (input.bindingDigest !== BINDING) return { status: opts.staleStatus ?? 409 };
@@ -61,15 +63,16 @@ function harness(opts: Opts = {}) {
     stop: async (s) => { events.push(`stop:${s.join("+")}`); if (s.includes("execution-worker")) workerUp = false; },
     start: async (s) => { events.push(`start:${s}${switched ? ":restored" : ""}`); if (s === "execution-worker") workerUp = true; },
     backup: async () => { events.push("backup"); return { snapshotAt: at(0), epoch: 6 }; },
-    restore: async () => { events.push("restore"); op.status = "approved"; return report; },
-    readback: async () => ({ status: "approved", consumed: false, epoch: 6, current: 7 }),
+    restore: async () => { events.push("restore"); op.status = "awaiting_approval"; return report; },
+    readback: async () => ({ status: opts.restoredStatus ?? "awaiting_approval", consumed: false, epoch: 6, current: 7 }),
     switchToRestored: async () => { switched = true; events.push("switch"); },
     close: async () => { closed = true; },
   };
   // The quiet window: what the restored stack did on its own.
   const sleep = async (ms: number) => { if (ms === 120_000 && opts.quietStatus) op.status = opts.quietStatus; };
-  const clockAt = [at(300), at(opts.healthyAfterSeconds ?? 700)];
-  const now = () => new Date(clockAt.shift() ?? clock++);
+  // Readings in order: the plan-review deadline, the loss time, then application health (held after that).
+  const clockAt = [at(0), at(300), at(opts.healthyAfterSeconds ?? 700)];
+  const now = () => new Date(clockAt.length > 1 ? clockAt.shift()! : clockAt[0]!);
   const plan: Plan = buildPlan(settings);
   const permission = {
     schema: 1 as const, decision: "DEC-CLOUD" as const, approvedBy: "owner-test", approvedAt: "2020-01-01T00:00:00.000Z", expiresAt: "2099-01-01T00:00:00.000Z",
@@ -109,7 +112,7 @@ describe("OPS-04 plan", () => {
 });
 
 describe("OPS-04 port", () => {
-  it("holds an approved deploy across the backup, restores, fences it, resumes it and proves AWS unchanged", async () => {
+  it("holds a planned deploy across the backup, restores, fences its approval, resumes it and proves AWS unchanged", async () => {
     const h = harness();
     const result = await h.run();
     expect(result.reason).toContain("OPS-04 restore proven on AWS");
@@ -117,8 +120,8 @@ describe("OPS-04 port", () => {
     expect(result.reason).toContain("RPO 300 s");
     expect(result.reason).toContain("RTO 400 s");
     expect(h.events).toEqual([
-      "manifest:1", "deploy", "stop:execution-worker", "manifest:2", "propose:worker=false", "backup", "start:execution-worker", "finish:resumed=false",
-      "stop:api+execution-worker", "restore", "switch", "start:api:restored", "start:execution-worker:restored", "finish:resumed=true",
+      "manifest:1", "deploy", "manifest:2", "propose:worker=true", "stop:execution-worker", "backup", "start:execution-worker", "finish:resumed=false",
+      "stop:api+execution-worker", "restore", "switch", "start:api:restored", "try-approve", "start:execution-worker:restored", "finish:resumed=true",
     ]);
     expect(h.destroyed()).toBe(true);
     expect(h.closed()).toBe(true);
@@ -127,7 +130,9 @@ describe("OPS-04 port", () => {
 
   it("refuses a resurrected approval, a changed AWS, an unrefused stale binding, a failed restore and a slow recovery", async () => {
     for (const [opts, why] of [
-      [{ quietStatus: "succeeded" }, "executed on its own"],
+      [{ quietStatus: "succeeded" }, "moved on its own (operation succeeded)"],
+      [{ fencedApprovalOk: true }, "accepted before a recovery decision"],
+      [{ restoredStatus: "uncertain" }, "not a fenced plan review (operation uncertain)"],
       [{ extraBucket: true }, "the resumed deploy changed AWS"],
       [{ staleStatus: 200 }, "stale recovery binding was not refused"],
       [{ restoreOk: false }, "the restore did not complete (step verify)"],

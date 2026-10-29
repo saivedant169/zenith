@@ -115,8 +115,9 @@ export function teardown01Port(env: EnvLike = process.env, seams: Teardown01Seam
         externalId = connection.externalId;
         step = "connection verification";
         for (let attempt = 1; ; attempt++) {
-          if ((await product.verifyAws(tenant, connection.connectionId)).ok) break;
-          if (attempt >= propagation.attempts) refuse("connection.verifyAws did not pass after the trust update within the propagation bound");
+          const verified = await product.verifyAws(tenant, connection.connectionId);
+          if (verified.ok) break;
+          if (attempt >= propagation.attempts) refuse(`connection.verifyAws did not pass after the trust update within the propagation bound${verified.why ?? ""}`);
           await sleep(propagation.intervalMs);
         }
         step = "environment";

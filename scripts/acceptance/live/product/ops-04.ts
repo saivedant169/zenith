@@ -1,13 +1,14 @@
 /**
  * ProductScenarioPort for OPS-04 (live sandbox): restore of the control-plane database with real AWS customer state.
  *
- * Zenith deploys one managed S3 bucket. A second bucket is proposed, planned and left waiting for its apply approval;
- * the execution worker is stopped and the snapshot is taken there. After the backup the deploy is approved and applied (the
+ * Zenith deploys one managed S3 bucket. A second bucket is proposed and left waiting for its approval, before any workflow
+ * starts; the execution worker is stopped and the snapshot is taken there. After the backup the deploy is approved and applied (the
  * second bucket exists in AWS and in the recorded state). The control-plane database is then lost and restored into a new
  * database from the snapshot, and the API and worker are recreated against it. The run proves the restored deploy is fenced
  * by the new recovery epoch (an approval is refused), never runs again on its own, comes back only through a recovery
  * decision and a fresh approval, and that applying it again changes nothing in AWS. A deploy that was already dispatched
- * (`running`) restores `uncertain` and is never resumable, so the waiting plan review is the one resumable point.
+ * (`running`) restores `uncertain`, and one whose workflow start was attempted is never resumed (a start is never
+ * replayed), so the proposal waiting for its first approval is the one resumable point.
  * RPO and RTO are measured against the approved targets (PROD-OPS-01).
  *
  * Cleanup destroys exactly the recorded state (state-destroy.ts) and restores the sandbox trust, as DEPLOY-01 does.
@@ -108,8 +109,9 @@ export function ops04Port(env: EnvLike = process.env, seams: Ops04Seams = {}): P
         externalId = connection.externalId;
         step = "connection verification";
         for (let attempt = 1; ; attempt++) {
-          if ((await product.verifyAws(tenant, connection.connectionId)).ok) break;
-          if (attempt >= propagation.attempts) refuse("connection.verifyAws did not pass after the trust update within the propagation bound");
+          const verified = await product.verifyAws(tenant, connection.connectionId);
+          if (verified.ok) break;
+          if (attempt >= propagation.attempts) refuse(`connection.verifyAws did not pass after the trust update within the propagation bound${verified.why ?? ""}`);
           await sleep(propagation.intervalMs);
         }
         step = "environment";
@@ -120,12 +122,12 @@ export function ops04Port(env: EnvLike = process.env, seams: Ops04Seams = {}): P
 
         step = "planned before the snapshot";
         await product.setManifest(tenant, ops04Manifest(runId, 2));
-        const { operationId } = await product.proposeDeploy!(tenant, environmentId);
+        const { operationId, deploymentId } = await product.proposeDeploy!(tenant, environmentId);
         for (const deadline = now().getTime() + 15 * 60_000; ;) {
           const view = await product.operationStatus!(tenant, operationId);
-          if (view.status === "awaiting_approval" && view.round > 0) break;
-          if (!["running", "approved", "queued", "awaiting_approval"].includes(view.status)) refuse(`the second deploy ended ${/^[a-z_]{1,20}$/.test(view.status) ? view.status : "unknown"} before its plan review`);
-          if (now().getTime() >= deadline) refuse("the second deploy did not reach its plan review within 15 minutes");
+          if (view.status === "awaiting_approval") break;
+          if (view.status !== "proposed") refuse(`the second deploy is ${/^[a-z_]{1,20}$/.test(view.status) ? view.status : "unknown"} instead of waiting for its approval`);
+          if (now().getTime() >= deadline) refuse("the second deploy did not wait for its approval within 15 minutes");
           await sleep(10_000);
         }
         await stack.stop(["execution-worker"]);
@@ -134,7 +136,7 @@ export function ops04Port(env: EnvLike = process.env, seams: Ops04Seams = {}): P
         const snapshot = await stack.backup();
         step = "applied after the snapshot";
         await stack.start("execution-worker");
-        succeeded("second deploy", await product.finishDeploy!(tenant, operationId));
+        succeeded("second deploy", await product.finishDeploy!(tenant, environmentId, operationId, deploymentId));
         const applied = await buckets(), appliedResources = stateResources(await state.read(await stateInput()));
         if (applied.length !== 2) refuse(`the second deploy did not leave two tagged buckets (${applied.length})`);
 
@@ -151,7 +153,7 @@ export function ops04Port(env: EnvLike = process.env, seams: Ops04Seams = {}): P
         }
         step = "restored fence";
         const fenced = await stack.readback(workspaceId, operationId);
-        if (fenced.epoch >= fenced.current || fenced.current !== report.epoch || fenced.status !== "awaiting_approval") refuse(`the restored deploy is not a fenced plan review (operation ${/^[a-z_]{1,20}$/.test(fenced.status) ? fenced.status : "unknown"})`);
+        if (fenced.epoch >= fenced.current || fenced.current !== report.epoch || fenced.status !== "awaiting_approval") refuse(`the restored deploy is not a fenced proposal (operation ${/^[a-z_]{1,20}$/.test(fenced.status) ? fenced.status : "unknown"})`);
         step = "restored stack";
         await stack.switchToRestored();
         await stack.start("api");
@@ -176,14 +178,14 @@ export function ops04Port(env: EnvLike = process.env, seams: Ops04Seams = {}): P
         const reviewed = await product.operationStatus!(tenant, operationId);
         if (reviewed.status !== "awaiting_approval") refuse(`the resumed operation does not wait for a fresh approval (operation ${reviewed.status})`);
         step = "fresh approval";
-        succeeded("resumed deploy", await product.finishDeploy!(tenant, operationId));
+        succeeded("resumed deploy", await product.finishDeploy!(tenant, environmentId, operationId, deploymentId));
         const after = await buckets(), afterResources = stateResources(await state.read(await stateInput()));
         if (after.join() !== applied.join() || afterResources !== appliedResources) refuse(`the resumed deploy changed AWS (${after.length} buckets, ${afterResources} recorded resources; expected ${applied.length} and ${appliedResources})`);
         step = "measurement";
         const m = report.measurement ?? refuse("the restore report has no measurement");
         const measured = measureRecovery({ ...m, incidentAt, applicationHealthyAt: healthyAt, targets: OPS04_TARGETS });
         if (measured.verdict !== "within_targets") refuse(`the recovery is not within the approved targets (RPO ${measured.rpoSeconds ?? "unmeasured"} s of 900, RTO ${measured.rtoSeconds ?? "unmeasured"} s of 14400)`);
-        outcome = { complete: true, reason: `OPS-04 restore proven on AWS: a deploy waiting for its apply approval was captured in the backup and approved and applied after it; the control-plane database was restored into a new database at recovery epoch ${report.epoch}; the restored plan review was fenced (an approval was refused: ${fencedApproval.refusal ?? "refused"}), did not execute on its own for ${Math.round(quietMs / 1000)} s, and came back only through a recovery resume (a stale binding was refused) and a fresh approval; applying it again left AWS unchanged (${after.length} buckets, ${afterResources} recorded resources). Measured RPO ${measured.rpoSeconds} s (target 900) and RTO ${measured.rtoSeconds} s (target 14400)` };
+        outcome = { complete: true, reason: `OPS-04 restore proven on AWS: a deploy waiting for its approval was captured in the backup and approved and applied after it; the control-plane database was restored into a new database at recovery epoch ${report.epoch}; the restored proposal was fenced (an approval was refused: ${fencedApproval.refusal ?? "refused"}), did not execute on its own for ${Math.round(quietMs / 1000)} s, and came back only through a recovery resume (a stale binding was refused) and a fresh approval; applying it again left AWS unchanged (${after.length} buckets, ${afterResources} recorded resources). Measured RPO ${measured.rpoSeconds} s (target 900) and RTO ${measured.rtoSeconds} s (target 14400)` };
       } catch (error) {
         outcome = error instanceof Refusal
           ? { complete: false, reason: `OPS-04 not proven at ${step}: ${error.message}` }

@@ -18,7 +18,7 @@ export interface Deploy01Tenant { workspaceId: string; projectId: string }
 export interface Deploy01Product {
   createTenant(): Promise<Deploy01Tenant>;
   createAwsConnection(tenant: Deploy01Tenant, input: { accountId: string; region: string; observeRoleArn: string; deployRoleArn: string; stateBucket: string; bootstrapNameSuffix: string; secretWriterRoleArn?: string }): Promise<{ connectionId: string; externalId: string }>;
-  verifyAws(tenant: Deploy01Tenant, connectionId: string): Promise<{ ok: boolean }>;
+  verifyAws(tenant: Deploy01Tenant, connectionId: string): Promise<{ ok: boolean; why?: string }>;
   createEnvironment(tenant: Deploy01Tenant, input: { connectionId: string; region: string; name: string }): Promise<{ environmentId: string }>;
   setManifest(tenant: Deploy01Tenant, manifest: Record<string, unknown>): Promise<void>;
   /** OPS-06: system.setSecret on one service env key. The value goes only into the request body (field secretValue). */
@@ -30,9 +30,9 @@ export interface Deploy01Product {
   /** TEARDOWN-01: env.reviewTeardown, then every approval round of the destroy proposal it opens, until the destroy is terminal. */
   teardown?(tenant: Deploy01Tenant, environmentId: string): Promise<{ operationId: string; status: string; detail?: string }>;
   /** OPS-04: deploy.apply and its proposal approvals only, so the operation waits approved for the worker. */
-  proposeDeploy?(tenant: Deploy01Tenant, environmentId: string): Promise<{ operationId: string }>;
-  /** OPS-04: approve every round the operation asks for until it is terminal (the second half of deploy). */
-  finishDeploy?(tenant: Deploy01Tenant, operationId: string): Promise<{ operationId: string; status: string; detail?: string }>;
+  proposeDeploy?(tenant: Deploy01Tenant, environmentId: string): Promise<{ operationId: string; deploymentId: string }>;
+  /** OPS-04: approve the proposal (which starts the workflow), then every round it asks for until it is terminal (the second half of deploy). */
+  finishDeploy?(tenant: Deploy01Tenant, environmentId: string, operationId: string, deploymentId: string): Promise<{ operationId: string; status: string; detail?: string }>;
   /** OPS-04: the operation's status, approval round and recovery epoch as the API reports them. */
   operationStatus?(tenant: Deploy01Tenant, operationId: string): Promise<{ status: string; round: number }>;
   /** OPS-04: pending recovery items (GET /api/platform/v1/recovery?state=pending) and one decision. */
@@ -156,12 +156,22 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
       await sleep(10_000);
     }
   };
-  const propose = async (session: TenantSession, tenant: Deploy01Tenant, environmentId: string, kind: "apply" | "rollback") => {
+  const proposeOnly = async (session: TenantSession, tenant: Deploy01Tenant, environmentId: string, kind: "apply" | "rollback") => {
     const scope = { projectId: tenant.projectId, environmentId };
     const started = await runAction(session, session.owner, kind === "apply" ? "deploy.apply" : "deploy.rollback", { environmentId }, scope);
     const operationId = started.data.operationId, deploymentId = started.data.deploymentId;
     if (!started.ok || typeof operationId !== "string" || typeof deploymentId !== "string") refuse(`deploy.${kind} did not propose a workflow operation`);
-    await approve(session, operationId as string);
+    return { operationId: operationId as string, deploymentId: deploymentId as string };
+  };
+  const propose = async (session: TenantSession, tenant: Deploy01Tenant, environmentId: string, kind: "apply" | "rollback") => {
+    const proposed = await proposeOnly(session, tenant, environmentId, kind);
+    await approveProposal(session, tenant, environmentId, proposed.operationId, proposed.deploymentId);
+    return { operationId: proposed.operationId };
+  };
+  // The owner's browser approval, then the second admin's deploy.approve, which starts the workflow.
+  const approveProposal = async (session: TenantSession, tenant: Deploy01Tenant, environmentId: string, operationId: string, deploymentId: string) => {
+    const scope = { projectId: tenant.projectId, environmentId };
+    await approve(session, operationId);
     // A 409 right after the proposal approval is the operation still changing state; retry it for up to a minute.
     let approved: Awaited<ReturnType<typeof runAction>> | undefined;
     for (let attempt = 1; !approved; attempt++) {
@@ -172,12 +182,10 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
       }
     }
     if (!approved.ok) refuse(`deploy.approve was refused by the product${approved.why}`);
-    return { operationId: operationId as string };
   };
-  const finish = async (session: TenantSession, operationId: string) => {
-    // Approve every round the operation asks for (the plan review, or a fresh round after a recovery resume), then wait.
+  const finish = async (session: TenantSession, operationId: string, approvedRound = 0) => {
+    // Approve every round the operation asks for after the one already approved (the plan review), then wait.
     // Each round is approved once: a round seen again (the approval still settling) is never approved twice.
-    let approvedRound = 0;
     for (let rounds = 0; rounds < 3; rounds++) {
       const view = await waitFor(session, operationId, op => TERMINAL.includes(op.status) || (op.status === "awaiting_approval" && op.round > approvedRound), rounds === 0 ? 15 * 60_000 : deployTimeoutMs, rounds === 0 ? "the plan review" : "the deployment");
       if (TERMINAL.includes(view.status)) break;
@@ -227,7 +235,8 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
     async verifyAws(tenant, connectionId) {
       return step("connection verification", async () => {
         const session = sessionOf(tenant);
-        return { ok: (await runAction(session, session.owner, "connection.verifyAws", { connectionId })).ok };
+        const result = await runAction(session, session.owner, "connection.verifyAws", { connectionId });
+        return { ok: result.ok, ...(result.ok ? {} : { why: result.why }) };
       });
     },
     async createEnvironment(tenant, input) {
@@ -255,10 +264,14 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
       });
     },
     async proposeDeploy(tenant, environmentId) {
-      return step("deploy proposal", async () => ({ operationId: (await propose(sessionOf(tenant), tenant, environmentId, "apply")).operationId }));
+      return step("deploy proposal", async () => proposeOnly(sessionOf(tenant), tenant, environmentId, "apply"));
     },
-    async finishDeploy(tenant, operationId) {
-      return step("deploy", async () => finish(sessionOf(tenant), operationId));
+    async finishDeploy(tenant, environmentId, operationId, deploymentId) {
+      return step("deploy", async () => {
+        const session = sessionOf(tenant), { round } = await operation(session, operationId);
+        await approveProposal(session, tenant, environmentId, operationId, deploymentId);
+        return finish(session, operationId, round);
+      });
     },
     async operationStatus(tenant, operationId) {
       return step("operation readback", async () => { const op = await operation(sessionOf(tenant), operationId); return { status: op.status, round: op.round }; });

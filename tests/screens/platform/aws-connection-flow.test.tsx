@@ -33,3 +33,20 @@ it("saves the submitted suffix and requires saving changed suffixes before verif
   expect(mutation).toHaveBeenLastCalledWith("ws-test", "/platform/connections/aws/action", expect.objectContaining({ input: expect.objectContaining({ bootstrapNameSuffix: "-team-b" }) }));
   expect(button(el, "Verify connection").disabled).toBe(false);
 });
+
+it("sends the secret writer role only when one is entered", async () => {
+  mutation.mockReset();
+  mutation.mockResolvedValue({ result: { ok: true, data: { connectionId: "conn-test", subject: "zenith:ws:ws-test:conn:conn-test", issuerHost: "example.com/api/oidc" } } });
+  const el = mount(<AwsConnectionFlow workspaceId="ws-test" viewerRole="admin" />);
+  typeInto(field(el, "AWS account ID"), "123456789012");
+  typeInto(field(el, "Region"), "us-east-1");
+  typeInto(field(el, "Observe role ARN"), "arn:aws:iam::123456789012:role/ZenithObserve");
+  typeInto(field(el, "Deploy role ARN"), "arn:aws:iam::123456789012:role/ZenithDeploy");
+  click(button(el, "Save connection identifiers"));
+  await flush();
+  expect(mutation.mock.lastCall![2].input).not.toHaveProperty("secretWriterRoleArn");
+  typeInto(field(el, "Secret writer role ARN"), "arn:aws:iam::123456789012:role/ZenithSecretWriterRole");
+  click(button(el, "Save new connection identifiers"));
+  await flush();
+  expect(mutation.mock.lastCall![2].input).toMatchObject({ secretWriterRoleArn: "arn:aws:iam::123456789012:role/ZenithSecretWriterRole" });
+});

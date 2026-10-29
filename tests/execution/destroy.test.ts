@@ -127,6 +127,12 @@ describe("destroy execution activities", () => {
     expect(w.ops.ops.get(OP)!.status).toBe("running");
     expect(w.evidence.ofKind("tofu_apply")).toHaveLength(0);
   });
+  it("names the scrubbed cause when the teardown fails before dispatch", async () => {
+    const w = world(); const args = await reviewed(w);
+    vi.spyOn(w.tofu, "applyVerifiedPlan").mockRejectedValue(new Error("tofu init could not reach the state backend"));
+    await expect(w.activities.applyDestroyInfrastructure(args)).rejects.toThrow("Teardown did not start; nothing was applied: tofu init could not reach the state backend");
+    expect(w.ops.ops.get(OP)!.status).toBe("running");
+  });
   it.each(["missing", "present", "unknown", "inaccessible"] as const)("observes %s with honest absence semantics", async (presence) => {
     const w = world(); const args = await reviewed(w);
     w.drivers("aws", "aws:s3_bucket")!.observe = async (_ctx, node) => ({ address: node.address, presence, attributes: {}, source: "contract-test", observedAt: "2026-10-01T00:00:00Z", simulated: false } satisfies Observation);

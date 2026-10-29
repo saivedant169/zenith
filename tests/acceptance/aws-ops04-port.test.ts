@@ -21,7 +21,7 @@ const COMMIT = "a".repeat(40);
 const BINDING = "b".repeat(64);
 const bucket = (n: number) => `arn:aws:s3:::ops04-0000ab04-${n}`;
 
-interface Opts { resumeRefused?: boolean; quietStatus?: string; extraBucket?: boolean; staleStatus?: number; restoreOk?: boolean; healthyAfterSeconds?: number; resumedStatus?: string; fencedApprovalOk?: boolean; restoredStatus?: string }
+interface Opts { resumeRefused?: boolean; quietStatus?: string; extraBucket?: boolean; staleStatus?: number; restoreOk?: boolean; healthyAfterSeconds?: number; resumedStatus?: string; fencedApprovalOk?: boolean; restoredStatus?: string; verifyWhy?: string }
 
 function harness(opts: Opts = {}) {
   const trust = { observe: trustDocument(PRINCIPAL, OLD_EXT), deploy: trustDocument(PRINCIPAL, OLD_EXT) };
@@ -31,7 +31,7 @@ function harness(opts: Opts = {}) {
   const product: Deploy01Product = {
     createTenant: async () => ({ workspaceId: "ws1", projectId: "p1" }),
     createAwsConnection: async () => ({ connectionId: "c1", externalId: NEW_EXT }),
-    verifyAws: async () => ({ ok: true }),
+    verifyAws: async () => (opts.verifyWhy ? { ok: false, why: opts.verifyWhy } : { ok: true }),
     createEnvironment: async () => ({ environmentId: "env1" }),
     setManifest: async (_t, m) => { events.push(`manifest:${(m.resources as unknown[]).length}`); },
     deploy: async () => { aws = [bucket(1)]; events.push("deploy"); return { operationId: "op1", status: "succeeded" }; },
@@ -127,6 +127,14 @@ describe("OPS-04 port", () => {
     expect(h.destroyed()).toBe(true);
     expect(h.closed()).toBe(true);
     expect(h.trust).toEqual({ observe: trustDocument(PRINCIPAL, OLD_EXT), deploy: trustDocument(PRINCIPAL, OLD_EXT) });
+  });
+
+  it("names the product's reason when connection verification never passes", async () => {
+    const h = harness({ verifyWhy: " (AssumeRole was denied)" });
+    const result = await h.run();
+    expect(result.complete).toBe(false);
+    expect(result.reason).toContain("within the propagation bound (AssumeRole was denied)");
+    expect(h.closed()).toBe(true);
   });
 
   it("refuses a resurrected approval, a changed AWS, an unrefused stale binding, a failed restore and a slow recovery", async () => {

@@ -18,7 +18,7 @@ export interface Deploy01Tenant { workspaceId: string; projectId: string }
 export interface Deploy01Product {
   createTenant(): Promise<Deploy01Tenant>;
   createAwsConnection(tenant: Deploy01Tenant, input: { accountId: string; region: string; observeRoleArn: string; deployRoleArn: string; stateBucket: string; bootstrapNameSuffix: string; secretWriterRoleArn?: string }): Promise<{ connectionId: string; externalId: string }>;
-  verifyAws(tenant: Deploy01Tenant, connectionId: string): Promise<{ ok: boolean }>;
+  verifyAws(tenant: Deploy01Tenant, connectionId: string): Promise<{ ok: boolean; why?: string }>;
   createEnvironment(tenant: Deploy01Tenant, input: { connectionId: string; region: string; name: string }): Promise<{ environmentId: string }>;
   setManifest(tenant: Deploy01Tenant, manifest: Record<string, unknown>): Promise<void>;
   /** OPS-06: system.setSecret on one service env key. The value goes only into the request body (field secretValue). */
@@ -235,7 +235,8 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
     async verifyAws(tenant, connectionId) {
       return step("connection verification", async () => {
         const session = sessionOf(tenant);
-        return { ok: (await runAction(session, session.owner, "connection.verifyAws", { connectionId })).ok };
+        const result = await runAction(session, session.owner, "connection.verifyAws", { connectionId });
+        return { ok: result.ok, ...(result.ok ? {} : { why: result.why }) };
       });
     },
     async createEnvironment(tenant, input) {

@@ -449,7 +449,7 @@ async function assertHeldCleanup(sql:Sql,tx:Sql,origin:unknown,bound:NativeClean
     [c.workspaceId,c.projectId,c.environmentId,c.operationId,bound.attempt,h.generation,bound.manifestDigest,frame.authorityDigest,bound.access.lease.holder,bound.access.lease.fenceToken,bound.jti]);
   if(rows.length!==1)throw new cleanup.CleanupWriterBarrierError();
   const inventory=await cleanup.inventoryForNativeOrigin(sql,tx,origin);
-  if(Object.values(inventory).some(n=>n!==0))throw new cleanup.CleanupWriterBarrierError();
+  if(Object.values(inventory).some(n=>n!==0))throw new cleanup.CleanupWriterBarrierError(inventory);
 }
 /** Releases the scope's newest hold only when its counted inventory is zero. The caller already holds the workspace coordinator. */
 async function releaseDrainedScopeHold(tx:Sql,workspaceId:string,projectId:string,environmentId:string,releasedBy:string):Promise<number> {

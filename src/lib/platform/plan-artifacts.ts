@@ -239,7 +239,7 @@ function pairedRuntime(db: Sql, env: Readonly<Record<string,string|undefined>>, 
               const retained=await cleanup.retain(db,origin);
               // The hold TX has committed before this refusal. Lost acknowledgement never reaches the callback.
               cleanupCell.hold=retained.hold;
-              if(Object.values(retained.inventory).some(n=>n!==0))throw new cleanup.CleanupWriterBarrierError();
+              if(Object.values(retained.inventory).some(n=>n!==0))throw new cleanup.CleanupWriterBarrierError(retained.inventory);
               const value=await cleanupInvocation.run(cleanupCell,()=>fn(approved,async()=>undefined));
               await finishStandalone(approved,admission);
               return value;

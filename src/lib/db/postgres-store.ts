@@ -218,11 +218,9 @@ async function selectRows(
   table: string,
   filter?: { column: string; values: string[] }
 ): Promise<Row[]> {
+  if (filter?.values.length === 0) return [];
   let query = client.from(table).select("*");
-  if (filter) {
-    if (filter.values.length === 0) return [];
-    query = query.in(filter.column, filter.values);
-  }
+  if (filter) query = query.in(filter.column, filter.values);
   const { data, error } = await query;
   if (error) throw storeError(table, "read", error.message);
   return (data ?? []) as Row[];

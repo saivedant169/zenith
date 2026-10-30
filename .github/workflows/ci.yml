@@ -1808,7 +1808,8 @@ jobs:
 
   platform-postgres:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    # The suites alone take about 24 minutes; 25 left no headroom and timed out green runs.
+    timeout-minutes: 40
 
     services:
       postgres:

@@ -17,7 +17,9 @@ import { buildPlan, allCalls, digest, FAMILIES, scopedRequirementIds, teardownOr
 import { runLiveCli } from "../../scripts/acceptance/aws-live";
 import { Guard, grantsFor, readPermission } from "../../scripts/acceptance/live/guard";
 import { execute, newJournal, missing, absent, owned, checkReadback, executionProvenance } from "../../scripts/acceptance/live/execute";
-import { evidencePacket } from "../../scripts/acceptance/live/evidence";
+import { evidencePacket, releaseSource } from "../../scripts/acceptance/live/evidence";
+import { main as releaseSourceMain } from "../../scripts/acceptance/live/release-source";
+import { sourceOutcome } from "../../scripts/release/status.mjs";
 import { resumeCommand, runProductionCli } from "../../scripts/acceptance/live/cli";
 import { redactAcceptance } from "../../scripts/acceptance/redact";
 import { requireProductionScope } from "../../scripts/acceptance/live/scope";
@@ -821,5 +823,40 @@ describe("product cleanup clock (TEARDOWN-01)", () => {
     } };
     await execute(p, guard, model.transport, journal, { now: () => new Date(clock), sleep: async () => undefined, save: async () => undefined }, { product });
     expect(outcomes).toEqual(["inside:ok", "after-envelope:Live run cancelled or duration envelope exhausted", "cleanup:ok", "after-cleanup-clock:Product cleanup deadline reached; owner recovery required"]);
+  });
+});
+
+describe("release sources from live evidence (REL-02)", () => {
+  const recorded = (dir: string) => path.join("docs/build/production/evidence", dir, "evidence.json");
+  const OPS05 = recorded("PROD-OPS-05/2026-10-30-live-aws-41033090300"), MIX03 = recorded("PROD-MIX-03/2026-10-28-live-aws-40635277474");
+  const sha = "a".repeat(64);
+
+  it("projects a requirement a recorded run passed into a source the release tooling accepts", async () => {
+    const packet = JSON.parse(await readFile(OPS05, "utf8")) as Record<string, unknown>;
+    const source = releaseSource(packet, "PROD-OPS-05", sha)!;
+    expect(source.requirements).toEqual(["PROD-OPS-05"]);
+    expect(source.evidence).toEqual({ runId: "zlive-202610300923-d381", file: "evidence.json", sha256: sha, packetSha256: packet.sha256 });
+    expect(sourceOutcome({ ...source })).toMatchObject({ passed: 1, failed: 0, skipped: 0, exitCode: 0, mode: "live", requirements: ["PROD-OPS-05"], status: "passed", commit: packet.commit });
+  });
+
+  it("gives none for a pending, out-of-scope or uncleaned requirement", async () => {
+    const ops05 = JSON.parse(await readFile(OPS05, "utf8")) as Record<string, unknown>;
+    expect(releaseSource(JSON.parse(await readFile(MIX03, "utf8")), "PROD-MIX-03", sha)).toBeUndefined();
+    expect(releaseSource(ops05, "PROD-OPS-04", sha)).toBeUndefined();
+    expect(releaseSource({ ...ops05, cleanupComplete: false }, "PROD-OPS-05", sha)).toBeUndefined();
+    expect(releaseSource({ ...ops05, provenance: "modeled" }, "PROD-OPS-05", sha)).toBeUndefined();
+  });
+
+  it("the backfill refuses a packet that no longer matches its own digest", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "zenith-release-source-"));
+    try {
+      const packet = JSON.parse(await readFile(OPS05, "utf8")) as Record<string, unknown>;
+      await writeFile(path.join(dir, "evidence.json"), JSON.stringify({ ...packet, region: "us-east-1" }));
+      expect(releaseSourceMain(["--evidence", path.join(dir, "evidence.json"), "--requirement", "PROD-OPS-05", "--out", path.join(dir, "out.json")])).toBe(1);
+      expect(existsSync(path.join(dir, "out.json"))).toBe(false);
+      await writeFile(path.join(dir, "ok.json"), await readFile(OPS05));
+      expect(releaseSourceMain(["--evidence", path.join(dir, "ok.json"), "--requirement", "PROD-OPS-05", "--out", path.join(dir, "out.json")])).toBe(0);
+      expect(JSON.parse(await readFile(path.join(dir, "out.json"), "utf8")).commit).toBe(packet.commit);
+    } finally { await rm(dir, { recursive: true, force: true }); }
   });
 });

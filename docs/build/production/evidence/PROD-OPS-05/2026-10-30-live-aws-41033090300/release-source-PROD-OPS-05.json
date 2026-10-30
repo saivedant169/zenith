@@ -1,0 +1,24 @@
+{
+  "schema": "zenith.live-release-source.v1",
+  "commit": "e4fd12e0e054a850f5db9bae7a1555fef1fecd8c",
+  "mode": "live",
+  "requirements": [
+    "PROD-OPS-05"
+  ],
+  "counts": {
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0
+  },
+  "exitCode": 0,
+  "verdict": "passed",
+  "command": "GitHub Actions live-acceptance.yml, scenario ops-05, run id zlive-202610300923-d381; plan sha256 cfc6e1169b6623478357294370eb20a4e50be5305eda19ba1eb2842507fd9b6a",
+  "environment": "Disposable AWS sandbox account 361646636162, region ap-south-1; permission sha256 b4a7d01b711ecc7f4f9d0afb37f5bab2d510d6fbc6d730d622347d7ddd72d8c6; cleanup complete",
+  "evidence": {
+    "runId": "zlive-202610300923-d381",
+    "file": "evidence.json",
+    "sha256": "abd6b0d92c54d2e267dce32060ca3fec41dbe14c708375bf0f59eccdfa4a6fcd",
+    "packetSha256": "d23139182a6d1da0c83dade15d2505df98000a1c89895fa513f11902bc90f665"
+  },
+  "result": "OPS-05 key custody proven on AWS: one vault secret and one managed S3 bucket under the first keys; every generated key rotated (7 purposes) and the API and worker recreated together; diagnose showed a new current key per purpose with the old one decrypt-only or verify-only, no error finding, and Temporal and results on their own roots; the first deploy's history (123 payloads) needed only the decrypt-only Temporal key and decrypted (123 ok); the AWS connection verified and a second bucket deployed under the new keys (history on the new key only); the vault re-wrap completed (1 re-sealed); no operator output contained key material"
+}

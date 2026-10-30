@@ -1,16 +1,16 @@
 /**
  * OPS-04 live: the runner's Zenith stack as a recovery target. Backup and restore are the product's own recovery library
- * (src/lib/ops/recovery), the same calls scripts/ops/recovery.ts makes; the restored database lives beside the original
- * in the stack's PostgreSQL and the API and worker are recreated against it, as the J15 operated restore driver does.
+ * (src/lib/ops/recovery), the same calls scripts/ops/recovery.ts makes. The loss removes every store the backup holds
+ * (platform, agent, hosted and the product tables in public) from the stack's database and the restore writes them back
+ * there: the product store is read through Supabase's REST service, which serves only that database, so a restore beside
+ * it would leave the API reading the lost rows. Supabase's own schemas (auth, storage, extensions) stay.
  *
  * Nothing here prints a URL, key or secret; refusals name the step only.
  */
-import { createHash, randomBytes } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import path from "node:path";
 import type { EnvLike } from "../../config";
 import { openPlatformDb } from "@/lib/controlplane/db";
-import type { PlatformDb } from "@/lib/controlplane/types";
 import { KeyRing } from "@/lib/keycustody/registry";
 import { captureBackup } from "@/lib/ops/recovery/backup";
 import { verifyBackupDirectory } from "@/lib/ops/recovery/manifest";
@@ -34,16 +34,35 @@ export async function named<T>(what: string, work: () => Promise<T>): Promise<T>
 export interface Ops04Readback { status: string; consumed: boolean; epoch: number; current: number }
 export interface Ops04Stack {
   stop(services: ("api" | "execution-worker")[]): Promise<void>;
-  /** Start a service on the composition in use (original before the restore, replacement after) and wait until healthy. */
+  /** Start a service and wait until healthy. */
   start(service: "api" | "execution-worker"): Promise<void>;
   backup(): Promise<{ snapshotAt: string; epoch: number }>;
-  /** Restore the backup into a new database; never into the live one. */
+  /** Lose the stores the backup holds, then restore the backup into the emptied database (API and worker stopped). */
   restore(incidentAt: string): Promise<RestoreReport>;
   readback(workspaceId: string, operationId: string): Promise<Ops04Readback>;
-  /** Point the API and worker at the restored database (they stay stopped until start). */
-  switchToRestored(): Promise<void>;
   close(): Promise<void>;
 }
+
+/**
+ * The loss: every store the backup holds, as the restore's emptiness check counts them, and the product objects in public.
+ * Objects an extension owns stay; the schema public and Supabase's grants on it stay, as on a fresh Supabase database.
+ */
+export const LOSE_STORES = `drop schema if exists platform cascade; drop schema if exists agent cascade; drop schema if exists hosted cascade;
+do $$ declare r record; begin
+  for r in select c.relname, c.relkind from pg_class c where c.relnamespace = 'public'::regnamespace and c.relkind in ('r','p','v','m','f','S')
+      and not exists (select 1 from pg_depend d where d.classid = 'pg_class'::regclass and d.objid = c.oid and d.deptype = 'e') order by c.relkind = 'S' loop
+    execute format('drop %s if exists public.%I cascade', case r.relkind when 'v' then 'view' when 'm' then 'materialized view' when 'f' then 'foreign table' when 'S' then 'sequence' else 'table' end, r.relname);
+  end loop;
+  for r in select p.oid::regprocedure::text as sig, p.prokind from pg_proc p where p.pronamespace = 'public'::regnamespace
+      and not exists (select 1 from pg_depend d where d.classid = 'pg_proc'::regclass and d.objid = p.oid and d.deptype = 'e') loop
+    execute format('drop %s if exists %s cascade', case r.prokind when 'a' then 'aggregate' when 'p' then 'procedure' else 'function' end, r.sig);
+  end loop;
+  for r in select t.typname, t.typtype from pg_type t where t.typnamespace = 'public'::regnamespace and t.typtype in ('e','d','r','c')
+      and (t.typtype <> 'c' or (select c.relkind from pg_class c where c.oid = t.typrelid) = 'c')
+      and not exists (select 1 from pg_depend d where d.classid = 'pg_type'::regclass and d.objid = t.oid and d.deptype = 'e') loop
+    execute format('drop %s if exists public.%I cascade', case r.typtype when 'd' then 'domain' else 'type' end, r.typname);
+  end loop;
+end $$;`;
 
 type State = ReturnType<typeof readState> & { directory: string; compositionSha256: string; applicationInstallationId: string };
 
@@ -52,13 +71,9 @@ export function runnerOps04Stack(env: EnvLike, runId: string): Ops04Stack {
   const platformUrl = env.ZENITH_PLATFORM_DB_URL?.trim() || refuse("no platform database");
   const root = path.join(env.RUNNER_TEMP?.trim() || refuse("no runner temp"), "zenith-ops04");
   const backupDir = path.join(root, "backup"), reportFile = path.join(root, "restore-report.json");
-  const database = `ops04_${runId.slice(-4)}_${randomBytes(4).toString("hex")}`;
-  const original = readState(directory) as State;
+  const active = readState(directory) as State;
   const prepared = readPrepared(path.join(directory, "installation")) as { environment: Record<string, string> };
-  const composition = path.join(directory, "installation/stack.compose.json");
-  const originalBytes = readFileSync(composition);
-  let active: State = original, db: PlatformDb | undefined, restored: PlatformDb | undefined, manifestEpoch = 0;
-  const target = () => { const url = new URL(platformUrl); url.pathname = `/${database}`; return url.href; };
+  let db: Awaited<ReturnType<typeof openPlatformDb>> | undefined, manifestEpoch = 0;
   const keys = () => KeyRing.fromEnv(prepared.environment).descriptors().map(({ purpose, keyId, role }) => ({ purpose, keyId, role }));
   const temporal = () => {
     const tls = temporalTlsFromEnv(env);
@@ -70,7 +85,7 @@ export function runnerOps04Stack(env: EnvLike, runId: string): Ops04Stack {
       const id = String(await compose(active, ["ps", "-q", service])).trim();
       if (!id) continue;
       const [item] = JSON.parse(String(await docker(["inspect", id]))) as { Config: { Labels?: Record<string, string> }; State: { Health?: { Status?: string } } }[];
-      if (item?.Config.Labels?.["io.zenith.installation"] === original.applicationInstallationId && item.State.Health?.Status === "healthy") return;
+      if (item?.Config.Labels?.["io.zenith.installation"] === active.applicationInstallationId && item.State.Health?.Status === "healthy") return;
     }
     refuse(`the ${service} container was not healthy within 6 minutes`);
   };
@@ -88,43 +103,24 @@ export function runnerOps04Stack(env: EnvLike, runId: string): Ops04Stack {
       return { snapshotAt: manifest.platform.snapshotAt, epoch: manifest.platform.recoveryEpoch };
     }),
     restore: (incidentAt) => named("the restore", async () => {
-      const source = await live();
-      if ((await source.query("select datname from pg_database where datname=$1", [database])).length) refuse("the restore database already exists");
-      await source.query(`create database "${database}" template template0`);
+      await named("the database loss", async () => { await (await live()).exec(LOSE_STORES); });
+      // Reopen after the loss so no pooled connection holds plans for the dropped objects.
+      await db?.close(); db = undefined;
       return runRestore({ run: execRunner, tools: toolsFromEnv(env), env, openTarget: (url, o) => openPlatformDb({ kind: "postgres", url, max: 2, migrate: o.migrate }) }, {
-        backupDir, targetUrl: target(), runId: `ops04-${runId}`, actor: "operator:live-acceptance", reason: "PROD-OPS-04 live restore rehearsal",
+        backupDir, targetUrl: platformUrl, runId: `ops04-${runId}`, actor: "operator:live-acceptance", reason: "PROD-OPS-04 live restore rehearsal",
         reportFile, confirmCustomerState: true, incidentAt, keysAvailable: keys(), observedEpoch: manifestEpoch,
         temporal: { ...temporal(), terminate: true },
       });
     }),
     readback: (workspaceId, operationId) => named("the restored readback", async () => {
-      restored ??= await openPlatformDb({ kind: "postgres", url: target(), max: 2, migrate: false });
-      const rows = await restored.query<{ epoch: number; current: number; status: string; consumed: boolean }>(
+      const rows = await (await live()).query<{ epoch: number; current: number; status: string; consumed: boolean }>(
         "select o.recovery_epoch as epoch, platform.current_recovery_epoch() as current, o.status, exists(select 1 from platform.approvals a where a.operation_id=o.id and a.workspace_id=o.workspace_id and a.consumed_at is not null) as consumed from platform.operations o where o.workspace_id=$1 and o.id=$2",
         [workspaceId, operationId]);
       if (rows.length !== 1) refuse("the restored database does not hold the operation");
       return { status: rows[0]!.status, consumed: rows[0]!.consumed, epoch: Number(rows[0]!.epoch), current: Number(rows[0]!.current) };
     }),
-    async switchToRestored() {
-      if (createHash("sha256").update(readFileSync(composition)).digest("hex") !== original.compositionSha256) refuse("the stack composition drifted");
-      const document = JSON.parse(readFileSync(composition, "utf8")) as { services: Record<string, { environment: Record<string, string> }> };
-      for (const service of ["api", "execution-worker", "platform-migrate"]) {
-        const pooled = new URL(prepared.environment.SUPABASE_DB_URL!); pooled.pathname = `/${database}`;
-        const direct = new URL(prepared.environment.ZENITH_PLATFORM_MIGRATION_URL!); direct.pathname = `/${database}`;
-        Object.assign(document.services[service]!.environment, { SUPABASE_DB_URL: pooled.href, ZENITH_PLATFORM_DB_URL: service === "platform-migrate" ? direct.href : pooled.href,
-          ...(service === "platform-migrate" ? { ZENITH_PLATFORM_MIGRATION_URL: direct.href } : {}), ZENITH_PLATFORM_DB_MAX: "2" });
-      }
-      writeFileSync(composition, JSON.stringify(document), { mode: 0o600 });
-      active = { ...original, compositionSha256: createHash("sha256").update(readFileSync(composition)).digest("hex") };
-    },
     async close() {
-      await restored?.close().catch(() => undefined);
       await db?.close().catch(() => undefined);
-      // The workflow's stack teardown verifies the original composition bytes; put them back.
-      if (active !== original) {
-        await compose(active, ["stop", "api", "execution-worker"]).catch(() => undefined);
-        writeFileSync(composition, originalBytes, { mode: 0o600 });
-      }
     },
   };
 }

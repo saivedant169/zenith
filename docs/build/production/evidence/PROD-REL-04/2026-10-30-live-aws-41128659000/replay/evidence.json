@@ -1,0 +1,232 @@
+{
+  "schema": 1,
+  "provenance": "live_sandbox",
+  "runId": "zlive-202610302107-ba47",
+  "commit": "9d6446d3bc718ae5553a1f8112a555196cc11534",
+  "scenario": "rel-04",
+  "scope": [
+    "PROD-REL-04"
+  ],
+  "accountId": "361646636162",
+  "region": "ap-south-1",
+  "startedAt": "2026-10-30T21:08:48.885Z",
+  "finishedAt": "2026-10-30T21:08:52.874Z",
+  "planSha256": "1bb83a0b603a009d96c33e1a50aaf9ed7f4e76560f24572db48acc9b7c3b0248",
+  "permissionSha256": "83d3a1a96c8f84a58ddac3864421fa2efa3d0f6023a79024e7dc9ba838619680",
+  "estimatedUsd": 0.4,
+  "costProvisional": true,
+  "billingMeasured": false,
+  "cleanupComplete": true,
+  "counts": {
+    "passed": 0,
+    "failed": 1,
+    "pending": 0
+  },
+  "verdict": "failed",
+  "checks": [
+    {
+      "id": "execution",
+      "status": "failed",
+      "scope": "aws_fixture",
+      "reason": "Execution/preflight refused or failed; no complete acceptance claim"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "PROD-MIX-01",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-MIX-02",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-MIX-03",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-MIX-04",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-MIX-05",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-MIX-06",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-MIX-07",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-MAN-01",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-MAN-02",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-MAN-03",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-MAN-04",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-MAN-05",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-MAN-06",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-MAN-07",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-OPS-01",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-OPS-02",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-OPS-03",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-OPS-04",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-OPS-05",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-OPS-06",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-OPS-07",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-OPS-08",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-OPS-09",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-REL-01",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-REL-02",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-REL-03",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "outside this run's scope",
+      "evidence": []
+    },
+    {
+      "id": "PROD-REL-04",
+      "requiredLevel": "live_sandbox",
+      "status": "pending",
+      "reason": "Product scenario unperformed",
+      "evidence": []
+    }
+  ],
+  "releaseStatus": {
+    "implementationComplete": false,
+    "sandboxVerified": false,
+    "pilotReady": false,
+    "productionApproved": false
+  },
+  "sha256": "ec0b5eca2bc1d1e002aa65b1e00d4c3b1bcc02cc17c681112f7b70af0fcfdae3"
+}

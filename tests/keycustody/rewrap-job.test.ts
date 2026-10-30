@@ -8,14 +8,29 @@
  */
 import { randomBytes, randomUUID } from "node:crypto";
 import fs from "node:fs";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { openPlatformDb, type PlatformDbHandle } from "@/lib/controlplane/db";
 import { MAINTENANCE_JOBS, CRITICAL_JOBS, runCriticalJob } from "@/lib/platform/critical-jobs";
 import { keyRewrapPass } from "@/lib/keycustody/rewrap-job";
 import { advanceRewrapJob, claimRewrapJob, enqueueRewrapJob, finishRewrapJob, getRewrapJob, listKeys, listRewrapJobs, markRetired, recordKeys, rewrapBacklog, setRetireAfter } from "@/lib/keycustody/store";
 import { KeyRing } from "@/lib/keycustody/registry";
 import { vaultCipherFromEnv } from "@/lib/secrets";
-import { runQueuedRewrap } from "../../scripts/key-custody";
+import { keyCustodyMain, runQueuedRewrap } from "../../scripts/key-custody";
+
+// The CLI opens its own Postgres store; here that store is this test's PGlite, refusing every call once the CLI closes it.
+const cliStore = vi.hoisted(() => ({ db: undefined as unknown, closedAt: 0 }));
+vi.mock("@/lib/controlplane/db", async (original) => {
+  const real = await original<typeof import("@/lib/controlplane/db")>();
+  return { ...real, openPlatformDb: async (config: Parameters<typeof real.openPlatformDb>[0]) => {
+    if (config.kind !== "postgres") return real.openPlatformDb(config);
+    let closed = false;
+    return new Proxy(cliStore.db as object, { get(target, name) {
+      if (name === "close") return async () => { closed = true; cliStore.closedAt++; };
+      const value = Reflect.get(target, name) as unknown;
+      return typeof value === "function" ? (...args: unknown[]) => { if (closed) throw new Error("CONNECTION_ENDED"); return (value as (...a: unknown[]) => unknown).apply(target, args); } : value;
+    } });
+  } };
+});
 
 const hex = (): string => randomBytes(32).toString("hex");
 const WS = `ws-${randomUUID()}`;
@@ -171,6 +186,18 @@ describe("the operator CLI works the queue without Temporal", () => {
     await enqueueRewrapJob(db, { workspaceId: WS, targetKeyId: "t", requestedBy: "cli" });
     expect(await runQueuedRewrap(db, env, (l) => out.push(l), (l) => err.push(l), async () => db)).toBe(1);
     expect((await listRewrapJobs(db, { workspaceId: WS }))[0]).toMatchObject({ status: "failed", errorCode: "unreadable_row" });
+  });
+
+  it("rewrap --run finishes the run before closing its store (PROD-OPS-05 live: a bare return closed it mid-run)", async () => {
+    cliStore.db = db;
+    for (const ref of refs(2)) await seed(ref, `v-${ref}`);
+    const url = "postgres://cli.invalid/zenith";
+    const cliEnv = { ...env, ZENITH_STORE: "postgres", ZENITH_PLATFORM_DB: "postgres", ZENITH_PLATFORM_DB_URL: url, SUPABASE_DB_URL: url };
+    const out: string[] = [], err: string[] = [];
+    expect(await keyCustodyMain(["rewrap", "--workspace", WS, "--run"], (l) => out.push(l), (l) => err.push(l), cliEnv)).toBe(0);
+    expect(err).toEqual([]);
+    expect(cliStore.closedAt).toBe(1);
+    expect((await listRewrapJobs(db, { workspaceId: WS }))[0]).toMatchObject({ status: "completed", rewrapped: 2 });
   });
 });
 

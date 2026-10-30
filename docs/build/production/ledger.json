@@ -8456,6 +8456,18 @@
           "environment": "Disposable AWS sandbox account 361646636162, region ap-south-1; GitHub environment live-sandbox (owner-delegated automated envelope, approvedBy automation delegated by Saivedant Hava 2026-10-26); hosted runner; estimated cap USD 0.40 (provisional, billing not measured); 15 minute window; one S3 fixture bucket, created and removed by the drill",
           "logs": "docs/build/production/evidence/PROD-REL-04/2026-10-26-live-aws-40255637945/",
           "result": "Live AWS sandbox crash, resume and replay drill passed: receipt verdict passed; offline verifier passed. A real SIGKILL after the s3-create intent left an open journal, next-command.txt and checkpoint; B journal-only cleanup closed the journal, deleted the bucket and created nothing; C replay refused at the account-side SSM run claim with zero S3 creates; D HeadBucket NotFound and the run claim unchanged. Covers only the S3 bucket crash, resume and replay path. Product checks, budget exhaustion and forbidden-action refusals remain contract-level or pending; operational_rehearsal not done; not a promotion."
+        },
+        {
+          "level": "live_sandbox",
+          "commit": "9d6446d3bc718ae5553a1f8112a555196cc11534",
+          "runId": 41128659000,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/41128659000",
+          "command": "GitHub Actions live-acceptance.yml, workflow_dispatch with scenario rel-04 and run_id zlive-202610302107-ba47 (lane live; scripts/acceptance/live/drill/rel-04.ts, then verify-rel-04.ts offline); plan sha256 1bb83a0b603a009d96c33e1a50aaf9ed7f4e76560f24572db48acc9b7c3b0248; permission sha256 83d3a1a96c8f84a58ddac3864421fa2efa3d0f6023a79024e7dc9ba838619680",
+          "environment": "Disposable AWS sandbox account 361646636162, region ap-south-1; approvals awsLive zenith-aws-permissions.json and root zenith-live-scope.json, approvedBy automation (delegated by Saivedant Hava on 2026-10-26); estimated cap USD 0.4 (provisional, billing not measured); 15 minute window (plan)",
+          "logs": "docs/build/production/evidence/PROD-REL-04/2026-10-30-live-aws-41128659000/",
+          "result": "Live AWS sandbox crash, resume and replay drill passed again at 9d6446d3 with cleanup complete: receipt verdict passed (steps A-D all hold; the run bucket read NotFound after resume and the run receipt parameter matched the run id); the offline verifier passed on the runner and wrote the release source bound to the receipt and evidence bytes. Not operational_rehearsal.",
+          "artifact": "docs/build/production/evidence/PROD-REL-04/2026-10-30-live-aws-41128659000/release-evidence-PROD-REL-04.json",
+          "sha256": "b74697bc1722da66edfbda16f85457619d22d18b397cc104ccaa1236d0903ec2"
         }
       ],
       "requiredEvidence": [

@@ -123,3 +123,13 @@ Honest limits:
 Bug the drill found, and its fix. The earlier attempt, run 40249038248, found that journal recovery never worked. The redaction step turned repeated plan objects into `"[Circular]"`, so resume failed with "Plan integrity failed". PR #27 fixes this by rebuilding the plan from the recorded settings and checking the exact plan digest. Related recovery work: PR #25 (recovery gaps G1-G4) and PR #26 (the rel-04 drill).
 
 Still open for PROD-REL-04: `operational_rehearsal`, the product scenario and its checks, the `local_engine` commit binding, and the remaining wave6 cases that did not run (3 of 7 non-live cases).
+
+## REL-04 drill re-run with a release receipt (2026-10-30)
+
+Run [41128659000](https://github.com/saivedant169/zenith/actions/runs/41128659000), run id `zlive-202610302107-ba47`, workflow `live-acceptance.yml`, scenario `rel-04`, lane `live`. Source `9d6446d3bc718ae5553a1f8112a555196cc11534`. Sandbox account `361646636162` in ap-south-1. Plan digest `1bb83a0b603a009d96c33e1a50aaf9ed7f4e76560f24572db48acc9b7c3b0248`; permission digest `83d3a1a96c8f84a58ddac3864421fa2efa3d0f6023a79024e7dc9ba838619680`.
+
+Receipt verdict `passed`: steps A to D all hold; the run bucket read `NotFound` after resume and the run receipt parameter matched the run id. The offline verifier passed on the runner and wrote `release-source-PROD-REL-04.json`, bound to the bytes of `rel-04-receipt.json` and the resumed run's `evidence.json`. Cleanup complete. Estimated cap USD 0.4 (provisional, billing not measured), 15 minute window. Files: `evidence/PROD-REL-04/2026-10-30-live-aws-41128659000/`, including the `zenith.release-evidence.v1` receipt `release-evidence-PROD-REL-04.json`.
+
+Why a re-run: the 2026-10-26 run (40255637945) passed, but its harness packet records PROD-REL-04 as unperformed (no product port runs the drill), so no release receipt could bind it, and its artifact lacked the recorded resume commands. PR #129 makes the verifier write the release source and publishes the `*.txt` resume commands.
+
+Limits: re-running the verifier off the runner fails step A by design, because the recorded resume command carries the runner's absolute journal path (`/home/runner/work/_temp/...`). `operational_rehearsal` is not done. Status stays `in_progress`. Not a promotion.

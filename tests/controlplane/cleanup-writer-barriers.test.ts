@@ -26,6 +26,7 @@ import { planArtifactCipherFromEnv,createPlanArtifactRuntime,createIsolatedPlanA
 import { vaultCipherFromEnv, type Sealed } from "@/lib/secrets";
 import * as artifacts from "@/lib/controlplane/db/repos/plan-artifacts";
 import * as cleanup from "@/lib/controlplane/db/repos/cleanup-writer-barriers";
+import * as intents from "@/lib/controlplane/db/repos/workflow-start-intents";
 import * as connections from "@/lib/controlplane/db/repos/connections";
 import { planEvidence } from "@/lib/execution/plan-evidence";
 import { normalizePlan } from "@/lib/tofu/plan";
@@ -283,7 +284,20 @@ describe.skipIf(!PG_URL)("native cleanup writer barrier [postgres; modeled hoste
     return {attempt,id:request};
   }
   it("genuine default paired codec commits an exact scoped native hold before entering the callback",async()=>{
-    const o=await owning();await verifiedHold(o);const bound=bindRepos(db);
+    // The teardown's own acknowledged destroy start never blocks its hold, though the operation records no workflow id.
+    const o=await owning(),c=o.d.access.custody,ws=o.f.op.workspaceId;
+    const args={workspaceId:ws,operationId:c.operationId,environmentId:c.environmentId};
+    const request={kind:"destroy",arguments:args,namespace:"fixture",endpointDigest:sha(c.operationId),taskQueue:"fixture"};
+    const binding={...request,format:"zenith.workflow-start.v1",workflowType:intents.WORKFLOW_START_TYPES.destroy,workflowId:`op-${c.operationId}`,
+      argumentsDigest:digest(args),proposalDigest:c.proposalDigest,inputDigest:c.inputDigest,
+      sourceDigest:digest({proposalDigest:c.proposalDigest,inputDigest:c.inputDigest,argumentsDigest:digest(args)}),configDigest:digest(intents.START_CONFIG)};
+    await peer.query("insert into platform.workflow_start_intents(workspace_id,operation_id,binding,binding_digest,phase,attempt_id,attempted_at) values($1,$2,$3::text::jsonb,$4,'attempted',$5,clock_timestamp())",
+      [ws,c.operationId,json(binding),digest(binding),randomUUID()]);
+    await peer.query("update platform.workflow_start_intents set phase='acknowledged',run_id=$3,observed_start_at=clock_timestamp(),evidence_digest=$4,acknowledged_at=clock_timestamp() where workspace_id=$1 and operation_id=$2",[ws,c.operationId,randomUUID(),sha("own start")]);
+    // The bridge starts the destroy workflow without writing operations.workflow_id; only the start intent names it.
+    expect(await observer.query("select workflow_id from platform.operations where workspace_id=$1 and id=$2",[ws,c.operationId])).toEqual([{workflow_id:null}]);
+    expect((await cleanup.preview(observer,ws,o.f.op.projectId!,o.f.op.environmentId!)).handoffs).toBe(2);
+    await verifiedHold(o);const bound=bindRepos(db);
     expect(Object.keys(bound.cleanupWriterBarriers)).toEqual(["preview"]);
     expect((await holdRows(o))[0]).toMatchObject({operation_id:o.d.op.id});
     expect(await observer.query("select jti from platform.cleanup_owner_grants where workspace_id=$1",[o.f.op.workspaceId])).toEqual([]);

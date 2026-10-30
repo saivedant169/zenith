@@ -133,3 +133,15 @@ describe("honesty and sanitisation", () => {
     expect(() => proportionLowerBound(5, 4)).toThrow(Ops01Error);
   });
 });
+
+describe("capacity", () => {
+  it("one open-loop burst: served 2xx per second, p95 and error rate against the capacity target", () => {
+    const capacity = { vantage: "runner-local", offeredPerSecond: 30, elapsedMs: 60_000, samples: Array.from({ length: 1800 }, (_, i) => ({ durationMs: i % 20 === 0 ? 450 : 30, ok: i !== 7 })) };
+    const m = measure({ reference: "cap-1", capacity }).measurements.find(x => x.objective === "capacity");
+    expect(m).toMatchObject({ kind: "capacity", samples: 1800, requestsPerSecond: 1799 / 60, p95Ms: 30, verdict: "within_target", observations: 1 });
+    const slow = measure({ reference: "cap-2", capacity: { ...capacity, samples: capacity.samples.map(s => ({ ...s, durationMs: 700 })) } }).measurements.find(x => x.objective === "capacity");
+    expect(slow).toMatchObject({ verdict: "over_target" });
+    expect(measure({ reference: "cap-3" }).notEvaluated).toContainEqual({ objective: "capacity", reason: "no capacity run supplied" });
+    expect(() => measure({ reference: "cap-4", capacity: { ...capacity, elapsedMs: 0 } })).toThrow(Ops01Error);
+  });
+});

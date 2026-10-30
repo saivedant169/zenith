@@ -18,7 +18,7 @@ const scenarios: Record<Scenario, { families: Family[]; scope?: string[] }> = {
   // No harness fixtures: Zenith deploys one Fargate service whose env reads a canary secret; the recorded state is the cleanup.
   "ops-06": { families: [], scope: ["PROD-OPS-06"] },
   // No harness fixtures: Zenith deploys up to two buckets; the control-plane database is restored in between (recovery epochs).
-  "ops-04": { families: [], scope: ["PROD-OPS-04"] },
+  "ops-04": { families: [], scope: ["PROD-OPS-04", "PROD-OPS-01"] },
   // No harness fixtures: Zenith deploys up to two buckets; every installation key is rotated in between (key custody).
   "ops-05": { families: [], scope: ["PROD-OPS-05"] },
 };

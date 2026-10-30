@@ -216,7 +216,7 @@ The scan does not cover process memory, the browser profile, or AWS-side copies 
 
 ## OPS-04 control-plane restore run (2026-10-29)
 
-Scenario `ops-04` (either lane, 5 to 60 minutes) proves PROD-OPS-04, and measures RPO and RTO for PROD-OPS-01, with real AWS customer state. It uses the TEARDOWN-01 sandbox calls; Zenith deploys at most two S3 buckets.
+Scenario `ops-04` (either lane, 5 to 60 minutes) proves PROD-OPS-04 and PROD-OPS-01 in one run, with real AWS customer state. It uses the TEARDOWN-01 sandbox calls; Zenith deploys at most two S3 buckets.
 
 1. Deploy one bucket.
 2. Propose a second bucket and let the worker plan it, so the deploy waits for its apply approval. Then stop the worker. A deploy that is already dispatched (`running`) restores `uncertain` and can never be resumed, so the plan review is the one resumable point.
@@ -228,6 +228,11 @@ Scenario `ops-04` (either lane, 5 to 60 minutes) proves PROD-OPS-04, and measure
 8. The recovery API must list the operation as resumable. A stale binding must be refused with 409; the right binding resumes it into a fresh approval.
 9. Approve again. The apply must leave AWS unchanged: the same buckets and the same number of recorded resources.
 10. Measure RPO and RTO against the approved targets: 900 s and 14400 s (`deploy/slo/slo-definitions.json`).
+11. PROD-OPS-01 (`ops01-measure.ts`), against the targets in `deploy/slo/slo-definitions.json`:
+    - Availability and latency: from step 1 to the end, the runner probes the API readiness route (`/api/me`) every 100 ms. Probing pauses only for the loss in step 5, which RTO measures instead. Availability counts every answer that is not a 5xx; no answer is a failure. Both ratios must be demonstrated by the 95% one-sided lower bound. The run keeps probing until there are enough samples for that (at least 2995 for 0.999).
+    - Capacity: a 60 s open-loop burst at 30 requests/s. Only 2xx answers count as served.
+    - RPO and RTO: from the restore in step 5.
+    - Objectives with no source in this run are listed as not evaluated: managed runtime availability, dispatch latency, workflow completion and scheduler health.
 
 Runner tools: the workflow installs `postgresql-client-17` and the pinned Temporal CLI 1.9.1 for this scenario only.
 

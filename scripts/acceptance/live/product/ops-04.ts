@@ -11,6 +11,11 @@
  * replayed), so the proposal waiting for its first approval is the one resumable point.
  * RPO and RTO are measured against the approved targets (PROD-OPS-01).
  *
+ * The same run measures PROD-OPS-01 (ops01-measure.ts): a probe of the API's readiness route (`/api/me`, the container
+ * healthcheck) from the runner every 100 ms for the whole run gives control-plane availability (non-5xx) and API latency;
+ * it pauses only for the deliberate database loss, which RTO measures instead. A 60 s open-loop burst at 30 requests/s
+ * gives capacity (2xx only). The restore's instants give RPO and RTO. Both requirements share one run and one cleanup.
+ *
  * Cleanup destroys exactly the recorded state (state-destroy.ts) and restores the sandbox trust, as DEPLOY-01 does.
  */
 import type { EnvLike } from "../../config";
@@ -22,6 +27,9 @@ import { runnerOps04Stack, type Ops04Stack } from "./ops-04-stack";
 import { destroyFromState, readState, type SessionCredentials, type StateDestroyInput } from "./state-destroy";
 import { stateResources } from "./teardown-01";
 import { measureRecovery } from "@/lib/ops/recovery/report";
+import { sloDefinitions } from "@/lib/slo/definitions";
+import { measure, samplesToDemonstrate, type CapacityRun, type RatioMeasurement, type RestoreInstants, type TimedSample } from "./ops01-measure";
+import { runnerStack } from "./mix-03-driver";
 
 type Invoke = (call: Call, values?: Record<string, string>, extra?: Record<string, Json>) => Promise<Record<string, unknown>>;
 const EXTERNAL_ID_NEW = /^zenith-[0-9a-f]{32}$/;
@@ -43,7 +51,61 @@ export interface Ops04Seams {
   /** How long the restored stack runs before the run checks that nothing executed on its own. */
   quietMs?: number;
   state?: { read: (input: StateDestroyInput) => Promise<unknown>; destroy: (input: StateDestroyInput) => Promise<{ destroyed: number; destroyedArns?: string[]; destroyedIds?: string[] }> };
+  /** One OPS-01 request to the control plane: its HTTP status (0 when it got no answer) and duration. */
+  probe?: () => Promise<{ status: number; durationMs: number }>;
+  /** The OPS-01 pacing timer (probe interval, burst spacing, top-up wait). Default: a real timer. */
+  tick?: (ms: number) => Promise<void>;
+  capacity?: { perSecond: number; ms: number };
 }
+
+const VANTAGE = "runner-local";
+/** The readiness route the API container's healthcheck calls, from the runner, never following a redirect. */
+function apiProbe(env: EnvLike): () => Promise<{ status: number; durationMs: number }> {
+  const url = new URL("/api/me", runnerStack(env).apiUrl).toString();
+  return async () => {
+    const start = performance.now();
+    try {
+      const response = await fetch(url, { redirect: "manual", cache: "no-store", signal: AbortSignal.timeout(5_000) });
+      await response.arrayBuffer();
+      return { status: response.status, durationMs: performance.now() - start };
+    } catch { return { status: 0, durationMs: performance.now() - start }; }
+  };
+}
+/** Availability counts 429 as served (the SLI's own rule); no answer or a 5xx is a failure. */
+const available = (status: number) => status > 0 && status < 500;
+
+/** Probes the control plane until stopped; paused for the deliberate outage. */
+function sampler(probe: () => Promise<{ status: number; durationMs: number }>, tick: (ms: number) => Promise<void>, intervalMs: number) {
+  const samples: TimedSample[] = [];
+  let paused = false, stopped = false, pausedFrom = 0, pausedMs = 0;
+  const loop = (async () => {
+    while (!stopped) {
+      if (!paused) { const r = await probe(); if (!paused) samples.push({ durationMs: r.durationMs, ok: available(r.status) }); }
+      await tick(intervalMs);
+    }
+  })();
+  return {
+    samples,
+    pausedSeconds: () => Math.round(pausedMs / 1000),
+    pause() { if (!paused) { paused = true; pausedFrom = performance.now(); } },
+    resume() { if (paused) { paused = false; pausedMs += performance.now() - pausedFrom; } },
+    async stop() { stopped = true; await loop; },
+  };
+}
+
+async function capacityBurst(probe: () => Promise<{ status: number; durationMs: number }>, tick: (ms: number) => Promise<void>, perSecond: number, ms: number): Promise<CapacityRun> {
+  const samples: TimedSample[] = [], inflight: Promise<void>[] = [];
+  const start = performance.now();
+  for (let i = 0; i < Math.round(perSecond * ms / 1000); i++) {
+    inflight.push(probe().then(r => { samples.push({ durationMs: r.durationMs, ok: r.status >= 200 && r.status < 300 }); }));
+    await tick(1000 / perSecond);
+  }
+  await Promise.all(inflight);
+  return { vantage: VANTAGE, offeredPerSecond: perSecond, elapsedMs: Math.max(1, performance.now() - start), samples };
+}
+
+const pct = (x: number | null) => x === null ? "n/a" : `${(x * 100).toFixed(2)}%`;
+const msText = (x: number | null) => x === null ? "n/a" : `${Math.round(x)} ms`;
 
 const field = (value: unknown, key: string): unknown => value && typeof value === "object" ? (value as Record<string, unknown>)[key] : undefined;
 const BUCKET = /^arn:aws:s3:::[a-z0-9.-]{3,63}$/;
@@ -55,9 +117,20 @@ export function ops04Port(env: EnvLike = process.env, seams: Ops04Seams = {}): P
   const propagation = seams.propagation ?? { attempts: 12, intervalMs: 15_000 };
   const quietMs = seams.quietMs ?? 120_000;
   const state = seams.state ?? { read: readState, destroy: destroyFromState };
+  const tick = seams.tick ?? ((ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms)));
+  const burst = seams.capacity ?? { perSecond: 30, ms: 60_000 };
+  type Result = { complete: boolean; reason: string; leaks: string[] };
+  let run: Promise<Record<"PROD-OPS-04" | "PROD-OPS-01", Result>> | undefined;
   return {
-    async verify(requirement, { plan, call }) {
-      if (requirement.id !== "PROD-OPS-04") return { complete: false, reason: `${requirement.id}: not implemented by this port` };
+    async verify(requirement, context) {
+      if (requirement.id !== "PROD-OPS-04" && requirement.id !== "PROD-OPS-01") return { complete: false, reason: `${requirement.id}: not implemented by this port` };
+      // One run proves both: whichever is verified first starts it, the other reads its result.
+      run ??= flow(context);
+      return (await run)[requirement.id];
+    },
+  };
+
+  async function flow({ plan, call }: Parameters<ProductScenarioPort["verify"]>[1]): Promise<Record<"PROD-OPS-04" | "PROD-OPS-01", Result>> {
       const invoke: Invoke = (c, values = {}, extra = {}) => call(c, { ...fill(c.input, values), ...extra });
       const planned = (id: string): Call => plan.productCalls?.find(c => c.id === id) ?? refuse(`the plan has no call ${id}`);
       const account = plan.settings.accountId, region = plan.settings.region, runId = plan.settings.runId;
@@ -87,11 +160,14 @@ export function ops04Port(env: EnvLike = process.env, seams: Ops04Seams = {}): P
       };
       let step = "preconditions";
       let outcome: { complete: boolean; reason: string };
+      let probes: ReturnType<typeof sampler> | undefined, instants: RestoreInstants | undefined, probe: (() => Promise<{ status: number; durationMs: number }>) | undefined;
       try {
         if (env.ZENITH_LIVE_PRODUCT !== "1") refuse("ZENITH_LIVE_PRODUCT=1 is not set; no product scenario ran");
         if (plan.settings.scenario !== "ops-04" || !plan.productCalls?.length) refuse("the plan is not the ops-04 scenario");
         if (!product.proposeDeploy || !product.finishDeploy || !product.operationStatus || !product.recoveryItems || !product.decideRecovery || !product.tryApprove) refuse("the browser driver has no recovery path");
         stack = seams.stack ?? runnerOps04Stack(env, runId);
+        probe = seams.probe ?? apiProbe(env);
+        probes = sampler(probe, tick, 100);
         step = "tenant";
         const tenant = await product.createTenant();
         workspaceId = tenant.workspaceId;
@@ -142,6 +218,7 @@ export function ops04Port(env: EnvLike = process.env, seams: Ops04Seams = {}): P
 
         step = "database loss";
         const incidentAt = now().toISOString();
+        probes?.pause();
         await stack.stop(["api", "execution-worker"]);
         step = "restore";
         const report = await stack.restore(incidentAt);
@@ -156,6 +233,7 @@ export function ops04Port(env: EnvLike = process.env, seams: Ops04Seams = {}): P
         if (fenced.epoch >= fenced.current || fenced.current !== report.epoch || fenced.status !== "awaiting_approval") refuse(`the restored deploy is not a fenced proposal (operation ${/^[a-z_]{1,20}$/.test(fenced.status) ? fenced.status : "unknown"})`);
         step = "restored stack";
         await stack.start("api");
+        probes?.resume();
         const fencedApproval = await product.tryApprove!(tenant, operationId);
         if (fencedApproval.ok) refuse("an approval of the restored deploy was accepted before a recovery decision");
         await stack.start("execution-worker");
@@ -183,6 +261,7 @@ export function ops04Port(env: EnvLike = process.env, seams: Ops04Seams = {}): P
         step = "measurement";
         const m = report.measurement ?? refuse("the restore report has no measurement");
         const measured = measureRecovery({ ...m, incidentAt, applicationHealthyAt: healthyAt, targets: OPS04_TARGETS });
+        if (m.backupSnapshotAt) instants = { failureAtMs: Date.parse(incidentAt), dataRecoveredThroughMs: Date.parse(m.backupSnapshotAt), scope: "application", serviceRestoredAtMs: Date.parse(healthyAt) };
         if (measured.verdict !== "within_targets") refuse(`the recovery is not within the approved targets (RPO ${measured.rpoSeconds ?? "unmeasured"} s of 900, RTO ${measured.rtoSeconds ?? "unmeasured"} s of 14400)`);
         outcome = { complete: true, reason: `OPS-04 restore proven on AWS: a deploy waiting for its approval was captured in the backup and approved and applied after it; the stores were lost from the control-plane database and restored into it at recovery epoch ${report.epoch}; the restored proposal was fenced (an approval was refused: ${fencedApproval.refusal ?? "refused"}), did not execute on its own for ${Math.round(quietMs / 1000)} s, and came back only through a recovery resume (a stale binding was refused) and a fresh approval; applying it again left AWS unchanged (${after.length} buckets, ${afterResources} recorded resources). Measured RPO ${measured.rpoSeconds} s (target 900) and RTO ${measured.rtoSeconds} s (target 14400)` };
       } catch (error) {
@@ -190,6 +269,32 @@ export function ops04Port(env: EnvLike = process.env, seams: Ops04Seams = {}): P
           ? { complete: false, reason: `OPS-04 not proven at ${step}: ${error.message}` }
           : { complete: false, reason: `OPS-04 not proven at ${step}: unexpected failure (details withheld; no completion claim)` };
       }
+      let ops01: { complete: boolean; reason: string } = { complete: false, reason: `OPS-01 not measured: the OPS-04 run stopped at ${step}` };
+      if (instants && probe && probes) {
+        let at = "capacity";
+        try {
+          const capacity = await capacityBurst(probe, tick, burst.perSecond, burst.ms);
+          // Enough probes that a run without failures can demonstrate every ratio target (95% one-sided bound).
+          at = "probe count";
+          const ratios = sloDefinitions().objectives.filter(o => o.id === "control_plane_availability" || o.id === "api_latency");
+          const need = Math.ceil(Math.max(...ratios.map(o => samplesToDemonstrate((o as { target: number }).target))) * 1.05);
+          for (const deadline = performance.now() + 10 * 60_000; probes.samples.length < need && performance.now() < deadline;) await tick(1_000);
+          await probes.stop();
+          at = "measurement";
+          const result = measure({ reference: runId, controlPlane: { vantage: VANTAGE, samples: probes.samples }, restore: instants, capacity });
+          const by = (id: string) => result.measurements.find(x => x.objective === id) ?? refuse(`the ${id} objective was not measured`);
+          const availability = by("control_plane_availability") as RatioMeasurement, latency = by("api_latency") as RatioMeasurement;
+          const cap = by("capacity"), rpo = by("rpo"), rto = by("rto");
+          if (cap.kind !== "capacity" || rpo.kind !== "recovery_seconds" || rto.kind !== "recovery_seconds") refuse("the measurement kinds are unexpected");
+          const cp = result.controlPlane!;
+          const summary = `control-plane availability ${availability.good}/${availability.samples} probes non-5xx (${pct(availability.ratio)}, 95% lower bound ${pct(availability.lowerBound)} vs target ${pct(availability.target)}: ${availability.verdict}) from ${VANTAGE} probes of the API readiness route every 100 ms, paused only for the deliberate database loss (${probes.pausedSeconds()} s, measured as RTO); API latency p50 ${msText(cp.p50Ms)}, p95 ${msText(cp.p95Ms)}, p99 ${msText(cp.p99Ms)}, ${pct(latency.ratio)} within ${latency.thresholdMs} ms (lower bound ${pct(latency.lowerBound)} vs ${pct(latency.target)}: ${latency.verdict}); capacity ${cap.requestsPerSecond.toFixed(1)} req/s served of ${cap.offeredPerSecond} offered for ${Math.round(burst.ms / 1000)} s, p95 ${msText(cap.p95Ms)}, errors ${pct(cap.errorRate)} (targets >= ${cap.minRequestsPerSecond} req/s, p95 <= ${cap.maxP95Ms} ms, errors <= ${pct(cap.maxErrorRate)}: ${cap.verdict}); RPO ${rpo.valueSeconds} s of ${rpo.maxSeconds} and RTO ${rto.valueSeconds} s of ${rto.maxSeconds} (one restore observation each: ${rpo.verdict}, ${rto.verdict}); target file ${result.definitionVersion} (${result.targetApproval}), measurement label ${result.label}; not evaluated: ${result.notEvaluated.map(n => n.objective).join(", ") || "none"}`;
+          const met = availability.verdict === "demonstrated" && latency.verdict === "demonstrated" && cap.verdict === "within_target" && rpo.verdict === "within_target" && rto.verdict === "within_target";
+          ops01 = met ? { complete: true, reason: `OPS-01 objectives measured on the live sandbox run: ${summary}` } : { complete: false, reason: `OPS-01 not proven: ${summary}` };
+        } catch (error) {
+          ops01 = { complete: false, reason: `OPS-01 not proven at ${at}: ${error instanceof Refusal ? error.message : "unexpected failure (details withheld; no completion claim)"}` };
+        }
+      }
+      await probes?.stop();
       const leaks: string[] = [];
       try { await stack?.close(); } catch { leaks.push("the stack composition could not be restored"); }
       if (environmentId && externalId) {
@@ -210,8 +315,8 @@ export function ops04Port(env: EnvLike = process.env, seams: Ops04Seams = {}): P
         catch { leaks.push(`restoring the ${t.role} sandbox trust failed`); }
       }
       try { await product.close?.(); } catch { /* best-effort browser release */ }
-      if (leaks.length) return { complete: false, reason: `${outcome.reason}; cleanup leaks: ${leaks.length} (see the cleanup checks)`, leaks };
-      return { ...outcome, leaks };
-    },
-  };
+      // A leak is reported once (on OPS-04) and makes both incomplete.
+      if (leaks.length) return { "PROD-OPS-04": { complete: false, reason: `${outcome.reason}; cleanup leaks: ${leaks.length} (see the cleanup checks)`, leaks }, "PROD-OPS-01": { complete: false, reason: `${ops01.reason}; cleanup leaks: ${leaks.length} (see the PROD-OPS-04 cleanup checks)`, leaks: [] } };
+      return { "PROD-OPS-04": { ...outcome, leaks }, "PROD-OPS-01": { ...ops01, leaks: [] } };
+  }
 }

@@ -30,6 +30,14 @@ const cleanupInvocation = new AsyncLocalStorage<CleanupCell>();
 function gateRefusal(code: string): Error {
   return Object.assign(new artifacts.PlanArtifactError(), { cause: { name: "Gate", code } });
 }
+/** Operator diagnostic for a swallowed custody refusal: class, code and call frames only, never a message or value. */
+export function refusalTrace(stage: string, cause: unknown): string {
+  const shape = (value: unknown) => typeof value === "string" && /^[A-Za-z0-9_.:-]{1,64}$/.test(value) ? value : "?";
+  const e = cause instanceof Error ? cause as Error & { code?: unknown } : undefined;
+  const frames = (e?.stack ?? "").split("\n").map(line => line.trim()).filter(line => line.startsWith("at ")).slice(0, 8)
+    .map(line => line.replace(/^at /, "").replace(/\(?(?:[^():]*\/)?([^/():]+):(\d+):\d+\)?$/, "@$1:$2"));
+  return `[zenith-diagnostic] plan custody ${shape(stage)} refused: ${shape(e?.name)}/${shape(e?.code)} ${frames.join(" < ")}`;
+}
 
 export interface NativeCleanupOrigin {
   readonly access: artifacts.ArtifactAccess; readonly attempt: string; readonly proof: Readonly<DispatchApprovalSnapshot>;
@@ -159,7 +167,7 @@ function pairedRuntime(db: Sql, env: Readonly<Record<string,string|undefined>>, 
         const row = await artifacts.publish(db,{ ...sealed, lease:input.lease, evidence:input.evidence });
         // A repeated semantic plan returns the original only if it still authenticates.
         await decoded(row,async () => undefined);
-      } catch { throw new artifacts.PlanArtifactError(); }
+      } catch (cause) { console.warn(refusalTrace("publish", cause)); throw new artifacts.PlanArtifactError(); }
     },
     async inspect<T>(input: artifacts.ArtifactAccess, fn: (approved: ApprovedPlan) => Promise<T>) {
       input = capture(input);

@@ -529,6 +529,10 @@ jobs:
             echo "No owned Zenith stack was started; nothing to tear down."
             exit 0
           fi
+          # Values-free custody refusal traces only (class, code, call frames); every other worker line stays private.
+          for worker in $(docker ps -a -q --filter label=com.docker.compose.service=execution-worker); do
+            docker logs "$worker" 2>&1 | grep -F "[zenith-diagnostic]" | cut -c1-600 | tail -n 20 || true
+          done
           if ZENITH_ACCEPTANCE_DEFAULT_STACK=1 TMPDIR="$RUNNER_TEMP/zenith/tmp" node scripts/acceptance/default-stack/down.mjs "$stack"; then
             rm -rf -- "$RUNNER_TEMP/zenith"
           else

@@ -268,6 +268,7 @@ function pairedRuntime(db: Sql, env: Readonly<Record<string,string|undefined>>, 
           const shape = (value: unknown) => typeof value === "string" && /^[A-Za-z0-9_.:-]{1,64}$/.test(value) ? value : undefined;
           const detail = tofuFailureCode(error);
           const cause = Object.freeze({ name: shape(raw?.name) ?? "UnknownError", code: shape(raw?.code), ...(detail ? { detail } : {}) });
+          console.warn(refusalTrace("consume", error));
           throw new Error("Original plan dispatch outcome is unconfirmed; inspect this operation before another write.", { cause });
         }
         throw error;

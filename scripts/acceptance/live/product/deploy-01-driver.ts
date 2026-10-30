@@ -33,6 +33,10 @@ export interface Deploy01Product {
   proposeDeploy?(tenant: Deploy01Tenant, environmentId: string): Promise<{ operationId: string; deploymentId: string }>;
   /** OPS-04: approve the proposal (which starts the workflow), then every round it asks for until it is terminal (the second half of deploy). */
   finishDeploy?(tenant: Deploy01Tenant, environmentId: string, operationId: string, deploymentId: string): Promise<{ operationId: string; status: string; detail?: string }>;
+  /** OPS-03: approve the proposal (which starts the workflow), then wait until it asks for its plan review; the workflow stays in flight. */
+  reviewDeploy?(tenant: Deploy01Tenant, environmentId: string, operationId: string, deploymentId: string): Promise<{ round: number }>;
+  /** OPS-03: approve the plan review it waits on, then every later round, until the operation is terminal. */
+  completeDeploy?(tenant: Deploy01Tenant, operationId: string): Promise<{ operationId: string; status: string; detail?: string }>;
   /** OPS-04: the operation's status, approval round and recovery epoch as the API reports them. */
   operationStatus?(tenant: Deploy01Tenant, operationId: string): Promise<{ status: string; round: number }>;
   /** OPS-04: pending recovery items (GET /api/platform/v1/recovery?state=pending) and one decision. */
@@ -271,6 +275,23 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
         const session = sessionOf(tenant), { round } = await operation(session, operationId);
         await approveProposal(session, tenant, environmentId, operationId, deploymentId);
         return finish(session, operationId, round);
+      });
+    },
+    async reviewDeploy(tenant, environmentId, operationId, deploymentId) {
+      return step("plan review", async () => {
+        const session = sessionOf(tenant), { round } = await operation(session, operationId);
+        await approveProposal(session, tenant, environmentId, operationId, deploymentId);
+        const view = await waitFor(session, operationId, op => TERMINAL.includes(op.status) || (op.status === "awaiting_approval" && op.round > round), 15 * 60_000, "the plan review");
+        if (TERMINAL.includes(view.status)) refuse(`the deploy ended ${/^[a-z_]{1,20}$/.test(view.status) ? view.status : "unknown"} before its plan review`);
+        return { round: view.round };
+      });
+    },
+    async completeDeploy(tenant, operationId) {
+      return step("deploy", async () => {
+        const session = sessionOf(tenant), view = await operation(session, operationId);
+        if (view.status !== "awaiting_approval") refuse(`the deploy is ${/^[a-z_]{1,20}$/.test(view.status) ? view.status : "unknown"}, not waiting for its review`);
+        await approve(session, operationId);
+        return finish(session, operationId, view.round);
       });
     },
     async operationStatus(tenant, operationId) {

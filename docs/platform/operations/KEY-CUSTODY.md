@@ -59,7 +59,7 @@ decrypts; a verify-only key only verifies. Asking the registry for anything else
 
 ## Rotation
 
-1. Configure the new key as current and move the old key into the purpose's previous list. Roll it to every process that reads the purpose (web, worker, scheduler): for Temporal and results this must reach clients and workers together.
+1. Configure the new key as current and move the old key into the purpose's previous list. A self-hosted installation does this for every generated key with `node scripts/deploy/installation.mjs rotate <installation>` (it also gives Temporal and results their own roots); then recreate the API and worker together. Roll it to every process that reads the purpose (web, worker, scheduler): for Temporal and results this must reach clients and workers together.
 2. `scripts/key-custody.ts sync` records the key ids and their first-seen time (the key's age).
 3. Vault only: `scripts/key-custody.ts rewrap --workspace <id>` queues a durable re-wrap. The `key-rewrap` critical job (on the Temporal critical-maintenance schedule, with the cron fallback) works it in bounded batches under write locks with a durable cursor; a restart resumes. `rewrap-status` shows progress. A row that opens under no retained key fails the job with `unreadable_row` and writes nothing in that batch. The file store is `blocked`: run `scripts/vault-rewrap.ts` quiesced instead.
 4. Schedule retirement: `scripts/key-custody.ts retire-after --purpose enc:vault --key-id <id> --date <ISO>`. The diagnostic and the job's health counts report `overdue` (past its date and still configured) and `unscheduled` historical keys.

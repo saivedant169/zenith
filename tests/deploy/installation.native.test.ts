@@ -5,7 +5,8 @@ import { X509Certificate, randomBytes } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { load } from 'js-yaml';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { checkCompose, composeArgs, composeEnvironment, planFor, prepare, prepareJoin, probeReadiness, readPrepared, validateInput } from '../../scripts/deploy/installation.mjs';
+import { checkCompose, composeArgs, composeEnvironment, planFor, prepare, prepareJoin, probeReadiness, readPrepared, rotateKeys, validateInput } from '../../scripts/deploy/installation.mjs';
+import { KeyRing } from '../../src/lib/keycustody/registry';
 
 type Input = Parameters<typeof prepare>[0];
 type Prepared = ReturnType<typeof prepare>;
@@ -162,6 +163,32 @@ describe.skipIf(process.env.ZENITH_ACCEPTANCE_INSTALLATION_PRIVATE !== '1')('POS
       const composition = JSON.parse(fs.readFileSync(path.join(directory, 'worker.compose.json'), 'utf8'));
       expect(composition.services[`execution-worker-${peer.workerId}`].volumes.slice(1).map((mount: string) => mount.split(':')[1]))
         .toEqual(['/run/zenith-temporal/ca.crt', '/run/zenith-temporal/client.crt', '/run/zenith-temporal/client.key']);
+    });
+    it('rotates every purpose to a new current key and keeps the old one decrypt-only or verify-only (PROD-OPS-05)', () => {
+      const directory = path.join(temp, 'rotated');
+      const before = prepare(input('disposable'), directory);
+      const ring = (env: Record<string, string>) => KeyRing.fromEnv(env).descriptors();
+      const old = ring(before.environment);
+      const after = rotateKeys(directory);
+      expect({ id: after.installationId, images: after.images }).toEqual({ id: before.installationId, images: before.images });
+      expect(readPrepared(directory)).toEqual(after);
+      expect(fs.readFileSync(path.join(directory, 'keyring.json'), 'utf8')).toBe(`${JSON.stringify(after, null, 2)}\n`);
+      const now = ring(after.environment);
+      for (const purpose of ['enc:vault', 'enc:temporal-payload', 'enc:plan-artifacts', 'enc:results', 'enc:machine-results', 'signing:jobs', 'signing:oidc'] as const) {
+        const was = old.find(k => k.purpose === purpose && k.role === 'current')!.keyId;
+        expect(now.find(k => k.purpose === purpose && k.role === 'current')!.keyId, purpose).not.toBe(was);
+        expect(now.find(k => k.purpose === purpose && k.keyId === was)?.role, purpose).toBe(purpose.startsWith('signing:') ? 'verify_only' : 'decrypt_only');
+      }
+      const findings = KeyRing.fromEnv(after.environment).violations();
+      expect(findings.filter(f => f.severity === 'error')).toEqual([]);
+      expect(findings.map(f => f.code)).not.toContain('result_key_derived_from_signing_key');
+      expect(findings.filter(f => f.purposes.includes('enc:temporal-payload'))).toEqual([]);
+      expect(fs.readFileSync(path.join(directory, 'api.env'), 'utf8')).not.toContain('ZENITH_PLAN_ARTIFACT');
+      expect(fs.readFileSync(path.join(directory, 'worker.env'), 'utf8')).toContain('ZENITH_PLAN_ARTIFACT_PREVIOUS_KEYS=');
+      const twice = rotateKeys(directory);
+      expect(JSON.parse(twice.environment.ZENITH_VAULT_PREVIOUS_SECRET_KEYS)).toEqual([after.environment.ZENITH_SECRET_KEY, before.environment.ZENITH_SECRET_KEY]);
+      expect(JSON.parse(twice.environment.ZENITH_CONTROL_EXTRA_PUBLIC_JWKS)).toHaveLength(2);
+      expect(fs.readdirSync(directory).filter(name => name.endsWith('.next'))).toEqual([]);
     });
     it('refuses keyring drift before creating any joined worker files', () => {
       const file = path.join(privateDir, 'keyring.json'), content = fs.readFileSync(file, 'utf8');

@@ -233,6 +233,24 @@ Runner tools: the workflow installs `postgresql-client-17` and the pinned Tempor
 
 **Not covered (named residuals).** The restore target is a new database on the same stack host, so the keys are already present. A restore onto a different host needs the keys from the operator's secret manager. `up.mjs` cannot take an escrowed keyring yet. The backup does not include Supabase `auth` (user accounts); in production that store is the Supabase project's own backup.
 
+## OPS-05 key rotation run (2026-10-30)
+
+Scenario `ops-05` (either lane, 5 to 60 minutes) proves PROD-OPS-05 with real AWS customer state. It uses the TEARDOWN-01 sandbox calls; Zenith deploys at most two S3 buckets.
+
+1. Store one vault secret with `system.setSecret` (on a service that is never deployed) and deploy one bucket under the installation's first keys.
+2. Read the deploy's Temporal history with the pinned Temporal CLI. `key-custody.ts codec` must show it written under the current Temporal key only.
+3. Rotate every generated key with `node scripts/deploy/installation.mjs rotate <installation>`, then remove and recreate the API and worker together.
+4. `key-custody.ts sync` and `diagnose --json`: every rotated purpose has a new current key and keeps the old one decrypt-only (vault, Temporal, plan artifacts, results, machine results) or verify-only (control and OIDC signing); no error finding; Temporal and results no longer share a root.
+5. The AWS connection still verifies. `codec --verify` on the first history: every encrypted payload needs the now decrypt-only key and decrypts.
+6. Deploy a second bucket under the new keys; its history uses only the new Temporal key.
+7. `rewrap --workspace <id> --run`, then `rewrap-status` until the job completes with at least one secret re-sealed.
+
+No operator output may contain any key value, old or new (plain keys, previous-key lists and private JWK members are scanned).
+
+Runner tools: the workflow installs the pinned Temporal CLI 1.9.1 (and the PostgreSQL 17 client) for ops-04 and ops-05.
+
+**Not covered (named residuals).** KMS-held signing keys, the backup key (no decrypt-only list in this build), agent-link and invite sealing (no overlap by design), and retiring the old keys after the history window.
+
 ## Budget, cleanup and evidence limits
 
 The hard admission ceiling reserves the canonical fixed topology, maximum attempts, a 5..20 minute execution window and a 2USD cleanup reserve before **any** AWS call. It refuses an altered self-consistent cost/topology as well as unknown/unplanned calls, changed inputs, missing per-call permission, exhausted attempt counts and expired mutation permission. Before billable creation it atomically claims `/zenith/live-runs/<runId>` using Standard-tier PutParameter with Overwrite=false and independently reads it. This account-side receipt prevents replay from a new directory or another machine. The execution role cannot overwrite/delete the receipt. The bootstrap uses the documented StringEquals condition for ssm:Overwrite; see [AWS Parameter Store condition guidance](https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-policy-conditions.html). Non-billing receipts are intentionally retained for replay prevention, tagged with purpose live-acceptance-receipt, and excluded from workload leak discovery; deletion requires a separate accountable retention decision. Cleanup is limited to already approved teardown/read inventory, can use the original approval after its expiry, and has a 25-minute observation deadline. It cannot create new resources or claim another run in recovery mode. SDK retries are disabled; every attempt is counted and journaled before dispatch.

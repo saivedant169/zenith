@@ -11,9 +11,10 @@
  *
  * Sources: `controlPlane` samples (requests to the Zenith API from a named vantage) feed control_plane_availability and
  * api_latency. `providerBaseline` samples (AWS Lambda invocations) feed no objective and are only summarised.
- * `restore` instants feed rpo, and rto only when the restore scope is "application".
+ * `restore` instants feed rpo, and rto only when the restore scope is "application". A `capacity` run (an open-loop
+ * burst at a fixed offered rate) feeds the capacity objective as one observation; only 2xx answers count as served.
  */
-import { sloDefinitions, type LatencyRatioObjective, type Objective, type RatioObjective } from "@/lib/slo/definitions";
+import { sloDefinitions, type CapacityObjective, type LatencyRatioObjective, type Objective, type RatioObjective } from "@/lib/slo/definitions";
 import { quantile } from "@/lib/slo/sli";
 
 export const OPS01_LABEL = "provisional" as const;
@@ -33,12 +34,15 @@ export interface RestoreInstants {
   scope: "database" | "application";
   serviceRestoredAtMs: number;
 }
+/** An open-loop burst: requests offered at a fixed rate; `elapsedMs` runs from the first request to the last answer. */
+export interface CapacityRun { vantage: string; offeredPerSecond: number; elapsedMs: number; samples: readonly TimedSample[] }
 export interface Ops01Evidence {
   /** short token naming the run's evidence; never a secret, ARN, account id or hostname */
   reference: string;
   controlPlane?: SampleSet;
   providerBaseline?: SampleSet;
   restore?: RestoreInstants;
+  capacity?: CapacityRun;
 }
 
 export interface Percentiles { p50Ms: number | null; p95Ms: number | null; p99Ms: number | null; p99Reliable: boolean }
@@ -50,7 +54,11 @@ export interface RatioMeasurement {
 export interface RecoveryMeasurement {
   objective: string; status: Objective["status"]; kind: "recovery_seconds"; maxSeconds: number; valueSeconds: number; observations: 1; verdict: "within_target" | "over_target";
 }
-export type Measurement = RatioMeasurement | RecoveryMeasurement;
+export interface CapacityMeasurement {
+  objective: string; status: Objective["status"]; kind: "capacity"; minRequestsPerSecond: number; maxP95Ms: number; maxErrorRate: number;
+  offeredPerSecond: number; samples: number; requestsPerSecond: number; p95Ms: number | null; errorRate: number; observations: 1; verdict: "within_target" | "over_target";
+}
+export type Measurement = RatioMeasurement | RecoveryMeasurement | CapacityMeasurement;
 
 export interface Ops01Result {
   label: typeof OPS01_LABEL;
@@ -119,6 +127,21 @@ function ratioMeasurement(o: RatioObjective | LatencyRatioObjective, samples: re
   };
 }
 
+function capacityMeasurement(o: CapacityObjective, run: CapacityRun): CapacityMeasurement {
+  if (!VANTAGE.test(run.vantage)) fail("vantage must be a short lowercase label (letters, digits and -).");
+  if (!Number.isFinite(run.elapsedMs) || run.elapsedMs <= 0 || !Number.isFinite(run.offeredPerSecond) || run.offeredPerSecond <= 0) fail("a capacity run needs a positive elapsedMs and offeredPerSecond.");
+  const samples = validSamples(run.samples);
+  if (!samples.length) fail("a capacity run needs at least one sample.");
+  const served = samples.filter((s) => s.ok).length;
+  const requestsPerSecond = served / (run.elapsedMs / 1000), errorRate = (samples.length - served) / samples.length;
+  const p95Ms = quantile(samples.map((s) => s.durationMs), 0.95);
+  const within = requestsPerSecond >= o.minRequestsPerSecond && p95Ms !== null && p95Ms <= o.maxP95Ms && errorRate <= o.maxErrorRate;
+  return {
+    objective: o.id, status: o.status, kind: "capacity", minRequestsPerSecond: o.minRequestsPerSecond, maxP95Ms: o.maxP95Ms, maxErrorRate: o.maxErrorRate,
+    offeredPerSecond: run.offeredPerSecond, samples: samples.length, requestsPerSecond, p95Ms, errorRate, observations: 1, verdict: within ? "within_target" : "over_target",
+  };
+}
+
 /** Pure measurement from evidence to the result object. Nothing here is written anywhere. */
 export function measure(evidence: Ops01Evidence): Ops01Result {
   const defs = sloDefinitions();
@@ -150,6 +173,9 @@ export function measure(evidence: Ops01Evidence): Ops01Result {
     if (fromControlPlane && (o.kind === "ratio" || o.kind === "latency_ratio")) {
       if (!evidence.controlPlane) notEvaluated.push({ objective: o.id, reason: "no control-plane samples supplied" });
       else measurements.push(ratioMeasurement(o, validSamples(evidence.controlPlane.samples)));
+    } else if (o.kind === "capacity") {
+      if (!evidence.capacity) notEvaluated.push({ objective: o.id, reason: "no capacity run supplied" });
+      else measurements.push(capacityMeasurement(o, evidence.capacity));
     } else if (o.kind === "recovery_seconds" && (o.id === "rpo" || o.id === "rto")) {
       if (!evidence.restore) notEvaluated.push({ objective: o.id, reason: "no restore instants supplied" });
       else if (o.id === "rto" && evidence.restore.scope !== "application") notEvaluated.push({ objective: o.id, reason: "database-scope restore: DB availability is not service recovery" });

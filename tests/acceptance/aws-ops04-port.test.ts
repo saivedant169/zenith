@@ -21,7 +21,7 @@ const COMMIT = "a".repeat(40);
 const BINDING = "b".repeat(64);
 const bucket = (n: number) => `arn:aws:s3:::ops04-0000ab04-${n}`;
 
-interface Opts { resumeRefused?: boolean; quietStatus?: string; extraBucket?: boolean; staleStatus?: number; restoreOk?: boolean; healthyAfterSeconds?: number; resumedStatus?: string; fencedApprovalOk?: boolean; restoredStatus?: string; verifyWhy?: string }
+interface Opts { failEvery?: number; slowMs?: number; resumeRefused?: boolean; quietStatus?: string; extraBucket?: boolean; staleStatus?: number; restoreOk?: boolean; healthyAfterSeconds?: number; resumedStatus?: string; fencedApprovalOk?: boolean; restoredStatus?: string; verifyWhy?: string }
 
 function harness(opts: Opts = {}) {
   const trust = { observe: trustDocument(PRINCIPAL, OLD_EXT), deploy: trustDocument(PRINCIPAL, OLD_EXT) };
@@ -96,13 +96,19 @@ function harness(opts: Opts = {}) {
     read: async () => ({ resources: aws.map(() => ({ mode: "managed", type: "aws_s3_bucket", instances: [{}] })) }),
     destroy: async () => { destroyed = true; aws = []; return { destroyed: 2 }; },
   };
-  const port = ops04Port({ ZENITH_LIVE_PRODUCT: "1" }, { product, stack, sleep, now, propagation: { attempts: 2, intervalMs: 0 }, state });
-  return { events, trust, destroyed: () => destroyed, closed: () => closed, run: () => port.verify(requirement, { plan, commit: COMMIT, call }) };
+  // OPS-01 probes: a healthy API answers in 20 ms; failEvery makes every n-th probe a 503.
+  let probes = 0;
+  const probe = async () => { probes++; return { status: opts.failEvery && probes % opts.failEvery === 0 ? 503 : 200, durationMs: opts.slowMs ?? 20 }; };
+  const tick = () => new Promise<void>(resolve => setImmediate(resolve));
+  const port = ops04Port({ ZENITH_LIVE_PRODUCT: "1" }, { product, stack, sleep, now, propagation: { attempts: 2, intervalMs: 0 }, state, probe, tick, capacity: { perSecond: 30, ms: 1_000 } });
+  const verify = (id: string) => port.verify({ ...requirement, id }, { plan, commit: COMMIT, call });
+  return { events, trust, destroyed: () => destroyed, closed: () => closed, run: () => verify("PROD-OPS-04"), verify };
 }
 
 describe("OPS-04 plan", () => {
-  it("scopes ops-04 to PROD-OPS-04 with the bucket-only sandbox calls, on either lane", () => {
+  it("scopes ops-04 to PROD-OPS-04 and PROD-OPS-01 with the bucket-only sandbox calls, on either lane", () => {
     const plan = buildPlan(settings);
+    expect(plan.requirements.map(r => r.id).filter(id => id === "PROD-OPS-01" || id === "PROD-OPS-04")).toEqual(["PROD-OPS-01", "PROD-OPS-04"]);
     expect(plan.productCalls!.map(c => c.id)).toEqual(["teardown01-iam-read-observe", "teardown01-iam-read-deploy", "teardown01-iam-trust-observe", "teardown01-iam-trust-deploy", "teardown01-sts-assume", "teardown01-tag-read"]);
     expect(plan.estimate.usd).toBe(0.75);
     expect(buildPlan({ ...settings, lane: "live2" }).productCalls!.find(c => c.id === "teardown01-sts-assume")!.resource).toBe(`arn:aws:iam::${ACCOUNT}:role/ZenithDeployRole-live2`);
@@ -155,6 +161,41 @@ describe("OPS-04 port", () => {
       expect(h.destroyed()).toBe(true);
       expect(h.closed()).toBe(true);
     }
+  });
+});
+
+describe("OPS-01 in the OPS-04 run", () => {
+  it("measures availability, latency, capacity, RPO and RTO in the same run, which runs once for both", async () => {
+    const h = harness();
+    const ops01 = await h.verify("PROD-OPS-01");
+    const ops04 = await h.verify("PROD-OPS-04");
+    expect(ops04.complete).toBe(true);
+    expect(ops01.reason).toContain("OPS-01 objectives measured on the live sandbox run");
+    expect(ops01.complete).toBe(true);
+    expect(ops01.reason).toMatch(/control-plane availability (\d+)\/\1 probes non-5xx \(100\.00%.*demonstrated\)/);
+    expect(ops01.reason).toContain("p95 20 ms");
+    expect(ops01.reason).toContain("capacity ");
+    expect(ops01.reason).toContain("RPO 300 s of 900 and RTO 400 s of 14400");
+    expect(ops01.reason).toContain("not evaluated: managed_runtime_availability, dispatch_latency, workflow_completion, scheduler_health");
+    expect(h.events.filter(e => e === "restore")).toHaveLength(1);
+    expect(h.destroyed()).toBe(true);
+  });
+
+  it("refuses OPS-01 when probes fail or answers are slow, without failing OPS-04", async () => {
+    for (const [opts, why] of [[{ failEvery: 50 }, "not_met"], [{ slowMs: 600 }, "within 500 ms"]] as [Opts, string][]) {
+      const h = harness(opts);
+      const ops01 = await h.verify("PROD-OPS-01");
+      expect(ops01.complete).toBe(false);
+      expect(ops01.reason).toContain("OPS-01 not proven: ");
+      expect(ops01.reason).toContain(why);
+      expect((await h.verify("PROD-OPS-04")).complete).toBe(true);
+    }
+  });
+
+  it("reports OPS-01 unmeasured when the OPS-04 run stops before its restore", async () => {
+    const h = harness({ restoreOk: false });
+    expect((await h.verify("PROD-OPS-01")).reason).toBe("OPS-01 not measured: the OPS-04 run stopped at restore");
+    expect(h.destroyed()).toBe(true);
   });
 });
 

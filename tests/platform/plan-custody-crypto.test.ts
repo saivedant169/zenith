@@ -1,6 +1,7 @@
 /** PROD-DUR-05: worker identity-bound custody wrap. Pure; keys are generated at run time. */
 import { randomBytes } from "node:crypto";
 import { describe, expect, it } from "vitest";
+import { refusalTrace } from "@/lib/platform/plan-artifacts";
 import { planCustodyCryptoFromEnv, WORKER_IDENTITY, type CustodyBinding } from "@/lib/platform/plan-custody-crypto";
 
 const hex = (): string => randomBytes(32).toString("hex");
@@ -55,5 +56,16 @@ describe("custody wrap is bound to the presenting worker identity", () => {
     expect(crypto.opens(binding({ workerIdentity: "bad worker!" }), crypto.wrap(binding()))).toBe(false);
     expect(WORKER_IDENTITY.test("zenith-pkg-arm64-0123456789ab")).toBe(true);
     expect(WORKER_IDENTITY.test("a:b")).toBe(false);
+  });
+});
+
+describe("plan custody refusal trace", () => {
+  it("keeps class, code and frames but never the message", () => {
+    const e = Object.assign(new Error("value-abc-123"), { name: "PlanArtifactError", code: "plan_artifact_unavailable" });
+    e.stack = "PlanArtifactError: value-abc-123\n    at refuse (/app/dist/execution/worker.cjs:1234:11)\n    at lockOwner (/app/dist/execution/worker.cjs:1300:5)";
+    const trace = refusalTrace("publish", e);
+    expect(trace).toBe("[zenith-diagnostic] plan custody publish refused: PlanArtifactError/plan_artifact_unavailable refuse @worker.cjs:1234 < lockOwner @worker.cjs:1300");
+    expect(trace).not.toContain("value-abc-123");
+    expect(refusalTrace("publish", "not an error")).toBe("[zenith-diagnostic] plan custody publish refused: ?/? ");
   });
 });

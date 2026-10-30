@@ -154,7 +154,8 @@ export async function keyCustodyMain(args: readonly string[], output: Out = (lin
       if (!current) { error("No current vault key is configured (ZENITH_SECRET_KEY)."); return 1; }
       const { job, created } = await enqueueRewrapJob(await needDb(), { workspaceId, targetKeyId: current.keyId, requestedBy: "key-custody-cli" });
       output(JSON.stringify({ created, job: { id: job.id, status: job.status, targetKeyId: job.targetKeyId } }));
-      if (bools.has("--run")) return runQueuedRewrap(await needDb(), env, output, error);
+      // Awaited here so the finally below closes the store only after the run; a bare return closed it mid-run (CONNECTION_ENDED, unhandled).
+      if (bools.has("--run")) return await runQueuedRewrap(await needDb(), env, output, error);
       return 0;
     }
 

@@ -165,3 +165,21 @@ What changed:
 - Restore tooling: `targetsFromEnv` defaults to the approved RPO/RTO (900 / 14400); env values override and are labelled provisional.
 
 The Mac verifier should run, sequentially on Node 22: `npx tsc --noEmit -p .`; `npx vitest run tests/slo tests/ops/recovery-manifest.test.ts tests/ops/data-plane-independence.test.ts tests/docs/operator-docs.test.ts tests/ci/packaged-workers.test.ts --no-file-parallelism --maxWorkers=2`; `ZENITH_TEST_PLATFORM_PG_URL=postgres://... npx vitest run tests/slo/slo.engine.test.ts` (real PostgreSQL lane for the dispatch join); the reconcile suites that build ports (`npx vitest run tests/reconcile`). Then, on a deployment: wire an external probe per SLO.md, confirm `/admin/slo` shows both availability sources, and confirm a managed production environment accumulates `managed_runtime_availability` samples after a reconcile pass. Status stays `implementation_complete_verification_pending`.
+
+## OPS-01 objectives measured on the live AWS sandbox (2026-10-30)
+
+Run [41065148794](https://github.com/saivedant169/zenith/actions/runs/41065148794), run id `zlive-202610301340-1940`, workflow `live-acceptance.yml`, scenario `ops-04` (which measures PROD-OPS-01 and proves PROD-OPS-04), lane `live2`. Source `2cdb66db6343469eebde92fb48e8ee0f808064d3`. Sandbox account `361646636162` in ap-south-1. Plan digest `702f7014ef5b3c16e6e21fc02e68153295615dd2e6c27fcbb711fe7d3c9e14d9`; permission digest `b40c86f0c03e6deabfd8c57174d615224f7110b0394f28f34b0767502a1fa3fa`.
+
+Verdict `passed`: 2 passed, 0 failed, 0 pending. Cleanup complete. Estimated cap USD 0.75 (provisional, billing not measured), 50 minute window. Files: `evidence/PROD-OPS-01/2026-10-30-live-aws-41065148794/`.
+
+Measured against `deploy/slo/slo-definitions.json` (`approved_targets`, 2026-10-13):
+
+- Control-plane availability: 6414 of 6414 runner-local probes of the API readiness route, every 100 ms, were non-5xx. The 95% lower bound is 99.95% against the 99.90% target: demonstrated. Probes paused only for the deliberate database loss (13 s), which is measured as RTO.
+- API latency: p50 13 ms, p95 27 ms, p99 104 ms. 100% within 500 ms; the lower bound is 99.95% against 95%: demonstrated.
+- Capacity: 29.9 req/s served of 30 offered for 60 s, p95 252 ms, 0.00% errors. Targets: at least 25 req/s, p95 at most 500 ms, errors at most 0.5%. Within target.
+- RPO 204.052 s of 900 and RTO 20.733 s of 14400, one restore observation each. Within target.
+- Not evaluated by this run: `managed_runtime_availability`, `dispatch_latency`, `workflow_completion`, `scheduler_health`.
+
+Fixes that led here: PR #119 added the measurement to the ops-04 scenario. Its first run (41042309255) failed capacity: 9.2 req/s served, p95 5002 ms, 66.50% errors, and availability 99.82%. Every request without a session loaded every tenant's rows. PR #120 makes such a request load no tenant rows when auth is configured. A second run (41060350720) stopped OPS-04 at the fresh approval with an unconfirmed plan dispatch (`plan_artifact_unavailable`); the unchanged rerun above passed. PR #121 adds a values-free trace for that refusal.
+
+Limits: `operational_rehearsal` is not done. The probes run on the same CI runner as the stack, so they measure the stack, not a network path. The latency and capacity numbers come from one 60 s burst on one small runner. `evidence.json` is not a `zenith.release-evidence.v1` receipt. Status stays `in_progress`. Not a promotion.

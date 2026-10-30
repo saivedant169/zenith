@@ -293,3 +293,9 @@ What it proved:
 Fixes that led here: PR #112 (values-free custody refusal trace) located the refusal at the write-once plan digest. PR #114 lets a proposal round reopened by a recovery resume, and decided before its workflow start, record its first plan; a plan-round approval made before plan stamping still cannot authorize a later plan.
 
 Limits: `operational_rehearsal` is not done, and the requirement lists it as required. This is one environment with S3 buckets on one provider. `evidence.json` is not a `zenith.release-evidence.v1` receipt. Status stays `in_progress`. Not a promotion.
+
+## Second OPS-04 run on the live AWS sandbox (2026-10-30)
+
+Run [41065148794](https://github.com/saivedant169/zenith/actions/runs/41065148794), run id `zlive-202610301340-1940`, scenario `ops-04`, lane `live2`, source `2cdb66db6343469eebde92fb48e8ee0f808064d3`. Verdict `passed` with cleanup complete, on the same flow as run 41012192964. Measured RPO 204.1 s (target 900) and RTO 20.7 s (target 14400). The same run measured PROD-OPS-01; files are in `evidence/PROD-OPS-01/2026-10-30-live-aws-41065148794/`.
+
+Run 41060350720, on the same source, stopped at the fresh approval: the resumed apply ended with an unconfirmed plan dispatch (`plan_artifact_unavailable`). Its cause is not yet known; PR #121 traces it if it recurs. Not a promotion.

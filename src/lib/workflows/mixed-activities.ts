@@ -19,7 +19,7 @@ import type { Sql } from "@/lib/controlplane/types";
 import { repos } from "@/lib/controlplane/db";
 import { ControlStoreError } from "@/lib/controlplane/db/errors";
 import * as plans from "@/lib/controlplane/db/repos/mixed-parent-plans";
-import { createConnectionsPort, createLeasesPort } from "@/lib/execution/platform";
+import { createConnectionsPort, createLeasesPort, executionHolder } from "@/lib/execution/platform";
 import { createProductPort } from "@/lib/execution/product-port";
 import { settleOutcome } from "@/lib/execution/mixed/settle";
 import { composeMixedDeps } from "@/lib/execution/mixed/deps";
@@ -192,6 +192,9 @@ export function createMixedActivities(options: MixedActivityDeps): MixedActiviti
           context.heartbeat({ phase: "observing" });
           const renewed = await leases.renew(lease, LEASE_TTL_MS);
           if (!renewed) throw new (await import("@/lib/controlplane/types")).LeaseLostError(lease.scope, lease.fenceToken);
+          // The parent's own execution lease must outlive a long child wait too, or housekeeping marks the parent uncertain.
+          const alive = await repos.operations.heartbeat(options.db, { workspaceId: input.workspaceId, id: input.operationId, holder: executionHolder(input.operationId), leaseMs: LEASE_TTL_MS });
+          if (!alive) throw new (await import("@/lib/controlplane/types")).LeaseLostError(lease.scope, lease.fenceToken);
           const observed = await observeChild(deps, { workspaceId: input.workspaceId, planId: input.parentPlanId, partitionId: input.partitionId });
           if (observed.state === "pending") throw new MixedPlanError("child_mismatch", "The child has no adopted operation.");
           const j = await join();

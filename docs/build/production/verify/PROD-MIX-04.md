@@ -93,3 +93,20 @@ node scripts/ci/wave6-gates.mjs --requirement PROD-MIX-04 --print > /tmp/zenith-
 ```
 
 This prints the exact argv for each contract batch and required engine case, its gate names, private prerequisites, and its strict report-validation command. Set only the gates for the selected lane after preparing its owned fixture; a skip cannot satisfy that lane. Run each `argv` sequentially and then its `verify` argv. [Final integration setup and results](FINAL-INTEGRATION.md), [canonical inventory](../../../../scripts/ci/wave6-gates.json), [owner live runbook](../LIVE-ACCEPTANCE.md).
+
+## TEARDOWN-01 on the live AWS sandbox (2026-10-30)
+
+Run [40979439520](https://github.com/saivedant169/zenith/actions/runs/40979439520), run id `zlive-202610300023-913c`, workflow `live-acceptance.yml`, scenario `teardown-01`, lane `live`. Source `81529b354e257572873b76ab4108e09fd5619ed5`. Sandbox account `361646636162` in ap-south-1. Plan digest `3fd4fa76e665fbcb52ba044be70cb55897c44edebced2544a8e04ab120aaac9f`; permission digest `dbd32b87f7a638420e0bc6b46ceacd34638bde2770fdab189d49dc7d6f9f9b22`.
+
+Verdict `passed`: 1 passed, 0 failed, 0 pending. Cleanup complete. Estimated cap USD 1.225 (provisional, billing not measured), 145 minute window. Files: `evidence/PROD-MIX-04/2026-10-30-live-aws-40979439520/`.
+
+What it proved:
+
+- One managed S3 bucket was deployed with two-person browser approval. It was read back from the recorded state and the tagging inventory.
+- Right after the deploy, the teardown review was refused for unsettled deploy activity. It became available 82 minutes after the deploy, once the execution worker had settled every earlier writer.
+- The destroy was reviewed and approved in the browser, and it succeeded.
+- The recorded state is empty, and no resource tagged with the environment remains.
+
+Fixes that led here: PR #101 (teardown review retry), PR #103 (teardown review diagnostics) and PR #108 (a destroy no longer counts its own acknowledged start as an unsettled writer).
+
+Limits: `operational_rehearsal` is not done, and the requirement lists it as required. This is one S3 bucket on one provider, not a distributed multi-provider failure. `evidence.json` is not a `zenith.release-evidence.v1` receipt. Status stays `in_progress`. Not a promotion.

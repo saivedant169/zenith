@@ -63,3 +63,23 @@ node scripts/ci/wave6-gates.mjs --requirement PROD-OPS-05 --print > /tmp/zenith-
 ```
 
 This prints the exact argv for each contract batch and required engine case, its gate names, private prerequisites, and its strict report-validation command. Set only the gates for the selected lane after preparing its owned fixture; a skip cannot satisfy that lane. Run each `argv` sequentially and then its `verify` argv. [Final integration setup and results](FINAL-INTEGRATION.md), [canonical inventory](../../../../scripts/ci/wave6-gates.json), [owner live runbook](../LIVE-ACCEPTANCE.md).
+
+## OPS-05 key rotation on the live AWS sandbox (2026-10-30)
+
+Run [41033090300](https://github.com/saivedant169/zenith/actions/runs/41033090300), run id `zlive-202610300923-d381`, workflow `live-acceptance.yml`, scenario `ops-05`, lane `live2`. Source `e4fd12e0e054a850f5db9bae7a1555fef1fecd8c`. Sandbox account `361646636162` in ap-south-1. Plan digest `cfc6e1169b6623478357294370eb20a4e50be5305eda19ba1eb2842507fd9b6a`; permission digest `b4a7d01b711ecc7f4f9d0afb37f5bab2d510d6fbc6d730d622347d7ddd72d8c6`.
+
+Verdict `passed`: 1 passed, 0 failed, 0 pending. Cleanup complete. Estimated cap USD 0.75 (provisional, billing not measured), 50 minute window. Files: `evidence/PROD-OPS-05/2026-10-30-live-aws-41033090300/`.
+
+What it proved:
+
+- One vault secret and one managed S3 bucket were created under the installation's first keys.
+- `installation.mjs rotate` rotated every generated key (7 purposes). The API and worker were removed and recreated together from the rotated env files.
+- `key-custody diagnose` showed a new current key per purpose, with the old one kept decrypt-only (encryption) or verify-only (signing). There was no error finding, and Temporal and results each had their own root.
+- The first deploy's Temporal history (123 payloads) needed only the now decrypt-only Temporal key, and every payload decrypted (`codec --verify`: 123 ok).
+- The AWS connection still verified. A second bucket deployed under the new keys, and its history used only the new Temporal key.
+- `key-custody rewrap --run` completed the vault re-wrap (1 secret re-sealed under the new vault key).
+- No operator command output contained any key value, old or new.
+
+Fixes that led here: PR #116 added `installation.mjs rotate` and the scenario. The first run (41026192545) died at the re-wrap: `rewrap --run` returned its run unawaited inside `try/finally`, so the store closed mid-run. PR #117 awaits it; that also fixes the operator CLI.
+
+Limits: `operational_rehearsal` is not done, and the requirement lists it as required. This is one installation with S3 buckets on one provider. `evidence.json` is not a `zenith.release-evidence.v1` receipt. Status stays `in_progress`. Not a promotion.

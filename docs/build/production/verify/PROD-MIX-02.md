@@ -93,3 +93,20 @@ node scripts/ci/wave6-gates.mjs --requirement PROD-MIX-02 --print > /tmp/zenith-
 ```
 
 This prints the exact argv for each contract batch and required engine case, its gate names, private prerequisites, and its strict report-validation command. Set only the gates for the selected lane after preparing its owned fixture; a skip cannot satisfy that lane. Run each `argv` sequentially and then its `verify` argv. [Final integration setup and results](FINAL-INTEGRATION.md), [canonical inventory](../../../../scripts/ci/wave6-gates.json), [owner live runbook](../LIVE-ACCEPTANCE.md).
+
+## MIX-02 proven on the live AWS sandbox (2026-10-30)
+
+Run [41114587776](https://github.com/saivedant169/zenith/actions/runs/41114587776), run id `zlive-202610301921-71fb`, workflow `live-acceptance.yml`, scenario `mix-03` (scope PROD-MIX-03 and PROD-MIX-02), lane `live2`. Source `c512660aa17c99ef48cf4c018909eca44fbfc019`. Sandbox account `361646636162` in ap-south-1. Plan digest `9e994c34aa223097e10e76b1bab02d15ad9724e746b436855b7de78ae0508512`; permission digest `2d0a008418c5181c86031ec1671fa7502578637e27c172401f96abefa956e030`.
+
+PROD-MIX-02 `passed`; PROD-MIX-03 stayed partly proven, so the run verdict is `incomplete`. Cleanup complete. Estimated cap USD 0.9 (provisional, billing not measured), 20 minute window. Files: `evidence/PROD-MIX-02/2026-10-30-live-aws-41114587776/`, including the `zenith.release-evidence.v1` receipt `release-evidence-PROD-MIX-02.json` over `release-source-PROD-MIX-02.json`.
+
+What the run checked:
+
+- The stored parent plan orders the producer (S3 bucket) before the consumer (Lambda function) that depends on it, under one approved parent operation.
+- The parent, desired and child-set digests, each child's subplan, semantics and effect digests, and both stable resource addresses were identical after the proposal, before the execution worker was stopped, and at the end.
+- The worker was stopped with the producer done and the consumer waiting for its review. The review was approved while the worker was down (306 s from stop to healthy). The parent resumed after the restart and the consumer succeeded.
+- Both durable receipts link their child operations, bind the semantics each child ran, and re-derive from their own fields. The producer receipt was unchanged across the restart, and AWS held the same one producer bucket before and after.
+
+Fixes that led here: PR #123 added the worker stop and restart to the mix-03 scenario. Runs 41077233775, 41086015907 and 41096252308 ended with the consumer blocked after the restart. PRs #124 and #126 surfaced the parent's stop sentence: "The executor stopped reporting (execution or environment lease lost)". Root cause: `awaitMixedChild` renewed the environment lease but never the parent operation's own `lease_until`, which only step starts extended. Any child wait past five minutes, including a long approval, let housekeeping mark the parent `uncertain`. PR #127 heartbeats the parent operation on every observation. Run 41105655617 stopped earlier at connection verification (IAM trust propagation, during a GitHub incident); the unchanged rerun above passed.
+
+Limits: `operational_rehearsal` is not done. Approvals came from an automated test approver through the browser path. One restart of one worker on one runner. Status stays `in_progress`. Not a promotion.

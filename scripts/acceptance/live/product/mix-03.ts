@@ -55,6 +55,8 @@ export interface Mix03Product {
   changeProducer(tenant: Mix03Tenant, planId: string): Promise<{ consumerState: "unchanged" | "review_required" | "preauthorized" }>;
   issueOutputPreauthorization(tenant: Mix03Tenant, planId: string): Promise<void>;
   useOutputOnce(tenant: Mix03Tenant, planId: string): Promise<{ ok: boolean }>;
+  /** An operation's status and, when it stopped, a fixed category of why (never its text). */
+  operationHalt?(tenant: Mix03Tenant, operationId: string): Promise<{ status: string; halt?: string }>;
   /** PROD-MIX-02: the stored parent plan, as GET /api/platform/v1/mixed/plans/:id returns it. */
   planReadback?(tenant: Mix03Tenant, planId: string): Promise<MixedReadback>;
   /** Releases the browser. Called once the run is over, after teardown. */
@@ -357,7 +359,7 @@ function receiptOf(plan: MixedReadback, child: MixedChildReadback, role: string,
  * PROD-MIX-02 over three readbacks of one plan: after the proposal, just before the worker stopped and at the end. Returns the
  * evidence sentence; refuses at the first clause that does not hold.
  */
-export function mix02Verdict(input: { planId: string; parentOperationId: string; proposed: MixedReadback; beforeStop: MixedReadback; final: MixedReadback; bucketBeforeStop: string; bucketFinal: string; quietMs: number }): string {
+export function mix02Verdict(input: { planId: string; parentOperationId: string; proposed: MixedReadback; beforeStop: MixedReadback; final: MixedReadback; bucketBeforeStop: string; bucketFinal: string; downMs: number }): string {
   const { planId, parentOperationId, proposed, beforeStop, final } = input;
   const { producer, consumer } = mix02Order(proposed);
   for (const plan of [beforeStop, final]) if (pinned(plan) !== pinned(proposed)) refuse("the stored plan's digests, order or stable addresses changed after the proposal");
@@ -370,7 +372,7 @@ export function mix02Verdict(input: { planId: string; parentOperationId: string;
   if (canonical(producerFinal) !== canonical(producerBefore)) refuse("the producer receipt changed across the worker restart");
   if (input.bucketFinal !== input.bucketBeforeStop) refuse("the producer bucket is not the same resource after the resume");
   const addresses = proposed.children.reduce((n, child) => n + child.nodes.length, 0);
-  return `PROD-MIX-02 proven on the live sandbox: the stored parent plan put the producer (S3 bucket) before the consumer (Lambda function) that depends on it, with one approved parent operation; its parent, desired and child-set digests, each child's subplan, semantics and effect digests and all ${addresses} stable resource addresses were identical after the proposal, before the execution worker was stopped and at the end; the worker was stopped with the producer done and the consumer waiting for its review, the review was approved while it was down (${Math.round(input.quietMs / 1000)} s) and the parent resumed after the restart; both durable receipts link their child operations, bind the semantics each child ran and re-derive from their own fields; the producer receipt was unchanged across the restart and AWS held the same one producer bucket before and after`;
+  return `PROD-MIX-02 proven on the live sandbox: the stored parent plan put the producer (S3 bucket) before the consumer (Lambda function) that depends on it, with one approved parent operation; its parent, desired and child-set digests, each child's subplan, semantics and effect digests and all ${addresses} stable resource addresses were identical after the proposal, before the execution worker was stopped and at the end; the worker was stopped with the producer done and the consumer waiting for its review, the review was approved while it was down (${Math.round(input.downMs / 1000)} s from stop to healthy) and the parent resumed after the restart; both durable receipts link their child operations, bind the semantics each child ran and re-derive from their own fields; the producer receipt was unchanged across the restart and AWS held the same one producer bucket before and after`;
 }
 
 /** PROD-MIX-03 and PROD-MIX-02 from one run. Every other requirement is reported not implemented. Never throws. */
@@ -381,7 +383,7 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
   const propagation = seams.propagation ?? { attempts: 12, intervalMs: 15_000 };
   const polls = seams.polls ?? { attempts: 120, intervalMs: 15_000 };
   const now = seams.now ?? Date.now;
-  const quietMs = seams.quietMs ?? 30_000;
+  const quietMs = seams.quietMs ?? 10_000;
   type Result = Awaited<ReturnType<ProductScenarioPort["verify"]>>;
   // One run answers both requirements: the harness asks for PROD-MIX-02 first (ledger order), then PROD-MIX-03.
   let flow: Promise<Record<"PROD-MIX-03" | "PROD-MIX-02", Result>> | undefined;
@@ -408,6 +410,8 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
       let step = "preconditions";
       let outcome: { complete: boolean; reason: string };
       let mix02: { complete: boolean; reason: string } | undefined;
+      // After a worker restart: how long it was down and, if the run stops, why the parent stopped.
+      let restart: { downMs: number; parent: () => Promise<string> } | undefined;
       try {
         preconditions(env, plan);
         step = "tenant";
@@ -472,11 +476,16 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
             step = "worker stop";
             const worker = seams.worker ?? refuse("the stack's execution worker is not wired");
             beforeStop = { plan: await readback(), bucket: await producerBucket() };
+            const stoppedAt = now();
             await worker.stop();
             await product.approve(tenant, consumer.awaitingOperationId);
             await sleep(quietMs);
             step = "worker restart";
             await worker.start();
+            restart = { downMs: now() - stoppedAt, parent: async () => {
+              const op = await product.operationHalt?.(tenant, proposal.parentOperationId).catch(() => undefined);
+              return op ? `${STATE_WORD.test(op.status) ? op.status : "unknown"}${op.halt && HALT_WORD.test(op.halt) ? `:${op.halt}` : ""}` : "unread";
+            } };
             step = "child rounds";
             continue;
           }
@@ -510,12 +519,13 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
         step = "PROD-MIX-02 readback";
         try {
           if (!beforeStop) refuse("the consumer never waited for an approval, so the worker was never stopped");
-          mix02 = { complete: true, reason: mix02Verdict({ planId: proposal.planId, parentOperationId: proposal.parentOperationId, proposed, beforeStop: beforeStop.plan, final: await readback(), bucketBeforeStop: beforeStop.bucket, bucketFinal: bucketArns[0]!.arn, quietMs }) };
+          mix02 = { complete: true, reason: mix02Verdict({ planId: proposal.planId, parentOperationId: proposal.parentOperationId, proposed, beforeStop: beforeStop.plan, final: await readback(), bucketBeforeStop: beforeStop.bucket, bucketFinal: bucketArns[0]!.arn, downMs: restart?.downMs ?? 0 }) };
         } catch (error) {
           mix02 = { complete: false, reason: `PROD-MIX-02 not proven at ${step}: ${error instanceof Refusal ? error.message : "unexpected failure (details withheld; no completion claim)"}` };
         }
       } catch (error) {
-        const why = error instanceof Refusal ? error.message : "unexpected failure (details withheld; no completion claim)";
+        let why = error instanceof Refusal ? error.message : "unexpected failure (details withheld; no completion claim)";
+        if (restart) why += `; the worker was down ${Math.round(restart.downMs / 1000)} s; parent operation ${await restart.parent()}`;
         outcome = { complete: false, reason: `PROD-MIX-03 not proven at ${step}: ${why}` };
         mix02 = { complete: false, reason: `PROD-MIX-02 not proven at ${step}: ${why}` };
       }

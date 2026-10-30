@@ -118,6 +118,9 @@ const CHILD_STATUS: Record<string, string> = { pending: "pending", adopted: "pen
  * error class the message names; anything else in the message never leaves the driver.
  */
 const HALTS: [RegExp, string][] = [
+  // The mixed parent's own stops (src/lib/workflows/definitions/mixedParent.ts).
+  [/^Child (\d+) ended ([a-z]+)/, "child$1_ended_$2"], [/^Child (\d+) was not started: ([a-z_]+)/, "child$1_not_started_$2"],
+  [/^Child (\d+) was still running after the wait limit/, "child$1_wait_limit"], [/^Child (\d+) never became startable/, "child$1_never_startable"],
   [/^The environment lease was lost while OpenTofu was applying/, "lease_lost_tofu_apply"],
   [/^OpenTofu ([a-z]+) did not finish \(([a-z_]+)\)/, "tofu_$1_$2"],
   // An OpenTofu failure behind the plan dispatch wrapper (src/lib/platform/plan-artifacts.ts): its code and fixed cause (src/lib/tofu/failure-code.ts).
@@ -380,6 +383,14 @@ export function browserMix03Product(env: EnvLike = process.env, seams: Mix03Driv
       return step("plan readback", async () => {
         const session = sessionOf(tenant);
         return mixedReadbackOf(ok(await send(session, session.owner, `/api/platform/v1/mixed/plans/${planId}`, undefined, "GET")));
+      });
+    },
+    async operationHalt(tenant, operationId) {
+      return step("operation readback", async () => {
+        const session = sessionOf(tenant);
+        const detail = ok(await send(session, session.owner, `/api/platform/v1/operations/${operationId}`, undefined, "GET")) as { operation?: { status?: unknown; error?: unknown } };
+        const status = typeof detail.operation?.status === "string" && SAFE_CODE.test(detail.operation.status) ? detail.operation.status : "unknown";
+        return { status, ...(typeof detail.operation?.error === "string" ? { halt: haltOf(detail.operation.error) } : {}) };
       });
     },
     async children(tenant, planId) {

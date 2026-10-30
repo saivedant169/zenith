@@ -63,3 +63,15 @@ node scripts/ci/wave6-gates.mjs --requirement PROD-REL-02 --print > /tmp/zenith-
 ```
 
 This prints the exact argv for each contract batch and required engine case, its gate names, private prerequisites, and its strict report-validation command. Set only the gates for the selected lane after preparing its owned fixture; a skip cannot satisfy that lane. Run each `argv` sequentially and then its `verify` argv. [Final integration setup and results](FINAL-INTEGRATION.md), [canonical inventory](../../../../scripts/ci/wave6-gates.json), [owner live runbook](../LIVE-ACCEPTANCE.md).
+
+## Live AWS evidence as release receipts (2026-10-30)
+
+Until now the live AWS runs were recorded in the ledger as prose with a `logs` directory. The dossier refused all of them ("missing or unsafe evidence file reference"), so every `live_sandbox` level read `unperformed`.
+
+- `scripts/acceptance/live/cli.ts` now writes `release-source-<requirement>.json` next to `evidence.json` for each requirement the run passed with cleanup complete. `releaseSource` in `scripts/acceptance/live/evidence.ts` projects it from the evidence file's own bytes: mode `live`, that one requirement, counts passed 1 / failed 0 / skipped 0, the plan and permission digests, and the evidence file's sha256. A pending, failed or out-of-scope requirement gets none.
+- `scripts/acceptance/live/release-source.ts` writes the same source for runs recorded before this change. It first checks that the packet still matches its own digest.
+- `scripts/release/evidence-cli.mjs` binds each source into a `zenith.release-evidence.v1` receipt, and the ledger entry names the receipt as `artifact` with its `sha256`.
+
+Backfilled: PROD-MIX-04 (run 40979439520), PROD-OPS-01 (41065148794), PROD-OPS-04 (41012192964 and 41065148794), PROD-OPS-05 (41033090300), PROD-OPS-06 (40878106025), PROD-OPS-07 (40234506190) and PROD-REL-01 (40460096635). The dossier now reads `live_sandbox: performed` for those seven requirements. PROD-MIX-03 has no source because its run was only partly proven. PROD-REL-04's proof is its drill receipt, not this packet, so it is not backfilled here.
+
+Limits: each receipt is on its run's commit, not a frozen release candidate. When `releaseCandidate.commit` is frozen, these receipts stop satisfying the release gate until the runs are repeated on that commit. `operational_rehearsal` is still not done for any requirement.

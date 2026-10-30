@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import os from "node:os";
@@ -8,7 +9,7 @@ import { redactAcceptance } from "../redact";
 import { buildPlan, parseLane, parseScenario, scopedRequirementIds } from "./plan";
 import { grantsFor, Guard, readPermission } from "./guard";
 import { execute, newJournal } from "./execute";
-import { evidencePacket } from "./evidence";
+import { evidencePacket, releaseSource } from "./evidence";
 import { sdkTransport } from "./sdk";
 import { requireProductionScope } from "./scope";
 import { reserveRunBudget } from "./shared";
@@ -132,6 +133,12 @@ export async function runProductionCli(argv: readonly string[], env: EnvLike = p
     await execute(plan, guard, transport, journal, { save: async state => { await atomic(journalFile, state); await recordResume(directory, state, command, checkpoint); }, sleep: ms => new Promise(resolve => setTimeout(resolve, ms)), now: () => new Date() }, { signal: abort.signal, cleanupOnly: !!existing, product: deps.product });
     const packet = evidencePacket(journal);
     await atomic(path.join(directory, "evidence.json"), packet);
+    // One release source per requirement this run passed, bound to the evidence.json bytes just written (REL-02 receipts).
+    const written = await readFile(path.join(directory, "evidence.json"));
+    for (const id of packet.scope) {
+      const source = releaseSource(JSON.parse(written.toString("utf8")), id, createHash("sha256").update(written).digest("hex"));
+      if (source) await atomic(path.join(directory, `release-source-${id}.json`), source);
+    }
     if (journal.closed) checkpoint.complete(AWS_STEP, "journal closed; cleanup complete", packet.sha256);
     else checkpoint.fail(AWS_STEP, "journal open; run the recorded next command");
     io.out(JSON.stringify({ runId: plan.settings.runId, verdict: packet.verdict, counts: packet.counts, cleanupComplete: packet.cleanupComplete, evidence: path.join(directory, "evidence.json"), nextCommand: packet.cleanupComplete ? null : command }));

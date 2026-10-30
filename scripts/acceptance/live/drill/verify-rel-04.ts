@@ -5,12 +5,15 @@
  * compares each derived result with the receipt's recorded booleans. Exit 0 only when every step holds
  * and the receipt says passed. Failures are fixed, sanitized strings.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import { z } from "zod";
 import { parseArgs, UsageError } from "../../args";
 import { readPermission } from "../guard";
 import { buildPlan, digest, scopedRequirementIds } from "../plan";
 import type { AwsPermission, Journal } from "../contracts";
+import { releaseSource, type ReleaseSource } from "../evidence";
 import { DELIBERATE_BYPASS_NOTE, RESUME_ENV, rel04Layout, type Rel04Layout } from "./rel-04";
 
 const Step = z.object({ passed: z.boolean(), reason: z.string().min(1).max(300) }).strict();
@@ -176,6 +179,22 @@ export function verifyRel04Files(runId: string, files: Rel04Files): string[] {
   return failures;
 }
 
+/**
+ * REL-02: the release source for a drill the verifier passed, bound to the receipt's bytes and the resumed run's evidence
+ * bytes. The resumed run's own row for PROD-REL-04 stays "unperformed" (no product port runs it); the drill is the proof.
+ * Undefined unless the evidence packet matches its own digest, is live_sandbox and recorded cleanup complete.
+ */
+export function drillReleaseSource(receiptBytes: Buffer, evidenceBytes: Buffer): (ReleaseSource & { drill: { file: string; sha256: string } }) | undefined {
+  const sha = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex");
+  const receipt = ReceiptSchema.parse(JSON.parse(receiptBytes.toString("utf8")));
+  const { sha256: own, ...rest } = JSON.parse(evidenceBytes.toString("utf8")) as Record<string, unknown>;
+  if (receipt.verdict !== "passed" || typeof own !== "string" || digest(rest) !== own) return undefined;
+  const steps = (["A", "B", "C", "D"] as const).map(step => `${step}: ${receipt.steps[step].reason}`).join("; ");
+  const reason = `PROD-REL-04 crash, resume and replay drill passed on the live sandbox and the offline verifier re-derived every step from disk. ${steps}`;
+  const source = releaseSource({ ...rest, sha256: own, requirements: [{ id: "PROD-REL-04", status: "passed", reason }] }, "PROD-REL-04", sha(evidenceBytes));
+  return source && { ...source, command: `${source.command}; drill scripts/acceptance/live/drill/rel-04.ts, verified offline by verify-rel-04.ts`, drill: { file: "rel-04-receipt.json", sha256: sha(receiptBytes) } };
+}
+
 function main(argv: readonly string[]): number {
   const args = parseArgs(argv, { booleans: [], strings: ["run-id", "out", "permissions"] });
   if (args.positional.length) throw new UsageError("Positional arguments are not accepted.");
@@ -187,7 +206,13 @@ function main(argv: readonly string[]): number {
     process.stderr.write(`rel-04 receipt NOT verified (${failures.length} failure(s)):\n${failures.map(f => `  - ${f}`).join("\n")}\n`);
     return 1;
   }
-  process.stdout.write(`rel-04 receipt verified for ${runId}: every step re-derived from disk; no cloud call made.\n`);
+  const source = drillReleaseSource(readFileSync(layout.receipt), readFileSync(layout.evidence));
+  if (!source) {
+    process.stderr.write("rel-04 receipt verified, but the resumed run's evidence is not a live_sandbox packet with cleanup complete; no release source\n");
+    return 1;
+  }
+  writeFileSync(path.join(layout.d1, "release-source-PROD-REL-04.json"), `${JSON.stringify(source, null, 2)}\n`, { flag: "wx", mode: 0o644 });
+  process.stdout.write(`rel-04 receipt verified for ${runId}: every step re-derived from disk; no cloud call made. Release source written.\n`);
   return 0;
 }
 

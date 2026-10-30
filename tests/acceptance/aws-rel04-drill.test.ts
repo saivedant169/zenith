@@ -8,7 +8,7 @@ import { grantsFor } from "../../scripts/acceptance/live/guard";
 import { resumeCommand } from "../../scripts/acceptance/live/cli";
 import { RunCheckpoint, fileStore } from "../../scripts/release/checkpoint";
 import { liveSeams, planFromEnv, rel04Layout, runRel04Drill, type DrillChild, type DrillSeams, type Rel04Layout } from "../../scripts/acceptance/live/drill/rel-04";
-import { loadRel04Files, verifyRel04Files } from "../../scripts/acceptance/live/drill/verify-rel-04";
+import { drillReleaseSource, loadRel04Files, verifyRel04Files } from "../../scripts/acceptance/live/drill/verify-rel-04";
 import type { Journal } from "../../scripts/acceptance/live/contracts";
 
 const runId = "zlive-202610080000-abcd";
@@ -182,6 +182,19 @@ describe("PROD-REL-04 offline verifier (tamper checks)", () => {
   };
   it("accepts the untouched receipt", async () => {
     expect(verifyDisk(await passedReceipt())).toEqual([]);
+  });
+  it("binds a release source to the verified receipt and the resumed run's evidence, and refuses a forged packet", async () => {
+    const setup = await passedReceipt();
+    // The resumed harness run's packet, as live/cli.ts writes it: its PROD-REL-04 row is unperformed, the drill is the proof.
+    const packet = { schema: 1, provenance: "live_sandbox", runId, commit, scenario: "rel-04", accountId, region: "ap-south-1", planSha256: plan.sha256,
+      permissionSha256: "f".repeat(64), cleanupComplete: true, requirements: [{ id: "PROD-REL-04", status: "pending", reason: "Product scenario unperformed" }] };
+    const receipt = readFileSync(setup.layout.receipt), evidence = Buffer.from(JSON.stringify({ ...packet, sha256: digest(packet) }));
+    const source = drillReleaseSource(receipt, evidence);
+    expect(source).toMatchObject({ schema: "zenith.live-release-source.v1", commit, requirements: ["PROD-REL-04"], verdict: "passed", drill: { file: "rel-04-receipt.json" } });
+    expect(source?.result).toMatch(/^PROD-REL-04 crash, resume and replay drill passed/);
+    const forged = JSON.parse(evidence.toString("utf8")) as Record<string, unknown>;
+    forged.cleanupComplete = !forged.cleanupComplete;
+    expect(drillReleaseSource(receipt, Buffer.from(JSON.stringify(forged)))).toBeUndefined();
   });
   it("rejects a receipt whose plan digest is wrong", async () => {
     const setup = await passedReceipt();

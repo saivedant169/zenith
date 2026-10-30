@@ -274,3 +274,22 @@ node scripts/ci/wave6-gates.mjs --requirement PROD-OPS-04 --print > /tmp/zenith-
 ```
 
 This prints the exact argv for each contract batch and required engine case, its gate names, private prerequisites, and its strict report-validation command. Set only the gates for the selected lane after preparing its owned fixture; a skip cannot satisfy that lane. Run each `argv` sequentially and then its `verify` argv. [Final integration setup and results](FINAL-INTEGRATION.md), [canonical inventory](../../../../scripts/ci/wave6-gates.json), [owner live runbook](../LIVE-ACCEPTANCE.md).
+
+## OPS-04 restore on the live AWS sandbox (2026-10-30)
+
+Run [41012192964](https://github.com/saivedant169/zenith/actions/runs/41012192964), run id `zlive-202610300606-05a2`, workflow `live-acceptance.yml`, scenario `ops-04`, lane `live2`. Source `546b63450cce6da1dca008b413eabe6ae1fac21d`. Sandbox account `361646636162` in ap-south-1. Plan digest `3e598da48d890700236146f81425a6de258897c987fdf99e06d87c6c6ef18316`; permission digest `74fe5188ed89f77ef00cdc2f6ed6a37db0739e801c37b0b04ebd7e90211c9a83`.
+
+Verdict `passed`: 1 passed, 0 failed, 0 pending. Cleanup complete. Estimated cap USD 0.75 (provisional, billing not measured), 50 minute window. Files: `evidence/PROD-OPS-04/2026-10-30-live-aws-41012192964/`.
+
+What it proved:
+
+- A deploy waiting for its approval was captured in the control-plane backup. It was then approved and applied after the backup, so a second managed S3 bucket existed in AWS and in the recorded state.
+- The stores were lost from the control-plane database and restored into it at recovery epoch 1.
+- The restored proposal was fenced. An approval was refused (`journey:browser-human-approval`), and the proposal did not execute on its own for 120 s.
+- It came back only through a recovery resume, where a stale binding was refused, and a fresh approval.
+- Applying it again left AWS unchanged: 2 buckets, 16 recorded resources.
+- Measured RPO 190 s (target 900) and RTO 19 s (target 14400).
+
+Fixes that led here: PR #112 (values-free custody refusal trace) located the refusal at the write-once plan digest. PR #114 lets a proposal round reopened by a recovery resume, and decided before its workflow start, record its first plan; a plan-round approval made before plan stamping still cannot authorize a later plan.
+
+Limits: `operational_rehearsal` is not done, and the requirement lists it as required. This is one environment with S3 buckets on one provider. `evidence.json` is not a `zenith.release-evidence.v1` receipt. Status stays `in_progress`. Not a promotion.

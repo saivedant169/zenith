@@ -515,8 +515,11 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: aws-live-rel04-${{ github.run_id }}
+          # The .txt files are the recorded resume commands (names and paths only, the same text kill-checkpoint.json carries),
+          # so the offline verifier can be re-run over the published artifact.
           path: |
             ${{ runner.temp }}/zenith-aws-production/${{ inputs.run_id }}/*.json
+            ${{ runner.temp }}/zenith-aws-production/${{ inputs.run_id }}/*.txt
             ${{ runner.temp }}/zenith-aws-production-replay/${{ inputs.run_id }}/*.json
           if-no-files-found: error
           retention-days: 7

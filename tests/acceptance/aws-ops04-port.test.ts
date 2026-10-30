@@ -59,14 +59,13 @@ function harness(opts: Opts = {}) {
     steps: [{ id: "verify", status: opts.restoreOk === false ? "refused" : "ok", detail: opts.restoreOk === false ? "pg_restore failed (exit 1): schema \"auth\" does not exist at /home/runner/x/y" : "" }],
     measurement: { backupSnapshotAt: at(0), backupFinishedAt: at(30), restoreStartedAt: at(400), restoreFinishedAt: at(600), incidentAt: null, applicationHealthyAt: null, rpoSeconds: null, backupAgeAtRestoreStartSeconds: 400, restoreDurationSeconds: 200, rtoSeconds: null, targets: { rpoSeconds: null, rtoSeconds: null, status: "unset" }, verdict: "no_targets", caveats: [] },
   } as unknown as RestoreReport;
-  let switched = false, closed = false;
+  let restored = false, closed = false;
   const stack: Ops04Stack = {
     stop: async (s) => { events.push(`stop:${s.join("+")}`); if (s.includes("execution-worker")) workerUp = false; },
-    start: async (s) => { events.push(`start:${s}${switched ? ":restored" : ""}`); if (s === "execution-worker") workerUp = true; },
+    start: async (s) => { events.push(`start:${s}${restored ? ":restored" : ""}`); if (s === "execution-worker") workerUp = true; },
     backup: async () => { events.push("backup"); return { snapshotAt: at(0), epoch: 6 }; },
-    restore: async () => { events.push("restore"); op.status = "awaiting_approval"; return report; },
+    restore: async () => { events.push("restore"); restored = true; op.status = "awaiting_approval"; return report; },
     readback: async () => ({ status: opts.restoredStatus ?? "awaiting_approval", consumed: false, epoch: 6, current: 7 }),
-    switchToRestored: async () => { switched = true; events.push("switch"); },
     close: async () => { closed = true; },
   };
   // The quiet window: what the restored stack did on its own.
@@ -122,7 +121,7 @@ describe("OPS-04 port", () => {
     expect(result.reason).toContain("RTO 400 s");
     expect(h.events).toEqual([
       "manifest:1", "deploy", "manifest:2", "propose:worker=true", "stop:execution-worker", "backup", "start:execution-worker", "finish:resumed=false:env1:op2:dep2",
-      "stop:api+execution-worker", "restore", "switch", "start:api:restored", "try-approve", "start:execution-worker:restored", "finish:resumed=true:env1:op2:dep2",
+      "stop:api+execution-worker", "restore", "start:api:restored", "try-approve", "start:execution-worker:restored", "finish:resumed=true:env1:op2:dep2",
     ]);
     expect(h.destroyed()).toBe(true);
     expect(h.closed()).toBe(true);

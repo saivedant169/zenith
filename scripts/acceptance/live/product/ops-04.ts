@@ -3,8 +3,8 @@
  *
  * Zenith deploys one managed S3 bucket. A second bucket is proposed and left waiting for its approval, before any workflow
  * starts; the execution worker is stopped and the snapshot is taken there. After the backup the deploy is approved and applied (the
- * second bucket exists in AWS and in the recorded state). The control-plane database is then lost and restored into a new
- * database from the snapshot, and the API and worker are recreated against it. The run proves the restored deploy is fenced
+ * second bucket exists in AWS and in the recorded state). The stores are then lost from the control-plane database and
+ * restored into it from the snapshot (ops-04-stack.ts), and the API and worker restart against it. The run proves the restored deploy is fenced
  * by the new recovery epoch (an approval is refused), never runs again on its own, comes back only through a recovery
  * decision and a fresh approval, and that applying it again changes nothing in AWS. A deploy that was already dispatched
  * (`running`) restores `uncertain`, and one whose workflow start was attempted is never resumed (a start is never
@@ -155,7 +155,6 @@ export function ops04Port(env: EnvLike = process.env, seams: Ops04Seams = {}): P
         const fenced = await stack.readback(workspaceId, operationId);
         if (fenced.epoch >= fenced.current || fenced.current !== report.epoch || fenced.status !== "awaiting_approval") refuse(`the restored deploy is not a fenced proposal (operation ${/^[a-z_]{1,20}$/.test(fenced.status) ? fenced.status : "unknown"})`);
         step = "restored stack";
-        await stack.switchToRestored();
         await stack.start("api");
         const fencedApproval = await product.tryApprove!(tenant, operationId);
         if (fencedApproval.ok) refuse("an approval of the restored deploy was accepted before a recovery decision");
@@ -185,7 +184,7 @@ export function ops04Port(env: EnvLike = process.env, seams: Ops04Seams = {}): P
         const m = report.measurement ?? refuse("the restore report has no measurement");
         const measured = measureRecovery({ ...m, incidentAt, applicationHealthyAt: healthyAt, targets: OPS04_TARGETS });
         if (measured.verdict !== "within_targets") refuse(`the recovery is not within the approved targets (RPO ${measured.rpoSeconds ?? "unmeasured"} s of 900, RTO ${measured.rtoSeconds ?? "unmeasured"} s of 14400)`);
-        outcome = { complete: true, reason: `OPS-04 restore proven on AWS: a deploy waiting for its approval was captured in the backup and approved and applied after it; the control-plane database was restored into a new database at recovery epoch ${report.epoch}; the restored proposal was fenced (an approval was refused: ${fencedApproval.refusal ?? "refused"}), did not execute on its own for ${Math.round(quietMs / 1000)} s, and came back only through a recovery resume (a stale binding was refused) and a fresh approval; applying it again left AWS unchanged (${after.length} buckets, ${afterResources} recorded resources). Measured RPO ${measured.rpoSeconds} s (target 900) and RTO ${measured.rtoSeconds} s (target 14400)` };
+        outcome = { complete: true, reason: `OPS-04 restore proven on AWS: a deploy waiting for its approval was captured in the backup and approved and applied after it; the stores were lost from the control-plane database and restored into it at recovery epoch ${report.epoch}; the restored proposal was fenced (an approval was refused: ${fencedApproval.refusal ?? "refused"}), did not execute on its own for ${Math.round(quietMs / 1000)} s, and came back only through a recovery resume (a stale binding was refused) and a fresh approval; applying it again left AWS unchanged (${after.length} buckets, ${afterResources} recorded resources). Measured RPO ${measured.rpoSeconds} s (target 900) and RTO ${measured.rtoSeconds} s (target 14400)` };
       } catch (error) {
         outcome = error instanceof Refusal
           ? { complete: false, reason: `OPS-04 not proven at ${step}: ${error.message}` }

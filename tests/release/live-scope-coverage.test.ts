@@ -53,6 +53,7 @@ const COVERED_BY: Record<string, string> = {
   "scripts/acceptance/live/product/ops-05.ts": "scripts/acceptance/live/cli.ts",
   // OPS-03 runs only behind the production CLI, as OPS-04.
   "scripts/acceptance/live/product/ops-03.ts": "scripts/acceptance/live/cli.ts",
+  "scripts/acceptance/live/product/ops-02-stack.ts": "scripts/acceptance/live/cli.ts",
   "scripts/acceptance/live/product/session-refresh.ts": "scripts/acceptance/live/cli.ts",
   "tests/acceptance/aws-teardown01-port.test.ts": "scripts/acceptance/live/scope.ts",
   "tests/acceptance/aws-ops06-port.test.ts": "scripts/acceptance/live/scope.ts",

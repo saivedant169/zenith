@@ -280,6 +280,19 @@ Scenario `ops-03` (either lane, 5 to 60 minutes) proves PROD-OPS-03 on the runne
 
 **Not covered (named residuals).** The candidates are rebuilt from the same source, because no released N-1 exists yet: this proves in-flight replacement and rollback against AWS, not a previous-release compatibility matrix. Runner (machine) upgrades are separate.
 
+## OPS-02 fairness and outage run (2026-10-31)
+
+Scenario `ops-02` (either lane, 5 to 60 minutes) proves PROD-OPS-02 with ready-made parts: the repository's pinned Prometheus image and its own alert and dashboard definitions (`deploy/observability`), and the DEPLOY-01 nginx service on ECS Fargate behind an ALB. It uses the DEPLOY-01 sandbox calls and cost ceiling. Code: the `ops-02` branch of `scripts/acceptance/live/product/deploy-01.ts` and `ops-02-stack.ts`.
+
+1. Recreate the API with a run-scoped `CRON_SECRET` (the lean stack sets none) and start Prometheus on the host network, scraping `/api/internal/metrics` over the stack's TLS every 5 s with both rule files loaded.
+2. A second tenant is created. The first sends 600 requests, 40 at a time; the second sends 20, 2 at a time, during the flood. The first must be refused (HTTP 429) and the second fully served.
+3. The dashboard's tenant-filtered refusal panel, queried in Prometheus, shows refusals for the first tenant and none for the second.
+4. Deploy the DEPLOY-01 service and probe the ALB once a second from here on.
+5. Stop the control store (the Supabase database container) until `ZenithControlStoreDown` fires, then also stop the API and worker for 60 s. Every probe must be HTTP 200.
+6. Restart the control store, API and worker; the store reports up and the tenant is served again.
+
+**Not covered (named residuals).** Traces in a trace backend, worker-side metrics (the worker's endpoint is loopback-only), the Grafana UI import (proven locally by `import-harness.mjs`), and Temporal-backed worker fairness.
+
 ## Budget, cleanup and evidence limits
 
 The hard admission ceiling reserves the canonical fixed topology, maximum attempts, a 5..20 minute execution window and a 2USD cleanup reserve before **any** AWS call. It refuses an altered self-consistent cost/topology as well as unknown/unplanned calls, changed inputs, missing per-call permission, exhausted attempt counts and expired mutation permission. Before billable creation it atomically claims `/zenith/live-runs/<runId>` using Standard-tier PutParameter with Overwrite=false and independently reads it. This account-side receipt prevents replay from a new directory or another machine. The execution role cannot overwrite/delete the receipt. The bootstrap uses the documented StringEquals condition for ssm:Overwrite; see [AWS Parameter Store condition guidance](https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-policy-conditions.html). Non-billing receipts are intentionally retained for replay prevention, tagged with purpose live-acceptance-receipt, and excluded from workload leak discovery; deletion requires a separate accountable retention decision. Cleanup is limited to already approved teardown/read inventory, can use the original approval after its expiry, and has a 25-minute observation deadline. It cannot create new resources or claim another run in recovery mode. SDK retries are disabled; every attempt is counted and journaled before dispatch.

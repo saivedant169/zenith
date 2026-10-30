@@ -95,7 +95,7 @@ export async function runLiveCli(argv: readonly string[], env: EnvLike = process
     const product = env.ZENITH_LIVE_PRODUCT !== "1" ? undefined
       : selected === "retention-s3" ? retentionS3Port(env)
       : selected === "mix-03" ? mix03Port(env, { product: browserMix03Product(env), worker: runnerWorker(env) })
-      : selected === "deploy-01" || selected === "ops-06" ? deploy01Port(env, { product: browserDeploy01Product(env) })
+      : selected === "deploy-01" || selected === "ops-06" || selected === "ops-02" ? deploy01Port(env, { product: browserDeploy01Product(env) })
       : selected === "teardown-01" ? teardown01Port(env, { product: browserDeploy01Product(env) })
       : selected === "ops-04" ? ops04Port(env, { product: browserDeploy01Product(env) })
       : selected === "ops-05" ? ops05Port(env, { product: browserDeploy01Product(env) })

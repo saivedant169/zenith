@@ -37,6 +37,11 @@ export interface Deploy01Product {
   reviewDeploy?(tenant: Deploy01Tenant, environmentId: string, operationId: string, deploymentId: string): Promise<{ round: number }>;
   /** OPS-03: approve the plan review it waits on, then every later round, until the operation is terminal. */
   completeDeploy?(tenant: Deploy01Tenant, operationId: string): Promise<{ operationId: string; status: string; detail?: string }>;
+  /**
+   * OPS-02: `count` concurrent GETs of `/api/platform/v1/operations?limit=1` as the tenant's owner, `concurrency` at a time,
+   * from the signed-in browser page. Status codes are counted; durations are milliseconds per request.
+   */
+  burst?(tenant: Deploy01Tenant, count: number, concurrency: number): Promise<{ statuses: Record<string, number>; durationsMs: number[] }>;
   /** OPS-04: the operation's status, approval round and recovery epoch as the API reports them. */
   operationStatus?(tenant: Deploy01Tenant, operationId: string): Promise<{ status: string; round: number }>;
   /** OPS-04: pending recovery items (GET /api/platform/v1/recovery?state=pending) and one decision. */
@@ -292,6 +297,28 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
         if (view.status !== "awaiting_approval") refuse(`the deploy is ${/^[a-z_]{1,20}$/.test(view.status) ? view.status : "unknown"}, not waiting for its review`);
         await approve(session, operationId);
         return finish(session, operationId, view.round);
+      });
+    },
+    async burst(tenant, count, concurrency) {
+      return step("request burst", async () => {
+        const session = sessionOf(tenant);
+        if (!Number.isInteger(count) || count < 1 || count > 2000 || !Number.isInteger(concurrency) || concurrency < 1 || concurrency > 100) refuse("the burst size is out of range");
+        return session.owner.evaluate(async ({ count, concurrency, workspaceId }) => {
+          const statuses: Record<string, number> = {}, durationsMs: number[] = [];
+          let next = 0;
+          const one = async () => {
+            for (; next < count; ) {
+              next++;
+              const start = performance.now();
+              const status = await fetch("/api/platform/v1/operations?limit=1", { credentials: "same-origin", redirect: "error", cache: "no-store", headers: { "x-zenith-workspace": workspaceId } })
+                .then(async r => { await r.arrayBuffer(); return r.status; }, () => 0);
+              durationsMs.push(performance.now() - start);
+              statuses[String(status)] = (statuses[String(status)] ?? 0) + 1;
+            }
+          };
+          await Promise.all(Array.from({ length: concurrency }, one));
+          return { statuses, durationsMs };
+        }, { count, concurrency, workspaceId: session.workspaceId });
       });
     },
     async operationStatus(tenant, operationId) {

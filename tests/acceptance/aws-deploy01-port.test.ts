@@ -9,6 +9,7 @@ import type { Call, Json, Plan } from "../../scripts/acceptance/live/contracts";
 import { trustDocument } from "../../scripts/acceptance/live/product/mix-03";
 import { DEPLOY01_IMAGES, deploy01Port } from "../../scripts/acceptance/live/product/deploy-01";
 import { browserDeploy01Product, failedCheckRefs, sanitizedError, type Deploy01Product } from "../../scripts/acceptance/live/product/deploy-01-driver";
+import type { Ops02Stack } from "../../scripts/acceptance/live/product/ops-02-stack";
 import { dispatchRequirementGap } from "@/lib/platform/broker";
 
 const ACCOUNT = "123456789012", REGION = "ap-south-1", RUN = "zlive-202610260000-ab01";
@@ -20,21 +21,37 @@ const requirement = { id: "PROD-REL-01", acceptance: [], fixtures: [], join: "" 
 const COMMIT = "a".repeat(40);
 const DNS = "zenith-web-123.ap-south-1.elb.amazonaws.com";
 
-function harness(opts: { deployStatus?: string; leftAfterDestroy?: number; keepVpc?: boolean; image?: (n: number) => string } = {}) {
+interface Ops02Opts { quietRefused?: boolean; neverFires?: boolean; servesDuringOutage?: boolean; noFloodRefusal?: boolean }
+function harness(opts: { deployStatus?: string; leftAfterDestroy?: number; keepVpc?: boolean; image?: (n: number) => string; ops02?: Ops02Opts } = {}) {
+  const o2 = opts.ops02;
+  const events: string[] = [];
+  let tenants = 0, down = false, closed = false;
+  const ops02: Ops02Stack = {
+    observe: async () => { events.push("observe"); },
+    query: async (expr) => expr.includes("zenith_control_store_up") ? [{ metric: {}, value: 1 }]
+      : expr.includes('tenant=~"ws1"') ? [{ metric: { tenant: "ws1" }, value: 400 }] : expr.includes('tenant=~"ws2"') && o2?.quietRefused ? [{ metric: { tenant: "ws2" }, value: 3 }] : [],
+    firing: async () => (o2?.neverFires ? [] : ["ZenithControlStoreDown"]),
+    stopControlStore: async () => { events.push("store:stop"); down = true; },
+    startControlStore: async () => { events.push("store:start"); down = false; },
+    stop: async (s) => { events.push(`stop:${s.join("+")}`); },
+    start: async (s) => { events.push(`start:${s}`); },
+    close: async () => { closed = true; },
+  };
   const trust = { observe: trustDocument(PRINCIPAL, OLD_EXT), deploy: trustDocument(PRINCIPAL, OLD_EXT) };
   const images: string[] = [];
   let destroyed = false;
   const connections: Record<string, unknown>[] = [];
   const CLUSTER = `arn:aws:ecs:${REGION}:${ACCOUNT}:cluster/zenith-x-web`;
   const product: Deploy01Product = {
-    createTenant: async () => ({ workspaceId: "ws1", projectId: "p1" }),
+    createTenant: async () => (++tenants === 1 ? { workspaceId: "ws1", projectId: "p1" } : { workspaceId: "ws2", projectId: "p2" }),
+    burst: async (t, count) => ({ statuses: (t.workspaceId === "ws1" && count > 1 && !o2?.noFloodRefusal ? { "200": 200, "429": count - 200 } : { "200": count }) as Record<string, number>, durationsMs: new Array(count).fill(12) }),
     createAwsConnection: async (_t, input) => { connections.push(input); return { connectionId: "c1", externalId: NEW_EXT }; },
     verifyAws: async () => ({ ok: true }),
     createEnvironment: async () => ({ environmentId: "env1" }),
     setManifest: async (_t, m) => { images.push(((m.services as { source: { image: string } }[])[0]!).source.image); },
     deploy: async (_t, _e, kind) => { if (kind === "rollback") images.push(images[images.length - 2]!); return { operationId: "op", status: opts.deployStatus ?? "succeeded", ...(opts.deployStatus ? { detail: "the plan failed" } : {}) }; },
   };
-  const plan: Plan = buildPlan(settings);
+  const plan: Plan = buildPlan(o2 ? { ...settings, scenario: "ops-02" } : settings);
   const permission = {
     schema: 1 as const, decision: "DEC-CLOUD" as const, approvedBy: "owner-test", approvedAt: "2020-01-01T00:00:00.000Z", expiresAt: "2099-01-01T00:00:00.000Z",
     accountId: ACCOUNT, region: REGION, runId: RUN, planSha256: plan.sha256, sourceCommit: COMMIT, maxUsd: plan.estimate.usd, maxMinutes: plan.settings.durationMinutes, grants: grantsFor(plan),
@@ -61,8 +78,9 @@ function harness(opts: { deployStatus?: string; leftAfterDestroy?: number; keepV
     ] }),
     destroy: async (input: { stateKey: string }) => { expect(input.stateKey).toBe("zenith/ws1/env1/terraform.tfstate"); destroyed = true; return { destroyed: 20, destroyedArns: [CLUSTER, `arn:aws:ecs:${REGION}:${ACCOUNT}:task-definition/zenith-x-web:3`, ...(opts.keepVpc ? [] : [`arn:aws:ec2:${REGION}:${ACCOUNT}:vpc/vpc-0abc`])], destroyedIds: ["nat-0abc"] }; },
   };
-  const port = deploy01Port(env, { product, sleep: async () => undefined, propagation: { attempts: 2, intervalMs: 0 }, probe: async (dns, host) => (dns === DNS && host.startsWith("web-") ? 200 : 503), state });
-  return { trust, images, sent, connections, run: () => port.verify(requirement, { plan, commit: COMMIT, call }) };
+  const port = deploy01Port(env, { product, sleep: () => new Promise<void>(resolve => setImmediate(resolve)), propagation: { attempts: 2, intervalMs: 0 },
+    probe: async (dns, host) => (dns === DNS && host.startsWith("web-") && !(down && o2?.servesDuringOutage === false) ? 200 : 503), state, ...(o2 ? { ops02 } : {}) });
+  return { trust, images, sent, connections, events, closed: () => closed, run: () => port.verify(o2 ? { ...requirement, id: "PROD-OPS-02" } : requirement, { plan, commit: COMMIT, call }) };
 }
 
 describe("DEPLOY-01 driver error detail", () => {
@@ -165,5 +183,31 @@ describe("DEPLOY-01 port", () => {
     const port = deploy01Port({}, { product: {} as Deploy01Product });
     expect((await port.verify({ ...requirement, id: "PROD-MIX-03" }, { plan, commit: COMMIT, call: async () => ({}) })).reason).toMatch(/not implemented/);
     expect((await port.verify(requirement, { plan, commit: COMMIT, call: async () => ({}) })).reason).toMatch(/ZENITH_LIVE_PRODUCT=1 is not set/);
+  });
+});
+
+describe("OPS-02 on the DEPLOY-01 port", () => {
+  it("compares two tenants on real metrics, then keeps the workload serving through a control-plane outage", async () => {
+    const h = harness({ ops02: {} });
+    const result = await h.run();
+    expect(result.reason).toMatch(/^OPS-02 proven on AWS: .* refused 400 times \(HTTP 429\) while a second tenant's 20 concurrent requests were all served/);
+    expect(result.complete).toBe(true);
+    expect(h.events).toEqual(["observe", "store:stop", "stop:api+execution-worker", "store:start", "start:api", "start:execution-worker"]);
+    expect(h.images).toEqual([DEPLOY01_IMAGES.v1]);
+    expect(h.closed()).toBe(true);
+    expect(h.trust.deploy).toBe(trustDocument(PRINCIPAL, OLD_EXT));
+  });
+  it.each([
+    [{ noFloodRefusal: true }, "tenant fairness: the flooding tenant was never refused (200: 600)"],
+    [{ quietRefused: true }, "tenant metrics: Prometheus shows refusals for the quiet tenant"],
+    [{ neverFires: true }, "control-plane restart: ZenithControlStoreDown did not fire within 5 minutes of the control store stopping"],
+    [{ servesDuringOutage: false }, "control-plane restart: the workload did not serve every probe during the outage"],
+  ] as [Ops02Opts, string][])("refuses %o, restarts the control plane and still cleans up", async (ops02, reason) => {
+    const h = harness({ ops02 });
+    const result = await h.run();
+    expect(result.complete).toBe(false);
+    expect(result.reason.startsWith(`OPS-02 not proven at ${reason}`)).toBe(true);
+    expect(h.closed()).toBe(true);
+    if (h.events.includes("store:stop")) expect(h.events.slice(-3)).toEqual(["store:start", "start:api", "start:execution-worker"]);
   });
 });

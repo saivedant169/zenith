@@ -52,7 +52,7 @@ export const navigatorHeaders = (): Record<string, string> => ({
   "x-zenith-actor-key": navigatorKey(),
 });
 
-const isNavigator = (req: NextRequest): boolean =>
+export const isNavigator = (req: NextRequest): boolean =>
   req.headers.get("x-zenith-actor") === "navigator" &&
   req.headers.get("x-zenith-actor-key") === navigatorKey();
 

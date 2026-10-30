@@ -48,6 +48,8 @@ const ownWorkspace = (row: { workspaceId?: string }, ctx: TenantContext): string
 async function memberRowsFor(ctx: PrefetchContext): Promise<PgRow[]> {
   const user = ctx.user as { id: string; email: string };
   const email = (user.email ?? "").toLowerCase();
+  // The anonymous caller (request.ts prefetch) is nobody: no membership to look up.
+  if (!user.id && !email) return [];
   const { data, error } = await ctx.client
     .from("members")
     .select("*")

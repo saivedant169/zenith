@@ -116,8 +116,17 @@ async function prefetch(req: NextRequest, integration?: IntegrationRequestAccess
   const user = integration
     ? { id: integration.subject, email: "" }
     : await sessionUserFromRequest(req).catch(() => null);
+  // With auth configured, a caller with no session can reach no workspace (workspacesFor(null) is empty), so it
+  // loads nobody's rows rather than every tenant's: an anonymous request must not cost a full-store read (PROD-OPS-01
+  // capacity). Only the auth-off demo and the in-process Navigator act without a session over the whole store.
+  let nobody = false;
+  if (!user) {
+    const { isSupabaseConfigured } = await import("@/lib/supabase/env");
+    const { isNavigator } = await import("@/lib/server/actor");
+    nobody = isSupabaseConfigured() && !isNavigator(req);
+  }
   const { loadSnapshot, pgClient } = await import("@/lib/db/postgres-store");
-  return loadSnapshot(pgClient(), user ? { id: user.id, email: user.email } : null);
+  return loadSnapshot(pgClient(), user ? { id: user.id, email: user.email } : nobody ? { id: "", email: "" } : null);
 }
 
 /** The permission a route needs, stated once instead of re-typed per handler. */

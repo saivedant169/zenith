@@ -12,7 +12,7 @@ import { parseManifest } from "@/lib/resources/manifest-v2";
 import { buildParentPlan } from "@/lib/execution/mixed/parent-plan";
 import { connection, PARENT_ENV, PROJECT, WS } from "../execution/mixed/_fixtures";
 import {
-  browserMix03Product, MIX03_REFERENCE, mix03Manifests, runnerStack, type ProductRequest, type RunnerStack, type TenantSession,
+  browserMix03Product, MIX03_REFERENCE, mix03Manifests, mixedReadbackOf, runnerStack, type ProductRequest, type RunnerStack, type TenantSession,
 } from "../../scripts/acceptance/live/product/mix-03-driver";
 
 const STACK: RunnerStack = { apiUrl: "http://127.0.0.1:36400", supabaseUrl: "http://127.0.0.1:54321", adminKey: "admin-test", mailpitUrl: "http://127.0.0.1:8025" };
@@ -546,5 +546,38 @@ describe("PROD-MIX-03 manifests against the real planner", () => {
     });
     expect(plan.children.map(c => c.childEnvironmentId)).toEqual(["env-p", "env-c"]);
     expect(plan.references).toHaveLength(1);
+  });
+});
+
+describe("PROD-MIX-02 stored plan readback", () => {
+  const h = (c: string) => c.repeat(64);
+  const raw = () => ({
+    parentPlanId: "mpp_1", status: "running", parentOperationId: "op-parent", parentEnvironmentId: PARENT_ENV, parentDigest: h("1"), desiredDigest: h("2"), childSetDigest: h("3"),
+    executionOrder: [P_PRODUCER, P_CONSUMER], teardownOrder: [P_CONSUMER, P_PRODUCER], references: [], connectivity: null,
+    children: [{
+      partitionId: P_PRODUCER, ordinal: 0, childEnvironmentId: "env-p", dependsOn: [], subplanDigest: h("4"), semanticsDigest: h("5"), effectDigest: h("6"), blockedByReferences: [],
+      partition: { provider: "aws" }, nodes: [{ stableAddress: `aws:ap-south-1:${"a".repeat(16)}::aws_s3_bucket.producer`, address: "aws_s3_bucket.producer", kind: "managed", specDigest: h("7") }],
+      state: "succeeded", childOperationId: "op-producer", executableSemanticsDigest: h("d"),
+      receipt: { format: "zenith.mixed-child-receipt.v1", receiptId: `mrc_${"e".repeat(32)}`, workspaceId: "ws-1", parentPlanId: "mpp_1", partitionId: P_PRODUCER, ordinal: 0,
+        childOperationId: "op-producer", outcome: "succeeded", childStatus: "succeeded", executableSemanticsDigest: h("d"), planDigest: h("f"), receiptDigest: h("e"), recordedAt: "2026-10-30T00:00:00.000Z" },
+    }],
+  });
+
+  it("keeps digests, ids, addresses and fixed words, and drops everything else", () => {
+    const plan = mixedReadbackOf(raw());
+    expect(plan.executionOrder).toEqual([P_PRODUCER, P_CONSUMER]);
+    expect(plan.children[0]!.nodes[0]).toEqual({ stableAddress: `aws:ap-south-1:${"a".repeat(16)}::aws_s3_bucket.producer`, address: "aws_s3_bucket.producer", specDigest: h("7") });
+    expect(plan.children[0]!.receipt).toEqual(raw().children[0]!.receipt);
+    expect(Object.keys(plan.children[0]!)).not.toContain("partition");
+  });
+
+  it.each([
+    ["a scrubbed digest", (r: ReturnType<typeof raw>) => { r.children[0]!.subplanDigest = "[redacted]"; }, "subplan digest"],
+    ["a receipt time that is not a timestamp", (r: ReturnType<typeof raw>) => { r.children[0]!.receipt.recordedAt = "yesterday"; }, "receipt time"],
+    ["a missing execution order", (r: ReturnType<typeof raw>) => { (r as { executionOrder?: unknown }).executionOrder = undefined; }, "execution order"],
+  ] as const)("refuses %s", (_name, change, what) => {
+    const r = raw();
+    change(r);
+    expect(() => mixedReadbackOf(r)).toThrow(`the stored plan readback has an unexpected ${what}`);
   });
 });

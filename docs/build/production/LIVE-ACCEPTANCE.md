@@ -119,6 +119,16 @@ Without the flag this test is skipped, never live evidence. With the flag and mi
 - **Run time limit: `minutes` input.** The dispatch input `minutes` (string, default `15`, integer 5 to 20, the range `scripts/acceptance/live/plan.ts` enforces) is checked in the pre-OIDC step "Check the sandbox account configuration" and exported as `ZENITH_LIVE_AWS_MINUTES` at job level, so preflight, the harness, the rel-04 drill and recovery all build the same plan. Dispatch with the value the owner approved: `-f minutes=<n>`. The signed envelope binds the plan digest, so a plan for 20 minutes dispatched with the default 15 is refused with "Permission is not bound to this exact plan".
 - **How to undo.** In GitHub, Settings > Environments > `live-sandbox`: add `saivedant169` back as a required reviewer, and turn on "Prevent self-review" if the two-person rule is restored. Then set the envelope `approvedBy` to a human approval again. This gate is an external GitHub setting, so no code change is needed to restore it.
 
+## PROD-MIX-02 in the mix-03 run (2026-10-30)
+
+The `mix-03` scenario's scope is PROD-MIX-03 and PROD-MIX-02. One run answers both: `scripts/acceptance/live/product/mix-03.ts` runs the flow once and the harness asks for each requirement in ledger order. The plan's AWS calls are unchanged. PROD-MIX-02 adds no AWS write; it reads the stored parent plan through `GET /api/platform/v1/mixed/plans/:id` and re-lists the producer bucket by tag.
+
+1. After the proposal, the port reads the stored plan: exactly two children, the consumer depends on exactly the producer, and the execution order runs the producer first.
+2. When the producer has succeeded and the consumer waits for an approval, the port reads the plan and the producer bucket, then stops the stack's `execution-worker` container. It approves while the worker is down, waits 30 s, then starts the worker and waits until it is healthy. The parent can only go on by resuming.
+3. At the end it reads the plan again. The parent, desired and child-set digests, each child's subplan, semantics and effect digests and every stable address must equal the first readback. Both receipts must link their child operation, bind the semantics the child ran and re-derive from their own fields (`receiptDigestOf`). The producer's receipt must equal the one read before the stop. AWS must hold the same one producer bucket.
+
+A PROD-MIX-02 refusal at the final readback leaves the PROD-MIX-03 result as it is. A failure before that, a worker that does not come back, or a cleanup leak fails both. Leaks are reported once, on PROD-MIX-03.
+
 ## MIX-03 connection and spend stop (2026-10-26)
 
 Owner decision 2026-10-26. Live runs connect Zenith to sandbox 361646636162 (ap-south-1) through the customer bootstrap `deploy/aws/zenith-connection.cfn.yaml`, installed once as stack `zenith-connection-live`. `deploy/live-sandbox/aws/main.tf` adds the `connection_name_suffix` variable (default `-live`), the connection roles `ZenithObserveRole-live` and `ZenithDeployRole-live`, and an automatic spend stop. Nothing in this change applies Terraform or touches AWS; the owner applies it later.

@@ -20,7 +20,7 @@
 import path from "node:path";
 import type { Browser, Page } from "@playwright/test";
 import type { EnvLike } from "../../config";
-import { refuse, Refusal, sanitizedError, type Mix03Artifact, type Mix03Child, type Mix03Product, type Mix03Tenant } from "./mix-03";
+import { refuse, Refusal, sanitizedError, type Mix03Artifact, type Mix03Child, type Mix03Product, type Mix03Tenant, type MixedReadback, type MixedReceipt } from "./mix-03";
 import { readState } from "../../default-stack/runtime.mjs";
 import { browserRequest, ensure, localUrl, nonce, ok, operator, privateFile, until, action } from "../../../../tests/e2e/default/support.mjs";
 import { enrollOperator, totp } from "../../../../tests/e2e/default/mfa.mjs";
@@ -141,6 +141,43 @@ const haltOf = (error: string): string => {
 };
 const HALT_CODE = /^[a-z0-9_]{1,80}$/;
 const SAFE_CODE = /^[a-z_]{1,40}$/, ID = /^[A-Za-z0-9_.:-]{1,128}$/, HEX64 = /^[a-f0-9]{64}$/;
+/** Readback shapes: ids and partition ids ("partition/<digest>"), and addresses, which are compared and never printed. */
+const REF = /^[A-Za-z0-9_.:\/-]{1,200}$/, ADDRESS = /^[\x21-\x7e]{1,300}$/, ISO = /^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/;
+
+/** PROD-MIX-02: the stored plan as read back, keeping only digests, ids, addresses and fixed words; anything else refuses. */
+export function mixedReadbackOf(raw: unknown): MixedReadback {
+  const bad = (what: string): never => refuse(`the stored plan readback has an unexpected ${what}`);
+  const get = (value: unknown, key: string): unknown => value && typeof value === "object" ? (value as Record<string, unknown>)[key] : undefined;
+  const str = (value: unknown, shape: RegExp, what: string): string => typeof value === "string" && shape.test(value) ? value : bad(what);
+  const list = (value: unknown, what: string): unknown[] => Array.isArray(value) ? value : bad(what);
+  const nullable = (value: unknown, shape: RegExp, what: string): string | null => value === null || value === undefined ? null : str(value, shape, what);
+  const receiptOf = (value: unknown): MixedReceipt | null => {
+    if (value === null || value === undefined) return null;
+    const optional = (key: string) => get(value, key) === undefined ? {} : { [key]: str(get(value, key), HEX64, `receipt ${key}`) };
+    const ordinal = get(value, "ordinal");
+    return {
+      format: str(get(value, "format"), REF, "receipt format"), receiptId: str(get(value, "receiptId"), REF, "receipt id"), workspaceId: str(get(value, "workspaceId"), REF, "receipt workspace"),
+      parentPlanId: str(get(value, "parentPlanId"), REF, "receipt plan"), partitionId: str(get(value, "partitionId"), REF, "receipt partition"),
+      ordinal: typeof ordinal === "number" && Number.isInteger(ordinal) && ordinal >= 0 ? ordinal : bad("receipt ordinal"),
+      childOperationId: str(get(value, "childOperationId"), REF, "receipt operation"), outcome: str(get(value, "outcome"), SAFE_CODE, "receipt outcome"),
+      childStatus: str(get(value, "childStatus"), SAFE_CODE, "receipt status"), ...optional("executableSemanticsDigest"), ...optional("planDigest"), ...optional("outputsDigest"),
+      receiptDigest: str(get(value, "receiptDigest"), HEX64, "receipt digest"), recordedAt: str(get(value, "recordedAt"), ISO, "receipt time"),
+    };
+  };
+  return {
+    status: str(get(raw, "status"), SAFE_CODE, "status"), parentOperationId: nullable(get(raw, "parentOperationId"), REF, "parent operation"),
+    parentDigest: str(get(raw, "parentDigest"), HEX64, "parent digest"), desiredDigest: str(get(raw, "desiredDigest"), HEX64, "desired digest"),
+    childSetDigest: str(get(raw, "childSetDigest"), HEX64, "child-set digest"), executionOrder: list(get(raw, "executionOrder"), "execution order").map(id => str(id, REF, "execution order")),
+    children: list(get(raw, "children"), "children").map(child => ({
+      partitionId: str(get(child, "partitionId"), REF, "partition"), dependsOn: list(get(child, "dependsOn"), "dependency").map(id => str(id, REF, "dependency")),
+      subplanDigest: str(get(child, "subplanDigest"), HEX64, "subplan digest"), semanticsDigest: str(get(child, "semanticsDigest"), HEX64, "semantics digest"),
+      effectDigest: str(get(child, "effectDigest"), HEX64, "effect digest"),
+      nodes: list(get(child, "nodes"), "nodes").map(node => ({ stableAddress: str(get(node, "stableAddress"), ADDRESS, "stable address"), address: str(get(node, "address"), ADDRESS, "address"), specDigest: str(get(node, "specDigest"), HEX64, "spec digest") })),
+      state: str(get(child, "state"), SAFE_CODE, "child state"), childOperationId: nullable(get(child, "childOperationId"), REF, "child operation"),
+      executableSemanticsDigest: nullable(get(child, "executableSemanticsDigest"), HEX64, "executable semantics digest"), receipt: receiptOf(get(child, "receipt")),
+    })),
+  };
+}
 /** A partition id is "partition/<digest>"; this is the adoption route's own body shape. */
 const PARTITION = /^[A-Za-z0-9_.:/-]{1,200}$/;
 /** Below deployment.deploy's catalog defaultAutonomy (4), so the mixed parent operation needs a person's approval. */
@@ -339,6 +376,12 @@ export function browserMix03Product(env: EnvLike = process.env, seams: Mix03Driv
       });
     },
 
+    async planReadback(tenant, planId) {
+      return step("plan readback", async () => {
+        const session = sessionOf(tenant);
+        return mixedReadbackOf(ok(await send(session, session.owner, `/api/platform/v1/mixed/plans/${planId}`, undefined, "GET")));
+      });
+    },
     async children(tenant, planId) {
       return step("children readback", async () => {
         const session = sessionOf(tenant);

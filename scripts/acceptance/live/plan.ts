@@ -10,7 +10,7 @@ const scenarios: Record<Scenario, { families: Family[]; scope?: string[] }> = {
   "retention-s3": { families: ["s3"], scope: ["PROD-OPS-07"] },
   "rel-04": { families: ["s3"], scope: ["PROD-REL-04"] },
   // No harness fixtures: the producer bucket, consumer function and their roles are created by Zenith itself (productCalls).
-  "mix-03": { families: [], scope: ["PROD-MIX-03"] },
+  "mix-03": { families: [], scope: ["PROD-MIX-03", "PROD-MIX-02"] },
   // No harness fixtures: Zenith deploys the service; cleanup destroys the environment's recorded state (state-destroy.ts).
   "deploy-01": { families: [], scope: ["PROD-REL-01"] },
   // No harness fixtures: Zenith deploys one bucket and tears it down after its deploy settles; the recorded state is the fallback.

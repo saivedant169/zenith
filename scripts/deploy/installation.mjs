@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createHash, createPrivateKey, createPublicKey, generateKeyPairSync, randomBytes } from 'node:crypto';
+import { createHash, createPrivateKey, createPublicKey, generateKeyPairSync, hkdfSync, randomBytes } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { load } from 'js-yaml';
 import { stagedComposition, stagingArguments } from './private-staging.mjs';
@@ -19,7 +19,10 @@ const fields = new Set([
   'ZENITH_TEMPORAL_API_KEY', 'ZENITH_AGENT_OAUTH_ISSUER', 'ZENITH_AGENT_OAUTH_JWKS',
   'ZENITH_AGENT_OAUTH_CLIENT_CLAIM', 'ZENITH_AGENT_OAUTH_SUBJECT_CLAIM', 'ZENITH_PLUGIN_TRUSTED_PUBLISHERS',
 ]);
-const generated = new Set(['ZENITH_SECRET_KEY', 'ZENITH_PLAN_ARTIFACT_KEY', 'ZENITH_CONTROL_SIGNING_JWK', 'ZENITH_OIDC_SIGNING_JWK']);
+const generated = new Set(['ZENITH_SECRET_KEY', 'ZENITH_PLAN_ARTIFACT_KEY', 'ZENITH_CONTROL_SIGNING_JWK', 'ZENITH_OIDC_SIGNING_JWK',
+  // Written only by rotateKeys: the new dedicated roots and every purpose's decrypt-only or verify-only history.
+  'ZENITH_TEMPORAL_PAYLOAD_KEY', 'ZENITH_RUNNER_RESULT_KEY', 'ZENITH_VAULT_PREVIOUS_SECRET_KEYS', 'ZENITH_TEMPORAL_PREVIOUS_SECRET_KEYS',
+  'ZENITH_PLAN_ARTIFACT_PREVIOUS_KEYS', 'ZENITH_RUNNER_RESULT_PREVIOUS_KEYS', 'ZENITH_CONTROL_EXTRA_PUBLIC_JWKS', 'ZENITH_OIDC_EXTRA_PUBLIC_JWKS']);
 const hash = (/** @type {string|Buffer} */ value) => createHash('sha256').update(value).digest('hex');
 const refuse = (/** @type {string} */ id) => { throw new Error(`installation:${id}`); };
 const loopback = (/** @type {string} */ host) => ['localhost', '127.0.0.1', '[::1]'].includes(host);
@@ -263,14 +266,14 @@ function assertTemporalTls(dir, names) {
 
 /** @param {PreparedInstallation} config @param {string} dir @returns {Record<string,Record<string,string>>} */
 export function environmentsFor(config, dir) {
-  const { ZENITH_PLATFORM_MIGRATION_URL: migrationUrl, ZENITH_PLAN_ARTIFACT_KEY: artifactKey, ZENITH_PLUGIN_TRUSTED_PUBLISHERS: publishers, ...runtime } = config.environment;
+  const { ZENITH_PLATFORM_MIGRATION_URL: migrationUrl, ZENITH_PLAN_ARTIFACT_KEY: artifactKey, ZENITH_PLAN_ARTIFACT_PREVIOUS_KEYS: artifactPrevious, ZENITH_PLUGIN_TRUSTED_PUBLISHERS: publishers, ...runtime } = config.environment;
   const common = { ...runtime, NODE_ENV: 'production', ZENITH_STORE: 'postgres', ZENITH_HOSTED_STORE: 'postgres', ZENITH_PLATFORM_DB: 'postgres', ZENITH_PLATFORM_DB_MAX: '5',
     ZENITH_AGENT_CONTROL: '1', ZENITH_AGENT_ORIGIN: runtime.NEXT_PUBLIC_SITE_URL, ZENITH_OIDC_ISSUER: `${runtime.NEXT_PUBLIC_SITE_URL}/api/oidc`,
     ...(config.mode === 'disposable' ? disposableTemporalClient : {}) };
   return {
     // Plugin publisher trust is a web-app setting; the worker never registers plugins.
     'api.env': { ...common, PORT: '3400', HOSTNAME: '0.0.0.0', ZENITH_DATA: '/data', ...(publishers ? { ZENITH_PLUGIN_TRUSTED_PUBLISHERS: publishers } : {}) },
-    'worker.env': { ...common, ZENITH_PLAN_ARTIFACT_KEY: artifactKey, ZENITH_DATA: '/var/lib/zenith', HOME: '/var/lib/zenith', ZENITH_WORKER_PLAN_DIR: '/var/lib/zenith/plans', ZENITH_WORKER_HEALTH_PORT: '9464', ZENITH_WORKER_TASK_QUEUE: 'zenith-execution',
+    'worker.env': { ...common, ZENITH_PLAN_ARTIFACT_KEY: artifactKey, ...(artifactPrevious ? { ZENITH_PLAN_ARTIFACT_PREVIOUS_KEYS: artifactPrevious } : {}), ZENITH_DATA: '/var/lib/zenith', HOME: '/var/lib/zenith', ZENITH_WORKER_PLAN_DIR: '/var/lib/zenith/plans', ZENITH_WORKER_HEALTH_PORT: '9464', ZENITH_WORKER_TASK_QUEUE: 'zenith-execution',
       // A disposable installation owns its whole engine and namespace; production keeps the operator's observe default.
       ...(config.mode === 'disposable' ? { ZENITH_WORKER_RECONCILE_SCHEDULE_MODE: 'provision' } : {}) },
     'migration.env': { NODE_ENV: 'production', ZENITH_PLATFORM_DB: 'postgres', ZENITH_PLATFORM_DB_URL: migrationUrl, ZENITH_PLATFORM_DB_MAX: '1' },
@@ -301,6 +304,75 @@ export function prepare(input, directory) {
   writeJson(path.join(dir, 'keyring.json'), result);
   for (const [name, env] of Object.entries(environmentsFor(result, dir))) writeEnv(path.join(dir, name), env);
   writeJson(path.join(dir, 'plan.json'), planFor(result));
+  return result;
+}
+
+/** Replace a private file in one rename, never through a partly written file.
+ * @param {string} location @param {string} content */
+function replaceFile(location, content) {
+  const next = `${location}.next`;
+  fs.rmSync(next, { force: true });
+  fs.writeFileSync(next, content, { mode: 0o600, flag: 'wx' });
+  fs.renameSync(next, location);
+}
+
+/** The result sealing key the registry derives from a control signing JWK (src/lib/keycustody/registry.ts derivedResultKey).
+ * @param {string} raw @returns {string} base64url */
+function legacyResultKey(raw) {
+  const d = JSON.parse(raw).d;
+  if (typeof d !== 'string' || d.length !== 43) refuse('ZENITH_CONTROL_SIGNING_JWK');
+  return Buffer.from(hkdfSync('sha256', Buffer.from(d, 'base64url'), Buffer.alloc(0), 'zenith.runner.result-seal.v1', 32)).toString('base64url');
+}
+
+/**
+ * Rotate every generated key (docs/platform/operations/KEY-CUSTODY.md, PROD-OPS-05). Each purpose gets a new current key and
+ * keeps the old one decrypt-only (vault, Temporal, plan artifacts, results) or verify-only (control and OIDC signing).
+ * Temporal and results move to their own roots, so later rotations no longer follow the vault or the signing key.
+ * The installation id, images and every other field stay. Recreate api and worker together afterwards: Temporal payloads
+ * and results need the client and the worker on one keyring. A joined worker re-joins from the rotated keyring.
+ * @param {string} directory @returns {PreparedInstallation}
+ */
+export function rotateKeys(directory) {
+  const dir = privateLocation(directory);
+  const config = readPrepared(dir);
+  if (config.workerId) refuse('worker-identity');
+  const old = config.environment;
+  /** @param {string} name @returns {unknown[]} */
+  const history = (name) => old[name] ? JSON.parse(old[name]) : [];
+  /** @param {string} raw */
+  const publicJwk = (raw) => {
+    const { d: _d, p: _p, q: _q, dp: _dp, dq: _dq, qi: _qi, ...pub } = JSON.parse(raw);
+    return pub;
+  };
+  const tag = randomBytes(6).toString('hex');
+  const control = generateKeyPairSync('ed25519');
+  const oidc = generateKeyPairSync('rsa', { modulusLength: 2048 });
+  const environment = {
+    ...old,
+    ZENITH_SECRET_KEY: randomBytes(32).toString('hex'),
+    ZENITH_VAULT_PREVIOUS_SECRET_KEYS: JSON.stringify([old.ZENITH_SECRET_KEY, ...history('ZENITH_VAULT_PREVIOUS_SECRET_KEYS')]),
+    // Payloads written under the old root (dedicated, or the vault key's HKDF domain before the first rotation) stay readable.
+    ZENITH_TEMPORAL_PAYLOAD_KEY: randomBytes(32).toString('hex'),
+    ZENITH_TEMPORAL_PREVIOUS_SECRET_KEYS: JSON.stringify([old.ZENITH_TEMPORAL_PAYLOAD_KEY ?? old.ZENITH_SECRET_KEY, ...history('ZENITH_TEMPORAL_PREVIOUS_SECRET_KEYS')]),
+    ZENITH_PLAN_ARTIFACT_KEY: randomBytes(32).toString('hex'),
+    ZENITH_PLAN_ARTIFACT_PREVIOUS_KEYS: JSON.stringify([old.ZENITH_PLAN_ARTIFACT_KEY, ...history('ZENITH_PLAN_ARTIFACT_PREVIOUS_KEYS')]),
+    // Results sealed before the first rotation used the key derived from the old control signing key.
+    ZENITH_RUNNER_RESULT_KEY: randomBytes(32).toString('base64url'),
+    ZENITH_RUNNER_RESULT_PREVIOUS_KEYS: JSON.stringify([old.ZENITH_RUNNER_RESULT_KEY ?? legacyResultKey(old.ZENITH_CONTROL_SIGNING_JWK), ...history('ZENITH_RUNNER_RESULT_PREVIOUS_KEYS')]),
+    ZENITH_CONTROL_SIGNING_JWK: JSON.stringify({ ...control.privateKey.export({ format: 'jwk' }), kid: `control-${config.installationId}-${tag}`, alg: 'EdDSA' }),
+    ZENITH_CONTROL_EXTRA_PUBLIC_JWKS: JSON.stringify([publicJwk(old.ZENITH_CONTROL_SIGNING_JWK), ...history('ZENITH_CONTROL_EXTRA_PUBLIC_JWKS')]),
+    ZENITH_OIDC_SIGNING_JWK: JSON.stringify({ ...oidc.privateKey.export({ format: 'jwk' }), kid: `oidc-${config.installationId}-${tag}`, alg: 'RS256' }),
+    ZENITH_OIDC_EXTRA_PUBLIC_JWKS: JSON.stringify([publicJwk(old.ZENITH_OIDC_SIGNING_JWK), ...history('ZENITH_OIDC_EXTRA_PUBLIC_JWKS')]),
+  };
+  /** @type {PreparedInstallation} */
+  const result = { ...config, environment };
+  validateInput(result, true);
+  const json = `${JSON.stringify(result, null, 2)}\n`;
+  for (const [name, env] of Object.entries(environmentsFor(result, dir))) replaceFile(path.join(dir, name), Object.entries(env).map(([k, v]) => `${k}=${v}`).join('\n') + '\n');
+  replaceFile(path.join(dir, 'keyring.json'), json);
+  replaceFile(path.join(dir, 'plan.json'), `${JSON.stringify(planFor(result), null, 2)}\n`);
+  // Last: readPrepared trusts installation.json, so an interrupted rotation leaves drift it refuses, never a silent mix.
+  replaceFile(path.join(dir, 'installation.json'), json);
   return result;
 }
 
@@ -499,6 +571,11 @@ async function main(args) {
     assertPrivate(inputFile);
     const config = prepare(JSON.parse(fs.readFileSync(inputFile, 'utf8')), directory);
     process.stdout.write(`${JSON.stringify(planFor(config))}\n`);
+    return;
+  }
+  if (command === 'rotate') {
+    if (inputFile) refuse('usage');
+    process.stdout.write(`${JSON.stringify(planFor(rotateKeys(directory)))}\n`);
     return;
   }
   const config = readPrepared(directory);

@@ -8,8 +8,9 @@ import { allCalls, buildPlan, scopedRequirementIds } from "../../scripts/accepta
 import { grantsFor, Guard } from "../../scripts/acceptance/live/guard";
 import type { Call, Json, Plan } from "../../scripts/acceptance/live/contracts";
 import {
-  consumerPackage, fill, mix03Port, templateExternalId, trustDocument, unwiredProduct, type Mix03Product,
+  consumerPackage, fill, mix03Port, templateExternalId, trustDocument, unwiredProduct, type Mix03Child, type Mix03Product, type MixedReadback,
 } from "../../scripts/acceptance/live/product/mix-03";
+import { buildReceipt } from "@/lib/execution/mixed/receipt";
 
 const ACCOUNT = "123456789012", REGION = "ap-south-1", RUN = "zlive-202610260000-ab01", ENV = "envlive1";
 const FN = "zenith-envlive1-consumer", BUCKET = "zenith-envlive1-producer";
@@ -62,8 +63,41 @@ function respond(state: World, c: Call, input: Record<string, Json>): Record<str
   }
 }
 
+/**
+ * The stored plan behind the fake driver (PROD-MIX-02). Stage 0: the producer is done and the consumer waits for its review;
+ * starting the worker again moves it to stage 1, where both children succeeded with durable receipts.
+ */
+function mixedPlan() {
+  const h = (c: string) => c.repeat(64), at = "2026-10-30T00:00:00.000Z";
+  const state = { stage: 0, changeOnRestart: undefined as undefined | ((plan: MixedReadback) => void) };
+  const receipt = (partitionId: string, ordinal: number, childOperationId: string, semantics: string) =>
+    buildReceipt({ workspaceId: "ws-1", parentPlanId: "plan-1", partitionId, ordinal, childOperationId, outcome: "succeeded", childStatus: "succeeded", executableSemanticsDigest: semantics, planDigest: h("f") }, at);
+  const readback = async (): Promise<MixedReadback> => {
+    const done = state.stage > 0;
+    const plan: MixedReadback = {
+      status: done ? "succeeded" : "running", parentOperationId: "op-parent", parentDigest: h("1"), desiredDigest: h("2"), childSetDigest: h("3"), executionOrder: ["p-producer", "p-consumer"],
+      children: [
+        { partitionId: "p-producer", dependsOn: [], subplanDigest: h("4"), semanticsDigest: h("5"), effectDigest: h("6"), nodes: [{ stableAddress: `aws:${ACCOUNT}:${REGION}::aws_s3_bucket.producer`, address: "aws_s3_bucket.producer", specDigest: h("7") }],
+          state: "succeeded", childOperationId: "op-producer", executableSemanticsDigest: h("d"), receipt: receipt("p-producer", 0, "op-producer", h("d")) },
+        { partitionId: "p-consumer", dependsOn: ["p-producer"], subplanDigest: h("8"), semanticsDigest: h("9"), effectDigest: h("a"), nodes: [{ stableAddress: `aws:${ACCOUNT}:${REGION}::aws_lambda_function.consumer`, address: "aws_lambda_function.consumer", specDigest: h("b") }],
+          state: done ? "succeeded" : "pending", childOperationId: done ? "op-consumer" : null, executableSemanticsDigest: done ? h("e") : null, receipt: done ? receipt("p-consumer", 1, "op-consumer", h("e")) : null },
+      ],
+    };
+    if (done) state.changeOnRestart?.(plan);
+    return plan;
+  };
+  const children = async (): Promise<Mix03Child[]> => state.stage > 0
+    ? [{ role: "producer", status: "succeeded", childOperationId: "op-producer", receiptOperationId: "op-producer" }, { role: "consumer", status: "succeeded", childOperationId: "op-consumer", receiptOperationId: "op-consumer" }]
+    : [{ role: "producer", status: "succeeded", childOperationId: "op-producer", receiptOperationId: "op-producer" }, { role: "consumer", status: "pending", awaitingOperationId: "op-review" }];
+  const events: string[] = [];
+  const worker = { stop: async () => { events.push("stop"); }, start: async () => { events.push("start"); state.stage = 1; } };
+  return { state, readback, children, worker, events };
+}
+
 /** A driver where the whole browser flow succeeds; each test overrides the step it exercises. */
 function happy(overrides: Partial<Mix03Product> = {}): Mix03Product {
+  const finished = mixedPlan();
+  finished.state.stage = 1;
   let uses = 0;
   return {
     createTenant: async () => ({ workspaceId: "ws-1", approverId: "approver-1" }),
@@ -79,6 +113,7 @@ function happy(overrides: Partial<Mix03Product> = {}): Mix03Product {
     changeProducer: async () => ({ consumerState: "review_required" }),
     issueOutputPreauthorization: async () => undefined,
     useOutputOnce: async () => ({ ok: uses++ === 0 }),
+    planReadback: finished.readback,
     ...overrides,
   };
 }
@@ -99,7 +134,7 @@ function harness(state: World, product: Mix03Product, seamOverrides: Partial<Par
     return respond(state, c, resolved);
   };
   const port = mix03Port(environment, { product, ...fast, ...seamOverrides });
-  return { plan, sent, run: () => port.verify(requirement, { plan, commit: COMMIT, call }) };
+  return { plan, sent, run: () => port.verify(requirement, { plan, commit: COMMIT, call }), run02: () => port.verify({ ...requirement, id: "PROD-MIX-02" }, { plan, commit: COMMIT, call }) };
 }
 
 describe("PROD-MIX-03 preconditions and the default driver", () => {
@@ -406,7 +441,7 @@ describe("PROD-MIX-03 plan shape and guard", () => {
     const ids = allCalls(plan).map(c => c.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect((plan.productCalls ?? []).every(c => c.id.startsWith("mix03-"))).toBe(true);
-    expect(scopedRequirementIds(plan.settings, ["PROD-MIX-03", "PROD-OPS-07"])).toEqual(["PROD-MIX-03"]);
+    expect(scopedRequirementIds(plan.settings, ["PROD-MIX-03", "PROD-OPS-07"])).toEqual(["PROD-MIX-03", "PROD-MIX-02"]);
   });
 
   it("the requested IAM calls target exactly the two sandbox roles", () => {
@@ -448,5 +483,60 @@ describe("PROD-MIX-03 plan shape and guard", () => {
     expect(buildPlan({ ...settings, scenario: "rel-04" }).productCalls).toBeUndefined();
     expect(buildPlan({ ...settings, scenario: "mix-03" }).sha256).not.toBe(buildPlan({ ...settings, scenario: "rel-04" }).sha256);
     expect(Object.keys(buildPlan({ ...settings, scenario: "retention-s3" }))).not.toContain("productCalls");
+  });
+});
+
+describe("PROD-MIX-02 from the same run (immutable child plans, resume across a worker restart)", () => {
+  const staged = (change?: (plan: MixedReadback) => void) => {
+    const plan = mixedPlan();
+    plan.state.changeOnRestart = change;
+    const approve = vi.fn(async (_tenant: unknown, operationId: string) => { plan.events.push(`approve:${operationId}`); });
+    return { plan, product: happy({ children: plan.children, planReadback: plan.readback, approve }) };
+  };
+
+  it("stops the worker with the consumer waiting, approves while it is down, resumes and proves both from one run", async () => {
+    const { plan, product } = staged();
+    const { run, run02, sent } = harness(world(), product, { worker: plan.worker });
+    const second = await run02();
+    expect(second.reason).toMatch(/^PROD-MIX-02 proven on the live sandbox/);
+    expect(second.complete).toBe(true);
+    expect(plan.events).toEqual(["approve:op-parent", "stop", "approve:op-review", "start"]);
+    const calls = sent.length;
+    const first = await run();
+    expect(first.reason).toMatch(/^PROD-MIX-03 partly proven/);
+    expect(sent.length).toBe(calls);
+    expect(first.leaks).toEqual([]);
+  });
+
+  it.each([
+    ["a changed subplan digest", (p: MixedReadback) => { p.children[1]!.subplanDigest = "c".repeat(64); }, "digests, order or stable addresses changed"],
+    ["a moved stable address", (p: MixedReadback) => { p.children[0]!.nodes[0]!.address = "aws_s3_bucket.other"; }, "digests, order or stable addresses changed"],
+    ["a receipt that does not re-derive", (p: MixedReadback) => { p.children[1]!.receipt!.childStatus = "succeeded_without_reviewed_semantics"; }, "consumer receipt does not record a success"],
+    ["a forged receipt digest", (p: MixedReadback) => { p.children[1]!.receipt!.receiptDigest = "0".repeat(64); }, "consumer receipt does not re-derive"],
+    ["a rewritten producer receipt", (p: MixedReadback) => { p.children[0]!.receipt = { ...p.children[0]!.receipt!, recordedAt: "2026-10-31T00:00:00.000Z" }; }, "producer receipt changed across the worker restart"],
+  ] as const)("refuses %s, leaves PROD-MIX-03 standing and still cleans up", async (_name, change, reason) => {
+    const { plan, product } = staged(change);
+    const state = world();
+    const { run, run02 } = harness(state, product, { worker: plan.worker });
+    const second = await run02();
+    expect(second.complete).toBe(false);
+    expect(second.reason).toContain("PROD-MIX-02 not proven at PROD-MIX-02 readback");
+    expect(second.reason).toContain(reason);
+    expect((await run()).reason).toMatch(/^PROD-MIX-03 partly proven/);
+    expect(state.deleted.size).toBeGreaterThan(0);
+  });
+
+  it("refuses PROD-MIX-02 when the consumer never waited, so the worker was never stopped", async () => {
+    const { run02 } = harness(world(), happy(), { worker: { stop: async () => { throw new Error("not expected"); }, start: async () => undefined } });
+    expect((await run02()).reason).toContain("the worker was never stopped");
+  });
+
+  it("fails both when the worker cannot be restarted, and still tears down", async () => {
+    const plan = mixedPlan();
+    const state = world();
+    const { run, run02 } = harness(state, happy({ children: plan.children, planReadback: plan.readback }), { worker: { stop: async () => undefined, start: async () => { throw Object.assign(new Error("x"), {}); } } });
+    expect((await run02()).reason).toContain("PROD-MIX-02 not proven at worker restart");
+    expect((await run()).reason).toContain("PROD-MIX-03 not proven at worker restart");
+    expect(state.trustDocs.deploy).toBe(trustDocument(PRINCIPAL, OLD_EXT));
   });
 });

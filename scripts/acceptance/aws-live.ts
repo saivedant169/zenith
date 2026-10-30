@@ -31,6 +31,7 @@ import { deploy01Port } from "./live/product/deploy-01";
 import { browserDeploy01Product } from "./live/product/deploy-01-driver";
 import { teardown01Port } from "./live/product/teardown-01";
 import { ops04Port } from "./live/product/ops-04";
+import { runnerWorker } from "./live/product/ops-04-stack";
 import { ops05Port } from "./live/product/ops-05";
 
 export const LIVE_USAGE = `Usage: npx tsx scripts/acceptance/aws-live.ts --scenario A[,B,...] [options]
@@ -92,7 +93,7 @@ export async function runLiveCli(argv: readonly string[], env: EnvLike = process
     const selected = named.length ? named.join(",") : (env.ZENITH_LIVE_AWS_SCENARIO ?? "fixtures");
     const product = env.ZENITH_LIVE_PRODUCT !== "1" ? undefined
       : selected === "retention-s3" ? retentionS3Port(env)
-      : selected === "mix-03" ? mix03Port(env, { product: browserMix03Product(env) })
+      : selected === "mix-03" ? mix03Port(env, { product: browserMix03Product(env), worker: runnerWorker(env) })
       : selected === "deploy-01" || selected === "ops-06" ? deploy01Port(env, { product: browserDeploy01Product(env) })
       : selected === "teardown-01" ? teardown01Port(env, { product: browserDeploy01Product(env) })
       : selected === "ops-04" ? ops04Port(env, { product: browserDeploy01Product(env) })

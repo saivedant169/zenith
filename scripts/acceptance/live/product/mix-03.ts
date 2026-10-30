@@ -12,11 +12,18 @@
  * Cleanup is planned and runs in `finally`: it deletes only tagged resources that match exact name patterns, then re-lists
  * by tag. Anything left is returned as a leak, which the harness records as a failed check.
  *
- * Seams: `product` (browser driver), `sleep` and the bounds for propagation and child polling. Tests inject all of them.
+ * The same run proves PROD-MIX-02 (parent and immutable child plans): the stored parent plan is read back after the proposal,
+ * just before the execution worker is stopped (producer done, consumer waiting for its review) and at the end. The review is
+ * approved while the worker is down, the worker is restarted and the parent resumes. Its digests, dependency order and stable
+ * addresses must not change, every receipt must re-derive from its own fields, the producer's receipt must survive the restart
+ * unchanged and AWS must still hold the same one producer bucket.
+ *
+ * Seams: `product` (browser driver), `worker`, `sleep` and the bounds for propagation and child polling. Tests inject all of them.
  */
 import { createHash } from "node:crypto";
 import { crc32 } from "node:zlib";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { receiptDigestOf } from "@/lib/execution/mixed/receipt";
 import type { EnvLike } from "../../config";
 import type { Call, Json, Plan, ProductScenarioPort } from "../contracts";
 import { laneSuffix, liveRoleNames } from "../plan";
@@ -48,9 +55,28 @@ export interface Mix03Product {
   changeProducer(tenant: Mix03Tenant, planId: string): Promise<{ consumerState: "unchanged" | "review_required" | "preauthorized" }>;
   issueOutputPreauthorization(tenant: Mix03Tenant, planId: string): Promise<void>;
   useOutputOnce(tenant: Mix03Tenant, planId: string): Promise<{ ok: boolean }>;
+  /** PROD-MIX-02: the stored parent plan, as GET /api/platform/v1/mixed/plans/:id returns it. */
+  planReadback?(tenant: Mix03Tenant, planId: string): Promise<MixedReadback>;
   /** Releases the browser. Called once the run is over, after teardown. */
   close?(): Promise<void>;
 }
+
+/** A durable child receipt as read back (src/lib/execution/mixed/receipt.ts): digests, ids and fixed words, never outputs. */
+export interface MixedReceipt {
+  format: string; receiptId: string; workspaceId: string; parentPlanId: string; partitionId: string; ordinal: number; childOperationId: string;
+  outcome: string; childStatus: string; executableSemanticsDigest?: string; planDigest?: string; outputsDigest?: string; receiptDigest: string; recordedAt: string;
+}
+export interface MixedChildReadback {
+  partitionId: string; dependsOn: string[]; subplanDigest: string; semanticsDigest: string; effectDigest: string;
+  nodes: { stableAddress: string; address: string; specDigest: string }[];
+  state: string; childOperationId: string | null; executableSemanticsDigest: string | null; receipt: MixedReceipt | null;
+}
+export interface MixedReadback {
+  status: string; parentOperationId: string | null; parentDigest: string; desiredDigest: string; childSetDigest: string; executionOrder: string[];
+  children: MixedChildReadback[];
+}
+/** The stack's execution worker: stopped and started again so the parent workflow has to resume (PROD-MIX-02). */
+export interface Mix02Worker { stop(): Promise<void>; start(): Promise<void> }
 
 export interface Mix03Credentials { accessKeyId: string; secretAccessKey: string; sessionToken: string }
 /** Puts one object with the deploy role session and returns its S3 version id. */
@@ -62,6 +88,9 @@ export interface Mix03Seams {
   propagation?: { attempts: number; intervalMs: number };
   polls?: { attempts: number; intervalMs: number };
   now?: () => number;
+  worker?: Mix02Worker;
+  /** How long the worker stays down after the review is approved. */
+  quietMs?: number;
 }
 
 /** The product's error sentence with ARNs, key=value pairs, URLs, paths and long tokens elided (as scripts/release/drivers/operated.ts). */
@@ -293,7 +322,58 @@ async function teardown(run: RunState, plan: Plan, invoke: Invoke, planned: (id:
   return leaks;
 }
 
-/** PROD-MIX-03 only. Every other requirement is reported not implemented. Never throws. */
+/** What the approval bound: digests, dependency order and stable addresses. None of it may change once proposed. */
+const pinned = (plan: MixedReadback) => canonical({
+  parentDigest: plan.parentDigest, desiredDigest: plan.desiredDigest, childSetDigest: plan.childSetDigest, executionOrder: plan.executionOrder,
+  children: plan.children.map(({ partitionId, dependsOn, subplanDigest, semanticsDigest, effectDigest, nodes }) => ({ partitionId, dependsOn, subplanDigest, semanticsDigest, effectDigest, nodes })),
+});
+
+/** The producer is the child nothing depends on; the consumer depends on exactly it and runs after it. */
+export function mix02Order(plan: MixedReadback): { producer: MixedChildReadback; consumer: MixedChildReadback } {
+  if (plan.children.length !== 2) refuse("the stored plan does not have exactly two children");
+  const producer = plan.children.find(child => !child.dependsOn.length), consumer = plan.children.find(child => child.dependsOn.length);
+  if (!producer || !consumer) refuse("the stored plan has no producer and consumer");
+  if (consumer.dependsOn.join() !== producer.partitionId) refuse("the consumer does not depend on exactly the producer");
+  if (plan.executionOrder.join() !== [producer.partitionId, consumer.partitionId].join()) refuse("the stored execution order does not run the producer first");
+  if (!producer.nodes.length || !consumer.nodes.length) refuse("a child has no stable resource addresses");
+  return { producer, consumer };
+}
+
+/** A succeeded child's receipt: it links the child operation and re-derives from its own fields (src/lib/execution/mixed/receipt.ts). */
+function receiptOf(plan: MixedReadback, child: MixedChildReadback, role: string, planId: string): MixedReceipt {
+  const receipt = child.receipt ?? refuse(`the ${role} has no durable receipt`);
+  if (child.state !== "succeeded" || receipt.outcome !== "succeeded" || receipt.childStatus !== "succeeded") refuse(`the ${role} receipt does not record a success`);
+  if (!child.childOperationId || receipt.childOperationId !== child.childOperationId || receipt.partitionId !== child.partitionId || receipt.parentPlanId !== planId) refuse(`the ${role} receipt does not link its child operation`);
+  if (!child.executableSemanticsDigest || receipt.executableSemanticsDigest !== child.executableSemanticsDigest || !receipt.planDigest) refuse(`the ${role} receipt does not bind the semantics its child ran`);
+  const { workspaceId, parentPlanId, partitionId, ordinal, childOperationId, outcome, childStatus, executableSemanticsDigest, planDigest, outputsDigest } = receipt;
+  const derived = receiptDigestOf({ workspaceId, parentPlanId, partitionId, ordinal, childOperationId, outcome: outcome as "succeeded", childStatus,
+    ...(executableSemanticsDigest ? { executableSemanticsDigest } : {}), ...(planDigest ? { planDigest } : {}), ...(outputsDigest ? { outputsDigest } : {}) });
+  if (derived !== receipt.receiptDigest || receipt.receiptId !== `mrc_${derived.slice(0, 32)}`) refuse(`the ${role} receipt does not re-derive from its own fields`);
+  if (plan.parentOperationId === null) refuse("the stored plan has no parent operation");
+  return receipt;
+}
+
+/**
+ * PROD-MIX-02 over three readbacks of one plan: after the proposal, just before the worker stopped and at the end. Returns the
+ * evidence sentence; refuses at the first clause that does not hold.
+ */
+export function mix02Verdict(input: { planId: string; parentOperationId: string; proposed: MixedReadback; beforeStop: MixedReadback; final: MixedReadback; bucketBeforeStop: string; bucketFinal: string; quietMs: number }): string {
+  const { planId, parentOperationId, proposed, beforeStop, final } = input;
+  const { producer, consumer } = mix02Order(proposed);
+  for (const plan of [beforeStop, final]) if (pinned(plan) !== pinned(proposed)) refuse("the stored plan's digests, order or stable addresses changed after the proposal");
+  if ([proposed, beforeStop, final].some(plan => plan.parentOperationId !== parentOperationId)) refuse("the stored plan is not bound to the approved parent operation");
+  const at = (plan: MixedReadback, partitionId: string) => plan.children.find(child => child.partitionId === partitionId)!;
+  const producerBefore = receiptOf(beforeStop, at(beforeStop, producer.partitionId), "producer", planId);
+  if (at(beforeStop, consumer.partitionId).receipt) refuse("the consumer already had a receipt when the worker stopped");
+  const producerFinal = receiptOf(final, at(final, producer.partitionId), "producer", planId);
+  receiptOf(final, at(final, consumer.partitionId), "consumer", planId);
+  if (canonical(producerFinal) !== canonical(producerBefore)) refuse("the producer receipt changed across the worker restart");
+  if (input.bucketFinal !== input.bucketBeforeStop) refuse("the producer bucket is not the same resource after the resume");
+  const addresses = proposed.children.reduce((n, child) => n + child.nodes.length, 0);
+  return `PROD-MIX-02 proven on the live sandbox: the stored parent plan put the producer (S3 bucket) before the consumer (Lambda function) that depends on it, with one approved parent operation; its parent, desired and child-set digests, each child's subplan, semantics and effect digests and all ${addresses} stable resource addresses were identical after the proposal, before the execution worker was stopped and at the end; the worker was stopped with the producer done and the consumer waiting for its review, the review was approved while it was down (${Math.round(input.quietMs / 1000)} s) and the parent resumed after the restart; both durable receipts link their child operations, bind the semantics each child ran and re-derive from their own fields; the producer receipt was unchanged across the restart and AWS held the same one producer bucket before and after`;
+}
+
+/** PROD-MIX-03 and PROD-MIX-02 from one run. Every other requirement is reported not implemented. Never throws. */
 export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): ProductScenarioPort {
   const product = seams.product ?? unwiredProduct;
   const upload = seams.upload ?? s3Upload;
@@ -301,9 +381,19 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
   const propagation = seams.propagation ?? { attempts: 12, intervalMs: 15_000 };
   const polls = seams.polls ?? { attempts: 120, intervalMs: 15_000 };
   const now = seams.now ?? Date.now;
+  const quietMs = seams.quietMs ?? 30_000;
+  type Result = Awaited<ReturnType<ProductScenarioPort["verify"]>>;
+  // One run answers both requirements: the harness asks for PROD-MIX-02 first (ledger order), then PROD-MIX-03.
+  let flow: Promise<Record<"PROD-MIX-03" | "PROD-MIX-02", Result>> | undefined;
   return {
-    async verify(requirement, { plan, call }) {
-      if (requirement.id !== "PROD-MIX-03") return { complete: false, reason: `${requirement.id}: not implemented by this port` };
+    async verify(requirement, context) {
+      if (requirement.id !== "PROD-MIX-03" && requirement.id !== "PROD-MIX-02") return { complete: false, reason: `${requirement.id}: not implemented by this port` };
+      flow ??= runFlow(context);
+      return (await flow)[requirement.id];
+    },
+  };
+
+  async function runFlow({ plan, call }: Parameters<ProductScenarioPort["verify"]>[1]): Promise<Record<"PROD-MIX-03" | "PROD-MIX-02", Result>> {
       const run: RunState = { attempted: false, environmentIds: [], trust: [] };
       // The harness refuses every AWS call once the run window closes, teardown included: stop polling with room left for it.
       const pollDeadline = now() + plan.settings.durationMinutes * 60_000 - TEARDOWN_RESERVE_MS;
@@ -317,6 +407,7 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
       const roleArns = { observe: `arn:aws:iam::${account}:role/${names.observe}`, deploy: `arn:aws:iam::${account}:role/${names.deploy}` };
       let step = "preconditions";
       let outcome: { complete: boolean; reason: string };
+      let mix02: { complete: boolean; reason: string } | undefined;
       try {
         preconditions(env, plan);
         step = "tenant";
@@ -351,6 +442,17 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
         const proposal = await product.proposeMixed(tenant, { connectionId: connection.connectionId, accountId: account, region, artifact });
         if (proposal.environmentIds.length !== 2) refuse("the mixed proposal did not name exactly the producer and consumer environments");
         run.environmentIds = proposal.environmentIds;
+        step = "stored plan";
+        const readback = (): Promise<MixedReadback> => product.planReadback ? product.planReadback(tenant, proposal.planId) : refuse("the product driver cannot read the stored plan back");
+        const proposed = await readback();
+        mix02Order(proposed);
+        const producerBucket = async (): Promise<string> => {
+          const arns = (await inventoryOf(invoke, planned("mix03-tag-read"), run.environmentIds)).filter(m => /^arn:aws:s3:::zenith-/.test(m.arn) && owned(m.tags, run.environmentIds));
+          if (arns.length !== 1) refuse("AWS does not hold exactly one tagged producer bucket");
+          return arns[0]!.arn;
+        };
+        let beforeStop: { plan: MixedReadback; bucket: string } | undefined;
+        step = "mixed plan";
         await product.approve(tenant, proposal.parentOperationId);
         const started = await product.startMixed(tenant, proposal.planId, proposal.parentOperationId);
         if (!started.started) refuse(`the mixed parent did not start: ${FIXED_TEXT.test(started.reason) ? started.reason : "reason withheld"}`);
@@ -364,6 +466,20 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
           if (producer.status !== "succeeded" && (consumer.status === "running" || consumer.status === "succeeded")) refuse("the consumer started before the producer receipt");
           // A child that ended any other way than success will not succeed later: stop now and name how it ended.
           if ([producer, consumer].some(child => ["failed", "uncertain", "cancelled", "blocked"].includes(child.status))) refuse(`a child operation did not succeed (${[producer, consumer].map(childState).join(", ")})`);
+          // PROD-MIX-02: the producer is done and the consumer waits for a person. Stop the worker, approve while it is down and
+          // restart it, so the parent can only go on by resuming.
+          if (!beforeStop && producer.status === "succeeded" && consumer.status !== "succeeded" && consumer.awaitingOperationId) {
+            step = "worker stop";
+            const worker = seams.worker ?? refuse("the stack's execution worker is not wired");
+            beforeStop = { plan: await readback(), bucket: await producerBucket() };
+            await worker.stop();
+            await product.approve(tenant, consumer.awaitingOperationId);
+            await sleep(quietMs);
+            step = "worker restart";
+            await worker.start();
+            step = "child rounds";
+            continue;
+          }
           for (const child of children) if (child.awaitingOperationId) await product.approve(tenant, child.awaitingOperationId);
           if (producer.status === "succeeded" && consumer.status === "succeeded") break;
           if (poll >= polls.attempts || now() >= pollDeadline) refuse(`the child operations did not finish within the bound (${[producer, consumer].map(childState).join(", ")})`);
@@ -390,18 +506,30 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
           complete: false,
           reason: "PROD-MIX-03 partly proven: the trust change touched only the ExternalId of both sandbox roles and was restored; connection.verifyAws passed; the producer finished before the consumer started; both receipts link their child operations; the consumer's deployed PRODUCER_BUCKET_ARN equals the producer bucket ARN by independent readback. Approvals by an automated test approver through the browser path. Pending: the producer-change review and the one-use preauthorization refusal, which no product route can trigger.",
         };
+        // Its own try: a PROD-MIX-02 refusal here leaves the PROD-MIX-03 result above as it is.
+        step = "PROD-MIX-02 readback";
+        try {
+          if (!beforeStop) refuse("the consumer never waited for an approval, so the worker was never stopped");
+          mix02 = { complete: true, reason: mix02Verdict({ planId: proposal.planId, parentOperationId: proposal.parentOperationId, proposed, beforeStop: beforeStop.plan, final: await readback(), bucketBeforeStop: beforeStop.bucket, bucketFinal: bucketArns[0]!.arn, quietMs }) };
+        } catch (error) {
+          mix02 = { complete: false, reason: `PROD-MIX-02 not proven at ${step}: ${error instanceof Refusal ? error.message : "unexpected failure (details withheld; no completion claim)"}` };
+        }
       } catch (error) {
-        outcome = error instanceof Refusal
-          ? { complete: false, reason: `PROD-MIX-03 not proven at ${step}: ${error.message}` }
-          : { complete: false, reason: `PROD-MIX-03 not proven at ${step}: unexpected failure (details withheld; no completion claim)` };
+        const why = error instanceof Refusal ? error.message : "unexpected failure (details withheld; no completion claim)";
+        outcome = { complete: false, reason: `PROD-MIX-03 not proven at ${step}: ${why}` };
+        mix02 = { complete: false, reason: `PROD-MIX-02 not proven at ${step}: ${why}` };
       }
       // Trust is restored and product resources deleted even after a refusal. Leaks make the requirement fail closed.
       const leaks = await teardown(run, plan, invoke, planned, principal).catch(() => ["cleanup did not complete; resources may remain"]);
       try { await product.close?.(); } catch { /* the browser is released best-effort; the outcome above stands */ }
       // A consumer that did not succeed: what Lambda itself reported before teardown deleted it.
       if (!outcome.reason.includes("partly proven") && run.functionState) outcome = { ...outcome, reason: `${outcome.reason}; consumer function before teardown: ${run.functionState}` };
-      if (leaks.length) return { complete: false, reason: `${outcome.reason}; cleanup leaks: ${leaks.length} (see the cleanup checks)`, leaks };
-      return { ...outcome, leaks };
-    },
-  };
+      const second = mix02 ?? { complete: false, reason: `PROD-MIX-02 not proven at ${step}` };
+      // Leaks are reported once, on PROD-MIX-03, and fail both.
+      if (leaks.length) return {
+        "PROD-MIX-03": { complete: false, reason: `${outcome.reason}; cleanup leaks: ${leaks.length} (see the cleanup checks)`, leaks },
+        "PROD-MIX-02": { complete: false, reason: `${second.reason}; cleanup leaks: ${leaks.length} (reported on PROD-MIX-03)` },
+      };
+      return { "PROD-MIX-03": { ...outcome, leaks }, "PROD-MIX-02": second };
+  }
 }

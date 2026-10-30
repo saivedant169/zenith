@@ -66,6 +66,26 @@ end $$;`;
 
 type State = ReturnType<typeof readState> & { directory: string; compositionSha256: string; applicationInstallationId: string };
 
+/** Waits until this installation's container for `service` reports healthy. */
+async function healthyService(active: State, service: string): Promise<void> {
+  for (const deadline = Date.now() + 360_000; Date.now() < deadline; await new Promise(r => setTimeout(r, 5_000))) {
+    const id = String(await compose(active, ["ps", "-q", service])).trim();
+    if (!id) continue;
+    const [item] = JSON.parse(String(await docker(["inspect", id]))) as { Config: { Labels?: Record<string, string> }; State: { Health?: { Status?: string } } }[];
+    if (item?.Config.Labels?.["io.zenith.installation"] === active.applicationInstallationId && item.State.Health?.Status === "healthy") return;
+  }
+  refuse(`the ${service} container was not healthy within 6 minutes`);
+}
+
+/** The runner stack's execution worker alone (PROD-MIX-02): stopped, then started again and waited on until healthy. */
+export function runnerWorker(env: EnvLike): { stop(): Promise<void>; start(): Promise<void> } {
+  const active = () => readState(env.ZENITH_DEFAULT_STACK_DIRECTORY?.trim() || refuse("no stack directory")) as State;
+  return {
+    stop: () => named("stopping execution-worker", async () => { await compose(active(), ["stop", "execution-worker"]); }),
+    start: () => named("starting execution-worker", async () => { const state = active(); await compose(state, ["up", "-d", "--no-deps", "execution-worker"]); await healthyService(state, "execution-worker"); }),
+  };
+}
+
 export function runnerOps04Stack(env: EnvLike, runId: string): Ops04Stack {
   const directory = env.ZENITH_DEFAULT_STACK_DIRECTORY?.trim() || refuse("no stack directory");
   const platformUrl = env.ZENITH_PLATFORM_DB_URL?.trim() || refuse("no platform database");
@@ -80,15 +100,7 @@ export function runnerOps04Stack(env: EnvLike, runId: string): Ops04Stack {
     return { address: env.ZENITH_TEMPORAL_ADDRESS, ...(tls ? { tls } : {}), namespace: prepared.environment.ZENITH_TEMPORAL_NAMESPACE ?? refuse("no Temporal namespace") };
   };
   const live = async () => db ??= await openPlatformDb({ kind: "postgres", url: platformUrl, max: 2, migrate: false });
-  const healthy = async (service: string) => {
-    for (const deadline = Date.now() + 360_000; Date.now() < deadline; await new Promise(r => setTimeout(r, 5_000))) {
-      const id = String(await compose(active, ["ps", "-q", service])).trim();
-      if (!id) continue;
-      const [item] = JSON.parse(String(await docker(["inspect", id]))) as { Config: { Labels?: Record<string, string> }; State: { Health?: { Status?: string } } }[];
-      if (item?.Config.Labels?.["io.zenith.installation"] === active.applicationInstallationId && item.State.Health?.Status === "healthy") return;
-    }
-    refuse(`the ${service} container was not healthy within 6 minutes`);
-  };
+  const healthy = (service: string) => healthyService(active, service);
   return {
     stop: (services) => named(`stopping ${services.join(" and ")}`, async () => { await compose(active, ["stop", ...services]); }),
     start: (service) => named(`starting ${service}`, async () => { await compose(active, ["up", "-d", "--no-deps", service]); await healthy(service); }),

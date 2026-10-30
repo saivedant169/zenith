@@ -49,7 +49,11 @@ export async function suspendForApproval(sql: Sql, input: ExecutionWriteInput): 
      returning ${OPERATION_COLUMNS}`);
 }
 
-/** Write-once plan digest. A reviewed plan round cannot acquire a plan after its human decision. */
+/**
+ * Write-once plan digest. A reviewed plan round cannot acquire a plan after its human decision. A proposal round
+ * (round zero, or the fresh round a recovery resume reopens, PROD-OPS-04) is decided before the operation's workflow
+ * start is attempted; a plan round is opened by a running workflow, so its decisions come after that attempt.
+ */
 export async function setPlanDigest(sql: Sql, input: ExecutionWriteInput & { planDigest: string }): Promise<OperationRecord | null> {
   const planDigest = requireDigest("planDigest", input.planDigest);
   return write(sql, input,
@@ -58,7 +62,9 @@ export async function setPlanDigest(sql: Sql, input: ExecutionWriteInput & { pla
        and status in ('proposed','awaiting_approval','approved','queued','running')
        and expires_at > clock_timestamp() and ${FENCE}
        and (approval_round = 0 or not exists (select 1 from platform.approvals a
-             where a.workspace_id = $1 and a.operation_id = $2 and a.approval_round = o.approval_round))
+             where a.workspace_id = $1 and a.operation_id = $2 and a.approval_round = o.approval_round
+               and not exists (select 1 from platform.workflow_start_intents w
+                     where w.workspace_id = $1 and w.operation_id = $2 and w.attempted_at is not null and a.created_at < w.attempted_at)))
      returning ${OPERATION_COLUMNS}`, [planDigest], true);
 }
 

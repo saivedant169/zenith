@@ -1,4 +1,5 @@
 /** Real PGlite ledger/broker/signing; synthetic plans and scripted policy, no cloud calls. */
+import { randomUUID } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { tempDataDir } from "../_support/data-dir";
 
@@ -37,6 +38,13 @@ async function running(count = 1) {
   await ports.setPolicyDecision({ workspaceId: h.ids.wsA, operationId: op.id, decisionId: decision.decisionId });
   const suspend = () => ports.transition({ workspaceId: h.ids.wsA, operationId: op.id, to: "awaiting_approval" });
   return { h, op, decide, worker, ports, suspend, decision };
+}
+
+/** A workflow start attempt as the bridge records it; synthetic binding, never Start authority. */
+async function startAttempted(h: Awaited<ReturnType<typeof makeHarness>>, operationId: string) {
+  const binding = { format: "zenith.workflow-start.v1", arguments: { workspaceId: h.ids.wsA, operationId }, endpointDigest: "e".repeat(64), namespace: "fixture", workflowId: `fixture:${operationId}` };
+  await h.db!.query("insert into platform.workflow_start_intents(workspace_id,operation_id,binding,binding_digest,phase,attempt_id,attempted_at) values($1,$2,$3::text::jsonb,$4,'attempted',$5,clock_timestamp())",
+    [h.ids.wsA, operationId, JSON.stringify(binding), "f".repeat(64), randomUUID()]);
 }
 
 describe("concrete plan approval rounds", () => {
@@ -116,11 +124,21 @@ describe("concrete plan approval rounds", () => {
     const { h, ports } = await running();
     const op = (await h.broker.propose({ capability: "deployment.deploy", scope: { workspaceId: h.ids.wsA, projectId: h.ids.projA, environmentId: h.ids.envAProd }, input: {} }, user("alice"))).operation;
     const approve = () => h.broker.approve({ workspaceId: h.ids.wsA, operationId: op.id, proposalDigest: op.proposalDigest, approver: user("erin"), session: sessionFor("erin") });
-    await approve(); await h.broker.beginExecution({ workspaceId: h.ids.wsA, operationId: op.id, holder: `workflow:${op.id}`, audience: "worker" });
+    await approve(); await startAttempted(h, op.id); await h.broker.beginExecution({ workspaceId: h.ids.wsA, operationId: op.id, holder: `workflow:${op.id}`, audience: "worker" });
     await ports.transition({ workspaceId: h.ids.wsA, operationId: op.id, to: "awaiting_approval" });
     await approve();
     await expect(ports.setPlanDigest({ workspaceId: h.ids.wsA, operationId: op.id, planDigest: plan.planDigest })).rejects.toThrow("plan_changed");
     expect((await h.store.getOperation(h.ids.wsA, op.id))?.planDigest).toBeUndefined();
+  });
+  it("a proposal round reopened by a recovery resume and decided before its workflow start records its first plan (PROD-OPS-04)", async () => {
+    const { h, ports } = await running();
+    const op = (await h.broker.propose({ capability: "deployment.deploy", scope: { workspaceId: h.ids.wsA, projectId: h.ids.projA, environmentId: h.ids.envAProd }, input: {} }, user("alice"))).operation;
+    // The resume's own reopen (recovery/index.ts applyDecision): a fresh round, still before any workflow start.
+    await h.db!.query("update platform.operations set approval_round = approval_round + 1 where workspace_id = $1 and id = $2", [h.ids.wsA, op.id]);
+    await h.broker.approve({ workspaceId: h.ids.wsA, operationId: op.id, proposalDigest: op.proposalDigest, approver: user("erin"), session: sessionFor("erin") });
+    await startAttempted(h, op.id); await h.broker.beginExecution({ workspaceId: h.ids.wsA, operationId: op.id, holder: `workflow:${op.id}`, audience: "worker" });
+    await ports.setPlanDigest({ workspaceId: h.ids.wsA, operationId: op.id, planDigest: plan.planDigest });
+    expect((await h.store.getOperation(h.ids.wsA, op.id))?.planDigest).toBe(plan.planDigest);
   });
   it("exposes tenant-scoped, bounded review evidence with no attribute values and unknown costs", async () => {
     const { h, op, suspend } = await running(); await suspend();

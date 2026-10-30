@@ -7468,7 +7468,7 @@
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "implementation_complete_verification_pending",
+      "implementationStatus": "implementation_complete_verification_pending; rolling_upgrade_and_rollback_proven_live_sandbox_2026-10-30",
       "implementationNote": "J11: real-digest resolver and fixture-activated history replay manifest lane; registry pins, recorded histories and rollout/rollback acceptance pending on Mac. Integration: the verifier's frozen current-source histories and replay evidence below are retained; previous-release compatibility and rollout/rollback acceptance remain pending. L3 gated observation/cleanup/inventory harness built; live and operational evidence plus owner fixtures/decisions pending. No verification claimed.",
       "evidence": [
         {
@@ -7521,6 +7521,18 @@
           "environment": "GitHub-hosted Linux x64; lean disposable J1 stack (1 API + 1 worker), Temporal mTLS on an owned loopback port, kind target, Chromium; candidate api/worker/migration images rebuilt from the same source with distinct labels (scripts/acceptance/default-stack/upgrade-candidates.mjs)",
           "result": "DRV-3 operated upgrade passed 10/10 with a matched current-source receipt: compatibility gates, browser review held in flight, expand migrate then worker then API onto candidate artifacts, same Temporal run after upgrade, API failure injected and observed, reverse roll API then worker without schema downgrade, same run after rollback, browser-approved execution completed with independent kind readback, one terminal operation, owned cleanup. Limits: same-source candidate artifacts prove replacement, not a released N-1/N matrix; runner upgrades and live/rehearsal levels are separate.",
           "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-21-c1883bba-j15-operated-upgrade-hosted.json"
+        },
+        {
+          "level": "live_sandbox",
+          "commit": "d788ff92f67d0f57bae84d91adcc61971f264def",
+          "runId": 41137046750,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/41137046750",
+          "command": "GitHub Actions live-acceptance.yml, workflow_dispatch with scenario ops-03 and run_id zlive-202610302216-99b4 (lane live2); plan sha256 b3d1139f7cf6fc6776436ac03a613e698a0a96ab2dfe6c8eac09ebc8cac168a3; permission sha256 663ce1445ae9a479a4c14a52fcbcd87392df8a139fb1e62f1da8ba120f8fe98c",
+          "environment": "Disposable AWS sandbox account 361646636162, region ap-south-1; approvals awsLive zenith-aws-permissions.json and root zenith-live-scope.json, approvedBy automation (delegated by Saivedant Hava on 2026-10-26); estimated cap USD 0.8 (provisional, billing not measured); 60 minute window (plan)",
+          "logs": "docs/build/production/evidence/PROD-OPS-03/2026-10-30-live-aws-41137046750/",
+          "result": "The ops-03 run on the live AWS sandbox passed with cleanup complete. OPS-03 rolling upgrade and rollback proven on AWS: candidate API, worker and migration images were built and pushed to the stack's own registry; a deploy was approved and planned and its workflow waited in flight for the apply approval; the stack was upgraded in runbook order (expand migration, worker, then API, each healthy on its new image) while that workflow kept the same run and its review; the apply was approved on the candidate release and the same run completed with one bucket in AWS; the stack was rolled back (API, then worker, schema not downgraded) and a second deploy on the rolled-back release added the second bucket (2 tagged buckets). Candidates are rebuilt from the same source: replacement and rollback, not a released N-1/N matrix. Not operational_rehearsal.",
+          "artifact": "docs/build/production/evidence/PROD-OPS-03/2026-10-30-live-aws-41137046750/release-evidence-PROD-OPS-03.json",
+          "sha256": "b638591ebdbb54296f5b428e65a9abb529c59e4597f456dde5ada8b129c49c93"
         }
       ],
       "requiredEvidence": [

@@ -177,3 +177,19 @@ node scripts/ci/wave6-gates.mjs --requirement PROD-OPS-03 --print > /tmp/zenith-
 ```
 
 This prints the exact argv for each contract batch and required engine case, its gate names, private prerequisites, and its strict report-validation command. Set only the gates for the selected lane after preparing its owned fixture; a skip cannot satisfy that lane. Run each `argv` sequentially and then its `verify` argv. [Final integration setup and results](FINAL-INTEGRATION.md), [canonical inventory](../../../../scripts/ci/wave6-gates.json), [owner live runbook](../LIVE-ACCEPTANCE.md).
+
+## Rolling upgrade and rollback proven on the live AWS sandbox (2026-10-30)
+
+Run [41137046750](https://github.com/saivedant169/zenith/actions/runs/41137046750), run id `zlive-202610302216-99b4`, workflow `live-acceptance.yml`, scenario `ops-03`, lane `live2`. Source `d788ff92f67d0f57bae84d91adcc61971f264def`. Sandbox account `361646636162` in ap-south-1. Plan digest `b3d1139f7cf6fc6776436ac03a613e698a0a96ab2dfe6c8eac09ebc8cac168a3`; permission digest `663ce1445ae9a479a4c14a52fcbcd87392df8a139fb1e62f1da8ba120f8fe98c`.
+
+Verdict `passed`: 1 passed, 0 failed, 0 pending. Cleanup complete. Estimated cap USD 0.8 (provisional, billing not measured), 60 minute window; the scenario itself took about 8 minutes. Files: `evidence/PROD-OPS-03/2026-10-30-live-aws-41137046750/`, including the `zenith.release-evidence.v1` receipt `release-evidence-PROD-OPS-03.json`.
+
+What the run checked (PR #131, `scripts/acceptance/live/product/ops-03.ts`):
+
+- Candidate API, worker and migration images were rebuilt from this source and pushed to the stack's own registry.
+- A one-bucket deploy was approved and planned; its Temporal workflow waited in flight for the apply approval, with nothing in AWS.
+- The stack was upgraded in `rolling-upgrade.mjs` order: migrate dry-run, expand migration, worker, then API, each healthy on its new image digest. The review (status and round) and the Temporal run were unchanged and AWS was still empty.
+- The apply was approved on the candidate release. The same run completed and AWS held one tagged bucket.
+- The stack was rolled back, API then worker, onto the recorded images; the schema was not downgraded. A second deploy on the rolled-back release added the second bucket (2 tagged buckets).
+
+Limits: the candidates are rebuilt from the same source because no released N-1 exists yet, so this proves in-flight replacement and rollback against AWS, not a previous-release compatibility matrix. Runner (machine) upgrades are separate. `operational_rehearsal` is not done. Status stays `in_progress`. Not a promotion.

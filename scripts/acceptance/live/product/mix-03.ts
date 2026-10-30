@@ -56,7 +56,7 @@ export interface Mix03Product {
   issueOutputPreauthorization(tenant: Mix03Tenant, planId: string): Promise<void>;
   useOutputOnce(tenant: Mix03Tenant, planId: string): Promise<{ ok: boolean }>;
   /** An operation's status and, when it stopped, a fixed category of why (never its text). */
-  operationHalt?(tenant: Mix03Tenant, operationId: string): Promise<{ status: string; halt?: string }>;
+  operationHalt?(tenant: Mix03Tenant, operationId: string): Promise<{ status: string; halt?: string; detail?: string }>;
   /** PROD-MIX-02: the stored parent plan, as GET /api/platform/v1/mixed/plans/:id returns it. */
   planReadback?(tenant: Mix03Tenant, planId: string): Promise<MixedReadback>;
   /** Releases the browser. Called once the run is over, after teardown. */
@@ -484,7 +484,7 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
             await worker.start();
             restart = { downMs: now() - stoppedAt, parent: async () => {
               const op = await product.operationHalt?.(tenant, proposal.parentOperationId).catch(() => undefined);
-              return op ? `${STATE_WORD.test(op.status) ? op.status : "unknown"}${op.halt && HALT_WORD.test(op.halt) ? `:${op.halt}` : ""}` : "unread";
+              return op ? `${STATE_WORD.test(op.status) ? op.status : "unknown"}${op.halt && HALT_WORD.test(op.halt) ? `:${op.halt}` : ""}${op.detail ? ` (product: ${op.detail})` : ""}` : "unread";
             } };
             step = "child rounds";
             continue;

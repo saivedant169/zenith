@@ -532,10 +532,10 @@ describe("PROD-MIX-02 from the same run (immutable child plans, resume across a 
     const children = async (): Promise<Mix03Child[]> => plan.state.stage > 0
       ? [{ role: "producer", status: "succeeded", childOperationId: "op-producer", receiptOperationId: "op-producer" }, { role: "consumer", status: "blocked", childOperationId: "op-consumer", operationStatus: "approved" }]
       : plan.children();
-    const operationHalt = vi.fn(async () => ({ status: "uncertain", halt: "lease_lost_execute_capability" }));
+    const operationHalt = vi.fn(async () => ({ status: "uncertain", halt: "other", detail: "activity timed out (heartbeat)" }));
     const worker = { stop: plan.worker.stop, start: async () => { clock += 312_000; await plan.worker.start(); } };
     const { run, run02 } = harness(world(), happy({ children, planReadback: plan.readback, operationHalt }), { worker, now: () => clock });
-    const reason = "a child operation did not succeed (producer succeeded, consumer blocked/approved); the worker was down 312 s; parent operation uncertain:lease_lost_execute_capability";
+    const reason = "a child operation did not succeed (producer succeeded, consumer blocked/approved); the worker was down 312 s; parent operation uncertain:other (product: activity timed out (heartbeat))";
     expect((await run02()).reason).toBe(`PROD-MIX-02 not proven at child rounds: ${reason}`);
     expect((await run()).reason).toContain(`PROD-MIX-03 not proven at child rounds: ${reason}`);
     expect(operationHalt).toHaveBeenCalledWith(expect.anything(), "op-parent");

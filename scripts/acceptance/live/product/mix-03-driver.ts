@@ -390,7 +390,10 @@ export function browserMix03Product(env: EnvLike = process.env, seams: Mix03Driv
         const session = sessionOf(tenant);
         const detail = ok(await send(session, session.owner, `/api/platform/v1/operations/${operationId}`, undefined, "GET")) as { operation?: { status?: unknown; error?: unknown } };
         const status = typeof detail.operation?.status === "string" && SAFE_CODE.test(detail.operation.status) ? detail.operation.status : "unknown";
-        return { status, ...(typeof detail.operation?.error === "string" ? { halt: haltOf(detail.operation.error) } : {}) };
+        const error = typeof detail.operation?.error === "string" ? detail.operation.error : undefined;
+        // An unrecognized stop also carries the product's sentence, elided (sanitizedError), so a new case can be named.
+        const halt = error ? haltOf(error) : undefined, why = error && halt === "other" ? sanitizedError(error) : undefined;
+        return { status, ...(halt ? { halt } : {}), ...(why ? { detail: why } : {}) };
       });
     },
     async children(tenant, planId) {

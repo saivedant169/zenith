@@ -7515,7 +7515,7 @@
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "implementation_complete_verification_pending",
+      "implementationStatus": "implementation_complete_verification_pending; restore_with_aws_state_proven_live_sandbox_2026-10-30",
       "implementationNote": "L3 gated observation/cleanup/inventory harness built; live and operational evidence plus owner fixtures/decisions pending. No verification claimed.",
       "evidence": [
         {
@@ -7525,6 +7525,16 @@
           "environment": "GitHub-hosted Linux x64; lean disposable J1 stack, Temporal mTLS on an owned loopback port, kind target, Chromium; PostgreSQL 17 client tools (PGDG) and the SHA-pinned Temporal CLI 1.9.1",
           "result": "DRV-3 operated restore passed with a matched current-source receipt: browser-approved operation snapshotted; backup verified (platform/product, keys, Temporal over mTLS); post-snapshot consumption; damaged backup, missing keys and nonempty target refused; operator CLI route restored into a fresh database with --no-privileges and the re-applied platform SQL (RECOVERY.md 2.1); fresh restore with epoch and ledger readback; the pre-restore approval refused as recovery_epoch_stale with no resurrected execution; browser continuation with stale binding refused and the item resumed; fresh approval in the new epoch executed under a new epoch-scoped workflow and read back; owned cleanup. Product fixes found by this gate: Temporal CLI mTLS in backup/restore, recovery_epoch_stale before retained-intent recovery, epoch-scoped workflow ids for reopened operations. Limits: local disposable engines on a hosted runner, not live cloud; best-effort wake-up signals/progress still address op-<id>.",
           "logs": "docs/build/production/evidence/PROD-CI-08/2026-10-21-c49904a9-j15-operated-restore-hosted.json"
+        },
+        {
+          "level": "live_sandbox",
+          "commit": "546b63450cce6da1dca008b413eabe6ae1fac21d",
+          "runId": 41012192964,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/41012192964",
+          "command": "GitHub Actions live-acceptance.yml, workflow_dispatch with scenario ops-04 and run_id zlive-202610300606-05a2 (lane live2); plan sha256 3e598da48d890700236146f81425a6de258897c987fdf99e06d87c6c6ef18316; permission sha256 74fe5188ed89f77ef00cdc2f6ed6a37db0739e801c37b0b04ebd7e90211c9a83",
+          "environment": "Disposable AWS sandbox account 361646636162, region ap-south-1; approvals awsLive zenith-aws-permissions.json and root zenith-live-scope.json, approvedBy automation (delegated by Saivedant Hava on 2026-10-26); estimated cap USD 0.75 (provisional, billing not measured); 50 minute window (plan)",
+          "logs": "docs/build/production/evidence/PROD-OPS-04/2026-10-30-live-aws-41012192964/",
+          "result": "An OPS-04 run on the live AWS sandbox passed with cleanup complete. A deploy waiting for its approval was captured in the control-plane backup, then approved and applied after it (a second managed S3 bucket). The stores were lost from the control-plane database and restored into it at recovery epoch 1. The restored proposal was fenced: an approval was refused (journey:browser-human-approval), and it did not execute on its own for 120 s. It came back only through a recovery resume, where a stale binding was refused, and a fresh approval. Applying it again left AWS unchanged (2 buckets, 16 recorded resources). Measured RPO 190 s (target 900) and RTO 19 s (target 14400). Verdict passed (1 passed / 0 failed / 0 pending). Pending: operational_rehearsal, which is not done. Not a promotion; state unchanged."
         }
       ],
       "requiredEvidence": [

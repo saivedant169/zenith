@@ -266,6 +266,20 @@ Runner tools: the workflow installs the pinned Temporal CLI 1.9.1 (and the Postg
 
 **Not covered (named residuals).** KMS-held signing keys, the backup key (no decrypt-only list in this build), agent-link and invite sealing (no overlap by design), and retiring the old keys after the history window.
 
+## OPS-03 rolling upgrade run (2026-10-31)
+
+Scenario `ops-03` (either lane, 5 to 60 minutes) proves PROD-OPS-03 on the runner's stack with a real AWS deploy in flight. It uses the TEARDOWN-01 sandbox calls; Zenith deploys at most two S3 buckets. Code: `scripts/acceptance/live/product/ops-03.ts` and `ops-03-stack.ts`.
+
+1. Build candidate API, worker and migration images from this source with distinct rehearsal labels and push them to the stack's own registry (`default-stack/upgrade-candidates.mjs`, as DRV-3).
+2. Deploy one bucket: approve the proposal, then wait for the plan review. The deploy's Temporal workflow is running and nothing exists in AWS yet.
+3. Upgrade in the order `scripts/ops/rolling-upgrade.mjs` prints: `platform-migrate --dry-run`, the expand migration, the worker, then the API, each healthy on its new image.
+4. The review is unchanged (same status and round), the same Temporal run is still running, and AWS is still empty.
+5. Approve the apply on the candidate release. The same run completes and AWS holds one tagged bucket.
+6. Roll back: the API, then the worker, onto the recorded images. The schema is not downgraded.
+7. Deploy a second bucket on the rolled-back release. AWS holds two tagged buckets.
+
+**Not covered (named residuals).** The candidates are rebuilt from the same source, because no released N-1 exists yet: this proves in-flight replacement and rollback against AWS, not a previous-release compatibility matrix. Runner (machine) upgrades are separate.
+
 ## Budget, cleanup and evidence limits
 
 The hard admission ceiling reserves the canonical fixed topology, maximum attempts, a 5..20 minute execution window and a 2USD cleanup reserve before **any** AWS call. It refuses an altered self-consistent cost/topology as well as unknown/unplanned calls, changed inputs, missing per-call permission, exhausted attempt counts and expired mutation permission. Before billable creation it atomically claims `/zenith/live-runs/<runId>` using Standard-tier PutParameter with Overwrite=false and independently reads it. This account-side receipt prevents replay from a new directory or another machine. The execution role cannot overwrite/delete the receipt. The bootstrap uses the documented StringEquals condition for ssm:Overwrite; see [AWS Parameter Store condition guidance](https://docs.aws.amazon.com/systems-manager/latest/userguide/parameter-store-policy-conditions.html). Non-billing receipts are intentionally retained for replay prevention, tagged with purpose live-acceptance-receipt, and excluded from workload leak discovery; deletion requires a separate accountable retention decision. Cleanup is limited to already approved teardown/read inventory, can use the original approval after its expiry, and has a 25-minute observation deadline. It cannot create new resources or claim another run in recovery mode. SDK retries are disabled; every attempt is counted and journaled before dispatch.

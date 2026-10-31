@@ -660,14 +660,14 @@ async function sourceFixture(run: (source: string, base: string) => Promise<void
   const base = await mkdtemp(path.join(await realpath(os.tmpdir()), "zenith-packaged-source-fixture-"));
   const source = path.join(base, "source");
   try {
-    for (const relative of ["docker", "src/lib", "workers/execution", "deploy/aws/ssm-documents", "deploy/slo", "policy/dist"]) {
+    for (const relative of ["docker", "src/lib", "workers/execution", "deploy/aws/ssm-documents", "deploy/slo", "policy/dist", "vendor/minimatch3-compat"]) {
       await mkdir(path.join(source, relative), { recursive: true });
     }
     for (const relative of ["package.json", "package-lock.json", "tsconfig.json"]) await writeFile(path.join(source, relative), "{}\n");
     await writeFile(path.join(source, "deploy/slo/slo-definitions.json"), "{}\n");
     await writeFile(path.join(source, ".dockerignore"), ".git\n.env*\n");
     await writeFile(path.join(source, "docker/worker.Dockerfile"), [
-      "FROM fixture AS build", "COPY package.json package-lock.json ./", "COPY tsconfig.json ./",
+      "FROM fixture AS build", "COPY package.json package-lock.json ./", "COPY vendor/minimatch3-compat ./vendor/minimatch3-compat", "COPY tsconfig.json ./",
       "COPY src/lib ./src/lib", "COPY workers/execution ./workers/execution",
       "COPY deploy/aws/ssm-documents ./deploy/aws/ssm-documents", "COPY deploy/slo/slo-definitions.json ./deploy/slo/slo-definitions.json", "FROM fixture AS runtime",
       "COPY --from=build /app/dist/execution ./dist/execution", "COPY --chown=zenith:zenith policy/dist ./policy/dist", "",

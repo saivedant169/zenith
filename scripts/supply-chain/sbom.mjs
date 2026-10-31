@@ -24,6 +24,7 @@
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 export const SBOM_TOOL = { name: "zenith-sbom", version: "1.0.0" };
@@ -58,6 +59,24 @@ function resolveNode(packages, from, name) {
   return undefined;
 }
 
+/**
+ * The one in-repository npm package (scripts/ci/lockfile-integrity.mjs allows the same link): lock key -> path. Its
+ * bytes come from Git, not a registry tarball, so its hash is SHA-512 over its files (sorted path, NUL, bytes, NUL).
+ */
+const VENDORED_LINKS = { "node_modules/minimatch": "vendor/minimatch3-compat" };
+const VENDORED = new Set(Object.values(VENDORED_LINKS));
+function vendoredDigest(directory) {
+  const hash = createHash("sha512");
+  for (const file of fs.readdirSync(directory).sort()) {
+    const full = path.join(directory, file);
+    if (!fs.lstatSync(full).isFile()) throw new Error(`vendored package ${directory} holds a non-file entry`);
+    hash.update(file).update("\0").update(fs.readFileSync(full)).update("\0");
+  }
+  return hash.digest("hex");
+}
+const vendoredPathOf = (node, entry) => (entry.link && VENDORED_LINKS[node] === entry.resolved ? entry.resolved
+  : VENDORED.has(node) && !entry.link && entry.resolved === undefined && entry.integrity === undefined ? node : undefined);
+
 export function npmComponents(lock, packageJson) {
   if (!isObject(lock) || ![2, 3].includes(lock.lockfileVersion) || !isObject(lock.packages)) throw new Error("package-lock.json must be lockfileVersion 2 or 3");
   const packages = lock.packages;
@@ -65,8 +84,9 @@ export function npmComponents(lock, packageJson) {
   const counts = new Map();
   for (const node of nodes) {
     const entry = packages[node];
-    if (entry.link) throw new Error(`lockfile entry ${node} is a link; refusing to inventory an unverifiable dependency`);
-    const key = npmPurl(entry.name ?? nodeName(node), entry.version);
+    if (entry.link && !vendoredPathOf(node, entry)) throw new Error(`lockfile entry ${node} is a link; refusing to inventory an unverifiable dependency`);
+    const vendored = vendoredPathOf(node, entry), source = vendored && entry.link ? packages[vendored] ?? {} : entry;
+    const key = npmPurl(source.name ?? nodeName(node), source.version);
     counts.set(key, (counts.get(key) ?? 0) + 1);
   }
   const refOf = new Map();
@@ -83,9 +103,12 @@ export function npmComponents(lock, packageJson) {
   };
   const components = nodes.map((node) => {
     const entry = packages[node];
-    const name = entry.name ?? nodeName(node);
-    if (typeof entry.version !== "string" || entry.version === "") throw new Error(`lockfile entry ${node} has no version`);
-    const purl = npmPurl(name, entry.version);
+    const vendored = vendoredPathOf(node, entry);
+    // A link entry carries only its target; name and version come from the linked package's own entry.
+    const source = vendored && entry.link ? packages[vendored] ?? {} : entry;
+    const name = source.name ?? nodeName(node);
+    if (typeof source.version !== "string" || source.version === "") throw new Error(`lockfile entry ${node} has no version`);
+    const purl = npmPurl(name, source.version);
     // The same name and version can be installed at several paths; each copy keeps its own bom-ref.
     const ref = counts.get(purl) > 1 ? `${purl}#${node}` : purl;
     refOf.set(node, ref);
@@ -94,12 +117,15 @@ export function npmComponents(lock, packageJson) {
       type: "library",
       "bom-ref": ref,
       name,
-      version: entry.version,
+      version: source.version,
       purl,
-      scope: entry.dev ? "excluded" : entry.optional ? "optional" : "required",
+      scope: (entry.dev || source.dev) ? "excluded" : entry.optional ? "optional" : "required",
       properties: [prop("zenith:npm:node", node), prop("zenith:npm:dev", entry.dev === true), prop("zenith:npm:integrity", entry.integrity ?? "missing")],
     };
-    if (hex) component.hashes = [{ alg: "SHA-512", content: hex }];
+    if (vendored) {
+      component.hashes = [{ alg: "SHA-512", content: vendoredDigest(vendored) }];
+      component.properties.push(prop("zenith:npm:vendored-path", vendored));
+    } else if (hex) component.hashes = [{ alg: "SHA-512", content: hex }];
     else if (entry.inBundle === true) {
       const owner = bundledOwner(node);
       // This hash belongs to the containing tarball, never to the child's own bytes.

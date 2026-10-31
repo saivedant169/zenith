@@ -96,6 +96,17 @@ describe("lockfile integrity", () => {
     expect(out).toContain("`link`");
   });
 
+  it("accepts only the one vendored minimatch link and its own entry, never another local path", () => {
+    const vendored = { "node_modules/minimatch": { resolved: "vendor/minimatch3-compat", link: true }, "vendor/minimatch3-compat": { name: "minimatch", version: "3.1.5-zenith.0", dev: true, license: "ISC" } };
+    expect(run({ ...good, ...vendored }).status).toBe(0);
+    for (const bad of [
+      { "node_modules/minimatch": { resolved: "vendor/other", link: true } },
+      { "node_modules/glob": { resolved: "vendor/minimatch3-compat", link: true } },
+      { "node_modules/minimatch": { resolved: "vendor/minimatch3-compat", link: true, integrity: HASH } },
+      { "vendor/other": { name: "other", version: "1.0.0" } },
+    ] as Record<string, Entry>[]) expect(run({ ...good, ...bad }).status, JSON.stringify(bad)).toBe(1);
+  });
+
   it("rejects an old lockfile format that carries no per-package integrity", () => {
     expect(run(good, { lockfileVersion: 2 }).status).toBe(1);
   });

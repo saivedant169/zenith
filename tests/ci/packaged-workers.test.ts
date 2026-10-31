@@ -25,7 +25,7 @@ describe("packaged SLO source binding", () => {
         ".dockerignore": fs.readFileSync(".dockerignore"),
         "package.json": "{}", "package-lock.json": "{}", "tsconfig.json": "{}",
         "src/lib/source.ts": "", "workers/execution/source.ts": "",
-        "deploy/aws/ssm-documents/document.json": "{}", "policy/dist/policy.wasm": "fixture",
+        "deploy/aws/ssm-documents/document.json": "{}", "policy/dist/policy.wasm": "fixture", "vendor/minimatch3-compat/index.js": "fixture",
         "deploy/slo/slo-definitions.json": canonical,
       })) {
         const file = path.join(root, name);

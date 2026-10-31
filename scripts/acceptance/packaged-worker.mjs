@@ -73,7 +73,7 @@ export async function createPrivateScratch(source, base, prefix) {
   }
 }
 
-const COPY_INPUTS = ["package.json", "package-lock.json", "tsconfig.json", "src/lib", "workers/execution", "deploy/aws/ssm-documents", "deploy/slo/slo-definitions.json", "policy/dist"];
+const COPY_INPUTS = ["package.json", "package-lock.json", "tsconfig.json", "src/lib", "workers/execution", "deploy/aws/ssm-documents", "deploy/slo/slo-definitions.json", "policy/dist", "vendor/minimatch3-compat"];
 const CONTEXT_CONTROLS = ["docker/worker.Dockerfile", ".dockerignore"];
 const OPTIONAL_CONTEXT_CONTROL = "docker/worker.Dockerfile.dockerignore";
 const SOURCE_BYTE_LIMIT = 64 * 1024 * 1024;

@@ -22,7 +22,11 @@
  *   - it is not a `link` (a local-path dependency cannot be reproduced from
  *     the registry, and this repository has no workspaces).
  *
- * The one legitimate exception is a package with `inBundle: true`: it ships
+ * One in-repository package is linked on purpose: `vendor/minimatch3-compat` (the minimatch 3.x API over patched
+ * minimatch 11 for the lint toolchain, GHSA-g3hv-75wg-m249). Its bytes are reviewed in Git, not fetched, so exactly
+ * `node_modules/minimatch` linking to it, and its own entry, pass; any other link still fails.
+ *
+ * The other legitimate exception is a package with `inBundle: true`: it ships
  * inside its parent's tarball (six entries today, all under
  * `@tailwindcss/oxide-wasm32-wasi`) and so has neither field. Those are covered
  * by the parent's integrity hash.
@@ -51,6 +55,10 @@ try {
   process.exit(1);
 }
 
+/** The only local packages: lock key -> the in-repository path it must link to (or be). */
+const VENDORED_LINKS = { "node_modules/minimatch": "vendor/minimatch3-compat" };
+const VENDORED = new Set(Object.values(VENDORED_LINKS));
+
 const problems = [];
 const flag = (key, message) => problems.push(`${key}: ${message}`);
 
@@ -65,6 +73,8 @@ let checked = 0;
 let bundled = 0;
 for (const [key, entry] of Object.entries(lock.packages ?? {})) {
   if (key === "") continue; // the root project itself
+  if (entry.link && VENDORED_LINKS[key] === entry.resolved && Object.keys(entry).sort().join() === "link,resolved") continue;
+  if (VENDORED.has(key) && entry.resolved === undefined && entry.integrity === undefined && !entry.link) continue;
   if (entry.link) {
     flag(key, "is a `link` (local path dependency); it cannot be reproduced from the registry.");
     continue;

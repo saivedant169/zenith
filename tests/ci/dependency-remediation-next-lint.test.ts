@@ -41,8 +41,8 @@ describe("Next lint dependency replacement", () => {
     const pkg = require(path.join(root, "package.json"));
     const lock = require(path.join(root, "package-lock.json"));
     expect(pkg.engines.node).toBe(">=22.22.2 <23");
-    expect(pkg.overrides["@next/eslint-plugin-next@15.5.24"]["fast-glob"]).toBe("npm:glob@13.0.6");
-    expect(nextRequire("fast-glob/package.json")).toMatchObject({ name: "glob", version: "13.0.6" });
+    expect(pkg.overrides["@next/eslint-plugin-next@15.5.24"]["fast-glob"]).toBe("npm:glob@14.0.3");
+    expect(nextRequire("fast-glob/package.json")).toMatchObject({ name: "glob", version: "14.0.3" });
     expect(pkg.devDependencies.picomatch).toBe("4.0.7");
     expect(require("picomatch/package.json").version).toBe("4.0.7");
     const globRequire = createRequire(nextRequire.resolve("fast-glob"));

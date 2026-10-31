@@ -56,23 +56,25 @@ export function assessAudit(report, status) {
       }
       catch { throw new Error(`Malformed vulnerability scope for ${name}.`); }
     }
-    const advisoryIds = (name, visiting = new Set()) => {
+    // Every advisory reachable through `via`. npm reports peer cycles (eslint <-> @eslint-community/eslint-utils), so the
+    // walk keeps a seen set instead of refusing a revisit; a name npm does not list is still unresolvable.
+    const advisoryIds = (name) => {
       if (idsByPackage.has(name)) return idsByPackage.get(name);
-      if (visiting.has(name) || !Object.hasOwn(report.vulnerabilities, name)) {
-        throw new Error("Unresolvable npm audit dependency advisory.");
-      }
-      visiting.add(name);
-      const ids = new Set();
-      for (const via of report.vulnerabilities[name].via) {
-        if (typeof via === "string") {
-          for (const id of advisoryIds(via, visiting)) ids.add(id);
-        } else {
-          const match = record(via) && typeof via.url === "string" && advisoryUrl.exec(via.url);
-          if (!match) throw new Error("Missing canonical advisory identifier.");
-          ids.add(match[1]);
+      const ids = new Set(), seen = new Set(), pending = [name];
+      while (pending.length) {
+        const current = pending.pop();
+        if (seen.has(current)) continue;
+        seen.add(current);
+        if (!Object.hasOwn(report.vulnerabilities, current)) throw new Error("Unresolvable npm audit dependency advisory.");
+        for (const via of report.vulnerabilities[current].via) {
+          if (typeof via === "string") pending.push(via);
+          else {
+            const match = record(via) && typeof via.url === "string" && advisoryUrl.exec(via.url);
+            if (!match) throw new Error("Missing canonical advisory identifier.");
+            ids.add(match[1]);
+          }
         }
       }
-      visiting.delete(name);
       idsByPackage.set(name, ids);
       return ids;
     };

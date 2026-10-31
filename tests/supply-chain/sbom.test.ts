@@ -86,6 +86,18 @@ describe("npm components", () => {
   });
 });
 
+describe("vendored npm package", () => {
+  it("inventories only the vendored minimatch link and its entry, hashed over the package's own files", () => {
+    const lock = lockOf({ "node_modules/minimatch": { resolved: "vendor/minimatch3-compat", link: true }, "vendor/minimatch3-compat": { name: "minimatch", version: "3.1.5-zenith.0", dev: true } });
+    const { components } = npmComponents(lock, undefined);
+    expect(components.map((c: { name: string; version: string; scope: string }) => [c.name, c.version, c.scope])).toEqual([["minimatch", "3.1.5-zenith.0", "excluded"], ["minimatch", "3.1.5-zenith.0", "excluded"]]);
+    expect(new Set(components.map((c: { "bom-ref": string }) => c["bom-ref"])).size).toBe(2);
+    for (const c of components) expect(c.hashes).toEqual([{ alg: "SHA-512", content: expect.stringMatching(/^[a-f0-9]{128}$/) }]);
+    expect(() => npmComponents(lockOf({ "node_modules/other": { resolved: "vendor/minimatch3-compat", link: true } }), undefined)).toThrow(/is a link/);
+    expect(() => npmComponents(lockOf({ "node_modules/minimatch": { resolved: "packages/elsewhere", link: true } }), undefined)).toThrow(/is a link/);
+  });
+});
+
 describe("bundled npm provenance", () => {
   it("refuses an unhashed bundle without its pinned parent", () => {
     expect(() => npmComponents(lockOf({ "node_modules/a/node_modules/b": { version: "1.0.0", inBundle: true } }), undefined)).toThrow(/enclosing tarball/);

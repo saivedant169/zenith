@@ -130,6 +130,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "minimatch-v11": "npm:minimatch@11.0.3",
     "@eslint/eslintrc": "3.3.7",
     "@gltf-transform/core": "^4.5.0",
     "@gltf-transform/extensions": "^4.5.0",
@@ -178,6 +179,12 @@
     },
     "glob@13": "14.0.3",
     "minimatch@10": "11.0.3",
+    "eslint": { "minimatch": "file:../../vendor/minimatch3-compat" },
+    "eslint-plugin-react": { "minimatch": "file:../../vendor/minimatch3-compat" },
+    "eslint-plugin-import": { "minimatch": "file:../../vendor/minimatch3-compat" },
+    "eslint-plugin-jsx-a11y": { "minimatch": "file:../../vendor/minimatch3-compat" },
+    "@eslint/eslintrc": { "minimatch": "file:../../../vendor/minimatch3-compat" },
+    "@eslint/config-array": { "minimatch": "file:../../../vendor/minimatch3-compat" },
     "vitest": {
       "vite": "$vite"
     },

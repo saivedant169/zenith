@@ -69,6 +69,8 @@ RUN set -eu; \
 FROM ${NODE_IMAGE} AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
+# The lint toolchain's minimatch 3.x API over patched minimatch 11 (package.json overrides); npm ci links it.
+COPY vendor/minimatch3-compat ./vendor/minimatch3-compat
 RUN npm ci --ignore-scripts && npm cache clean --force
 COPY tsconfig.json ./
 COPY src/lib ./src/lib
@@ -107,6 +109,8 @@ RUN apt-get update \
  && chmod 0700 /var/lib/zenith /var/lib/zenith/platform-plans
 WORKDIR /app
 COPY package.json package-lock.json ./
+# The lint toolchain's minimatch 3.x API over patched minimatch 11 (package.json overrides); npm ci links it.
+COPY vendor/minimatch3-compat ./vendor/minimatch3-compat
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 COPY --from=tofu /usr/local/bin/tofu /usr/local/bin/tofu
 COPY --from=tofu /usr/local/share/zenith/tofu-identity.json /usr/local/share/zenith/tofu-identity.json

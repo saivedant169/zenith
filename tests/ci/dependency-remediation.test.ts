@@ -32,7 +32,8 @@ describe("approved dependency remediation", () => {
   });
 
   it.each([
-    ["brace-expansion", "1.1.21"],
+    // brace-expansion 1 came only with minimatch 3, now vendor/minimatch3-compat over minimatch 11.
+    ["minimatch-v11/node_modules/brace-expansion", "5.0.12"],
     ["glob/node_modules/brace-expansion", "5.0.12"],
     ["@typescript-eslint/typescript-estree/node_modules/brace-expansion", "5.0.12"],
   ])("retains normal expansion behavior in %s", (modulePath, version) => {

@@ -110,7 +110,7 @@ const config = [
       ],
     },
   },
-  { ignores: ["next-env.d.ts", ".next/**", ".data/**", ".data-*/**", "node_modules/**", "supabase/**", "public/gimbal/basis/**"] },
+  { ignores: ["next-env.d.ts", ".next/**", ".data/**", ".data-*/**", "node_modules/**", "supabase/**", "public/gimbal/basis/**", "vendor/**"] },
 ];
 
 // Named, because `eslint .` lints this file too and flags an anonymous default.

@@ -34,7 +34,9 @@ type Invoke = (call: Call, values?: Values, extra?: Record<string, Json>) => Pro
 
 /** Opaque, non-secret product identifiers. The approver is an automated test approver created by CI (decision D1). */
 export interface Mix03Tenant { workspaceId: string; approverId: string }
-export interface Mix03Child { role: "producer" | "consumer"; status: string; childOperationId?: string; receiptOperationId?: string; awaitingOperationId?: string; operationStatus?: string; halt?: string }
+export interface Mix03Child { role: "producer" | "consumer"; status: string; childOperationId?: string; receiptOperationId?: string; awaitingOperationId?: string; operationStatus?: string; halt?: string; review?: Mix03Review }
+/** The open review of a changed parent digest the consumer waits on, as its operation's proposal binds it (digests only). */
+export interface Mix03Review { previousParentDigest: string; requiredParentDigest: string; consumers: number; effectChanged: boolean }
 /** The consumer's Lambda package in S3: the object version and both immutable digests the function source must carry. */
 export interface Mix03Artifact { bucket: string; key: string; versionId: string; sha256: string; sourceDigest: string }
 export interface Mix03Product {
@@ -51,10 +53,10 @@ export interface Mix03Product {
   /** Adopts every child operation and starts the parent through the browser-only routes. */
   startMixed(tenant: Mix03Tenant, planId: string, parentOperationId: string): Promise<{ started: true } | { started: false; reason: string }>;
   children(tenant: Mix03Tenant, planId: string): Promise<Mix03Child[]>;
-  /** Changes the producer's output value and reports what the consumer now needs. */
-  changeProducer(tenant: Mix03Tenant, planId: string): Promise<{ consumerState: "unchanged" | "review_required" | "preauthorized" }>;
+  /** Issues one precise, one-use preauthorization of the plan's reference for its consumer, before the parent starts. */
   issueOutputPreauthorization(tenant: Mix03Tenant, planId: string): Promise<void>;
-  useOutputOnce(tenant: Mix03Tenant, planId: string): Promise<{ ok: boolean }>;
+  /** The parent's preauthorizations as the product lists them: how many, the uses spent and allowed, and how many still cover a use. */
+  preauthorizationUses(tenant: Mix03Tenant, parentOperationId: string): Promise<{ total: number; uses: number; maxUses: number; active: number }>;
   /** An operation's status and, when it stopped, a fixed category of why (never its text). */
   operationHalt?(tenant: Mix03Tenant, operationId: string): Promise<{ status: string; halt?: string; detail?: string }>;
   /** PROD-MIX-02: the stored parent plan, as GET /api/platform/v1/mixed/plans/:id returns it. */
@@ -116,8 +118,8 @@ const refuseUnwired = async (): Promise<never> => refuse(NOT_WIRED);
 /** Default driver: every product step refuses, so no AWS call is made. */
 export const unwiredProduct: Mix03Product = {
   createTenant: refuseUnwired, createAwsConnection: refuseUnwired, verifyAws: refuseUnwired, proposeMixed: refuseUnwired,
-  approve: refuseUnwired, startMixed: refuseUnwired, children: refuseUnwired, changeProducer: refuseUnwired,
-  issueOutputPreauthorization: refuseUnwired, useOutputOnce: refuseUnwired,
+  approve: refuseUnwired, startMixed: refuseUnwired, children: refuseUnwired, 
+  issueOutputPreauthorization: refuseUnwired, preauthorizationUses: refuseUnwired,
 };
 
 const EXTERNAL_ID_NEW = /^zenith-[0-9a-f]{32}$/;
@@ -184,6 +186,7 @@ const tagMap = (list: unknown): Record<string, string> => Object.fromEntries((Ar
   return typeof key === "string" && typeof value === "string" ? [[key, value]] : [];
 }));
 /** Owned by this run: managed by Zenith and tagged with one of the run's child environments (the producer and the consumer). */
+const grants = (g: { total: number; uses: number; maxUses: number; active: number }): string => `${g.total} grant(s), ${g.uses} of ${g.maxUses} uses, ${g.active} active`;
 const owned = (tags: Record<string, string>, environmentIds: string[]): boolean => tags["zenith:managed"] === "true" && environmentIds.includes(tags["zenith:environment"] ?? "");
 const errorName = (error: unknown): string => typeof field(error, "name") === "string" ? String(field(error, "name")) : "";
 /** Exact shapes of the exported Lambda package inputs (S3 key, object version, sha256 and the source digest). */
@@ -455,7 +458,7 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
           if (arns.length !== 1) refuse("AWS does not hold exactly one tagged producer bucket");
           return arns[0]!.arn;
         };
-        let beforeStop: { plan: MixedReadback; bucket: string } | undefined;
+        let beforeStop: { plan: MixedReadback; bucket: string } | undefined, reviewed: Mix03Review | undefined;
         step = "mixed plan";
         await product.approve(tenant, proposal.parentOperationId);
         const started = await product.startMixed(tenant, proposal.planId, proposal.parentOperationId);
@@ -473,6 +476,9 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
           // PROD-MIX-02: the producer is done and the consumer waits for a person. Stop the worker, approve while it is down and
           // restart it, so the parent can only go on by resuming.
           if (!beforeStop && producer.status === "succeeded" && consumer.status !== "succeeded" && consumer.awaitingOperationId) {
+            // PROD-MIX-03 review path: the wait must be a review binding a changed parent digest and the consumer's changed effect.
+            const review = consumer.review;
+            if (review && review.requiredParentDigest !== review.previousParentDigest && review.consumers === 1 && review.effectChanged) reviewed = review;
             step = "worker stop";
             const worker = seams.worker ?? refuse("the stack's execution worker is not wired");
             beforeStop = { plan: await readback(), bucket: await producerBucket() };
@@ -498,30 +504,71 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
         if (!producer!.childOperationId || producer!.receiptOperationId !== producer!.childOperationId) refuse("the producer receipt does not link its child operation");
         if (!consumer!.childOperationId || consumer!.receiptOperationId !== consumer!.childOperationId) refuse("the consumer receipt does not link its child operation");
         step = "AWS readback";
-        const mappings = await inventoryOf(invoke, planned("mix03-tag-read"), run.environmentIds);
-        const fnArns = mappings.filter(m => new RegExp(`^arn:aws:lambda:${region}:${account}:function:zenith-`).test(m.arn) && owned(m.tags, run.environmentIds));
-        const bucketArns = mappings.filter(m => /^arn:aws:s3:::zenith-/.test(m.arn) && owned(m.tags, run.environmentIds));
-        if (fnArns.length !== 1 || bucketArns.length !== 1) refuse("the run did not leave exactly one tagged consumer function and one tagged producer bucket");
-        const functionName = fnArns[0]!.arn.split(":function:")[1]!, bucketName = bucketArns[0]!.arn.split(":::")[1]!;
-        const fnConfig = await invoke(planned("mix03-lambda-read"), { functionName });
-        const variables = field(field(fnConfig, "Environment"), "Variables");
-        if (field(variables, "PRODUCER_BUCKET_ARN") !== `arn:aws:s3:::${bucketName}`) refuse("the consumer's deployed PRODUCER_BUCKET_ARN does not equal the producer bucket ARN");
-        await invoke(planned("mix03-bucket-head"), { bucketName });
-        const bucketTags = tagMap(field(await invoke(planned("mix03-bucket-tags"), { bucketName }), "TagSet"));
-        if (!owned(bucketTags, run.environmentIds)) refuse("the producer bucket lacks the run's ownership tags");
-        // Not provable through product routes: the producer-change review and the one-use preauthorization are decided by
-        // consumeOutputs inside the parent workflow, which no route re-runs (tests/execution/mixed-orchestration*.test.ts cover them).
-        outcome = {
-          complete: false,
-          reason: "PROD-MIX-03 partly proven: the trust change touched only the ExternalId of both sandbox roles and was restored; connection.verifyAws passed; the producer finished before the consumer started; both receipts link their child operations; the consumer's deployed PRODUCER_BUCKET_ARN equals the producer bucket ARN by independent readback. Approvals by an automated test approver through the browser path. Pending: the producer-change review and the one-use preauthorization refusal, which no product route can trigger.",
+        // One parent's environments must hold exactly one consumer function wired to exactly one producer bucket.
+        const awsReadback = async (environmentIds: string[]): Promise<string> => {
+          const mappings = await inventoryOf(invoke, planned("mix03-tag-read"), environmentIds);
+          const fnArns = mappings.filter(m => new RegExp(`^arn:aws:lambda:${region}:${account}:function:zenith-`).test(m.arn) && owned(m.tags, environmentIds));
+          const bucketArns = mappings.filter(m => /^arn:aws:s3:::zenith-/.test(m.arn) && owned(m.tags, environmentIds));
+          if (fnArns.length !== 1 || bucketArns.length !== 1) refuse("the run did not leave exactly one tagged consumer function and one tagged producer bucket");
+          const functionName = fnArns[0]!.arn.split(":function:")[1]!, bucketName = bucketArns[0]!.arn.split(":::")[1]!;
+          const fnConfig = await invoke(planned("mix03-lambda-read"), { functionName });
+          const variables = field(field(fnConfig, "Environment"), "Variables");
+          if (field(variables, "PRODUCER_BUCKET_ARN") !== `arn:aws:s3:::${bucketName}`) refuse("the consumer's deployed PRODUCER_BUCKET_ARN does not equal the producer bucket ARN");
+          await invoke(planned("mix03-bucket-head"), { bucketName });
+          const bucketTags = tagMap(field(await invoke(planned("mix03-bucket-tags"), { bucketName }), "TagSet"));
+          if (!owned(bucketTags, environmentIds)) refuse("the producer bucket lacks the run's ownership tags");
+          return bucketArns[0]!.arn;
         };
+        const firstBucket = await awsReadback(run.environmentIds);
+        const partly = "PROD-MIX-03 partly proven: the trust change touched only the ExternalId of both sandbox roles and was restored; connection.verifyAws passed; the producer finished before the consumer started; both receipts link their child operations; the consumer's deployed PRODUCER_BUCKET_ARN equals the producer bucket ARN by independent readback. Approvals by an automated test approver through the browser path";
+        outcome = { complete: false, reason: `${partly}. Pending: the preauthorized path did not run` };
         // Its own try: a PROD-MIX-02 refusal here leaves the PROD-MIX-03 result above as it is.
         step = "PROD-MIX-02 readback";
         try {
           if (!beforeStop) refuse("the consumer never waited for an approval, so the worker was never stopped");
-          mix02 = { complete: true, reason: mix02Verdict({ planId: proposal.planId, parentOperationId: proposal.parentOperationId, proposed, beforeStop: beforeStop.plan, final: await readback(), bucketBeforeStop: beforeStop.bucket, bucketFinal: bucketArns[0]!.arn, downMs: restart?.downMs ?? 0 }) };
+          mix02 = { complete: true, reason: mix02Verdict({ planId: proposal.planId, parentOperationId: proposal.parentOperationId, proposed, beforeStop: beforeStop.plan, final: await readback(), bucketBeforeStop: beforeStop.bucket, bucketFinal: firstBucket, downMs: restart?.downMs ?? 0 }) };
         } catch (error) {
           mix02 = { complete: false, reason: `PROD-MIX-02 not proven at ${step}: ${error instanceof Refusal ? error.message : "unexpected failure (details withheld; no completion claim)"}` };
+        }
+        // A second parent on the same connection, its one reference precisely preauthorized for one use before it starts: the
+        // consumer must start with no review, the use must be spent and the grant must no longer cover anything.
+        try {
+          step = "preauthorized parent";
+          const second = await product.proposeMixed(tenant, { connectionId: connection.connectionId, accountId: account, region, artifact });
+          if (second.environmentIds.length !== 2) refuse("the mixed proposal did not name exactly the producer and consumer environments");
+          run.environmentIds = [...new Set([...run.environmentIds, ...second.environmentIds])];
+          step = "output preauthorization";
+          await product.issueOutputPreauthorization(tenant, second.planId);
+          const issued = await product.preauthorizationUses(tenant, second.parentOperationId);
+          if (issued.total !== 1 || issued.uses !== 0 || issued.maxUses !== 1 || issued.active !== 1) refuse(`the product did not hold exactly one unspent one-use preauthorization (${grants(issued)})`);
+          step = "preauthorized parent";
+          await product.approve(tenant, second.parentOperationId);
+          const begun = await product.startMixed(tenant, second.planId, second.parentOperationId);
+          if (!begun.started) refuse(`the mixed parent did not start: ${FIXED_TEXT.test(begun.reason) ? begun.reason : "reason withheld"}`);
+          step = "preauthorized child rounds";
+          for (let poll = 1; ; poll++) {
+            const children = await product.children(tenant, second.planId);
+            const p = children.find(child => child.role === "producer"), c = children.find(child => child.role === "consumer");
+            if (!p || !c) refuse("the plan does not have one producer and one consumer child");
+            if (c.review) refuse("the consumer waited for a review although its newly materialized input was precisely preauthorized");
+            if (p.status !== "succeeded" && (c.status === "running" || c.status === "succeeded")) refuse("the consumer started before the producer receipt");
+            if ([p, c].some(child => ["failed", "uncertain", "cancelled", "blocked"].includes(child.status))) refuse(`a child operation did not succeed (${[p, c].map(childState).join(", ")})`);
+            for (const child of children) if (child.awaitingOperationId) await product.approve(tenant, child.awaitingOperationId);
+            if (p.status === "succeeded" && c.status === "succeeded") break;
+            if (poll >= polls.attempts || now() >= pollDeadline) refuse(`the child operations did not finish within the bound (${[p, c].map(childState).join(", ")})`);
+            await sleep(polls.intervalMs);
+          }
+          step = "preauthorization use";
+          const spent = await product.preauthorizationUses(tenant, second.parentOperationId);
+          if (spent.total !== 1 || spent.uses !== 1 || spent.maxUses !== 1) refuse(`the preauthorization's one use was not spent by the consumer (${grants(spent)})`);
+          if (spent.active !== 0) refuse("the spent one-use preauthorization still covers a use");
+          step = "preauthorized AWS readback";
+          await awsReadback(second.environmentIds);
+          step = "review path";
+          if (!reviewed) refuse("the first consumer never waited for a review binding a changed parent digest and its changed effect");
+          outcome = { complete: true, reason: `PROD-MIX-03 proven on the live AWS sandbox: the trust change touched only the ExternalId of both sandbox roles and was restored; connection.verifyAws passed. Review path: the producer (S3 bucket) finished before the consumer (Lambda function) started; the producer's newly materialized output changed the consumer's effect, so the parent workflow opened a review binding the new parent digest (previous ${reviewed.previousParentDigest.slice(0, 12)}, required ${reviewed.requiredParentDigest.slice(0, 12)}) and the consumer waited until a person approved it; both receipts link their child operations; the consumer's deployed PRODUCER_BUCKET_ARN equals the producer bucket ARN by independent readback. Preauthorized path: a second parent on the same connection had its one reference precisely preauthorized (parent operation, reference, contract, both subplan digests, desired digest, value type; one use, 15 minutes) before it started; its consumer started with no review, the preauthorization's one use was spent (1 of 1) and the product no longer lists it as able to cover a use; the second consumer's PRODUCER_BUCKET_ARN equals its own producer bucket ARN by independent readback. Approvals by an automated test approver through the browser path. A second use of the same grant is refused by the reservation (uses < max_uses), shown here as the grant no longer listed active, not by attempting a second materialization` };
+        } catch (error) {
+          outcome = { complete: false, reason: `${partly}; not proven at ${step}: ${error instanceof Refusal ? error.message : "unexpected failure (details withheld; no completion claim)"}` };
         }
       } catch (error) {
         let why = error instanceof Refusal ? error.message : "unexpected failure (details withheld; no completion claim)";
@@ -533,7 +580,7 @@ export function mix03Port(env: EnvLike = process.env, seams: Mix03Seams = {}): P
       const leaks = await teardown(run, plan, invoke, planned, principal).catch(() => ["cleanup did not complete; resources may remain"]);
       try { await product.close?.(); } catch { /* the browser is released best-effort; the outcome above stands */ }
       // A consumer that did not succeed: what Lambda itself reported before teardown deleted it.
-      if (!outcome.reason.includes("partly proven") && run.functionState) outcome = { ...outcome, reason: `${outcome.reason}; consumer function before teardown: ${run.functionState}` };
+      if (!outcome.complete && !outcome.reason.includes("partly proven") && run.functionState) outcome = { ...outcome, reason: `${outcome.reason}; consumer function before teardown: ${run.functionState}` };
       const second = mix02 ?? { complete: false, reason: `PROD-MIX-02 not proven at ${step}` };
       // Leaks are reported once, on PROD-MIX-03, and fail both.
       if (leaks.length) return {

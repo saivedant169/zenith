@@ -17,8 +17,12 @@ const FN = "zenith-envlive1-consumer", BUCKET = "zenith-envlive1-producer";
 const PRINCIPAL = `arn:aws:iam::${ACCOUNT}:role/ZenithLiveAcceptance`;
 const OLD_EXT = "old-live-external-id", NEW_EXT = `zenith-${"b".repeat(32)}`;
 const OWNED = [{ Key: "zenith:managed", Value: "true" }, { Key: "zenith:environment", Value: ENV }];
+/** The second (preauthorized) parent's producer environment and its resources, present only when a test adds them. */
+const ENV2 = "envlive3", FN2 = "zenith-envlive3-consumer", BUCKET2 = "zenith-envlive3-producer";
+const OWNED2 = [{ Key: "zenith:managed", Value: "true" }, { Key: "zenith:environment", Value: ENV2 }];
 const settings = { accountId: ACCOUNT, region: REGION, runId: RUN, durationMinutes: 15, dbSubnetGroup: "zenith-live-sandbox", dbSecurityGroup: "sg-12345678", workloadBoundaryArn: `arn:aws:iam::${ACCOUNT}:policy/ZenithLiveWorkloadBoundary`, scenario: "mix-03" as const };
 const VERSION = "3HL4kqtJlcpXroDTDmJ";
+const REVIEW = { previousParentDigest: "1".repeat(64), requiredParentDigest: "c".repeat(64), consumers: 1, effectChanged: true };
 const env = { ZENITH_LIVE_PRODUCT: "1", AWS_ACCESS_KEY_ID: "test-access", AWS_SECRET_ACCESS_KEY: "test-secret", AWS_SESSION_TOKEN: "test-token" };
 const STATE_BUCKET = `zenith-state-${ACCOUNT}-${REGION}-live`;
 const requirement = { id: "PROD-MIX-03", acceptance: [], fixtures: [], join: "" };
@@ -26,7 +30,7 @@ const COMMIT = "a".repeat(40);
 const fast = { upload: async () => VERSION, sleep: async () => undefined, propagation: { attempts: 3, intervalMs: 0 }, polls: { attempts: 3, intervalMs: 0 } };
 
 /** The AWS side: the sandbox trust documents, the tagged product resources and what has been deleted. */
-interface World { trustDocs: Record<"observe" | "deploy", string>; deleted: Set<string>; extra: { ResourceARN: string; Tags: { Key: string; Value: string }[] }[]; failDelete: boolean; envArn?: string; inline?: string[]; fnState?: Record<string, string> }
+interface World { trustDocs: Record<"observe" | "deploy", string>; deleted: Set<string>; extra: { ResourceARN: string; Tags: { Key: string; Value: string }[] }[]; failDelete: boolean; second?: boolean; envArn?: string; inline?: string[]; fnState?: Record<string, string> }
 function world(): World {
   return {
     trustDocs: { observe: trustDocument(PRINCIPAL, OLD_EXT), deploy: trustDocument(PRINCIPAL, OLD_EXT) },
@@ -38,6 +42,10 @@ const resources = (state: World) => [
   { ResourceARN: `arn:aws:s3:::${BUCKET}`, Tags: OWNED },
   ...state.extra,
 ].filter(r => !state.deleted.has(r.ResourceARN));
+const resources2 = (state: World) => (state.second ? [
+  { ResourceARN: `arn:aws:lambda:${REGION}:${ACCOUNT}:function:${FN2}`, Tags: OWNED2 },
+  { ResourceARN: `arn:aws:s3:::${BUCKET2}`, Tags: OWNED2 },
+] : []).filter(r => !state.deleted.has(r.ResourceARN));
 
 function respond(state: World, c: Call, input: Record<string, Json>): Record<string, unknown> {
   switch (c.id) {
@@ -47,18 +55,20 @@ function respond(state: World, c: Call, input: Record<string, Json>): Record<str
     case "mix03-iam-trust-deploy": state.trustDocs.deploy = String(input.PolicyDocument); return {};
     case "mix03-sts-assume": expect(input.ExternalId).toBe(NEW_EXT); return { Credentials: { AccessKeyId: "A", SecretAccessKey: "S", SessionToken: "T" } };
     // One answer per child environment, as the tag API filters by one tag value: only the producer and consumer ENV have resources here.
-    case "mix03-tag-read": return { ResourceTagMappingList: (input.TagFilters as { Values: string[] }[])[0]!.Values[0] === ENV ? resources(state) : [] };
-    case "mix03-lambda-read": return { ...state.fnState, Role: `arn:aws:iam::${ACCOUNT}:role/${FN}-fn`, Environment: { Variables: { PRODUCER_BUCKET_ARN: state.envArn ?? `arn:aws:s3:::${BUCKET}` } } };
+    case "mix03-tag-read": { const value = (input.TagFilters as { Values: string[] }[])[0]!.Values[0]; return { ResourceTagMappingList: value === ENV ? resources(state) : value === ENV2 ? resources2(state) : [] }; }
+    case "mix03-lambda-read": return input.FunctionName === FN2
+      ? { Role: `arn:aws:iam::${ACCOUNT}:role/${FN2}-fn`, Environment: { Variables: { PRODUCER_BUCKET_ARN: `arn:aws:s3:::${BUCKET2}` } } }
+      : { ...state.fnState, Role: `arn:aws:iam::${ACCOUNT}:role/${FN}-fn`, Environment: { Variables: { PRODUCER_BUCKET_ARN: state.envArn ?? `arn:aws:s3:::${BUCKET}` } } };
     case "mix03-bucket-head": return {};
-    case "mix03-bucket-tags": return { TagSet: OWNED };
-    case "mix03-lambda-delete": if (state.failDelete) throw Object.assign(new Error("denied"), { name: "AccessDenied" }); state.deleted.add(`arn:aws:lambda:${REGION}:${ACCOUNT}:function:${FN}`); return {};
+    case "mix03-bucket-tags": return { TagSet: input.Bucket === BUCKET2 ? OWNED2 : OWNED };
+    case "mix03-lambda-delete": if (state.failDelete) throw Object.assign(new Error("denied"), { name: "AccessDenied" }); state.deleted.add(`arn:aws:lambda:${REGION}:${ACCOUNT}:function:${String(input.FunctionName)}`); return {};
     case "mix03-logs-delete": for (const suffix of ["", ":*"]) state.deleted.add(`arn:aws:logs:${REGION}:${ACCOUNT}:log-group:${String(input.logGroupName)}${suffix}`); return {};
     case "mix03-role-read": return { Role: { Tags: OWNED } };
     case "mix03-role-attached-list": return { AttachedPolicies: [] };
     case "mix03-role-inline-list": return { PolicyNames: state.inline ?? [] };
     case "mix03-role-inline-delete": return {};
     case "mix03-role-delete": return {};
-    case "mix03-bucket-delete": state.deleted.add(`arn:aws:s3:::${BUCKET}`); return {};
+    case "mix03-bucket-delete": state.deleted.add(`arn:aws:s3:::${String(input.Bucket)}`); return {};
     default: throw new Error(`unexpected planned call in the fake: ${c.id}`);
   }
 }
@@ -88,7 +98,7 @@ function mixedPlan() {
   };
   const children = async (): Promise<Mix03Child[]> => state.stage > 0
     ? [{ role: "producer", status: "succeeded", childOperationId: "op-producer", receiptOperationId: "op-producer" }, { role: "consumer", status: "succeeded", childOperationId: "op-consumer", receiptOperationId: "op-consumer" }]
-    : [{ role: "producer", status: "succeeded", childOperationId: "op-producer", receiptOperationId: "op-producer" }, { role: "consumer", status: "pending", awaitingOperationId: "op-review" }];
+    : [{ role: "producer", status: "succeeded", childOperationId: "op-producer", receiptOperationId: "op-producer" }, { role: "consumer", status: "pending", awaitingOperationId: "op-review", review: REVIEW }];
   const events: string[] = [];
   const worker = { stop: async () => { events.push("stop"); }, start: async () => { events.push("start"); state.stage = 1; } };
   return { state, readback, children, worker, events };
@@ -98,21 +108,24 @@ function mixedPlan() {
 function happy(overrides: Partial<Mix03Product> = {}): Mix03Product {
   const finished = mixedPlan();
   finished.state.stage = 1;
-  let uses = 0;
+  let issued = false, reads = 0, proposals = 0;
   return {
     createTenant: async () => ({ workspaceId: "ws-1", approverId: "approver-1" }),
     createAwsConnection: async () => ({ connectionId: "conn-1", externalId: NEW_EXT }),
     verifyAws: async () => ({ ok: true, reason: "" }),
-    proposeMixed: async () => ({ environmentIds: [ENV, "envlive2"], planId: "plan-1", parentOperationId: "op-parent" }),
+    // The second proposal is the preauthorized parent, with its own environments.
+    proposeMixed: async () => proposals++ === 0
+      ? { environmentIds: [ENV, "envlive2"], planId: "plan-1", parentOperationId: "op-parent" }
+      : { environmentIds: [ENV2, "envlive4"], planId: "plan-2", parentOperationId: "op-parent-2" },
     approve: async () => undefined,
     startMixed: async () => ({ started: true }),
     children: async () => [
       { role: "producer", status: "succeeded", childOperationId: "op-producer", receiptOperationId: "op-producer" },
       { role: "consumer", status: "succeeded", childOperationId: "op-consumer", receiptOperationId: "op-consumer" },
     ],
-    changeProducer: async () => ({ consumerState: "review_required" }),
-    issueOutputPreauthorization: async () => undefined,
-    useOutputOnce: async () => ({ ok: uses++ === 0 }),
+    issueOutputPreauthorization: async () => { issued = true; },
+    // Unspent until the second parent's children have been read, then spent and no longer active.
+    preauthorizationUses: async () => issued && reads++ > 0 ? { total: 1, uses: 1, maxUses: 1, active: 0 } : { total: issued ? 1 : 0, uses: 0, maxUses: issued ? 1 : 0, active: issued ? 1 : 0 },
     planReadback: finished.readback,
     ...overrides,
   };
@@ -297,7 +310,7 @@ describe("PROD-MIX-03 children, receipts and independent readback", () => {
     }));
     const result = await run();
     expect(result.reason).toMatch(/^PROD-MIX-03 partly proven/);
-    expect(approved).toEqual(["op-parent", "op-p-round"]);
+    expect(approved).toEqual(["op-parent", "op-p-round", "op-parent-2"]);
   });
 
   it("stops polling children before the run window closes, names their states, and still tears down", async () => {
@@ -500,7 +513,7 @@ describe("PROD-MIX-02 from the same run (immutable child plans, resume across a 
     const second = await run02();
     expect(second.reason).toMatch(/^PROD-MIX-02 proven on the live sandbox/);
     expect(second.complete).toBe(true);
-    expect(plan.events).toEqual(["approve:op-parent", "stop", "approve:op-review", "start"]);
+    expect(plan.events).toEqual(["approve:op-parent", "stop", "approve:op-review", "start", "approve:op-parent-2"]);
     const calls = sent.length;
     const first = await run();
     expect(first.reason).toMatch(/^PROD-MIX-03 partly proven/);
@@ -553,5 +566,56 @@ describe("PROD-MIX-02 from the same run (immutable child plans, resume across a 
     expect((await run02()).reason).toContain("PROD-MIX-02 not proven at worker restart");
     expect((await run()).reason).toContain("PROD-MIX-03 not proven at worker restart");
     expect(state.trustDocs.deploy).toBe(trustDocument(PRINCIPAL, OLD_EXT));
+  });
+});
+
+describe("PROD-MIX-03 review and precise preauthorization", () => {
+  const staged = (overrides: Partial<Mix03Product> = {}) => {
+    const plan = mixedPlan();
+    const product = happy({ children: plan.children, planReadback: plan.readback, ...overrides });
+    return { plan, product };
+  };
+
+  it("proves both paths: a review of the changed parent digest, then a preauthorized consumer with its one use spent, and cleans up both", async () => {
+    const state = world();
+    state.second = true;
+    const { plan, product } = staged();
+    const { run, run02 } = harness(state, product, { worker: plan.worker });
+    const result = await run();
+    expect(result.reason).toMatch(/^PROD-MIX-03 proven on the live AWS sandbox/);
+    expect(result.complete).toBe(true);
+    expect(result.leaks).toEqual([]);
+    expect((await run02()).complete).toBe(true);
+    expect(state.deleted).toContain(`arn:aws:s3:::${BUCKET2}`);
+    expect(state.deleted).toContain(`arn:aws:lambda:${REGION}:${ACCOUNT}:function:${FN2}`);
+  });
+
+  it.each([
+    ["a review on the preauthorized parent", (plan: ReturnType<typeof mixedPlan>) => ({ children: async (_t: unknown, planId: string) => planId === "plan-2"
+      ? [{ role: "producer", status: "succeeded" }, { role: "consumer", status: "pending", awaitingOperationId: "op-review-2", review: REVIEW }] as Mix03Child[]
+      : plan.children() }), "preauthorized child rounds: the consumer waited for a review although its newly materialized input was precisely preauthorized"],
+    ["an unspent use", () => ({ preauthorizationUses: async () => ({ total: 1, uses: 0, maxUses: 1, active: 1 }) }), "preauthorization use: the preauthorization's one use was not spent by the consumer (1 grant(s), 0 of 1 uses, 1 active)"],
+    ["a grant that is not one-use", () => ({ preauthorizationUses: async () => ({ total: 1, uses: 0, maxUses: 2, active: 1 }) }), "output preauthorization: the product did not hold exactly one unspent one-use preauthorization (1 grant(s), 0 of 2 uses, 1 active)"],
+  ] as const)("refuses %s, keeps PROD-MIX-02 and still cleans up", async (_name, override, reason) => {
+    const state = world();
+    state.second = true;
+    const plan = mixedPlan();
+    const product = happy({ children: plan.children, planReadback: plan.readback, ...override(plan) });
+    const { run, run02 } = harness(state, product, { worker: plan.worker });
+    const result = await run();
+    expect(result.complete).toBe(false);
+    expect(result.reason).toMatch(/^PROD-MIX-03 partly proven/);
+    expect(result.reason).toContain(`not proven at ${reason}`);
+    expect((await run02()).complete).toBe(true);
+    expect(state.deleted).toContain(`arn:aws:s3:::${BUCKET2}`);
+  });
+
+  it("refuses when the first consumer's wait was not a review of a changed parent digest", async () => {
+    const state = world();
+    state.second = true;
+    const plan = mixedPlan();
+    const children = async (): Promise<Mix03Child[]> => (await plan.children()).map(child => child.review ? { ...child, review: { ...child.review, requiredParentDigest: child.review.previousParentDigest } } : child);
+    const { run } = harness(state, happy({ children, planReadback: plan.readback }), { worker: plan.worker });
+    expect((await run()).reason).toContain("not proven at review path: the first consumer never waited for a review binding a changed parent digest and its changed effect");
   });
 });

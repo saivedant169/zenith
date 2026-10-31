@@ -393,14 +393,16 @@ describe("mixed start: adoption of both children, then the start", () => {
       if (sent.endpoint === "/api/platform/v1/operations/op-c") return ok({ operation: { id: "op-c", status: "approved" } });
       if (sent.endpoint.startsWith("/api/platform/v1/operations?")) return ok({ operations: [
         { id: "op-other-review", proposal: { input: { mixedParentReviewOf: "op-someone-else" } } },
-        { id: "op-review", proposal: { input: { mixedParentReviewOf: "op-parent" } } },
+        { id: "op-review", proposal: { input: { mixedParentReviewOf: "op-parent", previousParentDigest: "1".repeat(64), requiredParentDigest: "2".repeat(64),
+          consumers: [{ childId: P_CONSUMER, previousEffectDigest: "3".repeat(64), newEffectDigest: "4".repeat(64), referenceIds: ["ref-1"] }] } } },
       ] });
       throw new Error(`unexpected ${sent.endpoint}`);
     });
     const product = await driverWithTenant({ request: t.request });
     expect(await product.children(TENANT, "plan-1")).toEqual([
       { role: "producer", status: "succeeded", childOperationId: "op-p", receiptOperationId: "op-p" },
-      { role: "consumer", status: "pending", childOperationId: "op-c", operationStatus: "approved", awaitingOperationId: "op-review" },
+      { role: "consumer", status: "pending", childOperationId: "op-c", operationStatus: "approved", awaitingOperationId: "op-review",
+        review: { previousParentDigest: "1".repeat(64), requiredParentDigest: "2".repeat(64), consumers: 1, effectChanged: true } },
     ]);
     expect(t.sent.every(call => call.method === "GET")).toBe(true);
   });
@@ -491,19 +493,17 @@ describe("output preauthorization: one precise use for the consumer, from the pl
   });
 });
 
-describe("steps with no product route: refused before any request", () => {
-  const cases: [string, (p: Awaited<ReturnType<typeof driverWithTenant>>) => Promise<unknown>, string][] = [
-    ["changeProducer", p => p.changeProducer(TENANT, "plan-1"), "a changed producer's consumer state is decided only inside the consumer's own run"],
-    ["useOutputOnce", p => p.useOutputOnce(TENANT, "plan-1"), "no browser or REST route spends a preauthorization use"],
-  ];
-  for (const [name, call, reason] of cases) {
-    it(`${name} refuses with a clear reason and sends nothing`, async () => {
-      const t = transport(() => ok({}));
-      const product = await driverWithTenant({ request: t.request });
-      await expect(call(product)).rejects.toThrow(reason);
-      expect(t.sent).toEqual([]);
+describe("preauthorizationUses", () => {
+  it("counts the parent's grants, their uses and the ones still active, reading both lists", async () => {
+    const t = transport((sent) => {
+      if (sent.endpoint === "/api/platform/v1/mixed-output-preauthorizations?parentOperationId=op-parent") return ok({ preauthorizations: [{ id: "mop-1", uses: 1, maxUses: 1 }] });
+      if (sent.endpoint === "/api/platform/v1/mixed-output-preauthorizations?parentOperationId=op-parent&activeOnly=true") return ok({ preauthorizations: [] });
+      throw new Error(`unexpected ${sent.endpoint}`);
     });
-  }
+    const product = await driverWithTenant({ request: t.request });
+    expect(await product.preauthorizationUses(TENANT, "op-parent")).toEqual({ total: 1, uses: 1, maxUses: 1, active: 0 });
+    expect(t.sent.every(call => call.method === "GET")).toBe(true);
+  });
 });
 
 describe("tenant isolation", () => {

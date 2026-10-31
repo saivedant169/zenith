@@ -307,7 +307,8 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
         return session.owner.evaluate(async ({ count, concurrency, workspaceId }) => {
           const statuses: Record<string, number> = {}, durationsMs: number[] = [];
           let next = 0;
-          const one = async () => {
+          // Inline, unnamed workers only: tsx wraps named functions in a __name helper the browser page does not have.
+          await Promise.all(Array.from({ length: concurrency }, async () => {
             for (; next < count; ) {
               next++;
               const start = performance.now();
@@ -316,8 +317,7 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
               durationsMs.push(performance.now() - start);
               statuses[String(status)] = (statuses[String(status)] ?? 0) + 1;
             }
-          };
-          await Promise.all(Array.from({ length: concurrency }, one));
+          }));
           return { statuses, durationsMs };
         }, { count, concurrency, workspaceId: session.workspaceId });
       });

@@ -222,3 +222,21 @@ node scripts/ci/wave6-gates.mjs --requirement PROD-OPS-02 --print > /tmp/zenith-
 ```
 
 This prints the exact argv for each contract batch and required engine case, its gate names, private prerequisites, and its strict report-validation command. Set only the gates for the selected lane after preparing its owned fixture; a skip cannot satisfy that lane. Run each `argv` sequentially and then its `verify` argv. [Final integration setup and results](FINAL-INTEGRATION.md), [canonical inventory](../../../../scripts/ci/wave6-gates.json), [owner live runbook](../LIVE-ACCEPTANCE.md).
+
+## Tenant fairness, alerting and control-plane outage proven on the live AWS sandbox (2026-10-31)
+
+Run [41183967350](https://github.com/saivedant169/zenith/actions/runs/41183967350), run id `zlive-202610310816-33a9`, workflow `live-acceptance.yml`, scenario `ops-02`, lane `live2`. Source `ce8317ae9585384337706333c2d85f6fc4a95086`. Sandbox account `361646636162` in ap-south-1. Plan digest `a009b6ec647537d8b64ffb4f119e7b84be974294971e1dae4804bc15099a245f`; permission digest `278fddf52134ed18d527d05624af49693f11331bda6bb363b5d40733951bd651`.
+
+Verdict `passed`: 1 passed, 0 failed, 0 pending. Cleanup complete. Estimated cap USD 2.8 (provisional, billing not measured), 60 minute window; the scenario took about 15 minutes. Files: `evidence/PROD-OPS-02/2026-10-31-live-aws-41183967350/`, including the `zenith.release-evidence.v1` receipt `release-evidence-PROD-OPS-02.json`.
+
+What the run checked (`scripts/acceptance/live/product/deploy-01.ts` ops-02 flow, `ops-02-stack.ts`):
+
+- The repository's alert rules (`deploy/observability/alerts/`) were loaded into the pinned Prometheus image, scraping the API's `/api/internal/metrics` with a run-scoped bearer secret.
+- One tenant sent 600 requests 40 at a time and was refused 162 times (HTTP 429). A second tenant's 20 concurrent requests were all served (p95 3635 ms).
+- The dashboard's tenant-filtered refusal panel query showed 156 refusals for the flooding tenant and none for the quiet one.
+- A pinned nginx image on ECS Fargate behind an ALB served all 213 HTTP probes (one a second) through a 260 s control-plane outage. The control store stopped first (`ZenithControlStoreDown` fired after 150 s), then the API and worker stopped for 61 s.
+- After the restart the store reported up and the tenant was served again.
+
+Fixes found on the way: the browser's six-connection cap hid the flood (burst now sent from Node, PR #139); a stopped store hung the metrics sample past the scrape timeout (sample bounded at 2 s, PR #140).
+
+Limits: traces in a trace backend, worker-side metrics, Grafana UI import (proven locally by the import harness) and Temporal-backed fairness are not covered. `operational_rehearsal` is not done. Status stays `in_progress`. Not a promotion.

@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 import { publicKeyEntry } from "../../scripts/supply-chain/release.mjs";
 import { EVIDENCE_FORMAT, SIGNOFF_FORMAT, canonical, inspectEvidence, readRepositoryFile, releaseSnapshotDigest, selectReleaseEvidence, sha256, signSignoff, validateReleaseStatus, verifySignoff, type EvidenceReceipt, type SignoffRecord } from "../../scripts/release/status.mjs";
-import { main as laneSource } from "../../scripts/release/lane-source.mjs";
+import { commandText, main as laneSource } from "../../scripts/release/lane-source.mjs";
 import { buildDossier, loadDossierInputs, renderMarkdown, type Ledger } from "../../scripts/release/dossier";
 
 const commit = "a".repeat(40);
@@ -269,5 +269,11 @@ describe("lane sources: a real contract or engine run bound for a receipt", () =
     const dirty = laneRoot();
     expect(run(dirty, { numPassedTests: 4 }, 0, " M src/x.ts").code).toBe(1);
     expect(existsSync(path.join(dirty, "source.json"))).toBe(false);
+  });
+
+  it("names a long file list by count so the command fits the receipt", () => {
+    const files = Array.from({ length: 80 }, (_, i) => `tests/area/file-number-${i}.test.ts`);
+    expect(commandText([...files, "--maxWorkers=1"], files)).toBe("vitest run --maxWorkers=1 over the 80 test files listed in files");
+    expect(commandText(["tests/a.test.ts"], ["tests/a.test.ts"])).toBe("vitest run tests/a.test.ts");
   });
 });

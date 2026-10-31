@@ -44,6 +44,14 @@ export function statusOf(counts, exitCode) {
   return counts.passed > 0 ? "passed" : "not_run";
 }
 
+/** The receipt schema caps the command at 2000 characters; a long file list is then named by count (paths and digests stay in `files`). */
+export function commandText(args, files) {
+  const full = `vitest run ${args.join(" ")}`;
+  if (full.length <= 2000) return full;
+  const flags = args.filter((arg) => !files.includes(arg));
+  return `vitest run ${flags.join(" ")} over the ${files.length} test files listed in files`.replace(/\s+/g, " ");
+}
+
 export function main(argv, seams = {}) {
   const split = argv.indexOf("--");
   const own = split < 0 ? argv : argv.slice(0, split), args = split < 0 ? [] : argv.slice(split + 1);
@@ -68,7 +76,7 @@ export function main(argv, seams = {}) {
     const counts = countsOf(report);
     const source = {
       format: LANE_SOURCE_FORMAT, requirements: [requirement], mode, commit, exitCode, status: statusOf(counts, exitCode), counts, environment,
-      command: `vitest run ${args.join(" ")}`,
+      command: commandText(args, files),
       files: files.map((file) => ({ path: file, sha256: createHash("sha256").update(readFileSync(path.join(root, file))).digest("hex") })),
     };
     writeFileSync(out, `${JSON.stringify(source, null, 2)}\n`, { flag: "wx", mode: 0o644 });

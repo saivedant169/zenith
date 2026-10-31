@@ -130,8 +130,9 @@ export function deploy01Port(env: EnvLike = process.env, seams: Deploy01Seams = 
         step = "observability";
         const stack = observed = seams.ops02 ?? runnerOps02Stack(env, runId);
         await stack.observe();
-        step = "tenant fairness";
+        step = "second tenant";
         const quietTenant = await product.createTenant();
+        step = "tenant fairness";
         const [flood, quiet] = await Promise.all([product.burst!(tenant, OPS02_FLOOD.count, OPS02_FLOOD.concurrency),
           sleep(500).then(() => product.burst!(quietTenant, OPS02_QUIET.count, OPS02_QUIET.concurrency))]);
         const codes = (statuses: Record<string, number>) => Object.entries(statuses).filter(([code]) => /^\d{1,3}$/.test(code)).map(([code, n]) => `${code}: ${n}`).sort().join(", ");

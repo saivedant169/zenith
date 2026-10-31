@@ -213,10 +213,11 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
     try { return await work(); }
     catch (error) {
       if (error instanceof Refusal) throw error;
-      // Only the product's journey codes, or the error's class name (never its message), pass through.
-      const name = error instanceof Error && /^[A-Za-z]{1,40}$/.test(error.name) ? error.name : "Error";
-      const code = error instanceof Error && /^journey:[a-z0-9-]{1,60}$/.test(error.message) ? error.message.slice("journey:".length) : `unexpected ${name}`;
-      return refuse(`${name} refused by the product path (${code})`);
+      // The step, then the product's journey code, or the error's class and its scrubbed, elided message (no URL, path or token).
+      const kind = error instanceof Error && /^[A-Za-z]{1,40}$/.test(error.name) ? error.name : "Error";
+      const journey = error instanceof Error && /^journey:[a-z0-9-]{1,60}$/.test(error.message) ? error.message.slice("journey:".length) : undefined;
+      const why = journey ?? `unexpected ${kind}${error instanceof Error && sanitizedError(error.message) ? `: ${sanitizedError(error.message)}` : ""}`;
+      return refuse(`${name} refused by the product path (${why})`);
     }
   };
 

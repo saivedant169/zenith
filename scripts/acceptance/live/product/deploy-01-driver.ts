@@ -38,8 +38,8 @@ export interface Deploy01Product {
   /** OPS-03: approve the plan review it waits on, then every later round, until the operation is terminal. */
   completeDeploy?(tenant: Deploy01Tenant, operationId: string): Promise<{ operationId: string; status: string; detail?: string }>;
   /**
-   * OPS-02: `count` concurrent GETs of `/api/platform/v1/operations?limit=1` as the tenant's owner, `concurrency` at a time,
-   * from the signed-in browser page. Status codes are counted; durations are milliseconds per request.
+   * OPS-02: `count` GETs of `/api/platform/v1/operations?limit=1` as the tenant's owner, `concurrency` at a time, sent from
+   * Node with the signed-in browser's session cookies. Status codes are counted; durations are milliseconds per request.
    */
   burst?(tenant: Deploy01Tenant, count: number, concurrency: number): Promise<{ statuses: Record<string, number>; durationsMs: number[] }>;
   /** OPS-04: the operation's status, approval round and recovery epoch as the API reports them. */
@@ -304,22 +304,23 @@ export function browserDeploy01Product(env: EnvLike = process.env, seams: Deploy
       return step("request burst", async () => {
         const session = sessionOf(tenant);
         if (!Number.isInteger(count) || count < 1 || count > 2000 || !Number.isInteger(concurrency) || concurrency < 1 || concurrency > 100) refuse("the burst size is out of range");
-        return session.owner.evaluate(async ({ count, concurrency, workspaceId }) => {
-          const statuses: Record<string, number> = {}, durationsMs: number[] = [];
-          let next = 0;
-          // Inline, unnamed workers only: tsx wraps named functions in a __name helper the browser page does not have.
-          await Promise.all(Array.from({ length: concurrency }, async () => {
-            for (; next < count; ) {
-              next++;
-              const start = performance.now();
-              const status = await fetch("/api/platform/v1/operations?limit=1", { credentials: "same-origin", redirect: "error", cache: "no-store", headers: { "x-zenith-workspace": workspaceId } })
-                .then(async r => { await r.arrayBuffer(); return r.status; }, () => 0);
-              durationsMs.push(performance.now() - start);
-              statuses[String(status)] = (statuses[String(status)] ?? 0) + 1;
-            }
-          }));
-          return { statuses, durationsMs };
-        }, { count, concurrency, workspaceId: session.workspaceId });
+        // From Node with the owner's browser session cookies: a browser opens at most 6 HTTP/1.1 connections per host,
+        // which stays under a tenant's limits however many requests the page queues (run 41175335411 sent 600, all served).
+        const url = new URL("/api/platform/v1/operations?limit=1", session.stack.apiUrl);
+        const cookie = (await session.owner.context().cookies(url.origin)).map(c => `${c.name}=${c.value}`).join("; ");
+        const statuses: Record<string, number> = {}, durationsMs: number[] = [];
+        let next = 0;
+        await Promise.all(Array.from({ length: concurrency }, async () => {
+          for (; next < count; ) {
+            next++;
+            const start = performance.now();
+            const status = await fetch(url, { headers: { cookie, "x-zenith-workspace": session.workspaceId }, redirect: "manual", signal: AbortSignal.timeout(30_000) })
+              .then(async r => { await r.arrayBuffer(); return r.status; }, () => 0);
+            durationsMs.push(performance.now() - start);
+            statuses[String(status)] = (statuses[String(status)] ?? 0) + 1;
+          }
+        }));
+        return { statuses, durationsMs };
       });
     },
     async operationStatus(tenant, operationId) {

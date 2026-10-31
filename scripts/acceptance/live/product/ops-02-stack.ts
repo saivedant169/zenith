@@ -17,7 +17,7 @@ import { promisify } from "node:util";
 import type { EnvLike } from "../../config";
 import { compose, docker, readState } from "../../default-stack/runtime.mjs";
 import { envValues, isPinned } from "../../../deploy/pin-digests.mjs";
-import { refuse } from "./mix-03";
+import { refuse, sanitizedError } from "./mix-03";
 import { runnerStack } from "./mix-03-driver";
 import { named } from "./ops-04-stack";
 
@@ -96,14 +96,21 @@ export function runnerOps02Stack(env: EnvLike, runId: string): Ops02Stack {
       // The runner's own uid reads the 0600 files; the TSDB lives in a private tmpfs.
       const { stdout: uid } = await run("id", ["-u"]), { stdout: gid } = await run("id", ["-g"]);
       await docker(["run", "-d", "--name", container, "--label", `io.zenith.ops02=${runId}`, "--network", "host",
-        "--user", `${uid.trim()}:${gid.trim()}`, "--read-only", "--tmpfs", "/prometheus:rw,size=256m", "--memory", "256m",
+        "--user", `${uid.trim()}:${gid.trim()}`, "--read-only", "--tmpfs", "/prometheus:rw,size=256m,mode=1777", "--memory", "256m",
         "--mount", `type=bind,source=${root},target=/etc/zenith,readonly`, image,
         "--config.file=/etc/zenith/prometheus.json", `--web.listen-address=${PROM}`, "--storage.tsdb.path=/prometheus"]);
       started = true;
       for (const deadline = Date.now() + 120_000; ; await new Promise(r => setTimeout(r, 2_000))) {
-        const data = await prom("/api/v1/targets").catch(() => undefined) as { activeTargets?: { health?: string }[] } | undefined;
+        const data = await prom("/api/v1/targets").catch(() => undefined) as { activeTargets?: { health?: string; lastError?: string }[] } | undefined;
         if (data?.activeTargets?.some(t => t.health === "up")) return;
-        if (Date.now() > deadline) refuse("Prometheus did not scrape the API's metrics within 2 minutes");
+        if (Date.now() > deadline) {
+          // Why: the target's own scrape error, or else the container's state and last log lines, scrubbed and elided.
+          const target = data?.activeTargets?.[0];
+          if (target) refuse(`Prometheus did not scrape the API's metrics within 2 minutes (target ${/^[a-z]{1,10}$/.test(target.health ?? "") ? target.health : "unknown"}: ${sanitizedError(target.lastError) ?? "no error"})`);
+          const status = String(await docker(["inspect", "-f", "{{.State.Status}} exit {{.State.ExitCode}}", container]).catch(() => "absent")).trim();
+          const logs = String(await docker(["logs", "--tail", "3", container]).catch(() => "")).split("\n").map(line => sanitizedError(line)).filter(Boolean).join(" | ");
+          refuse(`Prometheus did not answer within 2 minutes (container ${/^[a-z]{1,12} exit \d{1,3}$/.test(status) ? status : "unknown"}${logs ? `; ${logs}` : ""})`);
+        }
       }
     }),
     query: (expr) => named("a Prometheus query", async () => {

@@ -61,6 +61,14 @@ describe("mandatory dependency audit", () => {
     expect(result.findings[1]).toMatchObject({ package: "parent", advisoryIds: ["GHSA-abcd-2345-ghjk"], scope: { severity: "high", range: "*", via: ["example", "example"] } });
   });
 
+  it("resolves advisory IDs through a peer cycle npm reports, and still refuses an unlisted name", () => {
+    const meta = (name: string, via: string[]) => ({ name, severity: "high", range: "*", isDirect: false, nodes: [`node_modules/${name}`], effects: [], fixAvailable: false, via });
+    const result = assessAudit(report({ example: direct(), host: meta("host", ["utils", "example"]), utils: meta("utils", ["host"]) }), 1);
+    expect(result).toMatchObject({ validated: true, ok: false });
+    expect(result.findings.map((f: { package: string; advisoryIds: string[] }) => [f.package, f.advisoryIds])).toEqual([["example", ["GHSA-abcd-2345-ghjk"]], ["host", ["GHSA-abcd-2345-ghjk"]], ["utils", ["GHSA-abcd-2345-ghjk"]]]);
+    expect(assessAudit(report({ utils: meta("utils", ["missing"]) }), 1)).toMatchObject({ validated: false, reason: "Unresolvable npm audit dependency advisory." });
+  });
+
   it("accepts npm's empty range on an entry affected only through a vulnerable dependency", () => {
     const result = assessAudit(report({
       example: direct(), parent: { name: "parent", severity: "high", range: "", isDirect: true, nodes: ["node_modules/parent"], effects: [], fixAvailable: true, via: ["example"] },

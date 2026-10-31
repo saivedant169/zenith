@@ -128,3 +128,22 @@ How we got here (runs on 2026-10-27 and 2026-10-28):
 - The Lambda driver's observe, runtime and discover reads use `GetFunctionConfiguration` and `ListTags`, which the observe role allows, instead of `GetFunction`, which it does not (#80).
 
 Limits: still pending are the producer-change review and the one-use preauthorization refusal, which no product route can trigger yet. Secret references, operational rehearsal and the owner decisions above are also still pending. Status stays `implementation_complete_verification_pending`. Not a promotion.
+
+## Review path and one-use preauthorization proven on the live AWS sandbox (2026-10-31)
+
+Run [41241063623](https://github.com/saivedant169/zenith/actions/runs/41241063623), run id `zlive-202610312054-5dfc`, workflow `live-acceptance.yml`, scenario `mix-03`, lane `live2`. Source `8fa3842af56cead08191e922075f421f21368440`. Sandbox account `361646636162` in ap-south-1. Plan digest `bb51c440e9316fc51d57d8ab7c88be5c50da67c564d62c0153c26ee91a7d781a`; permission digest `8f0c9a4434a7f585fcdcfae9095bc501543f2fb30e6535ba524df2242dae08c4`.
+
+Verdict `passed`: 2 passed (PROD-MIX-03, PROD-MIX-02), 0 failed, 0 pending. Cleanup complete. Estimated cap USD 1.3 (provisional, billing not measured), 40 minute window; the scenario took about 16 minutes. Files: `evidence/PROD-MIX-03/2026-10-31-live-aws-41241063623/`, including the `zenith.release-evidence.v1` receipt `release-evidence-PROD-MIX-03.json`.
+
+What the run checked (`scripts/acceptance/live/product/mix-03.ts`, `mix-03-driver.ts`):
+
+- The trust change touched only the ExternalId of both sandbox roles and was restored. `connection.verifyAws` passed.
+- Review path: the producer (S3 bucket) finished before the consumer (Lambda function) started. The producer's newly materialized output changed the consumer's effect, so the parent workflow opened a review binding the new parent digest (previous `7398cfda2f66`, required `97d8dc91122e`). The consumer waited until the review was approved.
+- The consumer's deployed `PRODUCER_BUCKET_ARN` equals the producer bucket ARN by independent AWS readback. Both receipts link their child operations.
+- Preauthorized path: a second parent had its one reference precisely preauthorized before it started (parent operation, reference, contract, both subplan digests, desired digest, value type; one use, 15 minutes).
+- Its consumer started with no review. The one use was spent (1 of 1) and the product no longer lists the grant as active. The second consumer's `PRODUCER_BUCKET_ARN` equals its own producer bucket ARN.
+- Approvals were made by an automated test approver through the browser path.
+
+Fixes found on the way: the run window grew to 40 minutes for two parents (PRs #143, #144); the driver issued the grant for the consumer child environment, while the join matches grants on the parent plan's environment (PR #145).
+
+Limits: a second materialization against the spent grant is not attempted; its refusal rests on the reservation rule (`uses < max_uses`) and the active listing. Secret references, operational rehearsal and the owner decisions above are still pending. Status stays `implementation_complete_verification_pending`. Not a promotion.

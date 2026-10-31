@@ -1519,6 +1519,8 @@ describe("the live acceptance workflow", () => {
     const check = stepNamed(live(), "Check the sandbox account configuration");
     expect(check.run).toMatch(/case "\$ZENITH_LIVE_AWS_MINUTES" in\s+\[5-9\]\|1\[0-9\]\|20\) ;;/);
     expect(check.run).toContain('echo "::error::minutes must be an integer from 5 to 20."');
+    // mix-03 runs two mixed parents and allows 5..40, matching scripts/acceptance/live/plan.ts.
+    expect(check.run).toMatch(/"\$ZENITH_LIVE_AWS_SCENARIO" = "mix-03" \]; then\s+case "\$ZENITH_LIVE_AWS_MINUTES" in\s+\[5-9\]\|\[1-3\]\[0-9\]\|40\) ;;/);
     expect(live().steps.indexOf(check)).toBeLessThan(
       live().steps.findIndex((step) => step.uses?.startsWith("aws-actions/configure-aws-credentials@"))
     );

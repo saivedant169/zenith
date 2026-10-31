@@ -14,8 +14,8 @@ const require = createRequire(import.meta.url);
 const nextRequire = createRequire(require.resolve("@next/eslint-plugin-next"));
 const nextGlob = nextRequire("fast-glob");
 const nextGlobPackage = nextRequire("fast-glob/package.json");
-if (nextGlobPackage.name !== "glob" || nextGlobPackage.version !== "13.0.6") {
-  throw new Error("Next lint requires the reviewed glob 13.0.6 alias.");
+if (nextGlobPackage.name !== "glob" || nextGlobPackage.version !== "14.0.3") {
+  throw new Error("Next lint requires the reviewed glob 14.0.3 alias.");
 }
 const globRequire = createRequire(nextRequire.resolve("fast-glob"));
 const { braceExpand } = globRequire("minimatch");

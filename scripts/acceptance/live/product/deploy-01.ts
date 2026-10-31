@@ -18,6 +18,7 @@ import type { Deploy01Product } from "./deploy-01-driver";
 import { fill, parsePolicy, refuse, Refusal, templateExternalId, trustDocument } from "./mix-03";
 import { destroyFromState, readState, stateAttribute, type SessionCredentials, type StateDestroyInput } from "./state-destroy";
 import { scanForCanary, type CanaryScan } from "./canary-scan";
+import { runnerOps02Stack, type Ops02Stack } from "./ops-02-stack";
 
 type Invoke = (call: Call, values?: Record<string, string>, extra?: Record<string, Json>) => Promise<Record<string, unknown>>;
 // The product deploys only digest-pinned images (release-safety.ts). Multi-arch index digests of ECR Public nginx 1.27 and 1.26.
@@ -47,7 +48,11 @@ export interface Deploy01Seams {
   /** OPS-06: the canary value (default: random) and the runner persistence scan (default: canary-scan.ts over the env roots). */
   canary?: () => string;
   scan?: (canary: string) => Promise<CanaryScan>;
+  /** OPS-02: the runner stack with Prometheus on its metrics (default: ops-02-stack.ts). */
+  ops02?: Ops02Stack;
 }
+/** OPS-02 burst sizes: the flooding tenant exceeds its API burst (200) and concurrency (16); the quiet one stays far below. */
+export const OPS02_FLOOD = { count: 600, concurrency: 40 }, OPS02_QUIET = { count: 20, concurrency: 2 };
 /** The OPS-06 service env key that reads the canary from Zenith's secret store. */
 export const OPS06_SECRET_KEY = "ZENITH_OPS06_CANARY";
 /** The recorded task definition reads the key from a Zenith Secrets Manager secret and holds no plaintext copy. */
@@ -80,9 +85,10 @@ export function deploy01Port(env: EnvLike = process.env, seams: Deploy01Seams = 
   const scan = seams.scan ?? ((canary: string) => scanForCanary(canary, { roots, controlDir: path.join(env.RUNNER_TEMP ?? "/nonexistent", "zenith-ops06-control") }));
   return {
     async verify(requirement, { plan, call }) {
-      const ops06 = plan.settings.scenario === "ops-06";
-      if (requirement.id !== (ops06 ? "PROD-OPS-06" : "PROD-REL-01")) return { complete: false, reason: `${requirement.id}: not implemented by this port` };
-      const label = ops06 ? "OPS-06" : "DEPLOY-01";
+      const ops06 = plan.settings.scenario === "ops-06", ops02 = plan.settings.scenario === "ops-02";
+      if (requirement.id !== (ops06 ? "PROD-OPS-06" : ops02 ? "PROD-OPS-02" : "PROD-REL-01")) return { complete: false, reason: `${requirement.id}: not implemented by this port` };
+      const label = ops06 ? "OPS-06" : ops02 ? "OPS-02" : "DEPLOY-01";
+      let observed: Ops02Stack | undefined;
       const invoke: Invoke = (c, values = {}, extra = {}) => call(c, { ...fill(c.input, values), ...extra });
       const planned = (id: string): Call => plan.productCalls?.find(c => c.id === id) ?? refuse(`the plan has no call ${id}`);
       const account = plan.settings.accountId, region = plan.settings.region, runId = plan.settings.runId;
@@ -112,16 +118,85 @@ export function deploy01Port(env: EnvLike = process.env, seams: Deploy01Seams = 
         const dns = stateAttribute(recorded, "aws_lb", "dns_name");
         if (typeof dns !== "string" || !ALB_DNS.test(dns)) refuse("the recorded load balancer has no AWS DNS name");
         for (let attempt = 1; ; attempt++) {
-          if ((await probe(dns as string, host)) === 200) return;
+          if ((await probe(dns as string, host)) === 200) return dns as string;
           if (attempt >= 40) refuse("the load balancer did not serve HTTP 200 for the route host within 10 minutes");
           await sleep(15_000);
         }
       };
       let step = "preconditions";
       let outcome: { complete: boolean; reason: string };
+      /** OPS-02: tenant fairness with real metrics, then a workload that keeps serving through a control-plane outage. */
+      const ops02Flow = async (tenant: Parameters<Deploy01Product["setManifest"]>[0], environmentId: string): Promise<{ complete: boolean; reason: string }> => {
+        step = "observability";
+        const stack = observed = seams.ops02 ?? runnerOps02Stack(env, runId);
+        await stack.observe();
+        step = "tenant fairness";
+        const quietTenant = await product.createTenant();
+        const [flood, quiet] = await Promise.all([product.burst!(tenant, OPS02_FLOOD.count, OPS02_FLOOD.concurrency),
+          sleep(500).then(() => product.burst!(quietTenant, OPS02_QUIET.count, OPS02_QUIET.concurrency))]);
+        const codes = (statuses: Record<string, number>) => Object.entries(statuses).filter(([code]) => /^\d{1,3}$/.test(code)).map(([code, n]) => `${code}: ${n}`).sort().join(", ");
+        const refused = flood.statuses["429"] ?? 0;
+        if (!refused) refuse(`the flooding tenant was never refused (${codes(flood.statuses)})`);
+        if ((quiet.statuses["200"] ?? 0) !== OPS02_QUIET.count) refuse(`the quiet tenant did not get every request served while the other was flooding (${codes(quiet.statuses)})`);
+        const sorted = [...quiet.durationsMs].sort((a, b) => a - b), quietP95 = Math.round(sorted[Math.ceil(sorted.length * 0.95) - 1] ?? 0);
+        step = "tenant metrics";
+        // The dashboard's "Tenants being refused" panel, with its tenant variable set to each tenant in turn.
+        const panel = (workspace: string) => `topk(10, sum by (tenant) (increase(zenith_admission_decisions_total{decision!="allowed",tenant=~"${workspace}"}[15m])))`;
+        let flooded: number | undefined;
+        for (let attempt = 1; ; attempt++) {
+          flooded = (await stack.query(panel(tenant.workspaceId)))[0]?.value;
+          if (flooded && flooded > 0) break;
+          if (attempt >= 24) refuse("Prometheus did not show the flooding tenant's refusals within 2 minutes");
+          await sleep(5_000);
+        }
+        if ((await stack.query(panel(quietTenant.workspaceId))).some(sample => sample.value > 0)) refuse("Prometheus shows refusals for the quiet tenant");
+        step = "workload";
+        await product.setManifest(tenant, deploy01Manifest(DEPLOY01_IMAGES.v1, host));
+        const deployed = await product.deploy(tenant, environmentId, "apply");
+        if (deployed.status !== "succeeded") refuse(`the deploy ended ${/^[a-z_]{1,20}$/.test(deployed.status) ? deployed.status : "unknown"}, not succeeded${deployed.detail ? ` (product: ${deployed.detail})` : ""}`);
+        const dns = await readback(DEPLOY01_IMAGES.v1);
+        step = "control-plane outage";
+        const served: Record<string, number> = {};
+        let probing = true;
+        const prober = (async () => { while (probing) { const code = await probe(dns, host); served[String(code)] = (served[String(code)] ?? 0) + 1; await sleep(1_000); } })();
+        const outageStart = Date.now();
+        let firedAfter = 0, fullOutageSeconds = 0;
+        try {
+          await stack.stopControlStore();
+          // The rule waits 2 minutes; 30 checks 10 s apart allow 5.
+          for (let attempt = 1; ; attempt++, await sleep(10_000)) {
+            if ((await stack.firing()).includes("ZenithControlStoreDown")) { firedAfter = Math.round((Date.now() - outageStart) / 1000); break; }
+            if (attempt >= 30) refuse("ZenithControlStoreDown did not fire within 5 minutes of the control store stopping");
+          }
+          const fullStart = Date.now();
+          await stack.stop(["api", "execution-worker"]);
+          await sleep(60_000);
+          fullOutageSeconds = Math.round((Date.now() - fullStart) / 1000);
+        } finally {
+          step = "control-plane restart";
+          await stack.startControlStore();
+          await stack.start("api");
+          await stack.start("execution-worker");
+          probing = false;
+          await prober;
+        }
+        const outageSeconds = Math.round((Date.now() - outageStart) / 1000), probes = Object.values(served).reduce((a, b) => a + b, 0);
+        // One probe a second: fewer than one per two seconds of outage means the prober stalled and proves nothing.
+        if ((served["200"] ?? 0) !== probes || probes < Math.max(1, Math.floor(outageSeconds / 2))) refuse(`the workload did not serve every probe during the outage (${codes(served)})`);
+        step = "recovered";
+        for (let attempt = 1; ; attempt++) {
+          if ((await stack.query("min(zenith_control_store_up)"))[0]?.value === 1) break;
+          if (attempt >= 24) refuse("the control store did not report up within 2 minutes of the restart");
+          await sleep(5_000);
+        }
+        const after = await product.burst!(tenant, 1, 1);
+        if ((after.statuses["200"] ?? 0) !== 1) refuse("the control plane did not serve the tenant after the restart");
+        return { complete: true, reason: `OPS-02 proven on AWS: with the repository's alert rules loaded into Prometheus scraping the API's metrics, one tenant sent ${OPS02_FLOOD.count} requests ${OPS02_FLOOD.concurrency} at a time and was refused ${refused} times (HTTP 429) while a second tenant's ${OPS02_QUIET.count} concurrent requests were all served (p95 ${quietP95} ms); the dashboard's tenant-filtered refusal panel showed ${Math.round(flooded)} refusals for the flooding tenant and none for the quiet one; ${DEPLOY01_IMAGES.v1} on ECS Fargate behind an ALB served all ${probes} HTTP probes (one a second) through a ${outageSeconds} s control-plane outage: the control store stopped (ZenithControlStoreDown fired after ${firedAfter} s), then the API and worker stopped too for ${fullOutageSeconds} s; after the restart the store reported up and the tenant was served again. Not covered: traces in a trace backend, worker-side metrics, Grafana UI import (proven locally by the import harness), Temporal-backed fairness` };
+      };
       try {
         if (env.ZENITH_LIVE_PRODUCT !== "1") refuse("ZENITH_LIVE_PRODUCT=1 is not set; no product scenario ran");
-        if ((plan.settings.scenario !== "deploy-01" && !ops06) || !plan.productCalls?.length) refuse("the plan is not the deploy-01 or ops-06 scenario");
+        if ((plan.settings.scenario !== "deploy-01" && !ops06 && !ops02) || !plan.productCalls?.length) refuse("the plan is not the deploy-01, ops-06 or ops-02 scenario");
+        if (ops02 && !product.burst) refuse("the browser driver has no request burst");
         step = "tenant";
         const tenant = await product.createTenant();
         workspaceId = tenant.workspaceId;
@@ -168,6 +243,8 @@ export function deploy01Port(env: EnvLike = process.env, seams: Deploy01Seams = 
           const places = Object.entries(found.leaks).map(([place, n]) => `${place}: ${n}`).sort();
           if (places.length) refuse(`the secret value was found in runner persistence (${places.join(", ")})`);
           outcome = { complete: true, reason: `OPS-06 proven on AWS: ${OPS06_SECRET_KEY} was set through system.setSecret and deployed to ECS Fargate behind an ALB with two-person approval, served HTTP 200; the recorded OpenTofu state holds only the Secrets Manager reference and no copy of the value; a raw-byte scan of Docker's data root (container logs, volumes, written files), the runner temp and the checkout found the value only in its own control file` };
+        } else if (ops02) {
+          outcome = await ops02Flow(tenant, environmentId);
         } else {
         for (const [label, image, kind] of [["first deploy", DEPLOY01_IMAGES.v1, "apply"], ["update", DEPLOY01_IMAGES.v2, "apply"], ["rollback", DEPLOY01_IMAGES.v1, "rollback"]] as const) {
           step = label;
@@ -185,6 +262,7 @@ export function deploy01Port(env: EnvLike = process.env, seams: Deploy01Seams = 
           : { complete: false, reason: `${label} not proven at ${step}: unexpected failure (details withheld; no completion claim)` };
       }
       const leaks: string[] = [];
+      try { await observed?.close(); } catch { leaks.push("the stack composition or Prometheus could not be restored"); }
       if (environmentId && externalId) {
         let destroyedArns: string[] = [], destroyedIds: string[] = [];
         try { ({ destroyedArns = [], destroyedIds = [] } = await state.destroy(await stateInput())); }

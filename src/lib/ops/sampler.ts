@@ -21,10 +21,16 @@ import { flushSloSamples } from "@/lib/slo/recorder";
 
 export interface SampleResult { up: boolean; drained?: boolean }
 
-export async function sampleControlPlane(sql: Sql, env: Readonly<Record<string, string | undefined>> = process.env): Promise<SampleResult> {
+/** A stopped store can leave reads hanging on the pooler; the scrape must still answer (Prometheus times out at 5 s). */
+export const SAMPLE_TIMEOUT_MS = 2_000;
+
+export async function sampleControlPlane(sql: Sql, env: Readonly<Record<string, string | undefined>> = process.env, timeoutMs = SAMPLE_TIMEOUT_MS): Promise<SampleResult> {
   const m = opsMetrics();
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    const [drain, stored] = await Promise.all([drainStatus(sql, 50), getMaintenance(sql)]);
+    const deadline = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("control store read timed out")), timeoutMs); });
+    const [drain, stored] = await Promise.race([Promise.all([drainStatus(sql, 50), getMaintenance(sql)]), deadline]);
+    clearTimeout(timer);
     const labeler = tenantLabeler();
     m.runnerQueueDepth.replace(drain.busiest.map((b) => ({ labels: { tenant: labeler.label(b.workspaceId) }, value: b.queuedJobs })));
     m.activeOperations.replace(drain.busiest.map((b) => ({ labels: { tenant: labeler.label(b.workspaceId) }, value: b.activeOperations })));
@@ -36,6 +42,7 @@ export async function sampleControlPlane(sql: Sql, env: Readonly<Record<string, 
     await flushSloSamples(sql);
     return { up: true, drained: drain.drained };
   } catch {
+    clearTimeout(timer);
     m.controlStoreUp.set({}, 0);
     return { up: false };
   }

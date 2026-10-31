@@ -167,7 +167,11 @@ export function deploy01Port(env: EnvLike = process.env, seams: Deploy01Seams = 
           // The rule waits 2 minutes; 30 checks 10 s apart allow 5.
           for (let attempt = 1; ; attempt++, await sleep(10_000)) {
             if ((await stack.firing()).includes("ZenithControlStoreDown")) { firedAfter = Math.round((Date.now() - outageStart) / 1000); break; }
-            if (attempt >= 30) refuse("ZenithControlStoreDown did not fire within 5 minutes of the control store stopping");
+            if (attempt >= 30) {
+              // Why: the last store-up sample and the scrape's own health tell "no 0 sample" from "rule not evaluated".
+              const value = async (expr: string) => { const v = (await stack.query(expr).catch(() => []))[0]?.value; return Number.isFinite(v) ? String(v) : "none"; };
+              refuse(`ZenithControlStoreDown did not fire within 5 minutes of the control store stopping (store up ${await value("min(zenith_control_store_up)")}, scrape up ${await value('min(up{job="zenith-api"})')})`);
+            }
           }
           const fullStart = Date.now();
           await stack.stop(["api", "execution-worker"]);

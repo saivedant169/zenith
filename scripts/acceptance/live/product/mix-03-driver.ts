@@ -10,9 +10,8 @@
  * proposeMixed drives the real planner: a sandbox parent environment holds the producer and consumer manifest (its simulated
  * deploy is the only parent revision the planner reads, and it creates no cloud resource), the producer and consumer are AWS
  * children on the run's connection, and each child gets its own deploy operation. issueOutputPreauthorization reads the plan's
- * digests and issues one precise use for the consumer. changeProducer and useOutputOnce refuse before sending anything: a
- * consumer's output classification and the one-use reservation run only inside the consumer's own workflow, which no browser or
- * REST route starts, and a changed producer needs a second parent revision that this driver does not yet propose.
+ * digests and issues one precise use for the consumer; preauthorizationUses reads the parent's grants back. The one use is
+ * reserved by the parent workflow itself (consumeOutputs) when the producer's output materializes for the consumer.
  * Evidence names the approver as the automated test approver; no credential, token or recovery link is returned.
  *
  * Seams: `request` (same-origin fetch in the page), `approve`, `stepUp`, `session` and `sleep`. Unit tests inject all of them.
@@ -433,17 +432,22 @@ export function browserMix03Product(env: EnvLike = process.env, seams: Mix03Driv
         if (producer?.status === "succeeded" && consumer?.status === "pending" && !consumer.awaitingOperationId && typeof plan.parentOperationId === "string") {
           const listed = ok(await send(session, session.owner, "/api/platform/v1/operations?status=awaiting_approval&capability=deployment.deploy&limit=200", undefined, "GET")) as { operations?: unknown };
           const review = (Array.isArray(listed.operations) ? listed.operations : [] as unknown[])
-            .find(op => (op as { proposal?: { input?: { mixedParentReviewOf?: unknown } } }).proposal?.input?.mixedParentReviewOf === plan.parentOperationId) as { id?: unknown } | undefined;
-          if (review) consumer.awaitingOperationId = idOf(review.id, "the parent review operation");
+            .find(op => (op as { proposal?: { input?: { mixedParentReviewOf?: unknown } } }).proposal?.input?.mixedParentReviewOf === plan.parentOperationId) as
+            { id?: unknown; proposal?: { input?: { previousParentDigest?: unknown; requiredParentDigest?: unknown; consumers?: unknown } } } | undefined;
+          if (review) {
+            consumer.awaitingOperationId = idOf(review.id, "the parent review operation");
+            const input = review.proposal?.input ?? {};
+            const consumers = (Array.isArray(input.consumers) ? input.consumers : []) as { previousEffectDigest?: unknown; newEffectDigest?: unknown }[];
+            consumer.review = {
+              previousParentDigest: hexOf(input.previousParentDigest, "the review's previous parent digest"),
+              requiredParentDigest: hexOf(input.requiredParentDigest, "the review's required parent digest"),
+              consumers: consumers.length,
+              effectChanged: consumers.length > 0 && consumers.every(c => HEX64.test(String(c.previousEffectDigest)) && HEX64.test(String(c.newEffectDigest)) && c.previousEffectDigest !== c.newEffectDigest),
+            };
+          }
         }
         return children;
       });
-    },
-
-    async changeProducer() {
-      // The consumer's classification of a changed output (review_required) is decided inside the consumer's own run, by consumeOutputs.
-      // No browser or REST route starts that run, so this driver cannot read the state back. It refuses before any request.
-      return refuse("a changed producer's consumer state is decided only inside the consumer's own run, which no browser or REST route starts");
     },
 
     async issueOutputPreauthorization(tenant, planId) {
@@ -475,9 +479,17 @@ export function browserMix03Product(env: EnvLike = process.env, seams: Mix03Driv
       });
     },
 
-    async useOutputOnce() {
-      // The one use is reserved by consumeOutputs inside the consumer's own workflow, which needs a changed producer first (see changeProducer).
-      return refuse("no browser or REST route spends a preauthorization use: the consumer's workflow reserves it, and it cannot be re-run without a changed producer");
+    async preauthorizationUses(tenant, parentOperationId) {
+      return step("preauthorization readback", async () => {
+        const session = sessionOf(tenant);
+        const list = async (activeOnly: boolean) => {
+          const data = ok(await send(session, session.owner, `/api/platform/v1/mixed-output-preauthorizations?parentOperationId=${encodeURIComponent(idOf(parentOperationId, "the parent operation"))}${activeOnly ? "&activeOnly=true" : ""}`, undefined, "GET")) as { preauthorizations?: unknown };
+          return (Array.isArray(data.preauthorizations) ? data.preauthorizations : []) as { uses?: unknown; maxUses?: unknown }[];
+        };
+        const all = await list(false), active = await list(true);
+        const count = (key: "uses" | "maxUses") => all.reduce((sum, grant) => sum + (Number.isInteger(grant[key]) ? grant[key] as number : 0), 0);
+        return { total: all.length, uses: count("uses"), maxUses: count("maxUses"), active: active.length };
+      });
     },
 
     async close() {

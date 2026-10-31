@@ -619,3 +619,10 @@ describe("PROD-MIX-03 review and precise preauthorization", () => {
     expect((await run()).reason).toContain("not proven at review path: the first consumer never waited for a review binding a changed parent digest and its changed effect");
   });
 });
+
+describe("PROD-MIX-03 run window", () => {
+  it("allows up to 40 minutes for the two parents and refuses longer", () => {
+    expect(buildPlan({ ...settings, durationMinutes: 40 }).estimate.usd).toBe(1.3);
+    expect(() => buildPlan({ ...settings, durationMinutes: 41 })).toThrow("5..40");
+  });
+});

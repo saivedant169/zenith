@@ -174,7 +174,7 @@ export function buildPlan(input: Settings): Plan {
   if (!/^(us|eu|ap|ca|sa|me|af|il|mx)-(central|north|south|east|west|northeast|northwest|southeast|southwest)-\d$/.test(settings.region)) throw new Error("Commercial AWS region required");
   // DEPLOY-01 deploys, updates and rolls back a Fargate service behind an ALB on a fresh VPC: allow up to 60 minutes.
   // TEARDOWN-01 waits about 80 minutes after its deploy for the earlier writers to settle (WP3), then tears down: up to 150.
-  const maxMinutes = scenario === "deploy-01" || scenario === "ops-06" || scenario === "ops-04" || scenario === "ops-05" || scenario === "ops-03" || scenario === "ops-02" ? 60 : scenario === "teardown-01" ? 150 : 20;
+  const maxMinutes = scenario === "deploy-01" || scenario === "ops-06" || scenario === "ops-04" || scenario === "ops-05" || scenario === "ops-03" || scenario === "ops-02" ? 60 : scenario === "mix-03" ? 40 : scenario === "teardown-01" ? 150 : 20;
   // A shorter TEARDOWN-01 run ends at its envelope before the settlement wait can finish: refuse it before anything is deployed.
   const minMinutes = scenario === "teardown-01" ? 120 : 5;
   if (!Number.isInteger(settings.durationMinutes) || settings.durationMinutes < minMinutes || settings.durationMinutes > maxMinutes) throw new Error(`Duration must be ${minMinutes}..${maxMinutes} minutes (25 minutes reserved for cleanup)`);
@@ -272,6 +272,7 @@ export function buildPlan(input: Settings): Plan {
   // under 1 MiB for under an hour is far below a cent. The 0.25 base and 0.01/minute are generous
   // ceilings for a few dozen planned requests plus retries; the 0.25 reserve is kept for cleanup.
   // Duration bounds stay 5..20 because the product archive/restore path runs inside that window.
+  // MIX-03 runs two mixed parents (review path, then preauthorized path) with a worker restart: up to 40 minutes.
   // DEPLOY-01: NAT gateway ~US$0.056/h, ALB ~US$0.023/h, one 0.25 vCPU Fargate task ~US$0.013/h, public IPv4 and logs: under
   // US$0.15/h. The 1.00 base and 0.03/minute are generous ceilings; the 0.50 reserve covers a slow destroy.
   // TEARDOWN-01: one empty S3 bucket for about two hours and a few dozen requests: far below a cent. The 0.50 base and

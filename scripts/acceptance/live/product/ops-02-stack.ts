@@ -85,13 +85,14 @@ export function runnerOps02Stack(env: EnvLike, runId: string): Ops02Stack {
       if (!isPinned(image)) refuse("the Prometheus image is not pinned to a digest");
       copyFileSync(path.join(original.directory, "tls", "ca.crt"), path.join(root, "ca.crt"));
       for (const rules of RULES) copyFileSync(path.join("deploy/observability/alerts", rules), path.join(root, rules));
-      const target = new URL(runnerStack(env).apiUrl).host;
+      // The scrape uses the API URL's own scheme: the runner stack serves plain HTTP on loopback (run 41164135020).
+      const api = new URL(runnerStack(env).apiUrl), scheme = api.protocol === "https:" ? "https" : "http";
       writeFileSync(path.join(root, "prometheus.json"), JSON.stringify({
         global: { scrape_interval: "5s", evaluation_interval: "5s" },
         rule_files: RULES.map(rules => `/etc/zenith/${rules}`),
-        scrape_configs: [{ job_name: "zenith-api", scheme: "https", metrics_path: "/api/internal/metrics",
-          authorization: { type: "Bearer", credentials_file: "/etc/zenith/cron.secret" }, tls_config: { ca_file: "/etc/zenith/ca.crt" },
-          static_configs: [{ targets: [target] }] }],
+        scrape_configs: [{ job_name: "zenith-api", scheme, metrics_path: "/api/internal/metrics",
+          authorization: { type: "Bearer", credentials_file: "/etc/zenith/cron.secret" }, ...(scheme === "https" ? { tls_config: { ca_file: "/etc/zenith/ca.crt" } } : {}),
+          static_configs: [{ targets: [api.host] }] }],
       }), { mode: 0o600 });
       // The runner's own uid reads the 0600 files; the TSDB lives in a private tmpfs.
       const { stdout: uid } = await run("id", ["-u"]), { stdout: gid } = await run("id", ["-g"]);

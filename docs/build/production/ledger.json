@@ -4360,7 +4360,7 @@
         "PROD-LIFE-03",
         "PROD-LIFE-07"
       ],
-      "implementationStatus": "implementation_complete_verification_pending",
+      "implementationStatus": "implementation_complete_verification_pending; review_path_and_one_use_preauthorization_proven_live_sandbox_2026-10-31",
       "implementationNote": "L3 gated observation/cleanup/inventory harness built; live and operational evidence plus owner fixtures/decisions pending. No verification claimed.",
       "evidence": [
         {
@@ -4372,6 +4372,18 @@
           "environment": "Disposable AWS sandbox account 361646636162, region ap-south-1; GitHub environment live-sandbox (owner-delegated automated envelope, approvedBy automation delegated by Saivedant Hava 2026-10-26); hosted runner with the disposable Zenith stack; connection stack zenith-connection-live (NameSuffix -live) updated 2026-10-28 to the template of PR #79; estimated cap USD 0.90 (provisional, billing not measured); 20 minute window",
           "logs": "docs/build/production/evidence/PROD-MIX-03/2026-10-28-live-aws-40635277474/",
           "result": "MIX-03 partly proven on the live AWS sandbox with cleanup complete: the trust change touched only the ExternalId of both sandbox roles and was restored; connection.verifyAws passed; the producer (S3 bucket) finished before the consumer (Lambda function) started; both mixed-run receipts link their child operations; the consumer's deployed PRODUCER_BUCKET_ARN equals the producer bucket ARN by independent readback. Approvals were made by an automated test approver through the browser path. Pending: the producer-change review and the one-use preauthorization refusal, which no product route can trigger yet. Verdict incomplete (1 pending); operational_rehearsal not done; not a promotion."
+        },
+        {
+          "level": "live_sandbox",
+          "commit": "8fa3842af56cead08191e922075f421f21368440",
+          "runId": 41241063623,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/41241063623",
+          "command": "GitHub Actions live-acceptance.yml, workflow_dispatch with scenario mix-03 and run_id zlive-202610312054-5dfc (lane live2; scripts/acceptance/live/product/mix-03.ts); plan sha256 bb51c440e9316fc51d57d8ab7c88be5c50da67c564d62c0153c26ee91a7d781a; permission sha256 8f0c9a4434a7f585fcdcfae9095bc501543f2fb30e6535ba524df2242dae08c4",
+          "environment": "Disposable AWS sandbox account 361646636162, region ap-south-1; GitHub environment live-sandbox (owner-delegated automated envelope, approvedBy automation delegated by Saivedant Hava 2026-10-26); hosted runner with the disposable Zenith stack; connection stack zenith-connection-live; estimated cap USD 1.3 (provisional, billing not measured); 40 minute window",
+          "logs": "docs/build/production/evidence/PROD-MIX-03/2026-10-31-live-aws-41241063623/",
+          "result": "The mix-03 run on the live AWS sandbox passed (PROD-MIX-03 and PROD-MIX-02) with cleanup complete. MIX-03 proven on AWS: the trust change touched only the ExternalId of both sandbox roles and was restored; connection.verifyAws passed. Review path: the producer (S3 bucket) finished before the consumer (Lambda function) started; the producer's newly materialized output changed the consumer's effect, so the parent workflow opened a review binding the new parent digest (previous 7398cfda2f66, required 97d8dc91122e) and the consumer waited until it was approved; the consumer's deployed PRODUCER_BUCKET_ARN equals the producer bucket ARN by independent readback. Preauthorized path: a second parent had its one reference precisely preauthorized (parent operation, reference, contract, both subplan digests, desired digest, value type; one use, 15 minutes); its consumer started with no review, the one use was spent (1 of 1) and the grant is no longer listed active; the second consumer's PRODUCER_BUCKET_ARN equals its own producer bucket ARN. Approvals by an automated test approver through the browser path. Not covered: a second materialization against the spent grant (refusal shown by the reservation rule and the active listing), secret references, operational rehearsal. Not a promotion.",
+          "artifact": "docs/build/production/evidence/PROD-MIX-03/2026-10-31-live-aws-41241063623/release-evidence-PROD-MIX-03.json",
+          "sha256": "4b00cc662a3036af4b535b5ca96bcbf2e697725b1504264b9fbf460063d41be5"
         }
       ],
       "requiredEvidence": [

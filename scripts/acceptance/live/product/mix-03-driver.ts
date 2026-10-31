@@ -454,17 +454,16 @@ export function browserMix03Product(env: EnvLike = process.env, seams: Mix03Driv
       return step("output preauthorization", async () => {
         const session = sessionOf(tenant);
         const plan = ok(await send(session, session.owner, `/api/platform/v1/mixed/plans/${planId}`, undefined, "GET")) as {
-          parentOperationId?: unknown; desiredDigest?: unknown; references?: unknown; children?: unknown;
+          parentOperationId?: unknown; parentEnvironmentId?: unknown; desiredDigest?: unknown; references?: unknown;
         };
         const references = Array.isArray(plan.references) ? plan.references as Record<string, unknown>[] : [];
         if (references.length !== 1) refuse("the plan does not have exactly one reference");
         const [reference] = references as [Record<string, unknown>];
-        const children = (Array.isArray(plan.children) ? plan.children : []) as { partitionId?: unknown; childEnvironmentId?: unknown }[];
-        const consumer = children.find(child => child.partitionId === reference.consumerPartitionId);
         if (typeof reference.valueType !== "string") refuse("the reference has no value type in the plan readback");
         const issued = await send(session, session.owner, "/api/platform/v1/mixed-output-preauthorizations", {
           parentOperationId: idOf(plan.parentOperationId, "the parent operation"),
-          environmentId: idOf(consumer?.childEnvironmentId, "the consumer environment"),
+          // The product matches a grant against the parent plan's environment, not the consumer child's.
+          environmentId: idOf(plan.parentEnvironmentId, "the parent environment"),
           desiredDigest: hexOf(plan.desiredDigest, "the desired digest"),
           referenceId: idOf(reference.referenceId, "the reference id"),
           contractDigest: hexOf(reference.contractDigest, "the reference contract digest"),

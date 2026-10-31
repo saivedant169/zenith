@@ -439,14 +439,14 @@ describe("output preauthorization: one precise use for the consumer, from the pl
     consumerAddress: "function/consumer", consumerInput: "bucket_arn", valueType: "resource_id", contractDigest: DIGEST.contract,
     producerSubplanDigest: DIGEST.producer, consumerSubplanDigest: DIGEST.consumer, state: "unavailable", unavailableReason: "not_produced",
   }]) => ({
-    parentOperationId: "op-parent", desiredDigest: DIGEST.desired, references,
+    parentOperationId: "op-parent", parentEnvironmentId: "env-parent", desiredDigest: DIGEST.desired, references,
     children: [
       { partitionId: P_PRODUCER, childEnvironmentId: "env-producer", dependsOn: [] },
       { partitionId: P_CONSUMER, childEnvironmentId: "env-consumer", dependsOn: [P_PRODUCER] },
     ],
   });
 
-  it("issues one use for the consumer environment, with the plan's digests and a fifteen minute lifetime", async () => {
+  it("issues one use in the parent plan's environment, with the plan's digests and a fifteen minute lifetime", async () => {
     const t = transport((sent) => {
       if (sent.endpoint === "/api/platform/v1/mixed/plans/plan-1") return ok(planReadback());
       if (sent.endpoint === "/api/platform/v1/mixed-output-preauthorizations") return { status: 201, data: { preauthorization: { id: "mop-1" } } };
@@ -456,7 +456,7 @@ describe("output preauthorization: one precise use for the consumer, from the pl
     await expect(product.issueOutputPreauthorization(TENANT, "plan-1")).resolves.toBeUndefined();
     const issued = t.sent.find(c => c.endpoint === "/api/platform/v1/mixed-output-preauthorizations");
     expect(issued).toMatchObject({ page: OWNER, method: "POST", workspaceId: "ws-1", body: {
-      parentOperationId: "op-parent", environmentId: "env-consumer", desiredDigest: DIGEST.desired, referenceId: "bucket-arn",
+      parentOperationId: "op-parent", environmentId: "env-parent", desiredDigest: DIGEST.desired, referenceId: "bucket-arn",
       contractDigest: DIGEST.contract, consumerSubplanDigest: DIGEST.consumer, producerSubplanDigest: DIGEST.producer,
       valueType: "resource_id", maxUses: 1, lifetimeMs: 15 * 60_000, reason: "PROD-MIX-03 one-use output preauthorization",
     } });

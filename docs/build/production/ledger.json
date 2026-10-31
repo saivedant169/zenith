@@ -7438,7 +7438,7 @@
       "dependencies": [
         "PROD-CI-09"
       ],
-      "implementationStatus": "implementation_complete_verification_pending",
+      "implementationStatus": "implementation_complete_verification_pending; tenant_fairness_alerting_and_control_plane_outage_proven_live_sandbox_2026-10-31",
       "implementationNote": "J11: gated local Grafana/Prometheus/OTel import and offline contracts; Docker import, fairness and outage rehearsal remain pending. L3 gated observation/cleanup/inventory harness built; live and operational evidence plus owner fixtures/decisions pending. No verification claimed.",
       "evidence": [
         {
@@ -7446,6 +7446,18 @@
           "artifact": "docs/build/production/evidence/engine-acceptance/2026-10-20-wave6-local-lanes.json",
           "artifactSha256": "a59cbed9f9965a202e3aa98d6be72c1fcb112b2f5c0579c69cc6970bd14b18b3",
           "result": "Wave6 local lanes 2026-10-20: 19 passed / 0 failed / 0 not run of the requirement's 19 non-live wave6 cases. Real observability import passed on d23fc0b4 after fixing the images.env key-count refusal (5892d60c); recovery rehearsal 10/10 on 8776af2f. Not promoted: local-engine slice only; acceptance judged separately."
+        },
+        {
+          "level": "live_sandbox",
+          "commit": "ce8317ae9585384337706333c2d85f6fc4a95086",
+          "runId": 41183967350,
+          "url": "https://github.com/saivedant169/zenith/actions/runs/41183967350",
+          "command": "GitHub Actions live-acceptance.yml, workflow_dispatch with scenario ops-02 and run_id zlive-202610310816-33a9 (lane live2); plan sha256 a009b6ec647537d8b64ffb4f119e7b84be974294971e1dae4804bc15099a245f; permission sha256 278fddf52134ed18d527d05624af49693f11331bda6bb363b5d40733951bd651",
+          "environment": "Disposable AWS sandbox account 361646636162, region ap-south-1; approvals awsLive zenith-aws-permissions.json and root zenith-live-scope.json, approvedBy automation (delegated by Saivedant Hava on 2026-10-26); estimated cap USD 2.8 (provisional, billing not measured); 60 minute window (plan); Prometheus pinned by deploy/observability/images.env on the runner",
+          "logs": "docs/build/production/evidence/PROD-OPS-02/2026-10-31-live-aws-41183967350/",
+          "result": "The ops-02 run on the live AWS sandbox passed with cleanup complete. OPS-02 proven on AWS: with the repository's alert rules loaded into Prometheus scraping the API's metrics, one tenant sent 600 requests 40 at a time and was refused 162 times (HTTP 429) while a second tenant's 20 concurrent requests were all served (p95 3635 ms); the dashboard's tenant-filtered refusal panel showed 156 refusals for the flooding tenant and none for the quiet one; public.ecr.aws/nginx/nginx@sha256:df80ece7fa07f8ed4f3b70e883fe322732954d0287e562f1fdc790018f7d2c66 on ECS Fargate behind an ALB served all 213 HTTP probes (one a second) through a 260 s control-plane outage: the control store stopped (ZenithControlStoreDown fired after 150 s), then the API and worker stopped too for 61 s; after the restart the store reported up and the tenant was served again. Not covered: traces in a trace backend, worker-side metrics, Grafana UI import (proven locally by the import harness), Temporal-backed fairness. Not operational_rehearsal.",
+          "artifact": "docs/build/production/evidence/PROD-OPS-02/2026-10-31-live-aws-41183967350/release-evidence-PROD-OPS-02.json",
+          "sha256": "d11cfd2f688a55ba08f8188e8b2595efc685caa2e388b62d1452bb564aa79e03"
         }
       ],
       "requiredEvidence": [

@@ -1,12 +1,13 @@
 /** Synthetic receipts and ephemeral keys test the governance contract, never live/provider acceptance. */
 import { randomBytes } from "node:crypto";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 import { publicKeyEntry } from "../../scripts/supply-chain/release.mjs";
 import { EVIDENCE_FORMAT, SIGNOFF_FORMAT, canonical, inspectEvidence, readRepositoryFile, releaseSnapshotDigest, selectReleaseEvidence, sha256, signSignoff, validateReleaseStatus, verifySignoff, type EvidenceReceipt, type SignoffRecord } from "../../scripts/release/status.mjs";
+import { commandText, main as laneSource } from "../../scripts/release/lane-source.mjs";
 import { buildDossier, loadDossierInputs, renderMarkdown, type Ledger } from "../../scripts/release/dossier";
 
 const commit = "a".repeat(40);
@@ -226,5 +227,53 @@ describe("actual files and command entry points", () => {
     args[args.indexOf("--mode") + 1] = "live";
     const refused = spawnSync(process.execPath, args, { cwd: f.root, encoding: "utf8" });
     expect(refused.status).toBe(1); expect(refused.stderr).toContain("mode differs");
+  });
+});
+
+describe("lane sources: a real contract or engine run bound for a receipt", () => {
+  const head = "b".repeat(40);
+  function laneRoot() {
+    const root = mkdtempSync(path.join(os.tmpdir(), "zenith-lane-test-"));
+    roots.push(root);
+    mkdirSync(path.join(root, "tests"), { recursive: true });
+    writeFileSync(path.join(root, "tests/a.test.ts"), "// fixture\n");
+    return root;
+  }
+  const run = (root: string, report: Record<string, unknown> | null, exitCode = 0, dirty = "") => {
+    const out = path.join(root, "source.json");
+    const code = laneSource(["--requirement", "PROD-MIX-03", "--mode", "contract", "--environment", "Synthetic lane", "--out", out, "--root", root, "--", "tests/a.test.ts", "--maxWorkers=1"], {
+      git: (_root, args) => (args[0] === "status" ? dirty : head),
+      vitest: (_root, _args, reportFile) => { if (report) writeFileSync(reportFile, JSON.stringify(report)); return exitCode; },
+    });
+    return { code, out };
+  };
+
+  it("writes a source evidence-cli binds into a passing contract receipt", async () => {
+    const root = laneRoot();
+    const { code, out } = run(root, { numPassedTests: 4, numFailedTests: 0, numPendingTests: 0, numTodoTests: 0 });
+    expect(code).toBe(0);
+    const source = JSON.parse(readFileSync(out, "utf8"));
+    expect(source).toMatchObject({ requirements: ["PROD-MIX-03"], mode: "contract", commit: head, exitCode: 0, status: "passed", counts: { passed: 4, failed: 0, skipped: 0 },
+      command: "vitest run tests/a.test.ts --maxWorkers=1", files: [{ path: "tests/a.test.ts", sha256: sha256(Buffer.from("// fixture\n")) }] });
+    const { main: bind } = await import("../../scripts/release/evidence-cli.mjs");
+    expect(bind(["--source", "source.json", "--requirement", "PROD-MIX-03", "--level", "contract", "--mode", "contract", "--out", path.join(root, "receipt.json")], root)).toBe(0);
+    const bytes = readFileSync(path.join(root, "receipt.json"));
+    const entry = { level: "contract", commit: head, artifact: "receipt.json", sha256: sha256(bytes) };
+    expect(inspectEvidence("PROD-MIX-03", entry, { root }).valid).toBe(true);
+  });
+
+  it("never turns skips, failures, a missing report or a dirty tree into a pass", () => {
+    expect(JSON.parse(readFileSync(run(laneRoot(), { numPassedTests: 4, numPendingTests: 1 }).out, "utf8")).status).toBe("skipped");
+    expect(JSON.parse(readFileSync(run(laneRoot(), { numPassedTests: 4, numFailedTests: 1 }, 1).out, "utf8")).status).toBe("failed");
+    expect(JSON.parse(readFileSync(run(laneRoot(), null, 1).out, "utf8"))).toMatchObject({ status: "failed", counts: { passed: 0, failed: 0, skipped: 0 } });
+    const dirty = laneRoot();
+    expect(run(dirty, { numPassedTests: 4 }, 0, " M src/x.ts").code).toBe(1);
+    expect(existsSync(path.join(dirty, "source.json"))).toBe(false);
+  });
+
+  it("names a long file list by count so the command fits the receipt", () => {
+    const files = Array.from({ length: 80 }, (_, i) => `tests/area/file-number-${i}.test.ts`);
+    expect(commandText([...files, "--maxWorkers=1"], files)).toBe("vitest run --maxWorkers=1 over the 80 test files listed in files");
+    expect(commandText(["tests/a.test.ts"], ["tests/a.test.ts"])).toBe("vitest run tests/a.test.ts");
   });
 });

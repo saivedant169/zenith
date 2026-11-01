@@ -1,0 +1,63 @@
+{
+  "format": "zenith.release-lane-source.v1",
+  "requirements": [
+    "PROD-MIX-03"
+  ],
+  "mode": "contract",
+  "commit": "8fa3842af56cead08191e922075f421f21368440",
+  "exitCode": 0,
+  "status": "passed",
+  "counts": {
+    "passed": 320,
+    "failed": 0,
+    "skipped": 0
+  },
+  "environment": "Mac mini, Darwin arm64, Node v22.23.3 (official nodejs.org build, SHASUMS256 verified); offline Vitest, no engine, no network, no ZENITH_TEST_* or ZENITH_LIVE_* variables set",
+  "command": "vitest run tests/execution/mixed/typed-delivery.test.ts tests/execution/mixed/typed-inputs-activities.test.ts tests/execution/mixed/typed-substitution.test.ts tests/execution/mixed/output-reader.test.ts tests/execution/mixed/reference-readback.test.ts tests/execution/mixed-orchestration.test.ts tests/execution/mixed-orchestration-service.test.ts tests/controlplane/mixed-follow-up.test.ts tests/controlplane/mixed-runs.test.ts tests/acceptance/aws-mix03-driver.test.ts tests/acceptance/aws-mix03-port.test.ts --no-file-parallelism --maxWorkers=1",
+  "files": [
+    {
+      "path": "tests/execution/mixed/typed-delivery.test.ts",
+      "sha256": "181a31f615e828acecb995b76675aefb306811bdeade256ecb101f5b06c49eb3"
+    },
+    {
+      "path": "tests/execution/mixed/typed-inputs-activities.test.ts",
+      "sha256": "838b2970932ae6924550445adffc2dbfe7e45922a7911a1b6879156a5b1c4f38"
+    },
+    {
+      "path": "tests/execution/mixed/typed-substitution.test.ts",
+      "sha256": "045c60c87c26cffab8b508d170eda185ddde2259e7d33429b99ce02529ca6f3f"
+    },
+    {
+      "path": "tests/execution/mixed/output-reader.test.ts",
+      "sha256": "b18240a75fe8e461ef8ba653c7670c8fd44f0f7c8924cc09a8cad5e0e51fe86c"
+    },
+    {
+      "path": "tests/execution/mixed/reference-readback.test.ts",
+      "sha256": "8e175df169db64dbe3491d8ef48461a8ed561765a84be5195573cd90aeb7ca2c"
+    },
+    {
+      "path": "tests/execution/mixed-orchestration.test.ts",
+      "sha256": "7789b20f793208c3241f12363f3e3766f67ac1c8d335208b69d0ca4ccf1de74f"
+    },
+    {
+      "path": "tests/execution/mixed-orchestration-service.test.ts",
+      "sha256": "30273690d4d7b2b4047739b04a3c981264dcce6f0cac0e19da982c10362bb15d"
+    },
+    {
+      "path": "tests/controlplane/mixed-follow-up.test.ts",
+      "sha256": "fdfa9dcab9ec3c715abdf8ef42861af50a6d184606f56d9457b44e3e6a2d1469"
+    },
+    {
+      "path": "tests/controlplane/mixed-runs.test.ts",
+      "sha256": "d07a182d98f23659a14d8521690f135572c5f2caf857fc767d46204edf3355a4"
+    },
+    {
+      "path": "tests/acceptance/aws-mix03-driver.test.ts",
+      "sha256": "d2b0570813db02ab05ca87ee7d38d23d572634b0d4fd140e16569d4921ebc281"
+    },
+    {
+      "path": "tests/acceptance/aws-mix03-port.test.ts",
+      "sha256": "d87ced13a5f164da41d706f3bd77b1b015badb274e538b17c26ff8292cd12a95"
+    }
+  ]
+}

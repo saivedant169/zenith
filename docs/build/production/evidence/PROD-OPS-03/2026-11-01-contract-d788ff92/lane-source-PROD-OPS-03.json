@@ -1,0 +1,55 @@
+{
+  "format": "zenith.release-lane-source.v1",
+  "requirements": [
+    "PROD-OPS-03"
+  ],
+  "mode": "contract",
+  "commit": "d788ff92f67d0f57bae84d91adcc61971f264def",
+  "exitCode": 0,
+  "status": "passed",
+  "counts": {
+    "passed": 99,
+    "failed": 0,
+    "skipped": 0
+  },
+  "environment": "Mac mini, Darwin arm64, Node v22.23.3 (official nodejs.org build, SHASUMS256 verified); offline Vitest, no engine, no network, no ZENITH_TEST_* or ZENITH_LIVE_* variables set",
+  "command": "vitest run tests/ops/rolling-upgrade.test.ts tests/controlplane/migration-compat.test.ts tests/controlplane/wave5-compat.test.ts tests/runners/protocol-window.test.ts tests/hosted/acceptance/gate-08-compatible-update.test.ts tests/hosted/release/rollback.test.ts tests/resources/upgrade.test.ts tests/hosted/build/recipe-worker-child-compatibility.test.ts tests/acceptance/aws-ops03-port.test.ts --no-file-parallelism --maxWorkers=1",
+  "files": [
+    {
+      "path": "tests/ops/rolling-upgrade.test.ts",
+      "sha256": "fdf515544282da359d3779b94b4033ae1a01930cc4c6a87ba91a59c64703732a"
+    },
+    {
+      "path": "tests/controlplane/migration-compat.test.ts",
+      "sha256": "bbb988c2f6df2acc4823430e7bc23d2a1efc31898b7f92aafb01797d9f8c4ebc"
+    },
+    {
+      "path": "tests/controlplane/wave5-compat.test.ts",
+      "sha256": "691b2e33e31feb11e0ec2d2f5be529c194bed2e36f25920f6340958f9ea74b14"
+    },
+    {
+      "path": "tests/runners/protocol-window.test.ts",
+      "sha256": "cca3b156e8d4c9dde42ba900d9649b63271dca424a74900abc4918b974d14542"
+    },
+    {
+      "path": "tests/hosted/acceptance/gate-08-compatible-update.test.ts",
+      "sha256": "9f34e9c99f16490d7eefa761cd38edaaeefb7c7399639e390d5174d398cdcbf0"
+    },
+    {
+      "path": "tests/hosted/release/rollback.test.ts",
+      "sha256": "f5e19a2bc647809381561431a01088ba6ec068cb49bf7e5c2f0f95254f105810"
+    },
+    {
+      "path": "tests/resources/upgrade.test.ts",
+      "sha256": "7510a301053dc6d4cc7fabd50eab13de876acad43b5e0536897d4ab53c5a4c5a"
+    },
+    {
+      "path": "tests/hosted/build/recipe-worker-child-compatibility.test.ts",
+      "sha256": "b30488f3ff5f1b14bb5d5ba68018b4ff91718a4758c2d6e07ff5a649cc8f9ebb"
+    },
+    {
+      "path": "tests/acceptance/aws-ops03-port.test.ts",
+      "sha256": "4ea6a7050e86380eb59f8e2b5c20b19b4f873778665807f0bf44f047a8b5073f"
+    }
+  ]
+}

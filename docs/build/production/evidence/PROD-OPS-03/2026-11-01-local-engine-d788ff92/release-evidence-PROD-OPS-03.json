@@ -1,0 +1,20 @@
+{
+  "format": "zenith.release-evidence.v1",
+  "requirementId": "PROD-OPS-03",
+  "level": "local_engine",
+  "commit": "d788ff92f67d0f57bae84d91adcc61971f264def",
+  "environment": "Mac mini, Darwin arm64, Node v22.23.3 (official nodejs.org build, SHASUMS256 verified); disposable PostgreSQL 16.15-alpine (digest cf78e766) in Docker on loopback, fresh database migrated by the checkout's scripts/platform/migrate.ts, removed afterwards; gates ZENITH_TEST_PLATFORM_PG_URL ZENITH_TEST_TEMPORAL ZENITH_TEST_TEMPORAL_CLI ZENITH_REPLAY_LANE; Temporal CLI 1.9.1 and OpenTofu 1.12.5 official darwin_arm64 builds, release checksums verified",
+  "command": "vitest run tests/workflows/upgrade-rehearsal.test.ts tests/workflows/replay.test.ts tests/workflows/history-replay.test.ts --no-file-parallelism --maxWorkers=1",
+  "mode": "local",
+  "status": "passed",
+  "passed": 38,
+  "failed": 0,
+  "skipped": 0,
+  "exitCode": 0,
+  "sources": [
+    {
+      "path": "docs/build/production/evidence/PROD-OPS-03/2026-11-01-local-engine-d788ff92/lane-source-PROD-OPS-03.json",
+      "sha256": "e13c1ca00bcea8c25eaba0af4860264a9ebe389c169eaf4859cfabbaef79ec2c"
+    }
+  ]
+}

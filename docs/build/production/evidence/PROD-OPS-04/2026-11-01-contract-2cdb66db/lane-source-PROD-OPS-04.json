@@ -1,0 +1,67 @@
+{
+  "format": "zenith.release-lane-source.v1",
+  "requirements": [
+    "PROD-OPS-04"
+  ],
+  "mode": "contract",
+  "commit": "2cdb66db6343469eebde92fb48e8ee0f808064d3",
+  "exitCode": 0,
+  "status": "passed",
+  "counts": {
+    "passed": 126,
+    "failed": 0,
+    "skipped": 0
+  },
+  "environment": "Mac mini, Darwin arm64, Node v22.23.3 (official nodejs.org build, SHASUMS256 verified); offline Vitest, no engine, no network, no ZENITH_TEST_* or ZENITH_LIVE_* variables set",
+  "command": "vitest run tests/controlplane/recovery-epoch.test.ts tests/controlplane/state-backend-recovery.test.ts tests/ops/recovery-manifest.test.ts tests/ops/recovery-health.test.ts tests/platform/recovery-service.test.ts tests/hosted/backup/create-restore.test.ts tests/hosted/backup/reconcile.test.ts tests/hosted/backup/reopen.test.ts tests/hosted/backup/targets.test.ts tests/hosted/authority/backup.test.ts tests/hosted/acceptance/gate-10-restore.test.ts tests/acceptance/aws-ops04-port.test.ts --no-file-parallelism --maxWorkers=1",
+  "files": [
+    {
+      "path": "tests/controlplane/recovery-epoch.test.ts",
+      "sha256": "9a3ef070cf2c2becee288a019f5c2c7e09e93cc385e92c468008fb8ae5604b14"
+    },
+    {
+      "path": "tests/controlplane/state-backend-recovery.test.ts",
+      "sha256": "52af79198389559f72f167275bdf168de49b20549447384c8c79db908f0dd9ba"
+    },
+    {
+      "path": "tests/ops/recovery-manifest.test.ts",
+      "sha256": "6e396a98f3d937fe4188b86a8eb3a208d54451688ef9c82e026cc39a6dfca619"
+    },
+    {
+      "path": "tests/ops/recovery-health.test.ts",
+      "sha256": "e6e04278ec1f9bfeb5d297ab38e1852f40ad8b1c2f917d6e56b9c9e587fe519a"
+    },
+    {
+      "path": "tests/platform/recovery-service.test.ts",
+      "sha256": "a383f774e71c259a521a6a17c88672ab5f4f08cc5427236608a0e3e2fb38b37e"
+    },
+    {
+      "path": "tests/hosted/backup/create-restore.test.ts",
+      "sha256": "68afd1e495264a12e1d940adc89ba913a8238dbf05f5a9764a862546048b0731"
+    },
+    {
+      "path": "tests/hosted/backup/reconcile.test.ts",
+      "sha256": "5e0ac2db4e233c6fc406f0b84e815f3122eb855fd1e7fa683855ebe89ab21042"
+    },
+    {
+      "path": "tests/hosted/backup/reopen.test.ts",
+      "sha256": "26815ee2ac11754cb9cc065bc14c959fb3c5b9faeb3f022eea80438effcd7b19"
+    },
+    {
+      "path": "tests/hosted/backup/targets.test.ts",
+      "sha256": "51787f8a3e401377e6e50c95baefef937667939e6a129ca0364fcdde2c9a729e"
+    },
+    {
+      "path": "tests/hosted/authority/backup.test.ts",
+      "sha256": "9425a6896f0c1bfe511aaa2cc5178d82c5897310421a550e1c77119d7e4f6865"
+    },
+    {
+      "path": "tests/hosted/acceptance/gate-10-restore.test.ts",
+      "sha256": "fe06e4eace2401a14359b1ab0c59cbb8c198f4f8211ba86c0454dca0f849ce37"
+    },
+    {
+      "path": "tests/acceptance/aws-ops04-port.test.ts",
+      "sha256": "74fa1cfeaafbec9d7a5c5a60b746e990f48e72689855049981dd1cf2d4026b92"
+    }
+  ]
+}

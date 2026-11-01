@@ -1,0 +1,27 @@
+{
+  "format": "zenith.release-lane-source.v1",
+  "requirements": [
+    "PROD-MIX-03"
+  ],
+  "mode": "local",
+  "commit": "8fa3842af56cead08191e922075f421f21368440",
+  "exitCode": 0,
+  "status": "passed",
+  "counts": {
+    "passed": 86,
+    "failed": 0,
+    "skipped": 0
+  },
+  "environment": "Mac mini, Darwin arm64, Node v22.23.3 (official nodejs.org build, SHASUMS256 verified); disposable PostgreSQL 16.15-alpine (digest cf78e766) in Docker on loopback, fresh database migrated by the checkout's scripts/platform/migrate.ts, removed afterwards; gates ZENITH_TEST_PLATFORM_PG_URL",
+  "command": "vitest run tests/controlplane/mixed-follow-up.test.ts tests/controlplane/mixed-runs.test.ts --no-file-parallelism --maxWorkers=1",
+  "files": [
+    {
+      "path": "tests/controlplane/mixed-follow-up.test.ts",
+      "sha256": "fdfa9dcab9ec3c715abdf8ef42861af50a6d184606f56d9457b44e3e6a2d1469"
+    },
+    {
+      "path": "tests/controlplane/mixed-runs.test.ts",
+      "sha256": "d07a182d98f23659a14d8521690f135572c5f2caf857fc767d46204edf3355a4"
+    }
+  ]
+}

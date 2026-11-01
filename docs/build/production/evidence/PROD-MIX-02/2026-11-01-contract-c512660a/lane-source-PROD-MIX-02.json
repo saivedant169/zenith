@@ -1,0 +1,39 @@
+{
+  "format": "zenith.release-lane-source.v1",
+  "requirements": [
+    "PROD-MIX-02"
+  ],
+  "mode": "contract",
+  "commit": "c512660aa17c99ef48cf4c018909eca44fbfc019",
+  "exitCode": 0,
+  "status": "passed",
+  "counts": {
+    "passed": 256,
+    "failed": 0,
+    "skipped": 0
+  },
+  "environment": "Mac mini, Darwin arm64, Node v22.23.3 (official nodejs.org build, SHASUMS256 verified); offline Vitest, no engine, no network, no ZENITH_TEST_* or ZENITH_LIVE_* variables set",
+  "command": "vitest run tests/execution/mixed/parent-plan.test.ts tests/execution/mixed-partitions.test.ts tests/execution/mixed-orchestration.test.ts tests/execution/mixed-orchestration-join.test.ts tests/controlplane/mixed-parent-plans.test.ts --no-file-parallelism --maxWorkers=1",
+  "files": [
+    {
+      "path": "tests/execution/mixed/parent-plan.test.ts",
+      "sha256": "ab5f13cc9ef47a619ed0dc93e512021bf19eaa1d36fb546cf596903d575f760d"
+    },
+    {
+      "path": "tests/execution/mixed-partitions.test.ts",
+      "sha256": "457efd26027aa3b499863142ee0bf4e23b164f9c8ca9197a98cf8217a14f5560"
+    },
+    {
+      "path": "tests/execution/mixed-orchestration.test.ts",
+      "sha256": "7789b20f793208c3241f12363f3e3766f67ac1c8d335208b69d0ca4ccf1de74f"
+    },
+    {
+      "path": "tests/execution/mixed-orchestration-join.test.ts",
+      "sha256": "7ac0c81476f9ac0e7febdc61d4bdef2464f4e6805f217cde5f66d9628fd2ff44"
+    },
+    {
+      "path": "tests/controlplane/mixed-parent-plans.test.ts",
+      "sha256": "38f661367b0e1af47a9b18c6191a42cf337d67c5bc05f9ef158ff9142d967f38"
+    }
+  ]
+}

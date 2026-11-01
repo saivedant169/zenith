@@ -162,3 +162,14 @@ What it proved:
 How we got here (runs 7 to 14): deploy-role permission gaps (fixed in PRs #55 and #56), pinned image digests (#57), failed-check diagnostics (#58), IAM role lookup through the lagging tag index (#59), the leak check's handling of the lagging tag index (#60 and #62), and a transient 409 on approval (#61). The leak check excuses only ARNs or ids the destroy removed, task definitions and stopped tasks of destroyed families and clusters, and subnets once their VPC was destroyed. AWS refuses DeleteVpc while a subnet remains.
 
 Limits: this covers one ECS service through clean install, plan approval, update, rollback and teardown. DNS-TLS, stateful traffic, schedules, drift repair, revocation, key rotation, upgrade, restore, two tenants and export are still pending. No operational rehearsal. Not a promotion.
+
+## Contract and local engine receipts at the live run's commit (2026-11-01)
+
+Source `f436e3db`, the commit of this requirement's `live_sandbox` receipt, so the levels share one commit. Each lane ran on a clean detached checkout of that commit through `scripts/release/lane-source.mjs`, on a Mac mini (Darwin arm64) with Node 22.23.3. `scripts/release/evidence-cli.mjs` bound a `zenith.release-evidence.v1` receipt to each source.
+
+- `contract`: 311 passed, 0 failed, 0 skipped over 10 test files, offline, no engine or network. Files: `docs/build/production/evidence/PROD-REL-01/2026-11-01-contract-f436e3db/`.
+- `local_engine`: 1016 passed, 0 failed, 0 skipped over 60 test files, against a disposable PostgreSQL 16.15 (pinned digest) migrated by the checkout's own migrator, with Temporal CLI 1.9.1. Files: `docs/build/production/evidence/PROD-REL-01/2026-11-01-local-engine-f436e3db/`.
+
+Limits: the engine lane runs the release orchestrator's `local_engine` lane files except `tests/runners/late-effect-receipts.test.ts` (per-lane structural skips) and `tests/portability/postgres-engine.test.ts`. Its opt-in `ZENITH_TEST_POSTGRES_URL` lane is not run by CI, and two of its cases failed here with a statement error; that is still open.
+
+`operational_rehearsal` is still not done. Not a promotion.

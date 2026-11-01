@@ -1,0 +1,59 @@
+{
+  "format": "zenith.release-lane-source.v1",
+  "requirements": [
+    "PROD-REL-01"
+  ],
+  "mode": "contract",
+  "commit": "f436e3dbeda2f40007301bd05d23048b10ec70b0",
+  "exitCode": 0,
+  "status": "passed",
+  "counts": {
+    "passed": 311,
+    "failed": 0,
+    "skipped": 0
+  },
+  "environment": "Mac mini, Darwin arm64, Node v22.23.3 (official nodejs.org build, SHASUMS256 verified); offline Vitest, no engine, no network, no ZENITH_TEST_* or ZENITH_LIVE_* variables set",
+  "command": "vitest run tests/release/orchestrator.test.ts tests/release/dossier.test.ts tests/release/status.test.ts tests/release/acceptance-scenarios.test.ts tests/release/local-targets.test.ts tests/release/drivers-d2.test.ts tests/release/operated-drivers.test.ts tests/acceptance/evidence.test.ts tests/ci/release-gates.test.ts tests/ci/lane-report.test.ts --no-file-parallelism --maxWorkers=1",
+  "files": [
+    {
+      "path": "tests/release/orchestrator.test.ts",
+      "sha256": "e1f1ab997f715d0d060722c68aeeb7f9a78353eba34acf06cc10be785264b9e3"
+    },
+    {
+      "path": "tests/release/dossier.test.ts",
+      "sha256": "0f1ed03d57dc3ef506b893e8a864a86091e6d82878c647b89def7354222d42c3"
+    },
+    {
+      "path": "tests/release/status.test.ts",
+      "sha256": "054fc38d7624609dd728d5be24b8271036fc9138b1c2afbee42664a1ead6f528"
+    },
+    {
+      "path": "tests/release/acceptance-scenarios.test.ts",
+      "sha256": "ae29193533ffb1924e1ccac4c4b2f976c3b6a3c99cb943e0202be1692e3b6bab"
+    },
+    {
+      "path": "tests/release/local-targets.test.ts",
+      "sha256": "b49aebafcd1722ec3180d0d6286b480b2fb5d2936dd474a4b688ad6ab059bf33"
+    },
+    {
+      "path": "tests/release/drivers-d2.test.ts",
+      "sha256": "696c0faab38c3e5b5172439751f0d96cb25831f2d9d18b9e8d1f18b6af4d7105"
+    },
+    {
+      "path": "tests/release/operated-drivers.test.ts",
+      "sha256": "21f0069ee02afd808d8ea7471b7747bb1b5fb672cf6ca0be0b1796842c2a533d"
+    },
+    {
+      "path": "tests/acceptance/evidence.test.ts",
+      "sha256": "0ae8298f7ca26549f9447796c90e2d3f3821a892e65d83ba66b650aa4f4fd00c"
+    },
+    {
+      "path": "tests/ci/release-gates.test.ts",
+      "sha256": "a69ba2de9082e55ad8e8ed4e527d3de19c5ba5db05d5b35d91be8df906abcac8"
+    },
+    {
+      "path": "tests/ci/lane-report.test.ts",
+      "sha256": "152ee1b158474fe1ee7f681b6ff07687858156df90eb5076b318f2900e6e4086"
+    }
+  ]
+}

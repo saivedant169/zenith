@@ -1,0 +1,63 @@
+{
+  "format": "zenith.release-lane-source.v1",
+  "requirements": [
+    "PROD-OPS-02"
+  ],
+  "mode": "contract",
+  "commit": "ce8317ae9585384337706333c2d85f6fc4a95086",
+  "exitCode": 0,
+  "status": "passed",
+  "counts": {
+    "passed": 136,
+    "failed": 0,
+    "skipped": 0
+  },
+  "environment": "Mac mini, Darwin arm64, Node v22.23.3 (official nodejs.org build, SHASUMS256 verified); offline Vitest, no engine, no network, no ZENITH_TEST_* or ZENITH_LIVE_* variables set",
+  "command": "vitest run tests/ops/admission.test.ts tests/ops/fair-queue.test.ts tests/ops/token-bucket.test.ts tests/ops/maintenance.test.ts tests/ops/sampler-bound.test.ts tests/ops/data-plane-independence.test.ts tests/ops/telemetry.test.ts tests/ops/observability-artifacts.test.ts tests/ops/route-wiring.test.ts tests/ops/admin-routes.test.ts tests/agent-control-rate-limit.test.ts --no-file-parallelism --maxWorkers=1",
+  "files": [
+    {
+      "path": "tests/ops/admission.test.ts",
+      "sha256": "81834c034223aed74f13b5d41f1771930ce1215cfc096418e5dd180e0a4323f8"
+    },
+    {
+      "path": "tests/ops/fair-queue.test.ts",
+      "sha256": "4d9011ba45998dca3c5bc59604ead16cbf88fe2cf34cd7c3b7798132ef180147"
+    },
+    {
+      "path": "tests/ops/token-bucket.test.ts",
+      "sha256": "f9c69c5fe33ac679216abda3446e0b081ac8c8412c1a092962232e59d1f9a13d"
+    },
+    {
+      "path": "tests/ops/maintenance.test.ts",
+      "sha256": "e0fd60d3cef3d285baab2ebec55283cd1fe7c7432bf4827c84539f37846cd422"
+    },
+    {
+      "path": "tests/ops/sampler-bound.test.ts",
+      "sha256": "6aff43fe8252e38a69131172a8f8612ccd71a0780e2ab99b009f800b2b14b017"
+    },
+    {
+      "path": "tests/ops/data-plane-independence.test.ts",
+      "sha256": "95f9d73707839fe07f3bdd992e2ce104d423d68387d8f6d7ff80e033252fe53d"
+    },
+    {
+      "path": "tests/ops/telemetry.test.ts",
+      "sha256": "12348a7a7c994b29a8e33ec0f0708454f7262ae4ae5eac80b494ca7e96fdc892"
+    },
+    {
+      "path": "tests/ops/observability-artifacts.test.ts",
+      "sha256": "e274aeb312baa15d862e90081096fd3245da5fe0afe25141de0cadb182833588"
+    },
+    {
+      "path": "tests/ops/route-wiring.test.ts",
+      "sha256": "41a521553abba8ced4649dd23a5b4352a564b7eec37586593be0704edc6d8fdf"
+    },
+    {
+      "path": "tests/ops/admin-routes.test.ts",
+      "sha256": "40e111c88a92111edb59781cd3099dd375007bcf86d8ed83e7d21cf98e444428"
+    },
+    {
+      "path": "tests/agent-control-rate-limit.test.ts",
+      "sha256": "9af355b845be8a6433e01cb70795edb29b17f9d5009aa5836febbd65f54b47fb"
+    }
+  ]
+}

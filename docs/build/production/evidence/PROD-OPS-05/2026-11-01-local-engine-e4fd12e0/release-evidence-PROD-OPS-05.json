@@ -1,0 +1,20 @@
+{
+  "format": "zenith.release-evidence.v1",
+  "requirementId": "PROD-OPS-05",
+  "level": "local_engine",
+  "commit": "e4fd12e0e054a850f5db9bae7a1555fef1fecd8c",
+  "environment": "Mac mini, Darwin arm64, Node v22.23.3 (official nodejs.org build, SHASUMS256 verified); disposable PostgreSQL 16.15-alpine (digest cf78e766) in Docker on loopback, fresh database migrated by the checkout's scripts/platform/migrate.ts, committed Supabase migrations applied first by scripts/ci/apply-supabase-migrations.sh, removed afterwards; gates ZENITH_TEST_PLATFORM_PG_URL",
+  "command": "vitest run tests/secrets/rewrap.test.ts --no-file-parallelism --maxWorkers=1",
+  "mode": "local",
+  "status": "passed",
+  "passed": 57,
+  "failed": 0,
+  "skipped": 0,
+  "exitCode": 0,
+  "sources": [
+    {
+      "path": "docs/build/production/evidence/PROD-OPS-05/2026-11-01-local-engine-e4fd12e0/lane-source-PROD-OPS-05.json",
+      "sha256": "449245de8f4be65871ba1c4ae32f90b1604011298dd5c1fc98127de0c50bf618"
+    }
+  ]
+}

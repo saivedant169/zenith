@@ -1,0 +1,31 @@
+{
+  "format": "zenith.release-lane-source.v1",
+  "requirements": [
+    "PROD-OPS-03"
+  ],
+  "mode": "local",
+  "commit": "d788ff92f67d0f57bae84d91adcc61971f264def",
+  "exitCode": 0,
+  "status": "passed",
+  "counts": {
+    "passed": 38,
+    "failed": 0,
+    "skipped": 0
+  },
+  "environment": "Mac mini, Darwin arm64, Node v22.23.3 (official nodejs.org build, SHASUMS256 verified); disposable PostgreSQL 16.15-alpine (digest cf78e766) in Docker on loopback, fresh database migrated by the checkout's scripts/platform/migrate.ts, removed afterwards; gates ZENITH_TEST_PLATFORM_PG_URL ZENITH_TEST_TEMPORAL ZENITH_TEST_TEMPORAL_CLI ZENITH_REPLAY_LANE; Temporal CLI 1.9.1 and OpenTofu 1.12.5 official darwin_arm64 builds, release checksums verified",
+  "command": "vitest run tests/workflows/upgrade-rehearsal.test.ts tests/workflows/replay.test.ts tests/workflows/history-replay.test.ts --no-file-parallelism --maxWorkers=1",
+  "files": [
+    {
+      "path": "tests/workflows/upgrade-rehearsal.test.ts",
+      "sha256": "802a970dd25737af1a500f24a1fc377aacab526976aa51eb5488af51f51daa0e"
+    },
+    {
+      "path": "tests/workflows/replay.test.ts",
+      "sha256": "44e03f5e672d0a5aea389389657a6922be281573bf8d2ee0379c9b29c245b673"
+    },
+    {
+      "path": "tests/workflows/history-replay.test.ts",
+      "sha256": "0fb8d7c5e9c7242c11a7820ce329018a3218ed4b7f28511b6253c2dc68495dc1"
+    }
+  ]
+}

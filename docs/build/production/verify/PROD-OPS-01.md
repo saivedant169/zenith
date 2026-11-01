@@ -183,3 +183,13 @@ Measured against `deploy/slo/slo-definitions.json` (`approved_targets`, 2026-10-
 Fixes that led here: PR #119 added the measurement to the ops-04 scenario. Its first run (41042309255) failed capacity: 9.2 req/s served, p95 5002 ms, 66.50% errors, and availability 99.82%. Every request without a session loaded every tenant's rows. PR #120 makes such a request load no tenant rows when auth is configured. A second run (41060350720) stopped OPS-04 at the fresh approval with an unconfirmed plan dispatch (`plan_artifact_unavailable`); the unchanged rerun above passed. PR #121 adds a values-free trace for that refusal.
 
 Limits: `operational_rehearsal` is not done. The probes run on the same CI runner as the stack, so they measure the stack, not a network path. The latency and capacity numbers come from one 60 s burst on one small runner. `evidence.json` is not a `zenith.release-evidence.v1` receipt. Status stays `in_progress`. Not a promotion.
+
+## Contract and local engine receipts at the live run's commit (2026-11-01)
+
+Source `2cdb66db`, the commit of this requirement's `live_sandbox` receipt, so the levels share one commit. Each lane ran on a clean detached checkout of that commit through `scripts/release/lane-source.mjs`, on a Mac mini (Darwin arm64) with Node 22.23.3. `scripts/release/evidence-cli.mjs` bound a `zenith.release-evidence.v1` receipt to each source.
+
+- `contract`: 129 passed, 0 failed, 0 skipped over 8 test files, offline, no engine or network. Files: `docs/build/production/evidence/PROD-OPS-01/2026-11-01-contract-2cdb66db/`.
+- `local_engine`: 54 passed, 0 failed, 0 skipped over 1 test files, against a disposable PostgreSQL 16.15 (pinned digest) migrated by the checkout's own migrator. Files: `docs/build/production/evidence/PROD-OPS-01/2026-11-01-local-engine-2cdb66db/`.
+
+
+`operational_rehearsal` is still not done. Not a promotion.

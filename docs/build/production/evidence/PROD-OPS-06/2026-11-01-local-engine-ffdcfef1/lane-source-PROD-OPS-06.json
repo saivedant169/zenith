@@ -1,0 +1,23 @@
+{
+  "format": "zenith.release-lane-source.v1",
+  "requirements": [
+    "PROD-OPS-06"
+  ],
+  "mode": "local",
+  "commit": "ffdcfef1b30328ed1022c3452986a6cb62f7239a",
+  "exitCode": 0,
+  "status": "passed",
+  "counts": {
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0
+  },
+  "environment": "Mac mini, Darwin arm64, Node v22.23.3 (official nodejs.org build, SHASUMS256 verified); disposable PostgreSQL 16.15-alpine (digest cf78e766) in Docker on loopback, fresh database migrated by the checkout's scripts/platform/migrate.ts, committed Supabase migrations applied first by scripts/ci/apply-supabase-migrations.sh, removed afterwards; gates ZENITH_TEST_PLATFORM_PG_URL ZENITH_TEST_TOFU_NETWORK; OpenTofu 1.12.5 official darwin_arm64 build, release checksum verified",
+  "command": "vitest run tests/security/plan-artifact-secrecy.test.ts --no-file-parallelism --maxWorkers=1",
+  "files": [
+    {
+      "path": "tests/security/plan-artifact-secrecy.test.ts",
+      "sha256": "6a013d1b5cf59a6b6acbeea8e96a8eda0c214c557d387f42703ec1fc904b2b08"
+    }
+  ]
+}

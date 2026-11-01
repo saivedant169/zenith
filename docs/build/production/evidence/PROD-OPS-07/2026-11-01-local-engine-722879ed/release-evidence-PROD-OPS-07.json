@@ -1,0 +1,20 @@
+{
+  "format": "zenith.release-evidence.v1",
+  "requirementId": "PROD-OPS-07",
+  "level": "local_engine",
+  "commit": "722879ed81ae148c8e697e64bbdde53bf164df77",
+  "environment": "Mac mini, Darwin arm64, Node v22.23.3 (official nodejs.org build, SHASUMS256 verified); disposable PostgreSQL 16.15-alpine (digest cf78e766) in Docker on loopback, fresh database migrated by the checkout's scripts/platform/migrate.ts, removed afterwards; gates ZENITH_TEST_PLATFORM_PG_URL ZENITH_TEST_RETENTION_PG=1",
+  "command": "vitest run tests/retention/retention.test.ts tests/retention/restore-destination.test.ts --no-file-parallelism --maxWorkers=1",
+  "mode": "local",
+  "status": "passed",
+  "passed": 43,
+  "failed": 0,
+  "skipped": 0,
+  "exitCode": 0,
+  "sources": [
+    {
+      "path": "docs/build/production/evidence/PROD-OPS-07/2026-11-01-local-engine-722879ed/lane-source-PROD-OPS-07.json",
+      "sha256": "52c64579d2cafe5fc393b7e69f91f7a6d75d55868a6dc572bec81fe438df928d"
+    }
+  ]
+}

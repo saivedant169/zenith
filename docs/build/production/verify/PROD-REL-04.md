@@ -133,3 +133,13 @@ Receipt verdict `passed`: steps A to D all hold; the run bucket read `NotFound` 
 Why a re-run: the 2026-10-26 run (40255637945) passed, but its harness packet records PROD-REL-04 as unperformed (no product port runs the drill), so no release receipt could bind it, and its artifact lacked the recorded resume commands. PR #129 makes the verifier write the release source and publishes the `*.txt` resume commands.
 
 Limits: re-running the verifier off the runner fails step A by design, because the recorded resume command carries the runner's absolute journal path (`/home/runner/work/_temp/...`). `operational_rehearsal` is not done. Status stays `in_progress`. Not a promotion.
+
+## Contract receipts at the live run's commit (2026-11-01)
+
+Source `9d6446d3`, the commit of this requirement's `live_sandbox` receipt, so the levels share one commit. Each lane ran on a clean detached checkout of that commit through `scripts/release/lane-source.mjs`, on a Mac mini (Darwin arm64) with Node 22.23.3. `scripts/release/evidence-cli.mjs` bound a `zenith.release-evidence.v1` receipt to each source.
+
+- `contract`: 340 passed, 0 failed, 0 skipped over 9 test files, offline, no engine or network. Files: `docs/build/production/evidence/PROD-REL-04/2026-11-01-contract-9d6446d3/`.
+
+Limits: no `local_engine` receipt. `tests/acceptance/local-targets.engine.test.ts` runs one local target profile per run and skips the other three, so it cannot give a skip-free source.
+
+`operational_rehearsal` is still not done. Not a promotion.

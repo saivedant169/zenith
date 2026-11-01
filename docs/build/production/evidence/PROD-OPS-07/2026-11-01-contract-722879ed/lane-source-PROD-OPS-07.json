@@ -1,0 +1,43 @@
+{
+  "format": "zenith.release-lane-source.v1",
+  "requirements": [
+    "PROD-OPS-07"
+  ],
+  "mode": "contract",
+  "commit": "722879ed81ae148c8e697e64bbdde53bf164df77",
+  "exitCode": 0,
+  "status": "passed",
+  "counts": {
+    "passed": 68,
+    "failed": 0,
+    "skipped": 0
+  },
+  "environment": "Mac mini, Darwin arm64, Node v22.23.3 (official nodejs.org build, SHASUMS256 verified); offline Vitest, no engine, no network, no ZENITH_TEST_* or ZENITH_LIVE_* variables set",
+  "command": "vitest run tests/retention/retention.test.ts tests/retention/restore-destination.test.ts tests/retention/admin-routes.test.ts tests/retention/key-purpose.test.ts tests/retention/data-retention-failure-kind.test.ts tests/acceptance/aws-retention-port.test.ts --no-file-parallelism --maxWorkers=1",
+  "files": [
+    {
+      "path": "tests/retention/retention.test.ts",
+      "sha256": "0d8093a2b0db88b29696a15fb447e1f36f54b5257b4cbf449df602969dbaa9f9"
+    },
+    {
+      "path": "tests/retention/restore-destination.test.ts",
+      "sha256": "f9cd88c097b3e4ec55d20f7b9326d4a12ca1cbb6df5e41ff52648f6be7c2ec67"
+    },
+    {
+      "path": "tests/retention/admin-routes.test.ts",
+      "sha256": "19f836b58e550a57e86e05be7330c7c3303da2a9319d64b0becfb14da3de445c"
+    },
+    {
+      "path": "tests/retention/key-purpose.test.ts",
+      "sha256": "af3e6b7540656db709e116cf6cf00d08da76889cb4462ff0cc4e58adc3d128a3"
+    },
+    {
+      "path": "tests/retention/data-retention-failure-kind.test.ts",
+      "sha256": "5fc115c5db22f062f2befa5d4a9b2be452d143762222bfc59f55b2d0cc8cae29"
+    },
+    {
+      "path": "tests/acceptance/aws-retention-port.test.ts",
+      "sha256": "b543cb69f6fdc4765f25ce764857c2bac56ea74c7a5290334a7656570c8528ea"
+    }
+  ]
+}

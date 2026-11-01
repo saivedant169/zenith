@@ -83,3 +83,13 @@ What it proved:
 Fixes that led here: PR #116 added `installation.mjs rotate` and the scenario. The first run (41026192545) died at the re-wrap: `rewrap --run` returned its run unawaited inside `try/finally`, so the store closed mid-run. PR #117 awaits it; that also fixes the operator CLI.
 
 Limits: `operational_rehearsal` is not done, and the requirement lists it as required. This is one installation with S3 buckets on one provider. `evidence.json` is not a `zenith.release-evidence.v1` receipt. Status stays `in_progress`. Not a promotion.
+
+## Contract and local engine receipts at the live run's commit (2026-11-01)
+
+Source `e4fd12e0`, the commit of this requirement's `live_sandbox` receipt, so the levels share one commit. Each lane ran on a clean detached checkout of that commit through `scripts/release/lane-source.mjs`, on a Mac mini (Darwin arm64) with Node 22.23.3. `scripts/release/evidence-cli.mjs` bound a `zenith.release-evidence.v1` receipt to each source.
+
+- `contract`: 60 passed, 0 failed, 0 skipped over 7 test files, offline, no engine or network. Files: `docs/build/production/evidence/PROD-OPS-05/2026-11-01-contract-e4fd12e0/`.
+- `local_engine`: 57 passed, 0 failed, 0 skipped over 1 test files, against a disposable PostgreSQL 16.15 (pinned digest) migrated by the checkout's own migrator. Files: `docs/build/production/evidence/PROD-OPS-05/2026-11-01-local-engine-e4fd12e0/`.
+
+
+`operational_rehearsal` is still not done. Not a promotion.

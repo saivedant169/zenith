@@ -1,0 +1,55 @@
+{
+  "format": "zenith.release-lane-source.v1",
+  "requirements": [
+    "PROD-REL-04"
+  ],
+  "mode": "contract",
+  "commit": "9d6446d3bc718ae5553a1f8112a555196cc11534",
+  "exitCode": 0,
+  "status": "passed",
+  "counts": {
+    "passed": 340,
+    "failed": 0,
+    "skipped": 0
+  },
+  "environment": "Mac mini, Darwin arm64, Node v22.23.3 (official nodejs.org build, SHASUMS256 verified); offline Vitest, no engine, no network, no ZENITH_TEST_* or ZENITH_LIVE_* variables set",
+  "command": "vitest run tests/release/scope.test.ts tests/release/checkpoint.test.ts tests/release/orchestrator.test.ts tests/release/live-scope-coverage.test.ts tests/acceptance/aws-production.test.ts tests/acceptance/aws-rel04-drill.test.ts tests/acceptance/live-managed.test.ts tests/acceptance/live-shared.test.ts tests/acceptance/safety.test.ts --no-file-parallelism --maxWorkers=1",
+  "files": [
+    {
+      "path": "tests/release/scope.test.ts",
+      "sha256": "15d024fb4162cc1070a8bb30bfeacaacc4fa193000b9445f59abd7008bb1d859"
+    },
+    {
+      "path": "tests/release/checkpoint.test.ts",
+      "sha256": "6b54fe0332a1945b65fba0428ade8dba2d4b93e892ac91f54827689b655bfc59"
+    },
+    {
+      "path": "tests/release/orchestrator.test.ts",
+      "sha256": "e1f1ab997f715d0d060722c68aeeb7f9a78353eba34acf06cc10be785264b9e3"
+    },
+    {
+      "path": "tests/release/live-scope-coverage.test.ts",
+      "sha256": "44c4773279f8f3b9b27d6aeff8b5cdea1d164956b75123a6245c44a2b8550201"
+    },
+    {
+      "path": "tests/acceptance/aws-production.test.ts",
+      "sha256": "9dd6be7dbb19e1dc6ed16c94c1e680df312bba640abaeadcb08daca6f718b707"
+    },
+    {
+      "path": "tests/acceptance/aws-rel04-drill.test.ts",
+      "sha256": "91b555e87bdd63151bd905de6dba755ab381f4f8275f3061fdd1d84ba494aa79"
+    },
+    {
+      "path": "tests/acceptance/live-managed.test.ts",
+      "sha256": "f25d4ac78ae38d92a7c9814897e986d9dd8aa50dc2bf9359cd7a4b4501cf5272"
+    },
+    {
+      "path": "tests/acceptance/live-shared.test.ts",
+      "sha256": "5a0990476e2f6fbd4f2841cce4c719009e0104f4fb8165f547e4ad152867e3b5"
+    },
+    {
+      "path": "tests/acceptance/safety.test.ts",
+      "sha256": "48ad711efec70df23bd14624f31d03d3e67ccc157d82cbb2ab830c3d0b7b2ab0"
+    }
+  ]
+}

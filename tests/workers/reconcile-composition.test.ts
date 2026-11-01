@@ -120,23 +120,38 @@ async function freePort(): Promise<number> {
 class OwnedTemporal {
   child?: ChildProcess;
   private closed = false;
-  constructor(readonly cli: string, readonly directory: string, readonly port: number) {}
+  private served = false;
+  constructor(readonly cli: string, readonly directory: string, private port: number) {}
   get address(): string { return `127.0.0.1:${this.port}`; }
   async start(): Promise<void> {
     if (this.port === 7233 || this.child) throw new Error("Invalid owned Temporal start.");
+    // freePort() releases a port before Temporal binds it, so another process can take it first. An exit before
+    // readiness gets fresh ports; the frontend port is kept once served, because a restart must keep its address.
+    for (let attempt = 1; ; attempt += 1) {
+      const exit = await this.spawnUntilReady();
+      if (!exit) { this.served = true; return; }
+      this.child = undefined;
+      if (attempt === 3) throw new Error(`Owned Temporal exited before readiness (3 attempts): ${exit}`);
+      if (!this.served) this.port = await freePort();
+    }
+  }
+  /** Resolves undefined once the frontend answers, or the stderr tail when the process exits first. */
+  private async spawnUntilReady(): Promise<string | undefined> {
     this.closed = false;
-    this.child = spawn(this.cli, ["--disable-config-env", "--disable-config-file", "server", "start-dev", "--headless", "--ip", "127.0.0.1", "--port", String(this.port), "--http-port", String(await freePort()), "--metrics-port", String(await freePort()), "--db-filename", path.join(this.directory, "owned-temporal.sqlite"), "--search-attribute", "ZenithScheduleOwner=Keyword"], { stdio: "ignore", windowsHide: true });
+    this.child = spawn(this.cli, ["--disable-config-env", "--disable-config-file", "server", "start-dev", "--headless", "--ip", "127.0.0.1", "--port", String(this.port), "--http-port", String(await freePort()), "--metrics-port", String(await freePort()), "--db-filename", path.join(this.directory, "owned-temporal.sqlite"), "--search-attribute", "ZenithScheduleOwner=Keyword"], { stdio: ["ignore", "ignore", "pipe"], windowsHide: true });
     const child = this.child;
+    let stderr = "";
+    child.stderr?.on("data", (chunk: Buffer) => { stderr = (stderr + chunk.toString()).slice(-600); });
     child.once("close", () => { this.closed = true; });
-    let failed = false;
-    child.once("error", () => { failed = true; });
-    await waitFor("owned composition Temporal frontend", async () => {
-      if (failed || child.exitCode !== null) throw new Error("Owned Temporal exited before readiness.");
+    let failed: Error | undefined;
+    child.once("error", (error) => { failed = error; });
+    return waitFor("owned composition Temporal frontend", async () => {
+      if (failed || child.exitCode !== null) return failed?.message ?? `exit ${child.exitCode}: ${stderr.trim() || "no stderr"}`;
       let connection: Connection | undefined;
-      try { connection = await Connection.connect({ address: this.address, connectTimeout: 500 }); await connection.withDeadline(Date.now() + 500, () => connection!.workflowService.describeNamespace({ namespace: "default" })); return true; }
+      try { connection = await Connection.connect({ address: this.address, connectTimeout: 500 }); await connection.withDeadline(Date.now() + 500, () => connection!.workflowService.describeNamespace({ namespace: "default" })); return "ready"; }
       catch { return false; }
       finally { await connection?.close(); }
-    }, 45_000);
+    }, 45_000).then((outcome) => outcome === "ready" ? undefined : outcome);
   }
   async stop(): Promise<void> {
     const child = this.child;

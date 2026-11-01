@@ -14,6 +14,8 @@ import { assertBillingAdmitted, invalidateBillingState } from "@/lib/billing/adm
 import { generateInvoice } from "@/lib/billing/invoice";
 import { assignPlan, getAccount, getInvoiceByPeriod } from "@/lib/billing/store";
 import { DEFAULT_PLAN_ID } from "@/lib/billing/plans";
+import { periodBounds, periodOf, previousPeriod } from "@/lib/billing/period";
+import { INVOICE_SETTLE_MS } from "@/lib/billing/service";
 import { platformAccess } from "@/app/api/platform/v1/_lib/bearer-paths";
 import { FakeInvoiceProvider, hex, invoiceEvent, seedResource, webhookSecret } from "./_support";
 
@@ -311,11 +313,13 @@ describe("billing tick route", () => {
     await expireDurableDeferral();
     const id = ws();
     await assignPlan(handle, { workspaceId: id, planId: DEFAULT_PLAN_ID, actor: "test:operator", reason: "fallback contract" });
+    // The tick invoices last month only once it has been over for INVOICE_SETTLE_MS, so the first hours of a month expect none.
+    const settled = Date.now() >= periodBounds(previousPeriod(periodOf(new Date()))).end.getTime() + INVOICE_SETTLE_MS;
     const first = await call(`Bearer ${SECRET}`, "GET");
     expect(first.status).toBe(200);
     expect(await first.json()).toMatchObject({ pass: "billing", ok: true, enabled: true, invoicing: "not_configured", invoiceErrors: 0 });
     const invoices = await handle.query("select id, period from platform.billing_invoices where workspace_id=$1 order by period", [id]);
-    expect(invoices).toHaveLength(1);
+    expect(invoices).toHaveLength(settled ? 1 : 0);
     const afterFirst = (await repos.scheduledJobs.getScheduledJob(handle, "billing"))!;
     expect(afterFirst.lastSuccessSource).toBe("fallback");
     const repeated = await call(`Bearer ${SECRET}`);

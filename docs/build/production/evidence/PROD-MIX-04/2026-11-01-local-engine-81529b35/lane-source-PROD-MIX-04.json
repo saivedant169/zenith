@@ -1,0 +1,39 @@
+{
+  "format": "zenith.release-lane-source.v1",
+  "requirements": [
+    "PROD-MIX-04"
+  ],
+  "mode": "local",
+  "commit": "81529b354e257572873b76ab4108e09fd5619ed5",
+  "exitCode": 0,
+  "status": "passed",
+  "counts": {
+    "passed": 199,
+    "failed": 0,
+    "skipped": 0
+  },
+  "environment": "Mac mini, Darwin arm64, Node v22.23.3 (official nodejs.org build, SHASUMS256 verified); disposable PostgreSQL 16.15-alpine (digest cf78e766) in Docker on loopback, fresh database migrated by the checkout's scripts/platform/migrate.ts, committed Supabase migrations applied first by scripts/ci/apply-supabase-migrations.sh, removed afterwards; gates ZENITH_TEST_PLATFORM_PG_URL",
+  "command": "vitest run tests/execution/mixed-run-store.test.ts tests/controlplane/mixed-runs.test.ts tests/controlplane/mixed-follow-up.test.ts tests/controlplane/mixed-parent-plans.test.ts tests/controlplane/mixed-child-admission.test.ts --no-file-parallelism --maxWorkers=1",
+  "files": [
+    {
+      "path": "tests/execution/mixed-run-store.test.ts",
+      "sha256": "87ea55e3784a21caf21620080c4e19b99fa79904c68b0a1efc1bbaf4d489c30d"
+    },
+    {
+      "path": "tests/controlplane/mixed-runs.test.ts",
+      "sha256": "d07a182d98f23659a14d8521690f135572c5f2caf857fc767d46204edf3355a4"
+    },
+    {
+      "path": "tests/controlplane/mixed-follow-up.test.ts",
+      "sha256": "fdfa9dcab9ec3c715abdf8ef42861af50a6d184606f56d9457b44e3e6a2d1469"
+    },
+    {
+      "path": "tests/controlplane/mixed-parent-plans.test.ts",
+      "sha256": "38f661367b0e1af47a9b18c6191a42cf337d67c5bc05f9ef158ff9142d967f38"
+    },
+    {
+      "path": "tests/controlplane/mixed-child-admission.test.ts",
+      "sha256": "4701b41f18617ea3940ab6e9540e4349501dd70fe25459c14cd3f03b65f6f2de"
+    }
+  ]
+}

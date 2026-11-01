@@ -110,3 +110,13 @@ What the run checked:
 Fixes that led here: PR #123 added the worker stop and restart to the mix-03 scenario. Runs 41077233775, 41086015907 and 41096252308 ended with the consumer blocked after the restart. PRs #124 and #126 surfaced the parent's stop sentence: "The executor stopped reporting (execution or environment lease lost)". Root cause: `awaitMixedChild` renewed the environment lease but never the parent operation's own `lease_until`, which only step starts extended. Any child wait past five minutes, including a long approval, let housekeeping mark the parent `uncertain`. PR #127 heartbeats the parent operation on every observation. Run 41105655617 stopped earlier at connection verification (IAM trust propagation, during a GitHub incident); the unchanged rerun above passed.
 
 Limits: `operational_rehearsal` is not done. Approvals came from an automated test approver through the browser path. One restart of one worker on one runner. Status stays `in_progress`. Not a promotion.
+
+## Contract and local engine receipts at the live run's commit (2026-11-01)
+
+Source `c512660a`, the commit of this requirement's `live_sandbox` receipt, so the levels share one commit. Each lane ran on a clean detached checkout of that commit through `scripts/release/lane-source.mjs`, on a Mac mini (Darwin arm64) with Node 22.23.3. `scripts/release/evidence-cli.mjs` bound a `zenith.release-evidence.v1` receipt to each source.
+
+- `contract`: 256 passed, 0 failed, 0 skipped over 5 test files, offline, no engine or network. Files: `docs/build/production/evidence/PROD-MIX-02/2026-11-01-contract-c512660a/`.
+- `local_engine`: 101 passed, 0 failed, 0 skipped over 2 test files, against a disposable PostgreSQL 16.15 (pinned digest) migrated by the checkout's own migrator. Files: `docs/build/production/evidence/PROD-MIX-02/2026-11-01-local-engine-c512660a/`.
+
+
+`operational_rehearsal` is still not done. Not a promotion.

@@ -1,0 +1,51 @@
+{
+  "format": "zenith.release-lane-source.v1",
+  "requirements": [
+    "PROD-OPS-01"
+  ],
+  "mode": "contract",
+  "commit": "2cdb66db6343469eebde92fb48e8ee0f808064d3",
+  "exitCode": 0,
+  "status": "passed",
+  "counts": {
+    "passed": 129,
+    "failed": 0,
+    "skipped": 0
+  },
+  "environment": "Mac mini, Darwin arm64, Node v22.23.3 (official nodejs.org build, SHASUMS256 verified); offline Vitest, no engine, no network, no ZENITH_TEST_* or ZENITH_LIVE_* variables set",
+  "command": "vitest run tests/slo/definitions.test.ts tests/slo/sli-budget.test.ts tests/slo/slo-artifacts.test.ts tests/slo/restore-sink.test.ts tests/slo/slo.engine.test.ts tests/acceptance/ops01-measure.test.ts tests/ops/recovery-manifest.test.ts tests/ops/recovery-health.test.ts --no-file-parallelism --maxWorkers=1",
+  "files": [
+    {
+      "path": "tests/slo/definitions.test.ts",
+      "sha256": "d84ccf8717f971bc57e59755de16a6c8db04c9c2ea694f6cb071c54bad7b7517"
+    },
+    {
+      "path": "tests/slo/sli-budget.test.ts",
+      "sha256": "a44431981d8c5797ade871a0c714774c66bcca453eab0dbe0d4f3e868c7ca965"
+    },
+    {
+      "path": "tests/slo/slo-artifacts.test.ts",
+      "sha256": "e74628d6d179ad49e8d02f2624fad6f5d9d7afd2969c0d6d217545ab3bb3124d"
+    },
+    {
+      "path": "tests/slo/restore-sink.test.ts",
+      "sha256": "ead800495f4cf3474b8767e7574346640ac89e4e47cb66810ce49521d00d5870"
+    },
+    {
+      "path": "tests/slo/slo.engine.test.ts",
+      "sha256": "fea7159b60619e8005ef92f63697a8a9203ae17bb5ee27b18f0bb1b235e89109"
+    },
+    {
+      "path": "tests/acceptance/ops01-measure.test.ts",
+      "sha256": "dd62c927c82c7f880ae3bb36e56e18bb76422e6983d7a09d48997a9726114acd"
+    },
+    {
+      "path": "tests/ops/recovery-manifest.test.ts",
+      "sha256": "6e396a98f3d937fe4188b86a8eb3a208d54451688ef9c82e026cc39a6dfca619"
+    },
+    {
+      "path": "tests/ops/recovery-health.test.ts",
+      "sha256": "e6e04278ec1f9bfeb5d297ab38e1852f40ad8b1c2f917d6e56b9c9e587fe519a"
+    }
+  ]
+}

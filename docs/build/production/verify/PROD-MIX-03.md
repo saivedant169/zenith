@@ -147,3 +147,13 @@ What the run checked (`scripts/acceptance/live/product/mix-03.ts`, `mix-03-drive
 Fixes found on the way: the run window grew to 40 minutes for two parents (PRs #143, #144); the driver issued the grant for the consumer child environment, while the join matches grants on the parent plan's environment (PR #145).
 
 Limits: a second materialization against the spent grant is not attempted; its refusal rests on the reservation rule (`uses < max_uses`) and the active listing. Secret references, operational rehearsal and the owner decisions above are still pending. Status stays `implementation_complete_verification_pending`. Not a promotion.
+
+## Contract and local engine receipts at the live run's commit (2026-11-01)
+
+Source `8fa3842a`, the commit of this requirement's `live_sandbox` receipt, so the levels share one commit. Each lane ran on a clean detached checkout of that commit through `scripts/release/lane-source.mjs`, on a Mac mini (Darwin arm64) with Node 22.23.3. `scripts/release/evidence-cli.mjs` bound a `zenith.release-evidence.v1` receipt to each source.
+
+- `contract`: 320 passed, 0 failed, 0 skipped over 11 test files, offline, no engine or network. Files: `docs/build/production/evidence/PROD-MIX-03/2026-11-01-contract-8fa3842a/`.
+- `local_engine`: 86 passed, 0 failed, 0 skipped over 2 test files, against a disposable PostgreSQL 16.15 (pinned digest) migrated by the checkout's own migrator. Files: `docs/build/production/evidence/PROD-MIX-03/2026-11-01-local-engine-8fa3842a/`.
+
+
+`operational_rehearsal` is still not done. Not a promotion.

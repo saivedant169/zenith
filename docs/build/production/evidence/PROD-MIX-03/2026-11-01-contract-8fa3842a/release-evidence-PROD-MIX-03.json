@@ -1,0 +1,20 @@
+{
+  "format": "zenith.release-evidence.v1",
+  "requirementId": "PROD-MIX-03",
+  "level": "contract",
+  "commit": "8fa3842af56cead08191e922075f421f21368440",
+  "environment": "Mac mini, Darwin arm64, Node v22.23.3 (official nodejs.org build, SHASUMS256 verified); offline Vitest, no engine, no network, no ZENITH_TEST_* or ZENITH_LIVE_* variables set",
+  "command": "vitest run tests/execution/mixed/typed-delivery.test.ts tests/execution/mixed/typed-inputs-activities.test.ts tests/execution/mixed/typed-substitution.test.ts tests/execution/mixed/output-reader.test.ts tests/execution/mixed/reference-readback.test.ts tests/execution/mixed-orchestration.test.ts tests/execution/mixed-orchestration-service.test.ts tests/controlplane/mixed-follow-up.test.ts tests/controlplane/mixed-runs.test.ts tests/acceptance/aws-mix03-driver.test.ts tests/acceptance/aws-mix03-port.test.ts --no-file-parallelism --maxWorkers=1",
+  "mode": "contract",
+  "status": "passed",
+  "passed": 320,
+  "failed": 0,
+  "skipped": 0,
+  "exitCode": 0,
+  "sources": [
+    {
+      "path": "docs/build/production/evidence/PROD-MIX-03/2026-11-01-contract-8fa3842a/lane-source-PROD-MIX-03.json",
+      "sha256": "be70d6993b4f170449e390d83e42aac3b18fb3098376f95f7dee9558757ca4cd"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "format": "zenith.release-evidence.v1",
+  "requirementId": "PROD-OPS-05",
+  "level": "contract",
+  "commit": "e4fd12e0e054a850f5db9bae7a1555fef1fecd8c",
+  "environment": "Mac mini, Darwin arm64, Node v22.23.3 (official nodejs.org build, SHASUMS256 verified); offline Vitest, no engine, no network, no ZENITH_TEST_* or ZENITH_LIVE_* variables set",
+  "command": "vitest run tests/keycustody/registry.test.ts tests/keycustody/rewrap-job.test.ts tests/keycustody/diagnostics-cli.test.ts tests/retention/key-purpose.test.ts tests/audit-export/purpose.test.ts tests/acceptance/aws-ops05-port.test.ts tests/acceptance/maintenance-temporal-codec.test.ts --no-file-parallelism --maxWorkers=1",
+  "mode": "contract",
+  "status": "passed",
+  "passed": 60,
+  "failed": 0,
+  "skipped": 0,
+  "exitCode": 0,
+  "sources": [
+    {
+      "path": "docs/build/production/evidence/PROD-OPS-05/2026-11-01-contract-e4fd12e0/lane-source-PROD-OPS-05.json",
+      "sha256": "130f306c4fa28e2641cd89ea7a6e4c9b025f2e1579be5f5c0dfa5517304412ad"
+    }
+  ]
+}

@@ -1,0 +1,259 @@
+{
+  "format": "zenith.release-lane-source.v1",
+  "requirements": [
+    "PROD-REL-01"
+  ],
+  "mode": "local",
+  "commit": "f436e3dbeda2f40007301bd05d23048b10ec70b0",
+  "exitCode": 0,
+  "status": "passed",
+  "counts": {
+    "passed": 1016,
+    "failed": 0,
+    "skipped": 0
+  },
+  "environment": "Mac mini, Darwin arm64, Node v22.23.3 (official nodejs.org build, SHASUMS256 verified); disposable PostgreSQL 16.15-alpine (digest cf78e766) in Docker on loopback, fresh database migrated by the checkout's scripts/platform/migrate.ts, committed Supabase migrations applied first by scripts/ci/apply-supabase-migrations.sh, removed afterwards; gates ZENITH_TEST_PLATFORM_PG_URL ZENITH_TEST_TEMPORAL ZENITH_TEST_TEMPORAL_CLI ZENITH_TEST_TEMPORAL_DOWNLOAD ZENITH_REPLAY_LANE ZENITH_TEST_NETWORK; Temporal CLI 1.9.1 official darwin_arm64 build, release checksum verified; Temporal SDK time-skipping test server downloaded by the SDK (ZENITH_TEST_TEMPORAL_DOWNLOAD); the release orchestrator local_engine lane files of scripts/release/scenarios.ts except tests/runners/late-effect-receipts.test.ts (per-lane structural skips) and tests/portability/postgres-engine.test.ts (its opt-in ZENITH_TEST_POSTGRES_URL lane is not run by CI and failed here)",
+  "command": "vitest run --no-file-parallelism --maxWorkers=1 over the 60 test files listed in files",
+  "files": [
+    {
+      "path": "tests/execution/approved-source.test.ts",
+      "sha256": "e15f0c767cbfb70cc58310174c03b32ef923872666524a4a77d734bffb90b282"
+    },
+    {
+      "path": "tests/controlplane/approved-source-snapshots.test.ts",
+      "sha256": "34a631931d797315d9ad18cc9be62d8b8ee18120b9ebe69a2c9b83e7e3b9d5f3"
+    },
+    {
+      "path": "tests/sources/github-app.test.ts",
+      "sha256": "6df270dd5b74c6237736cb4838d41fedec3acde6f17df69e09f34cb52bd9ab55"
+    },
+    {
+      "path": "tests/sources/github-lifecycle.test.ts",
+      "sha256": "a4cc4469d11ffbebea9ddae3e2e5150947d61bffef0aa55b1c82fdd2c8850b8e"
+    },
+    {
+      "path": "tests/release/drivers/drv1.test.ts",
+      "sha256": "3d93f940da9da6c0fea54bf7b09d8ffe1f58cd5ba03e771d9b2ea01864a3f885"
+    },
+    {
+      "path": "tests/execution/ledger-approval.test.ts",
+      "sha256": "fb72bdba44edfd71ece23e7ccf7aa10758677e0bac621decb13d83b1b0c4e344"
+    },
+    {
+      "path": "tests/controlplane/approvals.test.ts",
+      "sha256": "b0e40d198a23fb3ca9d33f8c3de58a9b5c9e9c3fcdfb2dc6ac94e39e1ff47f70"
+    },
+    {
+      "path": "tests/platform/plan-approval.test.ts",
+      "sha256": "68fcd07e96c268ad98a56b1173760aaa7269c9b4a69939a9160adbebd23c8923"
+    },
+    {
+      "path": "tests/workflows/approval-time.test.ts",
+      "sha256": "43432322d82be1e0c45e5df82d7372fbc20a954999375157adc05e04778e15f7"
+    },
+    {
+      "path": "tests/acceptance/mixed-traffic.test.ts",
+      "sha256": "a2516311eb9df2f1ac7c1de1862fa38c10a1d8ab767af78dc5a3492ac64c25b5"
+    },
+    {
+      "path": "tests/acceptance/mixed-live-run.test.ts",
+      "sha256": "72f15bdd82d38da47852ef1768339ed81ad4f3c4c963a049008609178072ee78"
+    },
+    {
+      "path": "tests/execution/journey.test.ts",
+      "sha256": "d57e70d261440af321ab6ed0de616ac6d54db94fe2e17337aba903415f73236e"
+    },
+    {
+      "path": "tests/acceptance/sample-app.test.ts",
+      "sha256": "af71d0b24213424ee6032b7ec1714489583c1bb9b2b0de4f95d8b1fe6c6e5d43"
+    },
+    {
+      "path": "tests/execution/release.test.ts",
+      "sha256": "786c8f377f8dc220637ae5da9365e16091d6b26035e870bc030cdccd7a1b3308"
+    },
+    {
+      "path": "tests/execution/release-safety.test.ts",
+      "sha256": "9f7d339993c802803d4102288dc7497226e68032cf04593613a3cc5e1c00d002"
+    },
+    {
+      "path": "tests/release-safety/pipeline.test.ts",
+      "sha256": "3b4d8b76b723fda36d069c09d20aea0725ed909332ad372c6cc51698eab35185"
+    },
+    {
+      "path": "tests/execution/manifest-release.test.ts",
+      "sha256": "39b2272adc570e5e567a05e6488c0a2f6071218c3d21c632c661c34294a169c2"
+    },
+    {
+      "path": "tests/hosted/acceptance/gate-08-compatible-update.test.ts",
+      "sha256": "9f34e9c99f16490d7eefa761cd38edaaeefb7c7399639e390d5174d398cdcbf0"
+    },
+    {
+      "path": "tests/machines/runbooks.test.ts",
+      "sha256": "4e4a671f4f1847e541c7554a0cc61743b3d3ac9380342ba7864caae230a0da40"
+    },
+    {
+      "path": "tests/machines/dispatcher.test.ts",
+      "sha256": "bfd64f1f93f0c1882b770c96caed4a5335ab278345f16cff57850dafaa739fd3"
+    },
+    {
+      "path": "tests/workflows/critical-schedule.test.ts",
+      "sha256": "ca059bda3200b9ac56be008e9d76230c262ef9138ae2fd18b4afbaa72f583f65"
+    },
+    {
+      "path": "tests/workflows/reconcile-schedule.test.ts",
+      "sha256": "da59d8ced09c4ecb399bdba19b6a4b59d418ace8afe5f306df29b13e27bc4a60"
+    },
+    {
+      "path": "tests/drift/compute.test.ts",
+      "sha256": "47cf351213b99598e6959500d58af7cd24d758d765ff1c7f0747cc7c9065b766"
+    },
+    {
+      "path": "tests/repair/lifecycle.test.ts",
+      "sha256": "93c8376258f04a5be4becbc97fbb96a65c92fabe269848bf75ba86e7719dceaf"
+    },
+    {
+      "path": "tests/reconcile/repair.test.ts",
+      "sha256": "03e0f33db98f91c2cbdb3c20501ac4a3503762e5442bbcfb0d372c256d4eb1ef"
+    },
+    {
+      "path": "tests/reconcile/pass.test.ts",
+      "sha256": "3e04747f813d958380cdf1856869620697f389f01d1ab2eccd6cc8d5a1cf24f9"
+    },
+    {
+      "path": "tests/connections/lifecycle.test.ts",
+      "sha256": "2269af2859dba9e6b54708d868008587046c71058d143ca83459c639ae37b19b"
+    },
+    {
+      "path": "tests/credentials/grants.test.ts",
+      "sha256": "cdf56445ea746d030c6250bce848c4530da03bbd6519ccf86fdebc8faa51c2d2"
+    },
+    {
+      "path": "tests/controlplane/grants.test.ts",
+      "sha256": "c087a8fa7f7e9b6a449b7cff75d4d2d59d4d2e81ef396c22d4d0a403e1fcc18e"
+    },
+    {
+      "path": "tests/workflows/destroy-replay.test.ts",
+      "sha256": "a00fad327c57049e46edd41ade78c4320f1c713f6cdb023c5c9c1d5ea0eb6f39"
+    },
+    {
+      "path": "tests/workflows/history-replay.test.ts",
+      "sha256": "0fb8d7c5e9c7242c11a7820ce329018a3218ed4b7f28511b6253c2dc68495dc1"
+    },
+    {
+      "path": "tests/ops/data-plane-independence.test.ts",
+      "sha256": "95f9d73707839fe07f3bdd992e2ce104d423d68387d8f6d7ff80e033252fe53d"
+    },
+    {
+      "path": "tests/controlplane/leases.test.ts",
+      "sha256": "55628aa3ef43438d7a1711c3d3bdfb2f64025cc9dbf23b7437cba755558d2281"
+    },
+    {
+      "path": "tests/controlplane/lease-hang.test.ts",
+      "sha256": "ea8c85829a2e4973f4e1f6b8209a7345ff0290e5b16dc4398ba7ed417bf6d95e"
+    },
+    {
+      "path": "tests/acceptance/mixed-live-recovery.test.ts",
+      "sha256": "20a58bca9228b81996092d8df9574159ba0d97acc32287abb4c3f2014e1133ae"
+    },
+    {
+      "path": "tests/keycustody/rewrap-job.test.ts",
+      "sha256": "bcbdd9df63322915de02d140b78a8522c115e788810b23bc901749ff70fd230c"
+    },
+    {
+      "path": "tests/keycustody/registry.test.ts",
+      "sha256": "78952db74923b4889566b6681d903b0c8511c56cf170426ce2364d9ee200b664"
+    },
+    {
+      "path": "tests/connections/rotations-repo.test.ts",
+      "sha256": "4dc8432ce0ed4f1feb6fec11dc8009204531e6270c2f6aee65246c2dba2d0b94"
+    },
+    {
+      "path": "tests/controlplane/plan-custody.test.ts",
+      "sha256": "d7220e6b2c5caaea10633a60a5b31920c37914da26811f9e3b45241896541851"
+    },
+    {
+      "path": "tests/ops/rolling-upgrade.test.ts",
+      "sha256": "fdf515544282da359d3779b94b4033ae1a01930cc4c6a87ba91a59c64703732a"
+    },
+    {
+      "path": "tests/controlplane/migration-compat.test.ts",
+      "sha256": "bbb988c2f6df2acc4823430e7bc23d2a1efc31898b7f92aafb01797d9f8c4ebc"
+    },
+    {
+      "path": "tests/workflows/codec-replay.test.ts",
+      "sha256": "c26778e736ae9783c0fda683487f6b95db3d84040d3d636793f1db97013ab91a"
+    },
+    {
+      "path": "tests/hosted/backup/create-restore.test.ts",
+      "sha256": "68afd1e495264a12e1d940adc89ba913a8238dbf05f5a9764a862546048b0731"
+    },
+    {
+      "path": "tests/hosted/backup/reopen.test.ts",
+      "sha256": "26815ee2ac11754cb9cc065bc14c959fb3c5b9faeb3f022eea80438effcd7b19"
+    },
+    {
+      "path": "tests/controlplane/state-backend-recovery.test.ts",
+      "sha256": "52af79198389559f72f167275bdf168de49b20549447384c8c79db908f0dd9ba"
+    },
+    {
+      "path": "tests/controlplane/tenancy.test.ts",
+      "sha256": "14788cfa8e0867c3f6c8562e953bc7bdccd419eb1f179b7bd7306b61d1430458"
+    },
+    {
+      "path": "tests/security/controlplane-sql-scoping.test.ts",
+      "sha256": "490ae264efa90a865191d0cd82a927eac5a9801474b72ea404631959c69ac411"
+    },
+    {
+      "path": "tests/security/mcp-v2-tenant-isolation.test.ts",
+      "sha256": "ca11d1451db05e8719041e9c3ccc1fd8aa878095122a7e08eaedc19f4f5c7d6e"
+    },
+    {
+      "path": "tests/hosted/acceptance/gate-02-second-identity.test.ts",
+      "sha256": "86a4e8404ce703fe5103fdf5632eb0b8a3a9addf31253f54f6db08e12c1297b7"
+    },
+    {
+      "path": "tests/release/drivers/d4.test.ts",
+      "sha256": "705278ba0caeb1fcb0a30f266a51ee1dc07f5fd58334c6758cabcca760672139"
+    },
+    {
+      "path": "tests/hosted/export/roundtrip.test.ts",
+      "sha256": "b26e42fff2ba1b1e5e4f389481f3fdb6699815685477fbdf1f965fe1c998626c"
+    },
+    {
+      "path": "tests/portability/store.test.ts",
+      "sha256": "d71272d1a9741ca738450e7e7f95c8f9cf1185edb1ae22063bb75cf7a0813016"
+    },
+    {
+      "path": "tests/release/drivers/export-data.test.ts",
+      "sha256": "ecacf0bbe5ac8e5cdfa68de7096ad55770c778a02ad766c54f672c906c7aaf02"
+    },
+    {
+      "path": "tests/release/drivers/export-data-postgres.test.ts",
+      "sha256": "70251b5fb93faf621d77653ae3b675c018795b8a8ce424ebd8ea9b2514bf1a6f"
+    },
+    {
+      "path": "tests/release/drivers/export-data-mysql.test.ts",
+      "sha256": "299243a487162b0c4eaa6e2470d0b78150be68cb1ca67cc8b2744924d1affeba"
+    },
+    {
+      "path": "tests/release/drivers/export-data-objects.test.ts",
+      "sha256": "2bb5c067bfa9a8662453cca5702d44934464c8e7c6df9907573340596986203c"
+    },
+    {
+      "path": "tests/execution/destroy.test.ts",
+      "sha256": "bd727784b24e164d777295539f4668f6f2baa7c716704364187fa11501d69cd9"
+    },
+    {
+      "path": "tests/execution/destroy-review.test.ts",
+      "sha256": "25f095d3988570936a5746360c12c10e171290b8c00d7140b280ad78366515bd"
+    },
+    {
+      "path": "tests/workflows/destroy.test.ts",
+      "sha256": "1019470773d3d7a8b8a23e872070491e50a51108cea00c6a2bce4b89fe8e20b7"
+    },
+    {
+      "path": "tests/execution/mixed-orchestration-service.test.ts",
+      "sha256": "30273690d4d7b2b4047739b04a3c981264dcce6f0cac0e19da982c10362bb15d"
+    }
+  ]
+}

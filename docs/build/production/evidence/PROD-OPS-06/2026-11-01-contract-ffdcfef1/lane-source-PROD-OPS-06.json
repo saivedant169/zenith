@@ -1,0 +1,59 @@
+{
+  "format": "zenith.release-lane-source.v1",
+  "requirements": [
+    "PROD-OPS-06"
+  ],
+  "mode": "contract",
+  "commit": "ffdcfef1b30328ed1022c3452986a6cb62f7239a",
+  "exitCode": 0,
+  "status": "passed",
+  "counts": {
+    "passed": 124,
+    "failed": 0,
+    "skipped": 0
+  },
+  "environment": "Mac mini, Darwin arm64, Node v22.23.3 (official nodejs.org build, SHASUMS256 verified); offline Vitest, no engine, no network, no ZENITH_TEST_* or ZENITH_LIVE_* variables set",
+  "command": "vitest run tests/sensitivedata/minimize.test.ts tests/security/sensitive-inventory.test.ts tests/security/redaction-coverage.test.ts tests/security/persistence-leaks.test.ts tests/security/store-value-boundaries.test.ts tests/security/result-sanitizer.test.ts tests/security/request-error-logging.test.ts tests/credentials/redact.test.ts tests/observability/redact.test.ts tests/api/bootstrap-redaction.test.ts --no-file-parallelism --maxWorkers=1",
+  "files": [
+    {
+      "path": "tests/sensitivedata/minimize.test.ts",
+      "sha256": "eeb6ca6f4456def26b5a459b03810fd193edb594252900287d9b2418c3f01fef"
+    },
+    {
+      "path": "tests/security/sensitive-inventory.test.ts",
+      "sha256": "de6941b1b3457f32fd4ac0ef10d3e8d942fef282fa5ea00a04a7a9d170c6123a"
+    },
+    {
+      "path": "tests/security/redaction-coverage.test.ts",
+      "sha256": "dbb8a29475c07d178d530a61e15fdfc8de4e3e0e39d5386cf8338fc9a6bf77d0"
+    },
+    {
+      "path": "tests/security/persistence-leaks.test.ts",
+      "sha256": "63752fc53590bee268e1aafe94651f20e0868897aed5ce46e3ac9edf6f35bcf0"
+    },
+    {
+      "path": "tests/security/store-value-boundaries.test.ts",
+      "sha256": "9c5be8edd5d18d736b9b9fc6b49dea30b76633779403cc7c467214d7c9550b9c"
+    },
+    {
+      "path": "tests/security/result-sanitizer.test.ts",
+      "sha256": "9a49c10ba40684c1cf2374e48c9648a79734f1e4e50bafa1c510670ed30ec34f"
+    },
+    {
+      "path": "tests/security/request-error-logging.test.ts",
+      "sha256": "158b0685b47d9b22a3c716eac9655b670990e8e84900c14e1e8466f9e43aede3"
+    },
+    {
+      "path": "tests/credentials/redact.test.ts",
+      "sha256": "d78f6b74b6f3be5be1a2377e7f8228939484c760b238a5d9edaf17fb0e4b23fb"
+    },
+    {
+      "path": "tests/observability/redact.test.ts",
+      "sha256": "a35f28d617154c280f5543ebccab2e6a16f8eaa139462b56173bae5c14360d1d"
+    },
+    {
+      "path": "tests/api/bootstrap-redaction.test.ts",
+      "sha256": "212a98d4c211cc80abc0de680dbde0221fec10d37c7eadc7553baa133caf9877"
+    }
+  ]
+}

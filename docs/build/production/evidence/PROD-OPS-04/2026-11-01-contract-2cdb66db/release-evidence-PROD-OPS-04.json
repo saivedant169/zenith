@@ -1,0 +1,20 @@
+{
+  "format": "zenith.release-evidence.v1",
+  "requirementId": "PROD-OPS-04",
+  "level": "contract",
+  "commit": "2cdb66db6343469eebde92fb48e8ee0f808064d3",
+  "environment": "Mac mini, Darwin arm64, Node v22.23.3 (official nodejs.org build, SHASUMS256 verified); offline Vitest, no engine, no network, no ZENITH_TEST_* or ZENITH_LIVE_* variables set",
+  "command": "vitest run tests/controlplane/recovery-epoch.test.ts tests/controlplane/state-backend-recovery.test.ts tests/ops/recovery-manifest.test.ts tests/ops/recovery-health.test.ts tests/platform/recovery-service.test.ts tests/hosted/backup/create-restore.test.ts tests/hosted/backup/reconcile.test.ts tests/hosted/backup/reopen.test.ts tests/hosted/backup/targets.test.ts tests/hosted/authority/backup.test.ts tests/hosted/acceptance/gate-10-restore.test.ts tests/acceptance/aws-ops04-port.test.ts --no-file-parallelism --maxWorkers=1",
+  "mode": "contract",
+  "status": "passed",
+  "passed": 126,
+  "failed": 0,
+  "skipped": 0,
+  "exitCode": 0,
+  "sources": [
+    {
+      "path": "docs/build/production/evidence/PROD-OPS-04/2026-11-01-contract-2cdb66db/lane-source-PROD-OPS-04.json",
+      "sha256": "01c743d9f6a94c97fc1eec3688490f1077103cede575a18e7141e60947135062"
+    }
+  ]
+}

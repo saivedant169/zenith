@@ -299,3 +299,13 @@ Limits: `operational_rehearsal` is not done, and the requirement lists it as req
 Run [41065148794](https://github.com/saivedant169/zenith/actions/runs/41065148794), run id `zlive-202610301340-1940`, scenario `ops-04`, lane `live2`, source `2cdb66db6343469eebde92fb48e8ee0f808064d3`. Verdict `passed` with cleanup complete, on the same flow as run 41012192964. Measured RPO 204.1 s (target 900) and RTO 20.7 s (target 14400). The same run measured PROD-OPS-01; files are in `evidence/PROD-OPS-01/2026-10-30-live-aws-41065148794/`.
 
 Run 41060350720, on the same source, stopped at the fresh approval: the resumed apply ended with an unconfirmed plan dispatch (`plan_artifact_unavailable`). Its cause is not yet known; PR #121 traces it if it recurs. Not a promotion.
+
+## Contract and local engine receipts at the live run's commit (2026-11-01)
+
+Source `2cdb66db`, the commit of this requirement's `live_sandbox` receipt, so the levels share one commit. Each lane ran on a clean detached checkout of that commit through `scripts/release/lane-source.mjs`, on a Mac mini (Darwin arm64) with Node 22.23.3. `scripts/release/evidence-cli.mjs` bound a `zenith.release-evidence.v1` receipt to each source.
+
+- `contract`: 126 passed, 0 failed, 0 skipped over 12 test files, offline, no engine or network. Files: `docs/build/production/evidence/PROD-OPS-04/2026-11-01-contract-2cdb66db/`.
+- `local_engine`: 56 passed, 0 failed, 0 skipped over 2 test files, against a disposable PostgreSQL 16.15 (pinned digest) migrated by the checkout's own migrator. Files: `docs/build/production/evidence/PROD-OPS-04/2026-11-01-local-engine-2cdb66db/`.
+
+
+`operational_rehearsal` is still not done. Not a promotion.
